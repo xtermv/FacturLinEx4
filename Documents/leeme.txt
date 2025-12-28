@@ -1,0 +1,47 @@
+PAQUETES NECESARIOS:
+
+  Linux
+  Mysql
+  Lazarus SVN
+  LazReport
+  TAChartLazarus
+  ZeosLibs: svn checkout svn://zeos.firmos.at/zeos 
+
+FacturLinEx:
+
+  svn checkout svn://www.puntodev.com/FacturLinEx/trunk FacturLinEx
+
+  Dentro de la carpeta FacturLinEx existe una carpeta oculta '.facturlinex' esta contiene la configuracion de la aplicación.
+  Para que la aplicación se ejecute correctamente desde el usuario, se debe copiar esta carpeta al /home/usuriox/
+
+  Crear la bbdd:
+
+   mysqladmin -u root create facturlinex2
+   mysql -u root facturlinex2 < Documents/bbdd.sql
+
+  Crear la bbddSIC:
+
+   mysqladmin -u root create sicLinex
+   mysql -u root sicLinex < Documents/bbddSIC.sql
+
+  En Debian si el usuario root tiene pasword, las anteriores ordenes deben de ser sustituidas por:
+   Crear la bbdd:
+
+   mysqladmin -u root -p create facturlinex2
+   mysql -u root -p facturlinex2 < Documents/bbdd.sql
+
+  Crear la bbddSIC:
+
+   mysqladmin -u root -p create sicLinex
+   mysql -u root -p sicLinex < Documents/bbddSIC.sql
+
+Report:
+
+  Para que funcionen los report hay que ponerlos en /usr/share/facturlinex/Report/
+
+
+Nota:
+
+  Si quieres que la aplicacion cree la bbdd cuando inicies esta por primera vez, copia el file Tablas/facturlinex2.sql al dir /usr/share/facturlinex2, si esta carpeta no existe, crearla!
+
+

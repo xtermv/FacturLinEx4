@@ -1,0 +1,13 @@
+TFENVIOPEDIDOS.CAPTION=Envio de Pedidos
+TFENVIOPEDIDOS.BITBTNENVIAR.HINT=Visualizar los datos
+TFENVIOPEDIDOS.BITBTNENVIAR.CAPTION=Enviar
+TFENVIOPEDIDOS.BITBTNCERRAR.CAPTION=Cerrar
+TFENVIOPEDIDOS.BITBTNENVIAR2.CAPTION=Enviar
+TFENVIOPEDIDOS.BITBTNSALIR2.CAPTION=Salir
+TFENVIOPEDIDOS.RADIOBUTTON9.HINT=Si selecciona esta opcion, se enviaran todos los pedidos mostrados en la pantalla.
+TFENVIOPEDIDOS.RADIOBUTTON9.CAPTION=Enviar todos los pedidos
+TFENVIOPEDIDOS.RADIOBUTTON10.HINT=Si selecciona esta opcion, se enviaran todos los pedidos de esta pantalla marcados con una 'S'.
+TFENVIOPEDIDOS.RADIOBUTTON10.CAPTION=Enviar los pedidos marcados
+TFENVIOPEDIDOS.RADIOBUTTON11.HINT=Si selecciona esta opcion, se enviaran todos los pedidos de esta pantalla marcados con una 'N' o sin marcar.
+TFENVIOPEDIDOS.RADIOBUTTON11.CAPTION=Enviar los pedidos sin marcar.
+TFENVIOPEDIDOS.DBGRID1.HINT=Botón derecho Marcar/Desmarcar
