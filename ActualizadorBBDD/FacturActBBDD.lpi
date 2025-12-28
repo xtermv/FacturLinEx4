@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectOptions>
+    <Version Value="9"/>
+    <General>
+      <MainUnit Value="0"/>
+      <UseXPManifest Value="True"/>
+      <Icon Value="0"/>
+    </General>
+    <VersionInfo>
+      <StringTable ProductVersion=""/>
+    </VersionInfo>
+    <BuildModes Count="1">
+      <Item1 Name="default" Default="True"/>
+    </BuildModes>
+    <PublishOptions>
+      <Version Value="2"/>
+      <IgnoreBinaries Value="False"/>
+      <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
+      <ExcludeFileFilter Value="*.(bak|ppu|ppw|o|so);*~;backup"/>
+    </PublishOptions>
+    <RunParams>
+      <local>
+        <FormatVersion Value="1"/>
+        <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
+      </local>
+    </RunParams>
+    <RequiredPackages Count="2">
+      <Item1>
+        <PackageName Value="zcomponent"/>
+        <MinVersion Major="6" Minor="6" Release="4" Valid="True"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="LCL"/>
+      </Item2>
+    </RequiredPackages>
+    <Units Count="6">
+      <Unit0>
+        <Filename Value="FacturActBBDD.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <UsageCount Value="64"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="actualizabbdd.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FActualizaBBDD"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="ActualizaBBDD"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="321"/>
+        <CursorPos Y="334"/>
+        <UsageCount Value="64"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="../Globales/global.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="DataModule1"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="DataModule"/>
+        <UnitName Value="Global"/>
+        <UsageCount Value="64"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="../Globales/funciones.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Funciones"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="35"/>
+        <CursorPos X="19" Y="41"/>
+        <UsageCount Value="64"/>
+        <Loaded Value="True"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="../../../Componentes/Zeos-6.6.6/src/dbc/ZDbcMySqlUtils.pas"/>
+        <TopLine Value="369"/>
+        <CursorPos Y="392"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="../Funciones/fn_mysql.pas"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="1"/>
+        <UsageCount Value="21"/>
+        <Loaded Value="True"/>
+      </Unit5>
+    </Units>
+    <JumpHistory Count="30" HistoryIndex="29">
+      <Position1>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="180" Column="20" TopLine="167"/>
+      </Position1>
+      <Position2>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="187" Column="21" TopLine="167"/>
+      </Position2>
+      <Position3>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="104" Column="91" TopLine="104"/>
+      </Position3>
+      <Position4>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="180" Column="20" TopLine="167"/>
+      </Position4>
+      <Position5>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="187" Column="21" TopLine="167"/>
+      </Position5>
+      <Position6>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="200" Column="23" TopLine="187"/>
+      </Position6>
+      <Position7>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="209" Column="20" TopLine="187"/>
+      </Position7>
+      <Position8>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="215" Column="20" TopLine="202"/>
+      </Position8>
+      <Position9>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="222" Column="20" TopLine="202"/>
+      </Position9>
+      <Position10>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="229" Column="20" TopLine="216"/>
+      </Position10>
+      <Position11>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="287" Column="60" TopLine="275"/>
+      </Position11>
+      <Position12>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="27" Column="59" TopLine="14"/>
+      </Position12>
+      <Position13>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="285" Column="95" TopLine="276"/>
+      </Position13>
+      <Position14>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="286" Column="59" TopLine="274"/>
+      </Position14>
+      <Position15>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="249" TopLine="235"/>
+      </Position15>
+      <Position16>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="168" Column="15" TopLine="164"/>
+      </Position16>
+      <Position17>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="167" Column="13" TopLine="164"/>
+      </Position17>
+      <Position18>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="250" Column="21" TopLine="233"/>
+      </Position18>
+      <Position19>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="362" TopLine="341"/>
+      </Position19>
+      <Position20>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="319" Column="3" TopLine="298"/>
+      </Position20>
+      <Position21>
+        <Filename Value="actualizabbdd.pas"/>
+      </Position21>
+      <Position22>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="430" Column="32" TopLine="412"/>
+      </Position22>
+      <Position23>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="130" Column="42" TopLine="116"/>
+      </Position23>
+      <Position24>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="480" Column="4" TopLine="455"/>
+      </Position24>
+      <Position25>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="135" Column="36" TopLine="135"/>
+      </Position25>
+      <Position26>
+        <Filename Value="../Globales/funciones.pas"/>
+        <Caret Line="210" Column="2" TopLine="183"/>
+      </Position26>
+      <Position27>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="135" Column="36" TopLine="135"/>
+      </Position27>
+      <Position28>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="104" Column="15" TopLine="111"/>
+      </Position28>
+      <Position29>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="296" Column="34" TopLine="280"/>
+      </Position29>
+      <Position30>
+        <Filename Value="actualizabbdd.pas"/>
+        <Caret Line="415" Column="35" TopLine="421"/>
+      </Position30>
+    </JumpHistory>
+  </ProjectOptions>
+  <CompilerOptions>
+    <Version Value="11"/>
+    <SearchPaths>
+      <IncludeFiles Value="$(ProjOutDir)"/>
+      <OtherUnitFiles Value="../Globales;../Funciones"/>
+      <UnitOutputDirectory Value="Bin"/>
+    </SearchPaths>
+    <Parsing>
+      <SyntaxOptions>
+        <UseAnsiStrings Value="False"/>
+      </SyntaxOptions>
+    </Parsing>
+    <Linking>
+      <Options>
+        <Win32>
+          <GraphicApplication Value="True"/>
+        </Win32>
+      </Options>
+    </Linking>
+  </CompilerOptions>
+  <Debugging>
+    <Exceptions Count="3">
+      <Item1>
+        <Name Value="EAbort"/>
+      </Item1>
+      <Item2>
+        <Name Value="ECodetoolError"/>
+      </Item2>
+      <Item3>
+        <Name Value="EFOpenError"/>
+      </Item3>
+    </Exceptions>
+  </Debugging>
+</CONFIG>

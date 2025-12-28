@@ -1,0 +1,162 @@
+<?xml version="1.0"?>
+<CONFIG>
+  <ProjectOptions>
+    <PathDelim Value="\"/>
+    <Version Value="7"/>
+    <General>
+      <MainUnit Value="0"/>
+      <TargetFileExt Value=".exe"/>
+      <Icon Value="0"/>
+      <UseXPManifest Value="True"/>
+      <ActiveEditorIndexAtStart Value="0"/>
+    </General>
+    <VersionInfo>
+      <ProjectVersion Value=""/>
+    </VersionInfo>
+    <PublishOptions>
+      <Version Value="2"/>
+      <IgnoreBinaries Value="False"/>
+      <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
+      <ExcludeFileFilter Value="*.(bak|ppu|ppw|o|so);*~;backup"/>
+    </PublishOptions>
+    <RunParams>
+      <local>
+        <FormatVersion Value="1"/>
+        <LaunchingApplication PathPlusParams="\usr\X11R6\bin\xterm -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
+      </local>
+    </RunParams>
+    <RequiredPackages Count="3">
+      <Item1>
+        <PackageName Value="FCL"/>
+        <MinVersion Major="1" Valid="True"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="zcomponent"/>
+        <MinVersion Major="6" Minor="6" Release="6" Valid="True"/>
+      </Item2>
+      <Item3>
+        <PackageName Value="LCL"/>
+      </Item3>
+    </RequiredPackages>
+    <Units Count="9">
+      <Unit0>
+        <Filename Value="AsistenteParaAnexos.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="AsistenteParaAnexos"/>
+        <CursorPos X="1" Y="21"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="129"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="asistenteanexos.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FormAsistenteAnexos"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="AsistenteAnexos"/>
+        <CursorPos X="51" Y="135"/>
+        <TopLine Value="124"/>
+        <EditorIndex Value="0"/>
+        <UsageCount Value="129"/>
+        <Loaded Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="..\AsitenteScaner\asistentescaner.pas"/>
+        <ComponentName Value="FAsistenteScaneo"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="AsistenteScaner"/>
+        <CursorPos X="51" Y="135"/>
+        <TopLine Value="132"/>
+        <UsageCount Value="9"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="..\Globales\funciones.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="funciones"/>
+        <UsageCount Value="129"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="..\Globales\global.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="DataModule1"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="DataModule"/>
+        <UnitName Value="Global"/>
+        <CursorPos X="20" Y="257"/>
+        <TopLine Value="256"/>
+        <UsageCount Value="129"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="..\menu.pas"/>
+        <ComponentName Value="FMenu"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Menu"/>
+        <CursorPos X="99" Y="325"/>
+        <TopLine Value="323"/>
+        <UsageCount Value="37"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="..\..\..\Software\ZEOSDBO-6.6.6-stable\src\component\ZAbstractRODataset.pas"/>
+        <UnitName Value="ZAbstractRODataset"/>
+        <CursorPos X="1" Y="758"/>
+        <TopLine Value="746"/>
+        <UsageCount Value="1"/>
+        <SyntaxHighlighter Value="Delphi"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="..\Globales\busquedas.pas"/>
+        <ComponentName Value="FBusquedas"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Busquedas"/>
+        <CursorPos X="18" Y="308"/>
+        <TopLine Value="291"/>
+        <UsageCount Value="1"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="..\Globales\imprimir.pas"/>
+        <ComponentName Value="FImpresion"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Imprimir"/>
+        <CursorPos X="29" Y="330"/>
+        <TopLine Value="318"/>
+        <UsageCount Value="7"/>
+      </Unit8>
+    </Units>
+    <JumpHistory Count="0" HistoryIndex="-1"/>
+  </ProjectOptions>
+  <CompilerOptions>
+    <Version Value="8"/>
+    <PathDelim Value="\"/>
+    <SearchPaths>
+      <IncludeFiles Value="$(ProjOutDir)\"/>
+      <OtherUnitFiles Value="D:\Mis Documentos\lazarus\facturlinex\trunk\Globales\"/>
+      <UnitOutputDirectory Value="Bin"/>
+    </SearchPaths>
+    <Linking>
+      <Options>
+        <Win32>
+          <GraphicApplication Value="True"/>
+        </Win32>
+      </Options>
+    </Linking>
+    <Other>
+      <CompilerPath Value="$(CompPath)"/>
+    </Other>
+  </CompilerOptions>
+  <Debugging>
+    <Exceptions Count="3">
+      <Item1>
+        <Name Value="EAbort"/>
+      </Item1>
+      <Item2>
+        <Name Value="ECodetoolError"/>
+      </Item2>
+      <Item3>
+        <Name Value="EFOpenError"/>
+      </Item3>
+    </Exceptions>
+  </Debugging>
+</CONFIG>

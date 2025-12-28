@@ -1,0 +1,181 @@
+<?xml version="1.0"?>
+<CONFIG>
+  <ProjectOptions>
+    <Version Value="9"/>
+    <PathDelim Value="\"/>
+    <General>
+      <Flags>
+        <SaveOnlyProjectUnits Value="True"/>
+        <AlwaysBuild Value="False"/>
+        <LRSInOutputDirectory Value="False"/>
+      </Flags>
+      <MainUnit Value="0"/>
+      <AutoCreateForms Value="False"/>
+      <Title Value="Importador para Pedidos"/>
+      <UseAppBundle Value="False"/>
+      <ActiveWindowIndexAtStart Value="0"/>
+    </General>
+    <i18n>
+      <EnableI18N Value="True"/>
+      <OutDir Value="locale"/>
+    </i18n>
+    <VersionInfo>
+      <UseVersionInfo Value="True"/>
+      <Language Value="040A"/>
+    </VersionInfo>
+    <BuildModes Count="1">
+      <Item1 Name="default" Default="True"/>
+    </BuildModes>
+    <PublishOptions>
+      <Version Value="2"/>
+      <IgnoreBinaries Value="False"/>
+      <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
+      <ExcludeFileFilter Value="*.(bak|ppu|ppw|o|so);*~;backup"/>
+    </PublishOptions>
+    <RunParams>
+      <local>
+        <FormatVersion Value="1"/>
+        <LaunchingApplication PathPlusParams="\usr\X11R6\bin\xterm -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
+      </local>
+    </RunParams>
+    <RequiredPackages Count="7">
+      <Item1>
+        <PackageName Value="dcpcrypt"/>
+        <MinVersion Major="2" Release="4" Build="1" Valid="True"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="lazreportpdfexport"/>
+        <MinVersion Minor="5" Valid="True"/>
+      </Item2>
+      <Item3>
+        <PackageName Value="zcomponent"/>
+        <MinVersion Major="6" Minor="6" Release="1" Valid="True"/>
+      </Item3>
+      <Item4>
+        <PackageName Value="LCL"/>
+      </Item4>
+      <Item5>
+        <PackageName Value="FCL"/>
+        <MinVersion Major="1" Valid="True"/>
+      </Item5>
+      <Item6>
+        <PackageName Value="lazreport"/>
+        <MinVersion Minor="9" Release="5" Valid="True"/>
+      </Item6>
+      <Item7>
+        <PackageName Value="TAChartLazarusPkg"/>
+        <MinVersion Valid="True"/>
+      </Item7>
+    </RequiredPackages>
+    <Units Count="6">
+      <Unit0>
+        <Filename Value="AsistenteImportadorPedidos.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="AsistenteImportadorPedidos"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="19" Y="13"/>
+        <UsageCount Value="95"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="menu.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FMenu"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Menu"/>
+        <EditorIndex Value="2"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="37"/>
+        <CursorPos X="26" Y="41"/>
+        <UsageCount Value="95"/>
+        <Loaded Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="Pedidos\gestionar.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FPedido"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="gestionar"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="1"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="460"/>
+        <CursorPos X="22" Y="471"/>
+        <UsageCount Value="95"/>
+        <Loaded Value="True"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="Importar2\importar2.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="fImportador"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="importar2"/>
+        <EditorIndex Value="0"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="256"/>
+        <CursorPos X="40" Y="265"/>
+        <UsageCount Value="95"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="Pedidos\importar.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="fImportarPed"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="importar"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1026"/>
+        <CursorPos X="4" Y="1048"/>
+        <UsageCount Value="48"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="..\Globales\busquedas.pas"/>
+        <IsPartOfProject Value="True"/>
+        <HasResources Value="True"/>
+        <UnitName Value="busquedas"/>
+        <UsageCount Value="20"/>
+      </Unit5>
+    </Units>
+  </ProjectOptions>
+  <CompilerOptions>
+    <Version Value="9"/>
+    <SearchPaths>
+      <IncludeFiles Value="$(ProjOutDir)"/>
+      <OtherUnitFiles Value="Tiendas;Facturas;Clientes;Articulos;Configuracion;Globales;Ventas;Proveedores;Familias;Usuarios;Departamentos;Varios/FormaPago;Varios/Rutas;Varios/Fabricantes;Albaranes;Historicos;Pedidos;ivas;Cajas;Comunicaciones;Puestos;Varios/Busquedas;Facturar;Etiquetas;Presupuestos;Varios;Produccion;CopiaSeg;AStock;Varios/Roles;Importar2;../Articulos;../Globales"/>
+      <UnitOutputDirectory Value="Bin"/>
+      <SrcPath Value="$(LazarusDir)/lcl;$(LazarusDir)/lcl/interfaces/$(LCLWidgetType)"/>
+    </SearchPaths>
+    <Parsing>
+      <SyntaxOptions>
+        <CStyleOperator Value="False"/>
+        <AllowLabel Value="False"/>
+        <UseAnsiStrings Value="False"/>
+      </SyntaxOptions>
+    </Parsing>
+    <CodeGeneration>
+      <SmallerCode Value="True"/>
+    </CodeGeneration>
+    <Linking>
+      <LinkSmart Value="True"/>
+    </Linking>
+    <Other>
+      <CompilerMessages>
+        <UseMsgFile Value="True"/>
+      </CompilerMessages>
+      <CompilerPath Value="$(CompPath)"/>
+    </Other>
+  </CompilerOptions>
+  <Debugging>
+    <Exceptions Count="2">
+      <Item1>
+        <Name Value="EReadError"/>
+      </Item1>
+      <Item2>
+        <Name Value="EConvertError"/>
+      </Item2>
+    </Exceptions>
+  </Debugging>
+</CONFIG>
