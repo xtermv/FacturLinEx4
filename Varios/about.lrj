@@ -1,0 +1,12 @@
+{"version":1,"strings":[
+{"hash":4691652,"name":"taboutbox.caption","sourcebytes":[65,98,111,117,116],"value":"About"},
+{"hash":217693848,"name":"taboutbox.labelpaquete.caption","sourcebytes":[71,101,115,116,105,195,179,110,32,76,105,110,101,120],"value":"Gesti\u00F3n Linex"},
+{"hash":18479806,"name":"taboutbox.labelversion.caption","sourcebytes":[86,97,114,105,97,98,108,101,32,76,97,98,101,108,86,101,114,115,105,111,110],"value":"Variable LabelVersion"},
+{"hash":173887137,"name":"taboutbox.labelaplicacion.caption","sourcebytes":[70,97,99,116,117,114,76,105,110,69,120,32,86,101,114,105,42,102,97,99,116,117,32,52,46,48,46,49],"value":"FacturLinEx Veri*factu 4.0.1"},
+{"hash":9612303,"name":"taboutbox.labelpagproyecto.caption","sourcebytes":[104,116,116,112,58,47,47,115,111,117,114,99,101,102,111,114,103,101,46,110,101,116,47,112,114,111,106,101,99,116,115,47,102,97,99,116,117,114,108,105,110,101,120,47],"value":"http://sourceforge.net/projects/facturlinex/"},
+{"hash":5866242,"name":"taboutbox.buttonok.caption","sourcebytes":[83,97,108,105,114],"value":"Salir"},
+{"hash":341471,"name":"taboutbox.logo.caption","sourcebytes":[76,111,103,111],"value":"Logo"},
+{"hash":144576447,"name":"taboutbox.desarrollo.caption","sourcebytes":[68,101,115,97,114,114,111,108,108,111],"value":"Desarrollo"},
+{"hash":193111363,"name":"taboutbox.agradecimientos.caption","sourcebytes":[65,103,114,97,100,101,99,105,109,105,101,110,116,111,115],"value":"Agradecimientos"},
+{"hash":261901521,"name":"taboutbox.licencia.caption","sourcebytes":[76,105,99,101,110,99,105,97],"value":"Licencia"}
+]}

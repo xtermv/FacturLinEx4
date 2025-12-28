@@ -1,0 +1,14 @@
+[Desktop Entry]
+Version=1.0
+Encoding=UTF-8
+Name=No name
+Type=Application
+Exec=facturlinex2
+#TryExec=
+Icon=/usr/share/facturlinex2/Icons/FacturLinEx.png
+X-GNOME-DocPath=
+Terminal=false
+GenericName[es_ES]=FacturLinEx2
+Comment[es_ES]=Facturacion GPL
+Name[es_ES]=Gestión LinEx FacturLinEx-2
+Categories=LinExPyme-Gest;

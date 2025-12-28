@@ -1,0 +1,17 @@
+{"version":1,"strings":[
+{"hash":204764119,"name":"tfmodelo347.caption","sourcebytes":[77,111,100,101,108,111,32,51,52,55],"value":"Modelo 347"},
+{"hash":204764119,"name":"tfmodelo347.label1.caption","sourcebytes":[77,111,100,101,108,111,32,51,52,55],"value":"Modelo 347"},
+{"hash":74159216,"name":"tfmodelo347.groupbox1.caption","sourcebytes":[32,83,101,108,101,99,99,105,111,110,97,114,32,101,106,101,114,99,105,99,105,111,32,32,32,32],"value":" Seleccionar ejercicio    "},
+{"hash":319103,"name":"tfmodelo347.label5.caption","sourcebytes":[65,195,177,111],"value":"A\u00F1o"},
+{"hash":149176565,"name":"tfmodelo347.label6.caption","sourcebytes":[76,195,173,109,105,116,101],"value":"L\u00EDmite"},
+{"hash":233815840,"name":"tfmodelo347.groupbox2.caption","sourcebytes":[32,32,67,108,105,101,110,116,101,32,97,32,118,105,115,117,97,108,105,122,97,114,32,32,32],"value":"  Cliente a visualizar   "},
+{"hash":18390,"name":"tfmodelo347.label2.caption","sourcebytes":[67,73,70],"value":"CIF"},
+{"hash":245037792,"name":"tfmodelo347.label3.caption","sourcebytes":[67,195,179,100,105,103,111,32],"value":"C\u00F3digo "},
+{"hash":20402736,"name":"tfmodelo347.label4.caption","sourcebytes":[82,97,122,195,179,110,32,83,111,99,105,97,108,32],"value":"Raz\u00F3n Social "},
+{"hash":116296640,"name":"tfmodelo347.groupbox3.caption","sourcebytes":[32,32,83,101,108,101,99,99,105,111,110,97,114,32,83,101,114,105,101,32,32,32],"value":"  Seleccionar Serie   "},
+{"hash":88437475,"name":"tfmodelo347.btseleccion.hint","sourcebytes":[86,105,115,117,97,108,105,122,97,114,32,108,111,115,32,100,97,116,111,115],"value":"Visualizar los datos"},
+{"hash":164079154,"name":"tfmodelo347.btseleccion.caption","sourcebytes":[83,101,108,101,99,99,105,111,110,97,114],"value":"Seleccionar"},
+{"hash":77371522,"name":"tfmodelo347.bitbtn4.caption","sourcebytes":[67,101,114,114,97,114],"value":"Cerrar"},
+{"hash":88437475,"name":"tfmodelo347.btimprimir.hint","sourcebytes":[86,105,115,117,97,108,105,122,97,114,32,108,111,115,32,100,97,116,111,115],"value":"Visualizar los datos"},
+{"hash":75040514,"name":"tfmodelo347.btimprimir.caption","sourcebytes":[73,109,112,114,105,109,105,114],"value":"Imprimir"}
+]}

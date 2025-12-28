@@ -1,0 +1,581 @@
+<?xml version="1.0"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="7"/>
+    <Units Count="52">
+      <Unit0>
+        <Filename Value="FacturLinEx.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="FacturLinEx"/>
+        <CursorPos X="1" Y="28"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="200"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="menu.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FMenu"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Menu"/>
+        <CursorPos X="37" Y="712"/>
+        <TopLine Value="558"/>
+        <UsageCount Value="200"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="Puestos\puestos.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FPuestos"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="puestos"/>
+        <CursorPos X="54" Y="489"/>
+        <TopLine Value="478"/>
+        <UsageCount Value="200"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="Tiendas\listatiendas.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FLTiendas"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="listatiendas"/>
+        <CursorPos X="80" Y="2"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="200"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="Tiendas\series.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FSeries"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Series"/>
+        <CursorPos X="38" Y="171"/>
+        <TopLine Value="150"/>
+        <UsageCount Value="200"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="Articulos\envases.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FEnvases"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Envases"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="200"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="Configuracion\config.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FConfig"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="config"/>
+        <CursorPos X="13" Y="814"/>
+        <TopLine Value="801"/>
+        <UsageCount Value="200"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="Globales\global.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="DataModule1"/>
+        <ResourceBaseClass Value="DataModule"/>
+        <UnitName Value="Global"/>
+        <CursorPos X="3" Y="206"/>
+        <TopLine Value="188"/>
+        <UsageCount Value="200"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="Familias\familias.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FFamilias"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Familias"/>
+        <CursorPos X="1" Y="425"/>
+        <TopLine Value="401"/>
+        <UsageCount Value="200"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="Usuarios\listausuarios.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FLUsuario"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="listausuarios"/>
+        <CursorPos X="32" Y="2"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="200"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="Departamentos\departamentos.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FDepartamentos"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Departamentos"/>
+        <CursorPos X="1" Y="410"/>
+        <TopLine Value="386"/>
+        <UsageCount Value="200"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="Varios\FormaPago\formapago.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FFormaPago"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="FormaPago"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="200"/>
+      </Unit11>
+      <Unit12>
+        <Filename Value="Varios\Rutas\rutas.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FRutas"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Rutas"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="200"/>
+      </Unit12>
+      <Unit13>
+        <Filename Value="Varios\Fabricantes\fabricantes.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FFabricantes"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Fabricantes"/>
+        <CursorPos X="3" Y="1"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="200"/>
+      </Unit13>
+      <Unit14>
+        <Filename Value="Historicos\historicoop.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FLHistoop"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="historicoop"/>
+        <CursorPos X="23" Y="255"/>
+        <TopLine Value="251"/>
+        <UsageCount Value="200"/>
+      </Unit14>
+      <Unit15>
+        <Filename Value="Pedidos\gestionar.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FPedido"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="gestionar"/>
+        <CursorPos X="27" Y="878"/>
+        <TopLine Value="860"/>
+        <UsageCount Value="200"/>
+      </Unit15>
+      <Unit16>
+        <Filename Value="Globales\calculadora.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FCalculadora"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="calculadora"/>
+        <UsageCount Value="200"/>
+      </Unit16>
+      <Unit17>
+        <Filename Value="Familias\listafamilias.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FLFamilias"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="listafamilias"/>
+        <CursorPos X="41" Y="20"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="200"/>
+      </Unit17>
+      <Unit18>
+        <Filename Value="ivas\ivaemi.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FLIvaEmi"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="ivaEmi"/>
+        <CursorPos X="10" Y="1"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="200"/>
+      </Unit18>
+      <Unit19>
+        <Filename Value="ivas\ivareci.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FLIvaReci"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="ivaReci"/>
+        <CursorPos X="10" Y="312"/>
+        <TopLine Value="301"/>
+        <UsageCount Value="200"/>
+      </Unit19>
+      <Unit20>
+        <Filename Value="Proveedores\listaproveedores.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FLProveedores"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="listaproveedores"/>
+        <CursorPos X="118" Y="688"/>
+        <TopLine Value="677"/>
+        <UsageCount Value="200"/>
+      </Unit20>
+      <Unit21>
+        <Filename Value="Globales\funciones.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Funciones"/>
+        <CursorPos X="53" Y="56"/>
+        <TopLine Value="38"/>
+        <UsageCount Value="200"/>
+      </Unit21>
+      <Unit22>
+        <Filename Value="Cajas\acaja.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FCaja"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="acaja"/>
+        <CursorPos X="1" Y="1012"/>
+        <TopLine Value="985"/>
+        <EditorIndex Value="0"/>
+        <UsageCount Value="200"/>
+        <Loaded Value="True"/>
+      </Unit22>
+      <Unit23>
+        <Filename Value="Puestos\listapuestos.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FLPuestos"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="listapuestos"/>
+        <CursorPos X="77" Y="1"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="200"/>
+      </Unit23>
+      <Unit24>
+        <Filename Value="Comunicaciones\actualizaeans.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FActualizaEans"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="actualizaeans"/>
+        <UsageCount Value="201"/>
+      </Unit24>
+      <Unit25>
+        <Filename Value="Globales\teclado.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FTeclado"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="teclado"/>
+        <UsageCount Value="200"/>
+      </Unit25>
+      <Unit26>
+        <Filename Value="Pedidos\entrada.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FEntrada"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="entrada"/>
+        <CursorPos X="1" Y="334"/>
+        <TopLine Value="304"/>
+        <UsageCount Value="200"/>
+      </Unit26>
+      <Unit27>
+        <Filename Value="Pedidos\cambiprecio.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FCambiPrecio"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="CambiPrecio"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="200"/>
+      </Unit27>
+      <Unit28>
+        <Filename Value="Tiendas\tiendas.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FTiendas"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Tiendas"/>
+        <CursorPos X="30" Y="536"/>
+        <TopLine Value="523"/>
+        <UsageCount Value="200"/>
+      </Unit28>
+      <Unit29>
+        <Filename Value="Departamentos\listadepartamentos.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FLDepartamentos"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="listadepartamentos"/>
+        <CursorPos X="11" Y="280"/>
+        <TopLine Value="269"/>
+        <UsageCount Value="200"/>
+      </Unit29>
+      <Unit30>
+        <Filename Value="Ventas\creditos.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FCreditos"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="creditos"/>
+        <CursorPos X="10" Y="965"/>
+        <TopLine Value="947"/>
+        <UsageCount Value="200"/>
+        <Bookmarks Count="2">
+          <Item0 X="37" Y="617" ID="1"/>
+          <Item1 X="3" Y="966" ID="2"/>
+        </Bookmarks>
+      </Unit30>
+      <Unit31>
+        <Filename Value="Facturar\facturar.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FFacturar"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="facturar"/>
+        <CursorPos X="14" Y="60"/>
+        <TopLine Value="48"/>
+        <UsageCount Value="200"/>
+      </Unit31>
+      <Unit32>
+        <Filename Value="Etiquetas\lineales.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FLEtilineales"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="lineales"/>
+        <CursorPos X="41" Y="20"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="200"/>
+      </Unit32>
+      <Unit33>
+        <Filename Value="Historicos\histopedi.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FHistopedi"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="histopedi"/>
+        <CursorPos X="14" Y="1449"/>
+        <TopLine Value="1438"/>
+        <UsageCount Value="200"/>
+      </Unit33>
+      <Unit34>
+        <Filename Value="Comunicaciones\actualizaarti.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FActualizaArti"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="actualizaarti"/>
+        <CursorPos X="138" Y="277"/>
+        <TopLine Value="277"/>
+        <UsageCount Value="200"/>
+      </Unit34>
+      <Unit35>
+        <Filename Value="Articulos\listaarticulos.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FLArticulos"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="listaarticulos"/>
+        <CursorPos X="1" Y="928"/>
+        <TopLine Value="910"/>
+        <UsageCount Value="200"/>
+      </Unit35>
+      <Unit36>
+        <Filename Value="Comunicaciones\enviopedidos.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FEnvioPedidos"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="enviopedidos"/>
+        <CursorPos X="12" Y="177"/>
+        <TopLine Value="168"/>
+        <UsageCount Value="206"/>
+      </Unit36>
+      <Unit37>
+        <Filename Value="Varios\about.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="AboutBox"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="about"/>
+        <CursorPos X="25" Y="27"/>
+        <TopLine Value="25"/>
+        <UsageCount Value="203"/>
+      </Unit37>
+      <Unit38>
+        <Filename Value="Produccion\produccion.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FProduccion"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Produccion"/>
+        <CursorPos X="3" Y="388"/>
+        <TopLine Value="388"/>
+        <UsageCount Value="201"/>
+        <Bookmarks Count="2">
+          <Item0 X="1" Y="357" ID="1"/>
+          <Item1 X="1" Y="287" ID="2"/>
+        </Bookmarks>
+      </Unit38>
+      <Unit39>
+        <Filename Value="Presupuestos\presupuestos.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FPresupuesto"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Presupuestos"/>
+        <CursorPos X="41" Y="1063"/>
+        <TopLine Value="1037"/>
+        <UsageCount Value="201"/>
+        <Bookmarks Count="1">
+          <Item0 X="1" Y="737" ID="1"/>
+        </Bookmarks>
+      </Unit39>
+      <Unit40>
+        <Filename Value="Historicos\histoalba.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FHistAlbaran"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="HistoAlba"/>
+        <CursorPos X="10" Y="1"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="210"/>
+      </Unit40>
+      <Unit41>
+        <Filename Value="Ventas\ventas.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FVentas"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Ventas"/>
+        <CursorPos X="1" Y="1320"/>
+        <TopLine Value="1316"/>
+        <EditorIndex Value="1"/>
+        <UsageCount Value="200"/>
+        <Bookmarks Count="2">
+          <Item0 X="1" Y="1377" ID="3"/>
+          <Item1 X="1" Y="829" ID="4"/>
+        </Bookmarks>
+        <Loaded Value="True"/>
+      </Unit41>
+      <Unit42>
+        <Filename Value="Articulos\articulos.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FArticulos"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="articulos"/>
+        <CursorPos X="3" Y="747"/>
+        <TopLine Value="745"/>
+        <UsageCount Value="217"/>
+      </Unit42>
+      <Unit43>
+        <Filename Value="Albaranes\albaran.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FAlbaran"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Albaran"/>
+        <CursorPos X="69" Y="951"/>
+        <TopLine Value="951"/>
+        <UsageCount Value="183"/>
+      </Unit43>
+      <Unit44>
+        <Filename Value="Globales\busquedas.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FBusquedas"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Busquedas"/>
+        <UsageCount Value="152"/>
+      </Unit44>
+      <Unit45>
+        <Filename Value="Varios\Busquedas\busquedas.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FBusquedas"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Busquedas"/>
+        <UsageCount Value="200"/>
+      </Unit45>
+      <Unit46>
+        <Filename Value="Facturas\factura.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FFacturas"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Factura"/>
+        <CursorPos X="41" Y="1220"/>
+        <TopLine Value="1202"/>
+        <UsageCount Value="150"/>
+      </Unit46>
+      <Unit47>
+        <Filename Value="Proveedores\proveedores.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FProveedores"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Proveedores"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="142"/>
+      </Unit47>
+      <Unit48>
+        <Filename Value="Usuarios\usuarios.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FUsuarios"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Usuarios"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="140"/>
+      </Unit48>
+      <Unit49>
+        <Filename Value="Clientes\listaclientes.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FLClientes"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="listaclientes"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="140"/>
+      </Unit49>
+      <Unit50>
+        <Filename Value="Clientes\clientes.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FClientes"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="Clientes"/>
+        <CursorPos X="37" Y="765"/>
+        <TopLine Value="762"/>
+        <UsageCount Value="71"/>
+      </Unit50>
+      <Unit51>
+        <Filename Value="AStock\fastock.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="Fastock"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="FAStock"/>
+        <CursorPos X="1" Y="165"/>
+        <TopLine Value="130"/>
+        <UsageCount Value="67"/>
+      </Unit51>
+    </Units>
+    <General>
+      <ActiveEditorIndexAtStart Value="2"/>
+    </General>
+    <CustomSessionData Count="2">
+      <Item0 Name="SVN active" Value="-1"/>
+      <Item1 Name="SVN repository" Value="/home/nicolas/FacturLinEx"/>
+    </CustomSessionData>
+  </ProjectSession>
+</CONFIG>
