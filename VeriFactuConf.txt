@@ -1,0 +1,17 @@
+Configurar Veri*Factu
+
+Nombre del sistema :  Podemos poner el que queramos, por defecto FacturLinEx 2.0 (SIF Libre)
+Identificador del Sistema : Cualquier identificador de 2 Dígitos (si tine más, fallará) pueden ser letras o números
+Versión Veri*Factu : En principio la que aparece 1.0.0
+Número de instalación : Cada instalación de la misma empresa deberá cambiar este dígito (que por defecto empieza en 1)
+Sólo sitema Veri*Factu (Por defecto NO marcado) porque se utiliza para más cosas como gestión de almacen, albaranes, pedidos, etc.
+Multiples titulares y Sistema Multiples titulares (Deshabilitado por no estár preparado para ello)
+
+p12 File : ruta donde se encuentra el fichero con el certificado digital por ejemplo : /home/usuario/.local/share/FL4Config/Certificado.p12
+p12 Password : la clave de ese certificado (que podrá ser eliminada tras la generación de los .pem)
+OpenSSLPath : openssl
+CertFile : ruta donde se guardarán los .pem con los que trabajará el sistema para firmar documentos por ejemplo : /home/usuario/.local/share/FL4Config/Cert.pem
+KeyFile : ruta donde se guardarán los .pem con los que trabajará el sistema para fimar documentos (recomendable todos juntos) por ejemplo : /home/usuario/.local/share/FL4Config/Key.pem
+CAFile : Al igual que el resto, ruta donde se guardarán los documentos .pem : por ejemplo : /home/usuario/.local/share/FL4Config/CAFile.pem
+
+Tras introducir estos datos, pulsaremos el botón V (Verde) para guardar los datos, posteriormente entraremos de nuevo y pulsaremos el botón CERT*Probe para generarlos.
