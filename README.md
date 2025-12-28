@@ -2,6 +2,10 @@
 Multi-Terminal
 FacturLinEx sistema de gestión, Almacen y Tpv Libre y Gratuito para Linux y MariaDB
 
+# NOTA ACLARATORIA IMPORTANTE PARA SU INSTALACIÓN
+# INSTALAR CON LA CONFIGURACIÓN BASE PARA QUE CREE LOS INDICES, ARTICULOS Y USUARIOS BÁSICOS NECESARIOS PARA SU FUNCIONAMIENTO
+# DESPUÉS HABRÁ QUE ACTUALIZAR LA BBDD AL FICHERO .SQL QUE SE CREARÁ EN RAIZ PARA COMPLETAR LAS TABLAS CON SUS MEJORAS Y EDICIONES Y ASÍ EVITAR ERRORES Y PROBLEMAS
+
 Tpv (Ventas y Cobros, Albaranes, Facturas, Presupuestos, etc) todo desde una misma pantalla, ágil pues el 90% de las operaciones pueden hacerse con teclado
 Control de Cajas y Créditos
 Albaranes, Facturas y Facturación de Albaranes (selección de criterios)
