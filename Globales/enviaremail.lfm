@@ -1,0 +1,273 @@
+object fEnviarEmail: TfEnviarEmail
+  Left = 272
+  Height = 581
+  Top = 130
+  Width = 702
+  Caption = 'Enviar E-Mail'
+  ClientHeight = 581
+  ClientWidth = 702
+  OnClose = FormClose
+  OnCreate = FormCreate
+  Position = poDesktopCenter
+  LCLVersion = '0.9.30'
+  object pc: TPageControl
+    Left = 8
+    Height = 567
+    Top = 8
+    Width = 688
+    ActivePage = tsMensaje
+    TabIndex = 0
+    TabOrder = 0
+    object tsMensaje: TTabSheet
+      Caption = ' Mensaje '
+      ClientHeight = 532
+      ClientWidth = 682
+      object Panel1: TPanel
+        Left = 7
+        Height = 101
+        Top = 11
+        Width = 665
+        ClientHeight = 101
+        ClientWidth = 665
+        TabOrder = 0
+        object Label1: TLabel
+          Left = 1
+          Height = 18
+          Top = 5
+          Width = 68
+          Caption = 'Conexión'
+          Font.Style = [fsBold]
+          ParentColor = False
+          ParentFont = False
+        end
+        object Label2: TLabel
+          Left = 25
+          Height = 18
+          Top = 38
+          Width = 54
+          Caption = 'Servidor'
+          ParentColor = False
+        end
+        object Label3: TLabel
+          Left = 25
+          Height = 18
+          Top = 69
+          Width = 43
+          Caption = 'Puerto'
+          ParentColor = False
+        end
+        object Label4: TLabel
+          Left = 281
+          Height = 18
+          Top = 38
+          Width = 54
+          Caption = 'Usuario:'
+          ParentColor = False
+        end
+        object Label5: TLabel
+          Left = 281
+          Height = 18
+          Top = 69
+          Width = 75
+          Caption = 'Contraseña'
+          ParentColor = False
+        end
+        object Servidor: TEdit
+          Left = 89
+          Height = 27
+          Top = 29
+          Width = 168
+          TabOrder = 0
+        end
+        object Puerto: TEdit
+          Left = 89
+          Height = 27
+          Top = 60
+          Width = 80
+          TabOrder = 1
+        end
+        object Usuario: TEdit
+          Left = 369
+          Height = 27
+          Top = 29
+          Width = 272
+          TabOrder = 2
+        end
+        object Contrasenya: TEdit
+          Left = 369
+          Height = 27
+          Top = 60
+          Width = 272
+          EchoMode = emPassword
+          PasswordChar = '*'
+          TabOrder = 3
+        end
+      end
+      object Panel2: TPanel
+        Left = 7
+        Height = 298
+        Top = 120
+        Width = 665
+        ClientHeight = 298
+        ClientWidth = 665
+        TabOrder = 1
+        object Label6: TLabel
+          Left = 1
+          Height = 18
+          Top = 0
+          Width = 62
+          Caption = 'Mensaje'
+          Font.Style = [fsBold]
+          ParentColor = False
+          ParentFont = False
+        end
+        object Label7: TLabel
+          Left = 25
+          Height = 18
+          Top = 32
+          Width = 66
+          Caption = 'Remitente'
+          ParentColor = False
+        end
+        object Label8: TLabel
+          Left = 25
+          Height = 18
+          Top = 64
+          Width = 79
+          Caption = 'Destinatario'
+          ParentColor = False
+        end
+        object Label9: TLabel
+          Left = 25
+          Height = 18
+          Top = 96
+          Width = 46
+          Caption = 'Asunto'
+          ParentColor = False
+        end
+        object Label10: TLabel
+          Left = 25
+          Height = 18
+          Top = 128
+          Width = 98
+          Caption = 'Fichero adjunto'
+          ParentColor = False
+        end
+        object Label11: TLabel
+          Left = 25
+          Height = 18
+          Top = 152
+          Width = 54
+          Caption = 'Mensaje'
+          ParentColor = False
+        end
+        object sbAdjuntar: TSpeedButton
+          Left = 618
+          Height = 26
+          Top = 120
+          Width = 23
+          Caption = '...'
+          NumGlyphs = 0
+          OnClick = sbAdjuntarClick
+        end
+        object Remitente: TEdit
+          Left = 129
+          Height = 27
+          Top = 23
+          Width = 512
+          TabOrder = 0
+        end
+        object Destinatario: TEdit
+          Left = 129
+          Height = 27
+          Top = 55
+          Width = 512
+          TabOrder = 1
+        end
+        object Asunto: TEdit
+          Left = 129
+          Height = 27
+          Top = 87
+          Width = 512
+          TabOrder = 2
+        end
+        object FAdjunto: TEdit
+          Left = 129
+          Height = 27
+          Top = 120
+          Width = 480
+          TabOrder = 3
+        end
+        object Mensaje: TMemo
+          Left = 25
+          Height = 120
+          Top = 168
+          Width = 616
+          ScrollBars = ssVertical
+          TabOrder = 4
+        end
+      end
+      object btnEnviar: TBitBtn
+        Left = 288
+        Height = 40
+        Top = 482
+        Width = 104
+        Caption = 'Enviar'
+        OnClick = btnEnviarClick
+        TabOrder = 2
+      end
+      object SB: TStatusBar
+        Left = 7
+        Height = 21
+        Top = 452
+        Width = 665
+        Align = alNone
+        Panels = <>
+      end
+      object ProgressBar: TProgressBar
+        Left = 7
+        Height = 24
+        Top = 424
+        Width = 665
+        TabOrder = 4
+      end
+    end
+    object tsLog: TTabSheet
+      Caption = ' Log '
+      ClientHeight = 532
+      ClientWidth = 682
+      object MemoLogs: TMemo
+        Left = 9
+        Height = 514
+        Top = 8
+        Width = 668
+        ScrollBars = ssBoth
+        TabOrder = 0
+      end
+    end
+  end
+  object OD: TOpenDialog
+    left = 572
+    top = 348
+  end
+  object SMTP: TLSMTPClientComponent
+    OnConnect = SMTPConnect
+    OnReceive = SMTPReceive
+    OnDisconnect = SMTPDisconnect
+    OnError = SMTPError
+    OnSent = SMTPSent
+    OnSuccess = SMTPSuccess
+    OnFailure = SMTPFailure
+    StatusSet = [ssCon, ssEhlo, ssAuthLogin, ssAuthPlain, ssData, ssQuit]
+    PipeLine = False
+    Timeout = 0
+    left = 620
+    top = 348
+  end
+  object TimerQuit: TTimer
+    Enabled = False
+    OnTimer = TimerQuitTimer
+    left = 572
+    top = 404
+  end
+end

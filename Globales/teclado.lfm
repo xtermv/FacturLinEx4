@@ -1,0 +1,751 @@
+object FTeclado: TFTeclado
+  Left = 930
+  Height = 345
+  Top = 529
+  Width = 570
+  ActiveControl = Teclado
+  Caption = 'Teclado'
+  ClientHeight = 345
+  ClientWidth = 570
+  KeyPreview = True
+  OnClose = Formclose
+  OnCreate = Formcreate
+  ShowHint = True
+  LCLVersion = '0.9.27'
+  object Teclado: TPanel
+    Left = 0
+    Height = 345
+    Top = 0
+    Width = 570
+    Align = alClient
+    ClientHeight = 345
+    ClientWidth = 570
+    Color = 14200684
+    Font.Color = clText
+    Font.Height = -15
+    Font.Name = 'adobe-helvetica'
+    Font.Pitch = fpVariable
+    ParentColor = False
+    ParentFont = False
+    TabOrder = 0
+    Visible = False
+    object LabelTeclado: TLabel
+      Left = 8
+      Height = 27
+      Top = 6
+      Width = 553
+      Alignment = taCenter
+      AutoSize = False
+      Font.Color = clText
+      Font.Height = -25
+      Font.Name = 'adobe-helvetica'
+      Font.Pitch = fpVariable
+      Layout = tlCenter
+      ParentColor = False
+      ParentFont = False
+    end
+    object Button19: TButton
+      Left = 8
+      Height = 39
+      Top = 154
+      Width = 41
+      Caption = 'Q'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button19Click
+      ParentFont = False
+      TabOrder = 0
+    end
+    object Button20: TButton
+      Left = 56
+      Height = 39
+      Top = 154
+      Width = 41
+      Caption = 'W'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button20Click
+      ParentFont = False
+      TabOrder = 1
+    end
+    object Button21: TButton
+      Left = 104
+      Height = 39
+      Top = 154
+      Width = 41
+      Caption = 'E'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button21Click
+      ParentFont = False
+      TabOrder = 2
+    end
+    object Button32: TButton
+      Left = 488
+      Height = 185
+      Top = 152
+      Width = 73
+      Caption = 'ENTER'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button32Click
+      ParentFont = False
+      TabOrder = 3
+    end
+    object Button33: TButton
+      Left = 152
+      Height = 39
+      Top = 154
+      Width = 41
+      Caption = 'R'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button33Click
+      ParentFont = False
+      TabOrder = 4
+    end
+    object Button34: TButton
+      Left = 200
+      Height = 39
+      Top = 154
+      Width = 41
+      Caption = 'T'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button34Click
+      ParentFont = False
+      TabOrder = 5
+    end
+    object Button22: TButton
+      Left = 248
+      Height = 39
+      Top = 154
+      Width = 41
+      Caption = 'Y'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button22Click
+      ParentFont = False
+      TabOrder = 6
+    end
+    object Button30: TButton
+      Left = 344
+      Height = 39
+      Top = 154
+      Width = 41
+      Caption = 'I'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button30Click
+      ParentFont = False
+      TabOrder = 7
+    end
+    object Button35: TButton
+      Left = 296
+      Height = 39
+      Top = 154
+      Width = 41
+      Caption = 'U'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button35Click
+      ParentFont = False
+      TabOrder = 8
+    end
+    object Button36: TButton
+      Left = 392
+      Height = 39
+      Top = 154
+      Width = 41
+      Caption = 'O'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button36Click
+      ParentFont = False
+      TabOrder = 9
+    end
+    object Button37: TButton
+      Left = 440
+      Height = 39
+      Top = 154
+      Width = 41
+      Caption = 'P'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button37Click
+      ParentFont = False
+      TabOrder = 10
+    end
+    object Button23: TButton
+      Left = 488
+      Height = 39
+      Top = 106
+      Width = 73
+      Caption = 'BORRA'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button23Click
+      ParentFont = False
+      TabOrder = 11
+    end
+    object Button24: TButton
+      Left = 8
+      Height = 39
+      Top = 202
+      Width = 41
+      Caption = 'A'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button24Click
+      ParentFont = False
+      TabOrder = 12
+    end
+    object Button25: TButton
+      Left = 56
+      Height = 39
+      Top = 202
+      Width = 41
+      Caption = 'S'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button25Click
+      ParentFont = False
+      TabOrder = 13
+    end
+    object Button26: TButton
+      Left = 104
+      Height = 39
+      Top = 202
+      Width = 41
+      Caption = 'D'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button26Click
+      ParentFont = False
+      TabOrder = 14
+    end
+    object Button27: TButton
+      Left = 152
+      Height = 39
+      Top = 202
+      Width = 41
+      Caption = 'F'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button27Click
+      ParentFont = False
+      TabOrder = 15
+    end
+    object Button28: TButton
+      Left = 200
+      Height = 39
+      Top = 202
+      Width = 41
+      Caption = 'G'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button28Click
+      ParentFont = False
+      TabOrder = 16
+    end
+    object Button29: TButton
+      Left = 248
+      Height = 39
+      Top = 202
+      Width = 41
+      Caption = 'H'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button29Click
+      ParentFont = False
+      TabOrder = 17
+    end
+    object Button31: TButton
+      Left = 344
+      Height = 39
+      Top = 202
+      Width = 41
+      Caption = 'K'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button31Click
+      ParentFont = False
+      TabOrder = 18
+    end
+    object Button38: TButton
+      Left = 296
+      Height = 39
+      Top = 202
+      Width = 41
+      Caption = 'J'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button38Click
+      ParentFont = False
+      TabOrder = 19
+    end
+    object Button39: TButton
+      Left = 392
+      Height = 39
+      Top = 202
+      Width = 41
+      Caption = 'L'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button39Click
+      ParentFont = False
+      TabOrder = 20
+    end
+    object Button40: TButton
+      Left = 440
+      Height = 39
+      Top = 202
+      Width = 41
+      Caption = 'N.'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button40Click
+      ParentFont = False
+      TabOrder = 21
+    end
+    object Button41: TButton
+      Left = 8
+      Height = 39
+      Top = 250
+      Width = 41
+      Caption = 'Z'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button41Click
+      ParentFont = False
+      TabOrder = 22
+    end
+    object Button42: TButton
+      Left = 56
+      Height = 39
+      Top = 250
+      Width = 41
+      Caption = 'X'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button42Click
+      ParentFont = False
+      TabOrder = 23
+    end
+    object Button43: TButton
+      Left = 104
+      Height = 39
+      Top = 250
+      Width = 41
+      Caption = 'C'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button43Click
+      ParentFont = False
+      TabOrder = 24
+    end
+    object Button44: TButton
+      Left = 152
+      Height = 39
+      Top = 248
+      Width = 41
+      Caption = 'V'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button44Click
+      ParentFont = False
+      TabOrder = 25
+    end
+    object Button45: TButton
+      Left = 200
+      Height = 39
+      Top = 250
+      Width = 41
+      Caption = 'B'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button45Click
+      ParentFont = False
+      TabOrder = 26
+    end
+    object Button46: TButton
+      Left = 248
+      Height = 39
+      Top = 250
+      Width = 41
+      Caption = 'N'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button46Click
+      ParentFont = False
+      TabOrder = 27
+    end
+    object Button47: TButton
+      Left = 296
+      Height = 39
+      Top = 250
+      Width = 41
+      Caption = 'M'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button47Click
+      ParentFont = False
+      TabOrder = 28
+    end
+    object Button48: TButton
+      Left = 344
+      Height = 39
+      Top = 250
+      Width = 41
+      Caption = ','
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button48Click
+      ParentFont = False
+      TabOrder = 29
+    end
+    object Button49: TButton
+      Left = 392
+      Height = 39
+      Top = 248
+      Width = 41
+      Caption = '.'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button49Click
+      ParentFont = False
+      TabOrder = 30
+    end
+    object Button50: TButton
+      Left = 440
+      Height = 39
+      Top = 250
+      Width = 41
+      Caption = '-'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button50Click
+      ParentFont = False
+      TabOrder = 31
+    end
+    object Button51: TButton
+      Left = 8
+      Height = 39
+      Top = 298
+      Width = 473
+      Caption = 'ESPACIO'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button51Click
+      ParentFont = False
+      TabOrder = 32
+    end
+    object Button53: TButton
+      Left = 8
+      Height = 39
+      Top = 106
+      Width = 41
+      Caption = '1'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button53Click
+      ParentFont = False
+      TabOrder = 33
+    end
+    object Button54: TButton
+      Left = 56
+      Height = 39
+      Top = 106
+      Width = 41
+      Caption = '2'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button54Click
+      ParentFont = False
+      TabOrder = 34
+    end
+    object Button55: TButton
+      Left = 104
+      Height = 39
+      Top = 106
+      Width = 41
+      Caption = '3'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button55Click
+      ParentFont = False
+      TabOrder = 35
+    end
+    object Button56: TButton
+      Left = 152
+      Height = 39
+      Top = 106
+      Width = 41
+      Caption = '4'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button56Click
+      ParentFont = False
+      TabOrder = 36
+    end
+    object Button57: TButton
+      Left = 200
+      Height = 39
+      Top = 106
+      Width = 41
+      Caption = '5'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button57Click
+      ParentFont = False
+      TabOrder = 37
+    end
+    object Button58: TButton
+      Left = 248
+      Height = 39
+      Top = 106
+      Width = 41
+      Caption = '6'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button58Click
+      ParentFont = False
+      TabOrder = 38
+    end
+    object Button59: TButton
+      Left = 344
+      Height = 39
+      Top = 106
+      Width = 41
+      Caption = '8'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button59Click
+      ParentFont = False
+      TabOrder = 39
+    end
+    object Button60: TButton
+      Left = 296
+      Height = 39
+      Top = 106
+      Width = 41
+      Caption = '7'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button60Click
+      ParentFont = False
+      TabOrder = 40
+    end
+    object Button61: TButton
+      Left = 392
+      Height = 39
+      Top = 106
+      Width = 41
+      Caption = '9'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button61Click
+      ParentFont = False
+      TabOrder = 41
+    end
+    object Button62: TButton
+      Left = 440
+      Height = 39
+      Top = 106
+      Width = 41
+      Caption = '0'
+      Color = clWhite
+      Font.Color = clText
+      Font.Height = -16
+      Font.Name = 'Comic Sans MS'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      OnClick = Button62Click
+      ParentFont = False
+      TabOrder = 42
+    end
+    object EditTecla: TEdit
+      Left = 8
+      Height = 46
+      Top = 40
+      Width = 553
+      CharCase = ecUppercase
+      Font.Color = clText
+      Font.Height = -31
+      Font.Name = 'adobe-helvetica'
+      Font.Pitch = fpVariable
+      Font.Style = [fsBold]
+      MaxLength = 15
+      ParentFont = False
+      TabOrder = 43
+    end
+  end
+end

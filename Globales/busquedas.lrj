@@ -1,0 +1,17 @@
+{"version":1,"strings":[
+{"hash":111224371,"name":"tfbusquedas.caption","sourcebytes":[70,111,114,109,117,108,97,114,105,111,32,100,101,32,66,195,186,115,113,117,101,100,97,115],"value":"Formulario de B\u00FAsquedas"},
+{"hash":242993438,"name":"tfbusquedas.btcerrar.hint","sourcebytes":[60,69,78,84,69,82,62,32,65,99,101,112,116,97,32,108,97,32,111,112,99,105,195,179,110,32,115,101,108,101,99,99,105,111,110,97,100,97,32,101,110,32,108,97,32,114,101,106,105,108,108,97,32,100,101,32,100,97,116,111,115,46],"value":"<ENTER> Acepta la opci\u00F3n seleccionada en la rejilla de datos."},
+{"hash":127694882,"name":"tfbusquedas.btcerrar.caption","sourcebytes":[38,65,99,101,112,116,97,114],"value":"&Aceptar"},
+{"hash":240704704,"name":"tfbusquedas.gbcampo.caption","sourcebytes":[32,32,32,67,97,109,112,111,32,112,97,114,97,32,114,101,97,108,105,122,97,114,32,108,97,32,32,98,195,186,115,113,117,101,100,97,32,32,32],"value":"   Campo para realizar la  b\u00FAsqueda   "},
+{"hash":187339918,"name":"tfbusquedas.cbcampos.hint","sourcebytes":[83,101,108,101,99,99,105,111,110,97,32,108,97,32,99,111,108,117,109,110,97,32,112,111,114,32,108,97,32,113,117,101,32,111,114,100,101,110,97,114,47,98,117,115,99,97,114,46],"value":"Selecciona la columna por la que ordenar/buscar."},
+{"hash":110641939,"name":"tfbusquedas.cbcampos.text","sourcebytes":[67,66,67,97,109,112,111,115],"value":"CBCampos"},
+{"hash":95034944,"name":"tfbusquedas.gbtexto.caption","sourcebytes":[32,32,84,101,120,116,111,32,97,32,98,117,115,99,97,114,32,32],"value":"  Texto a buscar  "},
+{"hash":209794638,"name":"tfbusquedas.edtexto.hint","sourcebytes":[73,110,116,114,111,100,117,99,101,32,101,108,32,100,97,116,111,32,97,32,98,117,115,99,97,114,32,101,110,32,108,97,32,116,97,98,108,97,46],"value":"Introduce el dato a buscar en la tabla."},
+{"hash":13433326,"name":"tfbusquedas.btaplicar.hint","sourcebytes":[60,70,56,62,32,65,99,116,105,118,97,32,101,108,32,102,105,108,116,114,111,32,115,101,108,101,99,99,105,111,110,97,100,111,46],"value":"<F8> Activa el filtro seleccionado."},
+{"hash":218347714,"name":"tfbusquedas.btaplicar.caption","sourcebytes":[70,105,108,116,114,97,114],"value":"Filtrar"},
+{"hash":222229198,"name":"tfbusquedas.btcancelar.hint","sourcebytes":[60,69,83,67,65,80,69,62,32,83,97,108,105,114,32,100,101,32,98,195,186,115,113,117,101,100,97,115,32,115,105,110,32,101,108,101,99,99,105,195,179,110,46],"value":"<ESCAPE> Salir de b\u00FAsquedas sin elecci\u00F3n."},
+{"hash":139044882,"name":"tfbusquedas.btcancelar.caption","sourcebytes":[38,67,97,110,99,101,108,97,114],"value":"&Cancelar"},
+{"hash":122344896,"name":"tfbusquedas.groupbox1.caption","sourcebytes":[32,32,70,105,108,116,114,111,32,97,32,97,112,108,105,99,97,114,32,32],"value":"  Filtro a aplicar  "},
+{"hash":183918622,"name":"tfbusquedas.cbfiltros.hint","sourcebytes":[83,108,101,99,99,105,111,110,97,32,101,108,32,116,105,112,111,32,100,101,108,32,102,105,108,116,114,111,32,97,32,97,112,108,105,99,97,114,46],"value":"Slecciona el tipo del filtro a aplicar."},
+{"hash":199653285,"name":"tfbusquedas.cbfiltros.text","sourcebytes":[32,40,32,61,61,32,41,32,32,73,103,117,97,108,32,113,117,101],"value":" ( == )  Igual que"}
+]}

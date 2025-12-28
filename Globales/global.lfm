@@ -1,0 +1,22 @@
+object DataModule1: TDataModule1
+  OnCreate = DataModuleCreate
+  OldCreateOrder = False
+  Height = 301
+  HorizontalOffset = 1280
+  VerticalOffset = 427
+  Width = 398
+  object dbConexion: TZConnection
+    ControlsCodePage = cCP_UTF8
+    RawCharacterTransliterateOptions.Encoding = encUTF8
+    ClientCodepage = 'utf8mb4'
+    Properties.Strings = (
+      'AutoEncodeStrings='
+      'codepage=utf8mb4'
+    )
+    DisableSavepoints = False
+    Port = 0
+    Protocol = 'mysql'
+    Left = 46
+    Top = 30
+  end
+end

@@ -1,0 +1,15 @@
+TFBUSQUEDAS.CAPTION=Formulario de Búsquedas
+TFBUSQUEDAS.BTCERRAR.HINT=<ENTER> Acepta la opción seleccionada en la rejilla de datos.
+TFBUSQUEDAS.BTCERRAR.CAPTION=&Aceptar
+TFBUSQUEDAS.GBCAMPO.CAPTION=   Campo para realizar la  búsqueda   
+TFBUSQUEDAS.CBCAMPOS.HINT=Selecciona la columna por la que ordenar/buscar.
+TFBUSQUEDAS.CBCAMPOS.TEXT=CBCampos
+TFBUSQUEDAS.GBTEXTO.CAPTION=  Texto a buscar  
+TFBUSQUEDAS.EDTEXTO.HINT=Introduce el dato a buscar en la tabla.
+TFBUSQUEDAS.BTAPLICAR.HINT=<F8> Activa el filtro seleccionado.
+TFBUSQUEDAS.BTAPLICAR.CAPTION=Filtrar
+TFBUSQUEDAS.BTCANCELAR.HINT=<ESCAPE> Salir de búsquedas sin elección.
+TFBUSQUEDAS.BTCANCELAR.CAPTION=&Cancelar
+TFBUSQUEDAS.GROUPBOX1.CAPTION=  Filtro a aplicar  
+TFBUSQUEDAS.CBFILTROS.HINT=Slecciona el tipo del filtro a aplicar.
+TFBUSQUEDAS.CBFILTROS.TEXT= ( == )  Igual que

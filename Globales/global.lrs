@@ -1,0 +1,11 @@
+{ This is an automatically generated lazarus resource file }
+
+LazarusResources.Add('TDataModule1','FORMDATA',[
+  'TPF0'#12'TDataModule1'#11'DataModule1'#8'OnCreate'#7#16'DataModuleCreate'#14
+  +'OldCreateOrder'#8#6'Height'#3'-'#1#16'HorizontalOffset'#3#0#5#14'VerticalOf'
+  +'fset'#3#171#1#5'Width'#3#142#1#0#12'TZConnection'#10'dbConexion'#16'Control'
+  +'sCodePage'#7#8'cCP_UTF8)RawCharacterTransliterateOptions.Encoding'#7#7'encU'
+  +'TF8'#14'ClientCodepage'#6#7'utf8mb4'#18'Properties.Strings'#1#6#18'AutoEnco'
+  +'deStrings='#6#16'codepage=utf8mb4'#0#17'DisableSavepoints'#8#4'Port'#2#0#8
+  +'Protocol'#6#5'mysql'#4'Left'#2'.'#3'Top'#2#30#0#0#0
+]);

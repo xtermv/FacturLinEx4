@@ -1,0 +1,17 @@
+TFIMPRESION.CAPTION=Imprimiendo . . . .
+TFIMPRESION.LBCOPIAS.CAPTION=Copias del documento
+TFIMPRESION.LABEL1.CAPTION=Nombre y ubicación del PDF a generar :
+TFIMPRESION.RADIOGROUP1.CAPTION=   Formato   
+TFIMPRESION.RADIOGROUP2.CAPTION=  Método  
+TFIMPRESION.CHECKBOX1.CAPTION=Impreso personalizado
+TFIMPRESION.CHECKBOXANEXOS.CAPTION=Imprimir Anexos
+TFIMPRESION.CBOBSERVACIONES.HINT=Cambia el concepto por las observaciones en los artículos.
+TFIMPRESION.CBOBSERVACIONES.CAPTION=Observaciones en artículos.
+TFIMPRESION.CBPVP.CAPTION=Visualizar precios con iva.
+TFIMPRESION.CBPRECIO.CAPTION=Visualizar precios sin iva
+TFIMPRESION.CBESCOPIA.HINT=Cambia el concepto por las observaciones en los artículos.
+TFIMPRESION.CBESCOPIA.CAPTION=Etiqueta de ES COPIA
+TFIMPRESION.CBDUPLICADO.CAPTION=Etiqueta de DUPLICADO
+TFIMPRESION.BTOK1.HINT=Pulsando <ENTER> comenzamos la impresión del documento.
+TFIMPRESION.BTSALIR.HINT=Pulsa <ESC> para salir de la impresión.
+TFIMPRESION.CBFECHASALBARANES.CAPTION=Sin fechas en albaranes facturados
