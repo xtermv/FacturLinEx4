@@ -1,0 +1,9 @@
+#DROP TABLE formapago;
+CREATE TABLE formapago
+	(
+	FPA0 INT(4) NOT NULL,
+	FPA1 CHAR(50),
+	PRIMARY KEY kfpa (FPA0),
+        UNIQUE (FPA0),
+	INDEX kfpa (FPA0)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8;
