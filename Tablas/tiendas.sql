@@ -1,0 +1,26 @@
+#DROP TABLE tiendas;
+CREATE TABLE tiendas
+	(
+	T0 INT(4) NOT NULL,
+	T1 CHAR(50),
+	T2 CHAR(50),
+	T3 CHAR(50),
+	T4 CHAR(6),
+	T5 CHAR(50),
+	T6 CHAR(20),
+	T7 CHAR(20),
+ 	T8 CHAR(15),
+ 	T9 DATE,
+ 	T10 DATE,
+ 	T11 CHAR(3),
+ 	T12 CHAR(50),
+ 	T13 CHAR(15),
+ 	T14 CHAR(4),
+ 	T15 CHAR(15),
+ 	T16 CHAR(15),
+ 	T17 CHAR(50),
+ 	T18 BLOB,
+	PRIMARY KEY kt (T0),
+        UNIQUE (T0),
+	INDEX kt (T0)
+	);

@@ -1,0 +1,12 @@
+#DROP TABLE departamentos0000;
+CREATE TABLE departamentos0000
+	(
+	D0 INT(4) NOT NULL,
+	D1 CHAR(50),
+	D2 DATE,
+	D3 DATE,
+	D4 BLOB,
+	PRIMARY KEY kd (D0),
+        UNIQUE (D0),
+	INDEX kd (D0)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8;
