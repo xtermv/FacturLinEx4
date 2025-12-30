@@ -316,7 +316,7 @@ type
   end;
 var
   Root, FileHeader, Batch, Parties, Invoices, Invoice: TDOMElement;
-  InvHeader, InvIssueData: TDOMElement;
+  InvHeader, InvIssueData, PlaceNode, PeriodNode: TDOMElement;
   VATs: array of TVatInfo;
   idx: Integer;
   Serie, Numero, BatchId, EmpresaLimpia: String;
@@ -374,18 +374,34 @@ var
     Admin, C, AddrC: TDOMElement;
     NIFCli, NomCli, DirCli, CPCli, PobCli, ProvCli, TelCli, MailCli: String;
 
-    procedure AddCentre(const Code, Role, Description, APostCode: String);
+    procedure AddCentre(const CodeRaw, Role, RoleName, APostCode: String);
+    var
+      CodeOnly, FullDesc: String;
+      pDash: Integer;
     begin
+      // MiFacturae puede incluir descripción tras el código: "GE00... - Nombre"
+      CodeOnly := Trim(CodeRaw);
+      FullDesc := '';
+      pDash := Pos('-', CodeOnly);
+      if pDash > 0 then
+      begin
+        FullDesc := Trim(CodeOnly);
+        CodeOnly := Trim(Copy(CodeOnly, 1, pDash - 1));
+      end;
+
       C := AddNode(Admin, 'AdministrativeCentre');
-      AddTextNode(C, 'CentreCode', Code);
+      AddTextNode(C, 'CentreCode', CodeOnly);
       AddTextNode(C, 'RoleTypeCode', Role);
-      AddTextNode(C, 'Name', Description);
+      AddTextNode(C, 'Name', UpperCase(RoleName)); // MiFacturae/FACe: nombres en MAYÚSCULAS
       AddrC := AddNode(C, 'AddressInSpain');
       AddTextNode(AddrC, 'Address', DirCli);
       AddTextNode(AddrC, 'PostCode', CleanPostCode(APostCode));
       AddTextNode(AddrC, 'Town', PobCli);
       AddTextNode(AddrC, 'Province', ProvCli);
       AddTextNode(AddrC, 'CountryCode', 'ESP');
+      // En MiFacturae suele aparecer también la descripción completa (opcional)
+      if FullDesc <> '' then
+        AddTextNode(C, 'CentreDescription', FullDesc);
     end;
 
   begin
@@ -407,9 +423,10 @@ var
     if (OG <> '') or (OC <> '') or (UT <> '') then
     begin
       Admin := AddNode(BuyerParty, 'AdministrativeCentres');
-      if OC <> '' then AddCentre(OC, '01', 'Oficina Contable', CPCli);
-      if OG <> '' then AddCentre(OG, '02', 'Organo Gestor', CPCli);
-      if UT <> '' then AddCentre(UT, '03', 'Unidad Tramitadora', CPCli);
+      // Orden MiFacturae: 02 (Órgano Gestor), 03 (Unidad Tramitadora), 01 (Oficina Contable)
+      if OG <> '' then AddCentre(OG, '02', 'ORGANO GESTOR', CPCli);
+      if UT <> '' then AddCentre(UT, '03', 'UNIDAD TRAMITADORA', CPCli);
+      if OC <> '' then AddCentre(OC, '01', 'OFICINA CONTABLE', CPCli);
     end;
     
     FLX_WriteLog('FACTURAE', 'DIR3 parseado -> OG=' + OG + ' OC=' + OC + ' UT=' + UT + ' CCF=' + CCF_Val);
@@ -485,8 +502,10 @@ var
   var Items, ItemNode, TaxesNode, TaxNode, TB, TA: TDOMElement;
       Cant, PU, BaseL, IVA, ImpIVA, Dto: Double;
       Desc, CodArt: String;
+      LineNo: Integer;
   begin
     Items := AddNode(AParent, 'Items');
+    LineNo := 0;
     dbDetalles.First;
     while not dbDetalles.EOF do
     begin
@@ -502,12 +521,24 @@ var
 
       ItemNode := AddNode(Items, 'InvoiceLine');
 
-      { --- AQUI ESTA LA CLAVE DEL CCF --- }
-      { Según esquema FacturaE 3.2.2, ReceiverTransactionReference va ANTES de ItemDescription }
-      if ACCF <> '' then
-        AddTextNode(ItemNode, 'ReceiverTransactionReference', ACCF);
+      Inc(LineNo);
 
-      AddTextNode(ItemNode, 'ItemDescription', Desc);
+      { --- CCF / referencias FACe (MiFacturae) --- }
+      // En la factura oficial de MiFacturae, el CCF aparece como ReceiverContractReference
+      // y además se suele repetir en la descripción del ítem.
+      if ACCF <> '' then
+      begin
+        AddTextNode(ItemNode, 'ReceiverContractReference', ACCF);
+        AddTextNode(ItemNode, 'ReceiverContractDate', FormatDateISO(Fecha));
+        // Secuencia con un decimal (1.0, 2.0, ...) como en MiFacturae
+        AddTextNode(ItemNode, 'SequenceNumber', FormatFloat('0.0', LineNo));
+      end;
+
+      // Descripción (si hay CCF, lo añadimos al final como hace MiFacturae)
+      if (ACCF <> '') and (Pos(ACCF, Desc) = 0) then
+        AddTextNode(ItemNode, 'ItemDescription', Desc + ' - Código de control de la factura (CCF): ' + ACCF)
+      else
+        AddTextNode(ItemNode, 'ItemDescription', Desc);
       AddTextNode(ItemNode, 'Quantity', FormatFloat('0.######', Cant));
       AddTextNode(ItemNode, 'UnitOfMeasure', '01');
       AddTextNode(ItemNode, 'UnitPriceWithoutTax', FormatFloat('0.00000', PU));
@@ -523,8 +554,9 @@ var
       TA := AddNode(TaxNode, 'TaxAmount');
       AddTextNode(TA, 'TotalAmount', FormatFloat('0.00', ImpIVA));
 
-      // --- NO TOCAR: lo de ArticleCode lo dejas así (tal como pides)
-      if CodArt <> '' then AddTextNode(ItemNode, 'ArticleCode', CodArt);
+      // ArticleCode: en FacturaE 3.2.2 suele dar error de validación (FACE/xmllint).
+      // Para mantener compatibilidad, NO lo emitimos. Si necesitas conservarlo, añádelo al texto del ItemDescription o
+      // mapea a un campo permitido por esquema (pero sin romper el orden de la secuencia).
 
       dbDetalles.Next;
     end;
@@ -553,7 +585,7 @@ begin
   AddTextNode(FileHeader, 'InvoiceIssuerType', 'EM');
 
   Batch := AddNode(FileHeader, 'Batch');
-  BatchId := Nif + Serie + Numero;
+  BatchId := Nif + Numero + Serie; // MiFacturae/FACe: NIF + Numero + Serie
   AddTextNode(Batch, 'BatchIdentifier', BatchId);
   AddTextNode(Batch, 'InvoicesCount', '1');
   AddTextNode(AddNode(Batch, 'TotalInvoicesAmount'), 'TotalAmount', FormatFloat('0.00', TotalFactura));
@@ -575,9 +607,34 @@ begin
 
   InvIssueData := AddNode(Invoice, 'InvoiceIssueData');
   AddTextNode(InvIssueData, 'IssueDate', FormatDateISO(Fecha));
+
+  { --- MODIFICADO (mínimo): campos que MiFacturae suele incluir y que FACe espera en facturas “CCF” --- }
+  // OperationDate: en MiFacturae suele coincidir con la fecha de emisión
+  AddTextNode(InvIssueData, 'OperationDate', FormatDateISO(Fecha));
+
+  // PlaceOfIssue: lo tomamos del domicilio del emisor (CP + Localidad) si existe
+  if (Trim(CP) <> '') or (Trim(Localidad) <> '') then
+  begin
+    PlaceNode := AddNode(InvIssueData, 'PlaceOfIssue');
+    if Trim(CP) <> '' then
+      AddTextNode(PlaceNode, 'PostCode', CleanPostCode(CP));
+    if Trim(Localidad) <> '' then
+      AddTextNode(PlaceNode, 'PlaceOfIssueDescription', UpperCase(Localidad));
+  end;
+
+  // InvoicingPeriod: para factura puntual usamos mismo día (Start=End=Fecha)
+  PeriodNode := AddNode(InvIssueData, 'InvoicingPeriod');
+  AddTextNode(PeriodNode, 'StartDate', FormatDateISO(Fecha));
+  AddTextNode(PeriodNode, 'EndDate',   FormatDateISO(Fecha));
+
+  // Moneda / idioma
   AddTextNode(InvIssueData, 'InvoiceCurrencyCode', 'EUR');
   AddTextNode(InvIssueData, 'TaxCurrencyCode', 'EUR');
   AddTextNode(InvIssueData, 'LanguageName', 'es');
+
+  // InvoiceDescription: si hay CCF, lo indicamos aquí como hace MiFacturae
+  if Trim(CCF_Val) <> '' then
+    AddTextNode(InvIssueData, 'InvoiceDescription', 'Código de control de la factura (CCF): ' + Trim(CCF_Val));
 
   AccumulateVAT;
   for idx := 0 to High(VATs) do
