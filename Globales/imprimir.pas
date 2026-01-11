@@ -24,13 +24,15 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, LResources, Forms, Controls, Graphics, Dialogs,
-  ExtCtrls, StdCtrls, Buttons, Spin, lr_e_pdf, LR_DBSet, LR_Class, ZConnection,
-  ZDataset, LCLType, Process, smtpsend, mimemess, mimepart, ssl_openssl,
-  synachar, synautil, synacode, DB, blcksock, ubarcodes, XMLRead, XMLWrite, DOM,
-  ZAbstractConnection, ZAbstractRODataset, ZExceptions, ZAbstractDataset, ZClasses, //-- Control de errores de la uniad ZEOS
-  Math, Crt;
-//, ssl_openssl3
-
+  ExtCtrls, StdCtrls, Buttons, Spin,
+  lr_e_pdf, LR_DBSet, LR_Class,
+  ZConnection, ZDataset,
+  LCLType, Process,
+  smtpsend, synacode,
+  DB,
+  ubarcodes,
+  ZAbstractConnection, ZAbstractRODataset, ZExceptions, ZAbstractDataset, ZClasses, // ZEOS
+  Crt; // Delay()
 
 type
 
@@ -88,7 +90,6 @@ type
     sbBuscar: TSpeedButton;
     SpinEdit1: TSpinEdit;
 
-
     procedure btCorreoClick(Sender: TObject);
     procedure btOk1Click(Sender: TObject);
     procedure btSalirClick(Sender: TObject);
@@ -130,22 +131,7 @@ type
     function GeneraKeyDelNodo():string;
 
     procedure CorreosElectronicos;
-
-    function GetUnitOfMeasureCode(Unidad: String): String;
-    function EscapeXML(const Input: String): String;
-
     function FirmarFactura(XMLFile: string): string;
-
-
-    procedure FicheroXML_Cab();
-    procedure FicheroXML_Dir(DirOCP, DirUTP, DirOGP, DirTOpP, DirOCTP, DirUTTP, DirOGTP, DirTOpTP: String);
-    procedure WriteAddressInSpain();
-    procedure FicheroXML_Cli();
-    function FormatFechaFacturae(FechaOriginal: String): String;
-    procedure FicheroXML_Det();
-    function FormatFechaFacturae(FechaOriginal: String; StartPos, Length: Integer): String;
-    procedure FicheroXML_Pie();
-
   private
     { private declarations }
   public
@@ -175,28 +161,12 @@ var
   xml: integer;
   txtQR, DirectorioQR: String;
 
-const
-  UTF_8 = 'UTF-8';
-
-
 implementation
 
 uses
   Global, Funciones, uFacturaE_Generator, uFacturaE_Signer;
 
-
 { TFImpresion }
-
-function TFImpresion.EscapeXML(const Input: String): String;
-begin
-  Result := Input;
-  Result := StringReplace(Result, '&', '&amp;', [rfReplaceAll]);
-  Result := StringReplace(Result, '<', '&lt;',  [rfReplaceAll]);
-  Result := StringReplace(Result, '>', '&gt;',  [rfReplaceAll]);
-  Result := StringReplace(Result, '"', '&quot;', [rfReplaceAll]);
-  Result := StringReplace(Result, '''', '&apos;', [rfReplaceAll]);
-end;
-
 
 function TFImpresion.Imprime(dbMuestrad: TZQuery; dbMuestrac: TZQuery; dbCliente: TZQuery;
                    TipoDocumento: String; directo: boolean; nCopias:integer): integer;
@@ -225,11 +195,18 @@ begin
   //                             +'&fecha='+FormatDateTime('dd-mm-yyyy',dbCabecera.Fields[1].AsDateTime)
   //                             +'&importe='+FormatFloat('0.00',dbCabecera.Fields[9].AsFloat);
 
+ //      BarcodeQR1.Text:= TextoCodigoQR;                    // ' FacturLinEx Veri*factu 4.0 ';
 
-       BarcodeQR1.Text:=' FacturLinEx Veri*factu 4.0 ';
+       if (UpperCase(vfMode) = 'PRODUCCION') and (Documento= 'FACTURA') then
+         BarcodeQR1.Text:=txtQR+'numserie='+dbCabecera.Fields[2].AsString+'%2F'+dbCabecera.Fields[3].AsString
+                           +'&fecha='+FormatDateTime('dd-mm-yyyy',dbCabecera.Fields[1].AsDateTime)
+                           +'&importe='+FormatFloat('0.00',dbCabecera.Fields[9].AsFloat)
+       else
+         BarcodeQR1.Text := TextoCodigoQR;
+
        DirectorioQR:='';
 
-       if DirectoryExists(RutaPdf) then DirectorioQR:=RutaPdf+'QR.png'
+       if DirectoryExists(RutaPdf) then DirectorioQR:=RutaPdf+'/QR.png'
                                 else DirectorioQR:= RutaIni+'QR.png';
 
        if FileExists(DirectorioQR) then DeleteFile(DirectorioQR);
@@ -249,16 +226,18 @@ begin
          end;
 
        if copy(TipoDocumento,1,1)='V' then begin EsVentas; Exit; end;
+
+ //      showmessage(RutaPDF);
+
        if DirectoryExists(RutaPdf) then
-              NombrePDF:= RutaPdf+'/'+copy(Documento,1,3)+'-'+dbCabecera.Fields[2].AsString
-                        +'-'+dbCabecera.Fields[3].AsString+'.pdf' else
-              NombrePDF:= RutaIni+copy(Documento,1,3)+'-'+dbCabecera.Fields[2].AsString
-                        +'-'+dbCabecera.Fields[3].AsString+'.pdf';
+              NombrePDF:= RutaPdf+'/'+copy(Documento,1,3)+'_'+dbCabecera.Fields[2].AsString
+                        +'_'+dbCabecera.Fields[3].AsString+'.pdf' else
+              NombrePDF:= RutaIni+copy(Documento,1,3)+'_'+dbCabecera.Fields[2].AsString
+                        +'_'+dbCabecera.Fields[3].AsString+'.pdf';
        Caption:='Imprimiendo '+Documento;
        spinEdit1.Value:= dbDatosCliente.FieldByName('C8').AsInteger;
        if spinEdit1.Value=0 then spinEdit1.Value:=1;
 
- //      cbEnviarCorreo.Checked:= dbDatosCliente.FieldByName('C55').AsBoolean;
  //        cbEnviarCorreo.Checked:= False;
        cbEnviarCorreo.Checked:= dbDatosCliente.FieldByName('C55').AsBoolean;
  //      cbEnviarCorreoChange(self);             // Desactivamos/activamos envíos email.
@@ -273,52 +252,16 @@ begin
              // ---- IMPRIMIR DE VERDAD EN MODO DIRECTO (sin PDF) ----
              frReport.LoadFromFile(Impreso);
              frReport.PrepareReport;
-             frReport.PrintPreparedReport('', SpinEdit1.Value);
-             //xaime versión con nCopias
-             //frReport.PrintPreparedReport('',nCopias);
+             //frReport.PrintPreparedReport('', SpinEdit1.Value);
+             //SpinEdit1 y nCopias toman sus valores de la ficha de cliente.
+             frReport.PrintPreparedReport('',nCopias);
              // ------------------------------------------------------
              
-//=================================================================
-//================= DESACTIVADO POR JOSE ==========================
-//=========== GENERACION DE PDF DESACTIVADA TEMPORALMENTE =========
-//=================================================================
-{
-             GeneraImpresion();   // Generamos archivo PDF
-
-             PDFCreado:= False;   // Esperamos hasta que el archivo está creado.
-             InicioContador:= 0;
-
-             while (not PDFCreado) and (InicioContador < 15) do             // Retardo de 15 segundos.
-               begin
-                    if FileExists(NombrePDF) and (FileSize(NombrePDF) > 0) then
-                        PDFCreado:=True
-                    else
-                       begin
-                         DataModule1.Mensaje(' Procesando ','...  Generando archivo PDF.', 1000 , clGreen);
-                         InicioContador:= InicioContador+1;
-                       end;
-                end;
-
-
-               if not PDFCreado then
-                begin
-                  DataModule1.Mensaje(' Error ','El archivo PDF no se pudo generar.', 2000 , clRed);
-                  Result:=0;
-                  Exit;
-                end;
-}
-//=================================================================
-//================= DESACTIVADO POR JOSE ==========================
-//=========== GENERACION DE PDF DESACTIVADA TEMPORALMENTE =========
-//=================================================================
-
              CodigoSalida := 1;
            Result:= 1;                                 //Código de salida = 1 ( Imprimido )
-             //-- btCorreoClick(self);    //-- Desactivado por Jose para evitar problemas con el pdf temporalmente
              Close();
              exit;
          end;
-
 
        //Si el módulo AsistenteParaAnexos está instalado,
        //activa el CheckBox para buscar posibles anexos
@@ -337,19 +280,6 @@ begin
   end;
 end;
 
-
-//*** Conversor formatos a códigos Facturae
-// Podrías crear una función que convierta tus unidades a los códigos Facturae
-function TFImpresion.GetUnitOfMeasureCode(Unidad: String): String;
-begin
-  case Trim(Unidad) of
-    'KG': Result := '03';  // Kilogramos
-    'L':  Result := '04';  // Litros
-    'M':  Result := '05';  // Metros
-    else Result := '01';   // Unidades (por defecto)
-  end;
-end;
-
 procedure TFImpresion.Imprime(TxtInforme: String; Informe: String; Titulo: String);
 begin
     with TFImpresion.Create(Application) do
@@ -361,8 +291,8 @@ begin
        Documento:=Informe;
        Impreso:=DirectorioReport+Informe+'.lrf';
        if DirectoryExists(RutaPdf) then
-              NombrePDF:= RutaPdf+'/'+'Informe-'+FormatDateTime('yyyymmdd',now)+'.pdf' else
-              NombrePDF:= RutaIni+'Informe-'+FormatDateTime('yyyymmdd',now)+'.pdf';
+              NombrePDF:= RutaPdf+'/'+'Informe_'+FormatDateTime('yyyymmdd',now)+'.pdf' else
+              NombrePDF:= RutaIni+'Informe_'+FormatDateTime('yyyymmdd',now)+'.pdf';
        Caption:='Imprimiendo informe';
        spinEdit1.Value:=1;
        RadioGroup1.Enabled:=False;
@@ -424,8 +354,6 @@ begin
 
   // Asociar la variable ArchivoSalida con un archivo físico
   AssignFile(ArchivoSalida, 'salida.txt');
-
-
 
 // Definir un boundary único para el mensaje MIME
   Boundary := 'frontier';
@@ -493,7 +421,6 @@ begin
 // Combinar encabezados y cuerpo
     MensajeCompleto := Encabezados + Cuerpo;
 
-
   // Mostrar el mensaje en la terminal para verificar (opcional)
   try
     // Abrir el archivo en modo escritura (sobrescribe el archivo si ya existe)
@@ -518,7 +445,6 @@ begin
   Mensaje := TStringList.Create;
   try
     Mensaje.Text := MensajeCompleto; // Asignar el mensaje completo al TStringList
-
 
   // Configuración del servidor SMTP (Gmail en este caso)
   SMTP := TSMTPSend.Create;
@@ -600,7 +526,6 @@ begin
 
 end;
 
-
 procedure TFImpresion.ImpDocumento();    // Imprime Documentos
 var
   TxtQ: String;
@@ -628,17 +553,6 @@ begin
        Showmessage('Error : ' + EDB.Message);
      end;
   end;
-{
-  TxtQ:='INSERT INTO imptmp SELECT '+tablad+Tienda+'.*, MID(A17,1,300) as ANotas, A0 FROM '+tablad+Tienda+
-        ', ((Select * from artitien'+Tienda+' left join eans on a0=ean1 where '+dbDetalles.Fields[5].FieldName+'=EAN0) as articulos)'+
-        ' WHERE '+ dbDetalles.Fields[0].FieldName+'='+dbCabecera.Fields[0].AsString+
-        ' AND '+dbDetalles.Fields[2].FieldName+'="'+dbCabecera.Fields[2].AsString+'"'+
-        ' AND '+dbDetalles.Fields[3].FieldName+'='+dbCabecera.Fields[3].AsString+
-        ' AND ('+dbDetalles.Fields[5].FieldName+'=A0 or '+dbDetalles.Fields[5].FieldName+'=EAN0)';
-  if tablad='factud' then TxtQ:=TxtQ+' ORDER BY '+dbDetalles.Fields[16].FieldName;
-  showmessage(TxtQ);
-  dbImprimir.SQL.Text:=TxtQ; dbImprimir.ExecSQL;
-}
 
  if tablad='factud' then
    begin
@@ -932,6 +846,8 @@ procedure TFImpresion.cbEnviarCorreoChange(Sender: TObject);
 var
   PDFCreado: Boolean;
   Contador: Integer;
+  nuevoPDF: string;
+  posNombrePDF: integer;
 
 begin
   if not (cbEnviarCorreo.Checked) then begin
@@ -939,6 +855,12 @@ begin
                                         exit;
                                        end;
   PanelCorreo.Enabled:=True;
+
+  posNombrePDF := pos('FAC_', NombrePDF);
+  if posNombrePDF>0 then
+    begin
+      nuevoPDF:=NombrePDF; Delete(nuevoPDF, posNombrePDF, 4);       // Eliminamos prefijo nombre factura ( FAC_ ).
+    end;
 
 //  if FileExists(NombrePDF) then exit;            // Generamos pdf del documento.
   if (FileExists(NombrePDF)) and ( not (assigned(FImpresion)))  then exit;
@@ -948,6 +870,13 @@ begin
                #13 + ' Desea reemplazarlo ?', 'FacturLinEx',
                MB_ICONQUESTION + MB_YESNO) = idYes then DeleteFile(NombrePDF)
                                                    else exit;
+   if FileExists(nuevoPDF) then
+             if Application.MessageBox(' Factura ya existente en otro formato' +
+               #13 + ' Utilizar la existente ?', 'FacturLinEx',
+               MB_ICONQUESTION + MB_YESNO) = idYes then begin
+                                                           NombrePDF:=nuevoPDF;
+                                                           exit;
+                                                           end;
 
   ImpDocumento();
   TipoImpreso();
@@ -985,7 +914,6 @@ begin
 
        lbGenerando.Visible:=false;
 
-
 end;
 
 procedure TFImpresion.cbEsCopiaChange(Sender: TObject);
@@ -1017,15 +945,24 @@ begin
 
 end;
 
-
 procedure TFImpresion.GeneraImpresion();
 var
   Contador: Integer;
   PDFCreado: Boolean;
+  nuevoPDF: string;
+  posNombrePDF: integer;
 
 begin
 
   frReport.LoadFromFile(Impreso);
+
+  posNombrePDF := pos('FAC_', NombrePDF);
+  if posNombrePDF>0 then
+    begin
+      nuevoPDF:=NombrePDF; Delete(nuevoPDF, posNombrePDF, 4);       // Eliminamos prefijo nombre factura ( FAC_ ).
+    end;
+
+ // showmessage(nombrePDF +' ----- '+nuevoPDF);
 
   if RadioGroup2.ItemIndex=0 then frReport.ShowReport;
 
@@ -1044,6 +981,15 @@ begin
              #13 + ' Desea reemplazarlo ?', 'FacturLinEx',
              MB_ICONQUESTION + MB_YESNO) = idYes then DeleteFile(NombrePDF);
 
+           if FileExists(nuevoPDF) then
+             if Application.MessageBox(' Factura ya existente en otro formato. ' +
+               #13 + ' Utilizar la existente ?', 'FacturLinEx',
+               MB_ICONQUESTION + MB_YESNO) = idYes then begin
+                                                         NombrePDF:=nuevoPDF;
+                                                         BuscarAnexos();
+                                                         btSalirClick(self);
+                                                         exit;
+                                                        end;
 
         lbGenerando.Visible:=True;
 
@@ -1076,7 +1022,6 @@ begin
         lbGenerando.Visible:=false;
 
         end;
-
 
   //       AProcess := TProcess.Create(nil);
   //       AProcess.CommandLine := VisorPdf+' '+RutaPdf+'\Albaran.pdf';
@@ -1145,12 +1090,26 @@ end;
 //================= PASAR PARAMETROS AL REPORT ===============
 procedure TFImpresion.frReportGetValue(const ParName: String;
   var ParValue: Variant);
+
+var
+  LeyendaCabeceraQR, LeyendaPieQR: string;
+
 begin
+
+     if UpperCase(vfMode) = 'PRODUCCION' then
+     begin
+      LeyendaCabeceraQR := ' QR Tributario : ';
+      LeyendaPieQR := ' VERI*FACTU ';
+     end else
+     begin
+      LeyendaCabeceraQR := LeyendaSuperiorQR;
+      LeyendaPieQR := LeyendaInferiorQR;
+     end;
 
   if ParName ='FechaImpresion' then ParValue := inttostr(frReport.EMFPages.Count) + FormatDateTime('yymmddhhnn', now);
 
-  if ParName='leyenda1' then ParValue := ' FacturLinEx VF  4.0 ';
-  if ParName='leyenda2' then ParValue := ' Ver.4 - Rev 20251201 ';
+  if ParName='leyenda1' then ParValue := LeyendaCabeceraQR;
+  if ParName='leyenda2' then ParValue := LeyendaPieQR;
 
   if ParName ='EMPRESA' then ParValue := Empresa;
   if ParName='DIRECCION' then ParValue := Direccion;
@@ -1270,7 +1229,6 @@ begin
 
 end;
 
-
 //======================= LOGOTIPO DEL FORMULARIO ========================
 
 procedure TFImpresion.frReportEnterRect(Memo: TStringList; View: TfrView);
@@ -1305,7 +1263,6 @@ begin
   end;
 
 end;
-
 
 //=================== CALCULAR TIPOS DE IVAS ==================
 procedure TFImpresion.CalculaIvas();
@@ -1388,8 +1345,6 @@ begin
     End;
 end;
 
-
-
 //================ TIPOS DE RECARGO =====================
 procedure TFImpresion.VerRecargo();
 begin
@@ -1452,462 +1407,6 @@ begin
     raise Exception.Create('No se pudo firmar la factura FacturaE.');
 end;
 
-
-//=========================== Generar Fichero XML ===================
-procedure TFImpresion.FicheroXML_Cab();
-var
-  sTotal: String;
-begin
-  // Validación básica de datos esenciales
-  if (dbDatosCliente = nil) or (dbCabecera = nil) then
-    raise Exception.Create('Error: Conjuntos de datos no asignados');
-
-  if not (dbDatosCliente.Active and dbCabecera.Active) then
-    raise Exception.Create('Error: Conjuntos de datos no activos');
-
-  // Calculamos el total una sola vez
-  sTotal := FormatFloat('0.00', TOTAL1 + TOTAL2 + TOTAL3);
-
-  // Cabecera XML con encoding explícito y formato más legible
-  Writeln(PrintText, '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>');
-  Writeln(PrintText, '<fe:Facturae');
-  Writeln(PrintText, '  xmlns:ds="http://www.w3.org/2000/09/xmldsig#"');
-  Writeln(PrintText, '  xmlns:fe="http://www.facturae.es/Facturae/2014/v3.2.1/Facturae">');
-
-  // FileHeader con validación de campos
-  Writeln(PrintText, '  <FileHeader>');
-  Writeln(PrintText, '    <SchemaVersion>3.2.1</SchemaVersion>');
-  Writeln(PrintText, '    <Modality>I</Modality>');
-  Writeln(PrintText, '    <InvoiceIssuerType>EM</InvoiceIssuerType>');
-
-  // Batch con construcción más segura del BatchIdentifier
-  Writeln(PrintText, '    <Batch>');
-  Writeln(PrintText, '      <BatchIdentifier>' +
-    Trim(dbDatosCliente.FieldByName('C5').AsString) +
-    Trim(dbCabecera.Fields[2].AsString) +
-    Trim(dbCabecera.Fields[3].AsString) + '</BatchIdentifier>');
-
-  Writeln(PrintText, '      <InvoicesCount>1</InvoicesCount>');
-
-  // Bloques de totales usando la variable precalculada
-  Writeln(PrintText, '      <TotalInvoicesAmount>');
-  Writeln(PrintText, '        <TotalAmount>' + sTotal + '</TotalAmount>');
-  Writeln(PrintText, '      </TotalInvoicesAmount>');
-
-  Writeln(PrintText, '      <TotalOutstandingAmount>');
-  Writeln(PrintText, '        <TotalAmount>' + sTotal + '</TotalAmount>');
-  Writeln(PrintText, '      </TotalOutstandingAmount>');
-
-  Writeln(PrintText, '      <TotalExecutableAmount>');
-  Writeln(PrintText, '        <TotalAmount>' + sTotal + '</TotalAmount>');
-  Writeln(PrintText, '      </TotalExecutableAmount>');
-
-  Writeln(PrintText, '      <InvoiceCurrencyCode>EUR</InvoiceCurrencyCode>');
-  Writeln(PrintText, '    </Batch>');
-  Writeln(PrintText, '  </FileHeader>');
-
-  // Parte del vendedor con validación de campos obligatorios
-  Writeln(PrintText, '  <Parties>');
-  Writeln(PrintText, '    <SellerParty>');
-  Writeln(PrintText, '      <TaxIdentification>');
-
-  // PersonTypeCode debería ser configurable, no hardcodeado
-  Writeln(PrintText, '        <PersonTypeCode>J</PersonTypeCode>');
-  Writeln(PrintText, '        <ResidenceTypeCode>R</ResidenceTypeCode>');
-
-  if Trim(Nif) = '' then
-    raise Exception.Create('Error: NIF del vendedor no puede estar vacío');
-
-  Writeln(PrintText, '        <TaxIdentificationNumber>' + EscapeXML(Nif) + '</TaxIdentificationNumber>');
-  Writeln(PrintText, '      </TaxIdentification>');
-
-  // Datos de la entidad legal
-  Writeln(PrintText, '      <LegalEntity>');
-
-  if Trim(Empresa) = '' then
-    raise Exception.Create('Error: Nombre de empresa no puede estar vacío');
-
-  Writeln(PrintText, '        <CorporateName>' + EscapeXML(Empresa) + '</CorporateName>');
-  Writeln(PrintText, '        <TradeName>' + EscapeXML(Empresa) + '</TradeName>');
-
-  // Dirección con validación
-  Writeln(PrintText, '        <AddressInSpain>');
-
-  if Trim(Direccion) = '' then
-    raise Exception.Create('Error: Dirección no puede estar vacía');
-
-  Writeln(PrintText, '          <Address>' + EscapeXML(Direccion) + '</Address>');
-  Writeln(PrintText, '          <PostCode>' + EscapeXML(CP) + '</PostCode>');
-  Writeln(PrintText, '          <Town>' + EscapeXML(Localidad) + '</Town>');
-  Writeln(PrintText, '          <Province>' + EscapeXML(Provincia) + '</Province>');
-  Writeln(PrintText, '          <CountryCode>ESP</CountryCode>');
-  Writeln(PrintText, '        </AddressInSpain>');
-
-  // Datos de contacto
-  Writeln(PrintText, '        <ContactDetails>');
-  Writeln(PrintText, '          <Telephone>' + EscapeXML(Telefono) + '</Telephone>');
-  Writeln(PrintText, '          <ElectronicMail>' + EscapeXML(eMail) + '</ElectronicMail>');
-  Writeln(PrintText, '        </ContactDetails>');
-  Writeln(PrintText, '      </LegalEntity>');
-  Writeln(PrintText, '    </SellerParty>');
-
-  // Inicio datos del comprador
-  Writeln(PrintText, '    <BuyerParty>');
-  Writeln(PrintText, '      <TaxIdentification>');
-  Writeln(PrintText, '        <PersonTypeCode>J</PersonTypeCode>');
-  Writeln(PrintText, '        <ResidenceTypeCode>R</ResidenceTypeCode>');
-
-  if Trim(dbDatosCliente.FieldByName('C5').AsString) = '' then
-    raise Exception.Create('Error: NIF del comprador no puede estar vacío');
-
-  Writeln(PrintText, '        <TaxIdentificationNumber>' +
-    EscapeXML(dbDatosCliente.FieldByName('C5').AsString) + '</TaxIdentificationNumber>');
-  Writeln(PrintText, '      </TaxIdentification>');
-end;
-
-procedure TFImpresion.FicheroXML_Dir(DirOCP, DirUTP, DirOGP, DirTOpP,
-                                   DirOCTP, DirUTTP, DirOGTP, DirTOpTP: String);
-begin
-  // Validación básica de parámetros
-  if (dbDatosCliente = nil) or not dbDatosCliente.Active then
-    raise Exception.Create('Error: Dataset de cliente no disponible');
-
-  // Validar campos obligatorios del cliente
-  if Trim(dbDatosCliente.FieldByName('C3').AsString) = '' then
-    raise Exception.Create('Error: Dirección del cliente no puede estar vacía');
-
-  if Trim(dbDatosCliente.FieldByName('C37').AsString) = '' then
-    raise Exception.Create('Error: Código postal del cliente no puede estar vacío');
-
-  if Trim(dbDatosCliente.FieldByName('C4').AsString) = '' then
-    raise Exception.Create('Error: Localidad del cliente no puede estar vacía');
-
-  if Trim(dbDatosCliente.FieldByName('C38').AsString) = '' then
-    raise Exception.Create('Error: Provincia del cliente no puede estar vacía');
-
-  // Inicio de sección con formato más limpio
-  Writeln(PrintText, '      <AdministrativeCentres>');
-
-  // ORGANO GESTOR (Código 02)
-  if (Trim(DirOGP) <> '') or (Trim(DirOGTP) <> '') then
-  begin
-    Writeln(PrintText, '        <AdministrativeCentre>');
-    Writeln(PrintText, '          <CentreCode>' + EscapeXML(DirOGTP) + '</CentreCode>');
-    Writeln(PrintText, '          <RoleTypeCode>02</RoleTypeCode>');
-    Writeln(PrintText, '          <Name>' + EscapeXML(DirOGP) + '</Name>');
-    WriteAddressInSpain();
-    Writeln(PrintText, '        </AdministrativeCentre>');
-  end;
-
-  // UNIDAD TRAMITADORA (Código 03)
-  if (Trim(DirUTP) <> '') or (Trim(DirUTTP) <> '') then
-  begin
-    Writeln(PrintText, '        <AdministrativeCentre>');
-    Writeln(PrintText, '          <CentreCode>' + EscapeXML(DirUTTP) + '</CentreCode>');
-    Writeln(PrintText, '          <RoleTypeCode>03</RoleTypeCode>');
-    Writeln(PrintText, '          <Name>' + EscapeXML(DirUTP) + '</Name>');
-    WriteAddressInSpain();
-    Writeln(PrintText, '        </AdministrativeCentre>');
-  end;
-
-  // OFICINA CONTABLE (Código 01)
-  if (Trim(DirOCP) <> '') or (Trim(DirOCTP) <> '') then
-  begin
-    Writeln(PrintText, '        <AdministrativeCentre>');
-    Writeln(PrintText, '          <CentreCode>' + EscapeXML(DirOCTP) + '</CentreCode>');
-    Writeln(PrintText, '          <RoleTypeCode>01</RoleTypeCode>');
-    Writeln(PrintText, '          <Name>' + EscapeXML(DirOCP) + '</Name>');
-    WriteAddressInSpain();
-    Writeln(PrintText, '        </AdministrativeCentre>');
-  end;
-
-  // TÉCNICO/ÓRGANO PROPONENTE (Código 04)
-  if (Trim(DirTOpP) <> '') or (Trim(DirTOpTP) <> '') then
-  begin
-    Writeln(PrintText, '        <AdministrativeCentre>');
-    Writeln(PrintText, '          <CentreCode>' + EscapeXML(DirTOpTP) + '</CentreCode>');
-    Writeln(PrintText, '          <RoleTypeCode>04</RoleTypeCode>');
-    Writeln(PrintText, '          <Name>' + EscapeXML(DirTOpP) + '</Name>');
-    WriteAddressInSpain();
-    Writeln(PrintText, '        </AdministrativeCentre>');
-  end;
-
-  Writeln(PrintText, '      </AdministrativeCentres>');
-end;
-
-// Nueva función auxiliar para evitar código duplicado
-procedure TFImpresion.WriteAddressInSpain();
-begin
-  Writeln(PrintText, '          <AddressInSpain>');
-  Writeln(PrintText, '            <Address>' + EscapeXML(dbDatosCliente.FieldByName('C3').AsString) + '</Address>');
-  Writeln(PrintText, '            <PostCode>' + EscapeXML(dbDatosCliente.FieldByName('C37').AsString) + '</PostCode>');
-  Writeln(PrintText, '            <Town>' + EscapeXML(dbDatosCliente.FieldByName('C4').AsString) + '</Town>');
-  Writeln(PrintText, '            <Province>' + EscapeXML(dbDatosCliente.FieldByName('C38').AsString) + '</Province>');
-  Writeln(PrintText, '            <CountryCode>ESP</CountryCode>');
-  Writeln(PrintText, '          </AddressInSpain>');
-end;
-
-procedure TFImpresion.FicheroXML_Cli();
-var
-  sFechaEmision, sBaseImponible, sTotalImpuestos, sTotalFactura: String;
-  sInvoiceNumber, sInvoiceSeries: String;
-begin
-  // Validaciones iniciales
-  if (dbDatosCliente = nil) or (dbCabecera = nil) then
-    raise Exception.Create('Error: Datasets no inicializados');
-
-  // Pre-cálculo de valores para mejorar rendimiento
-  sBaseImponible := FormatFloat('0.00', BASE1 + BASE2 + BASE3);
-  sTotalImpuestos := FormatFloat('0.00', IMPOIVA1 + IMPOIVA2 + IMPOIVA3);
-  sTotalFactura := FormatFloat('0.00', TOTAL1 + TOTAL2 + TOTAL3);
-
-  // Validación y formateo de número de factura
-  sInvoiceNumber := Trim(dbCabecera.Fields[3].AsString);
-  sInvoiceSeries := Trim(dbCabecera.Fields[2].AsString);
-
-  if sInvoiceNumber = '' then
-    raise Exception.Create('Error: Número de factura no puede estar vacío');
-
-  // Datos del cliente con validaciones
-  Writeln(PrintText, '      <LegalEntity>');
-
-  if Trim(dbDatosCliente.FieldByName('C1').AsString) = '' then
-    raise Exception.Create('Error: Razón social del cliente no puede estar vacía');
-
-  Writeln(PrintText, '        <CorporateName>' + EscapeXML(dbDatosCliente.FieldByName('C1').AsString) + '</CorporateName>');
-
-  // Bloque de dirección del cliente
-  Writeln(PrintText, '        <AddressInSpain>');
-  Writeln(PrintText, '          <Address>' + EscapeXML(dbDatosCliente.FieldByName('C3').AsString) + '</Address>');
-  Writeln(PrintText, '          <PostCode>' + EscapeXML(dbDatosCliente.FieldByName('C37').AsString) + '</PostCode>');
-  Writeln(PrintText, '          <Town>' + EscapeXML(dbDatosCliente.FieldByName('C4').AsString) + '</Town>');
-  Writeln(PrintText, '          <Province>' + EscapeXML(dbDatosCliente.FieldByName('C38').AsString) + '</Province>');
-  Writeln(PrintText, '          <CountryCode>ESP</CountryCode>');
-  Writeln(PrintText, '        </AddressInSpain>');
-  Writeln(PrintText, '      </LegalEntity>');
-  Writeln(PrintText, '    </BuyerParty>');
-  Writeln(PrintText, '  </Parties>');
-
-  // Cabecera de la factura
-  Writeln(PrintText, '  <Invoices>');
-  Writeln(PrintText, '    <Invoice>');
-  Writeln(PrintText, '      <InvoiceHeader>');
-  Writeln(PrintText, '        <InvoiceNumber>' + EscapeXML(sInvoiceNumber) + '</InvoiceNumber>');
-  Writeln(PrintText, '        <InvoiceSeriesCode>' + EscapeXML(sInvoiceSeries) + '</InvoiceSeriesCode>');
-  Writeln(PrintText, '        <InvoiceDocumentType>FC</InvoiceDocumentType>');
-  Writeln(PrintText, '        <InvoiceClass>OO</InvoiceClass>');
-  Writeln(PrintText, '      </InvoiceHeader>');
-
-  // Datos de emisión con validación de fecha
-  sFechaEmision := FormatFechaFacturae(dbCabecera.Fields[1].AsString);
-  if sFechaEmision = '' then
-    raise Exception.Create('Error: Fecha de emisión no válida');
-
-  Writeln(PrintText, '      <InvoiceIssueData>');
-  Writeln(PrintText, '        <IssueDate>' + sFechaEmision + '</IssueDate>');
-  Writeln(PrintText, '        <PlaceOfIssue>');
-  Writeln(PrintText, '          <PostCode>' + EscapeXML(CP) + '</PostCode>');
-  Writeln(PrintText, '          <PlaceOfIssueDescription>' + EscapeXML(Localidad) + '</PlaceOfIssueDescription>');
-  Writeln(PrintText, '        </PlaceOfIssue>');
-  Writeln(PrintText, '        <InvoiceCurrencyCode>EUR</InvoiceCurrencyCode>');
-  Writeln(PrintText, '        <TaxCurrencyCode>EUR</TaxCurrencyCode>');
-  Writeln(PrintText, '        <LanguageName>es</LanguageName>');
-  Writeln(PrintText, '      </InvoiceIssueData>');
-
-  // Impuestos (solo muestra IVA tipo 01 por simplificación)
-  Writeln(PrintText, '      <TaxesOutputs>');
-
-  if PIVA1 > 0 then
-  begin
-    Writeln(PrintText, '        <Tax>');
-    Writeln(PrintText, '          <TaxTypeCode>01</TaxTypeCode>');
-    Writeln(PrintText, '          <TaxRate>' + FormatFloat('0.0', PIVA1) + '</TaxRate>');
-    Writeln(PrintText, '          <TaxableBase>');
-    Writeln(PrintText, '            <TotalAmount>' + FormatFloat('0.00', BASE1) + '</TotalAmount>');
-    Writeln(PrintText, '          </TaxableBase>');
-    Writeln(PrintText, '          <TaxAmount>');
-    Writeln(PrintText, '            <TotalAmount>' + FormatFloat('0.00', IMPOIVA1) + '</TotalAmount>');
-    Writeln(PrintText, '          </TaxAmount>');
-    Writeln(PrintText, '        </Tax>');
-  end;
-
-  // Aquí deberías añadir bloques similares para PIVA2 y PIVA3 si existen
-  Writeln(PrintText, '      </TaxesOutputs>');
-
-  // Totales de la factura
-  Writeln(PrintText, '      <InvoiceTotals>');
-  Writeln(PrintText, '        <TotalGrossAmount>' + sBaseImponible + '</TotalGrossAmount>');
-  Writeln(PrintText, '        <TotalGeneralDiscounts>0.00</TotalGeneralDiscounts>');
-  Writeln(PrintText, '        <TotalGeneralSurcharges>0.00</TotalGeneralSurcharges>');
-  Writeln(PrintText, '        <TotalGrossAmountBeforeTaxes>' + sBaseImponible + '</TotalGrossAmountBeforeTaxes>');
-  Writeln(PrintText, '        <TotalTaxOutputs>' + sTotalImpuestos + '</TotalTaxOutputs>');
-  Writeln(PrintText, '        <TotalTaxesWithheld>0.00</TotalTaxesWithheld>');
-  Writeln(PrintText, '        <InvoiceTotal>' + sTotalFactura + '</InvoiceTotal>');
-  Writeln(PrintText, '        <TotalOutstandingAmount>' + sTotalFactura + '</TotalOutstandingAmount>');
-  Writeln(PrintText, '        <TotalExecutableAmount>' + sTotalFactura + '</TotalExecutableAmount>');
-  Writeln(PrintText, '        <TotalReimbursableExpenses>0.00</TotalReimbursableExpenses>');
-  Writeln(PrintText, '      </InvoiceTotals>');
-
-  // Preparamos la sección de items
-  Writeln(PrintText, '      <Items>');
-end;
-
-// Función auxiliar para formateo de fecha
-function TFImpresion.FormatFechaFacturae(FechaOriginal: String): String;
-var
-  dFecha: TDateTime;
-begin
-  if TryStrToDate(FechaOriginal, dFecha, 'dd/mm/yyyy', '/') or
-     TryStrToDate(FechaOriginal, dFecha, 'dd-mm-yyyy', '-') then
-    Result := FormatDateTime('yyyy-mm-dd', dFecha)
-  else
-    Result := '';
-end;
-
-procedure TFImpresion.FicheroXML_Det();
-var
-  sFechaAlbaran, sNumAlbaran, sPrecioUnitario, sImporteBruto: String;
-  sCantidad, sTasaIVA, sImporteIVA: String;
-  dPrecioUnitario, dImporteBruto, dTasaIVA, dImporteIVA: Double;
-begin
-  // Validación inicial del dataset
-  if (dbImprimir = nil) or not dbImprimir.Active then
-    raise Exception.Create('Error: Dataset de líneas no disponible');
-
-  // Validación de campos obligatorios
-  if Trim(dbImprimir.FieldByName('IMP6').AsString) = '' then
-    raise Exception.Create('Error: Descripción del artículo no puede estar vacía');
-
-  if dbImprimir.FieldByName('IMP7').AsFloat <= 0 then
-    raise Exception.Create('Error: Cantidad debe ser mayor que cero');
-
-  // Formateo y validación de valores numéricos
-  try
-    dPrecioUnitario := dbImprimir.FieldByName('IMP9').AsFloat;
-    dImporteBruto := dbImprimir.FieldByName('IMP11').AsFloat;
-    dTasaIVA := dbImprimir.FieldByName('IMP12').AsFloat;
-    dImporteIVA := dbImprimir.FieldByName('IMP13').AsFloat - dImporteBruto;
-
-    sCantidad := FormatFloat('0.#####', dbImprimir.FieldByName('IMP7').AsFloat); // Hasta 5 decimales
-    sPrecioUnitario := FormatFloat('0.00000', dPrecioUnitario); // 5 decimales para precios
-    sImporteBruto := FormatFloat('0.00', dImporteBruto);
-    sTasaIVA := FormatFloat('0.0', dTasaIVA);
-    sImporteIVA := FormatFloat('0.00', dImporteIVA);
-  except
-    raise Exception.Create('Error en formato de valores numéricos en línea de detalle');
-  end;
-
-  // Validación coherencia entre precio unitario, cantidad e importe
-  if not SameValue(dPrecioUnitario * dbImprimir.FieldByName('IMP7').AsFloat, dImporteBruto, 0.01) then
-    raise Exception.Create('Error: Inconsistencia entre precio unitario, cantidad e importe');
-
-  // Inicio de línea de factura
-  Writeln(PrintText, '        <InvoiceLine>');
-
-  // Referencias de albarán (si existen)
-  sNumAlbaran := Trim(copy(dbImprimir.FieldByName('IMP16').AsString, 11, 8));
-  sFechaAlbaran := FormatFechaFacturae(copy(dbImprimir.FieldByName('IMP16').AsString, 22, 10));
-
-  if (sNumAlbaran <> '') and (sFechaAlbaran <> '') then
-  begin
-    Writeln(PrintText, '          <DeliveryNotesReferences>');
-    Writeln(PrintText, '            <DeliveryNote>');
-    Writeln(PrintText, '              <DeliveryNoteNumber>' + EscapeXML(sNumAlbaran) + '</DeliveryNoteNumber>');
-    Writeln(PrintText, '              <DeliveryNoteDate>' + sFechaAlbaran + '</DeliveryNoteDate>');
-    Writeln(PrintText, '            </DeliveryNote>');
-    Writeln(PrintText, '          </DeliveryNotesReferences>');
-  end;
-
-  // Descripción del artículo
-  Writeln(PrintText, '          <ItemDescription>' +
-                    EscapeXML(dbImprimir.FieldByName('IMP6').AsString) + '</ItemDescription>');
-
-  // Cantidad y unidad de medida
-  Writeln(PrintText, '          <Quantity>' + sCantidad + '</Quantity>');
-  Writeln(PrintText, '          <UnitOfMeasure>01</UnitOfMeasure>'); // 01 = Unidades
-
-  // Precios e importes
-  Writeln(PrintText, '          <UnitPriceWithoutTax>' + sPrecioUnitario + '</UnitPriceWithoutTax>');
-  Writeln(PrintText, '          <TotalCost>' + sImporteBruto + '</TotalCost>');
-  Writeln(PrintText, '          <GrossAmount>' + sImporteBruto + '</GrossAmount>');
-
-  // Impuestos
-  Writeln(PrintText, '          <TaxesOutputs>');
-  Writeln(PrintText, '            <Tax>');
-  Writeln(PrintText, '              <TaxTypeCode>01</TaxTypeCode>'); // 01 = IVA
-  Writeln(PrintText, '              <TaxRate>' + sTasaIVA + '</TaxRate>');
-  Writeln(PrintText, '              <TaxableBase>');
-  Writeln(PrintText, '                <TotalAmount>' + sImporteBruto + '</TotalAmount>');
-  Writeln(PrintText, '              </TaxableBase>');
-  Writeln(PrintText, '              <TaxAmount>');
-  Writeln(PrintText, '                <TotalAmount>' + sImporteIVA + '</TotalAmount>');
-  Writeln(PrintText, '              </TaxAmount>');
-  Writeln(PrintText, '            </Tax>');
-  Writeln(PrintText, '          </TaxesOutputs>');
-
-  // Información adicional
-  Writeln(PrintText, '          <AdditionalLineItemInformation>' +
-                    EscapeXML(dbImprimir.FieldByName('IMP8').AsString) + '</AdditionalLineItemInformation>');
-
-  // Código del artículo
-  if Trim(dbImprimir.FieldByName('IMP5').AsString) <> '' then
-    Writeln(PrintText, '          <ArticleCode>' +
-                      EscapeXML(dbImprimir.FieldByName('IMP5').AsString) + '</ArticleCode>');
-
-  // Cierre de línea
-  Writeln(PrintText, '        </InvoiceLine>');
-end;
-
-// Función auxiliar mejorada para formateo de fecha
-function TFImpresion.FormatFechaFacturae(FechaOriginal: String; StartPos, Length: Integer): String;
-var
-  sFecha: String;
-  dFecha: TDateTime;
-begin
-  sFecha := Copy(FechaOriginal, StartPos, Length);
-
-  if TryStrToDate(sFecha, dFecha, 'dd/mm/yyyy', '/') or
-     TryStrToDate(sFecha, dFecha, 'dd-mm-yyyy', '-') or
-     TryStrToDate(sFecha, dFecha, 'dd.mm.yyyy', '.') then
-    Result := FormatDateTime('yyyy-mm-dd', dFecha)
-  else
-    Result := '';
-end;
-
-procedure TFImpresion.FicheroXML_Pie();
-begin
-  try
-    // Cierre de secciones XML
-    Writeln(PrintText, '      </Items>');
-    Writeln(PrintText, '    </Invoice>');
-    Writeln(PrintText, '  </Invoices>');
-    Writeln(PrintText, '</fe:Facturae>');
-    Writeln(PrintText, '');
-
-    // Verificación de error de escritura
-    if IOResult <> 0 then
-      raise Exception.Create('Error al escribir en el archivo XML');
-
-  except
-    on E: Exception do
-    begin
-      // Cierre seguro del archivo (versión corregida)
-      if TTextRec(PrintText).Mode <> fmClosed then
-        CloseFile(PrintText);
-      raise; // Relanza la excepción
-    end;
-  end;
-
-  // Cierre normal del archivo
-  if TTextRec(PrintText).Mode <> fmClosed then
-    CloseFile(PrintText);
-
-end;
-
-
-//**********************************
-//****** PRUEBA XML DEEPSEEK *******
-//**********************************
 procedure TFImpresion.Edit1Exit(Sender: TObject);
 begin
   NombrePDF:= Edit1.Text;
@@ -2009,11 +1508,8 @@ begin
   Writeln(PrintText, dbDatosCliente.FieldByName('C1').AsString);
   Writeln(PrintText, ' ');
 
-
-
   //----------------- Sacar vendedor en el ticket o no --------------
    if SacaVende<>'N' then Writeln(PrintText, 'LE ATENDIO.: '+ copy(UsuarioActivo,1,35));
-
 
   //----------------------------------------------------------------
   if Trim(LPTI1)<>'' then Writeln(PrintText, LPTI1);
@@ -2021,7 +1517,6 @@ begin
   if Trim(LPTI3)<>'' then Writeln(PrintText, LPTI3);
   for Conta:=1 to StrToInt(LiFinTick) do Writeln(PrintText, ' ');
 end;
-
 
 procedure TFImpresion.EsVentas;
 begin
@@ -2074,7 +1569,6 @@ begin
     CloseAction:=CaFree;
 end;
 
-
 procedure TFImpresion.sbBuscarClick(Sender: TObject);
 begin
     if OpenDialog1.Execute then
@@ -2082,7 +1576,6 @@ begin
        edAdjunto.Text := OpenDialog1.FileName;
       end;
 end;
-
 
 procedure TFImpresion.FormCreate(Sender: TObject);
 begin
@@ -2115,7 +1608,6 @@ begin
   mmTexto.lines.Add(CorreoLOPD2 +' '+direccion+' '+localidad +'('+Provincia+')');
   mmTexto.lines.Add(CorreoLOPD3 +' '+Email+chr(13));
   mmTexto.Lines.Add(chr(13)+' *** Mensaje generado por Facturlinex VF 4 *** ');
-
 
 end;
 

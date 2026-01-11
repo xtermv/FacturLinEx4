@@ -82,7 +82,7 @@ var
   AvisoLlamadas,AvisoPedidos: String;
   DiasLlamadas,DiasPedidos: Integer;
 
-  LeyendaSuperiorQR, LeyendaInferiorQR: string;
+  LeyendaSuperiorQR, LeyendaInferiorQR, TextoCodigoQR: string;
 
   DBHost,DBDataBase,DBUsuario,DBPasswd,DBPuerto,DBProtocolo: String;
   ActivarSIC,SICHost,SICDataBase,SICUsuario,SICPasswd,SICPuerto,SICProtocolo: String;
@@ -143,7 +143,7 @@ procedure CargaValoresIniReaderEnVariables(IniReader : TIniFile);
 implementation
 
 uses
-  Mensajes;
+  Mensajes, uFLX_CryptoIni;
 
 //----------- Carga los valores del IniReader de configuración en las variables
 procedure CargaValoresIniReaderEnVariables(IniReader : TIniFile);
@@ -173,7 +173,16 @@ begin
     DBHost:=IniReader.ReadString('BBDD','host','');
     DBDataBase:=IniReader.ReadString('BBDD','database','');
     DBUsuario:=IniReader.ReadString('BBDD','usuario','');
-    DBPasswd:=IniReader.ReadString('BBDD','passwd','');
+    //-- DBPasswd:=IniReader.ReadString('BBDD','passwd','');
+    try
+       DBPasswd:=FLX_IniReadPassword(IniReader, 'BBDD', 'passwd','');
+    except
+       on E: Exception do
+       begin
+         ShowMessage('ERROR descifrando BBDD/passwd: ' + E.Message);
+         DBPasswd := '';
+       end;
+    end;
     DBPuerto:=IniReader.ReadString('BBDD','puerto','');
     DBProtocolo:=IniReader.ReadString('BBDD','protocolo','');
     //-------------- CONEXION SIC -----------------
@@ -322,6 +331,11 @@ begin
     ImprePrevisu:=IniReader.ReadString('informes','ImprePrevisu','');
     ImpreDirecto:=IniReader.ReadString('informes','ImpreDirecto','');
     ImprePdf:=IniReader.ReadString('informes','ImprePdf','');
+
+    LeyendaInferiorQR:= IniReader.ReadString('informes','LeyendaInferiorQR','');
+    LeyendaSuperiorQR:= IniReader.ReadString('informes','LeyendaSuperiorQR','');
+    TextoCodigoQR:= IniReader.ReadString('informes','TextoCodigoQR','');
+
 
     //----------------------------------- Configuración General --------------
     CgIdioma:=IniReader.ReadString('CGeneral','Idioma','');
