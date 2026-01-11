@@ -48,7 +48,7 @@ implementation
 
 uses
   IniFiles, ZConnection, ZDataset, uVeriHash, uVF_HashChain, uVeriChain, uVeriChainCheck,
-  Global; // <-- Para tener acceso a las variables Nif, Empresa y vfUrlTP
+  Global, uFLX_CryptoIni; // <-- Para tener acceso a las variables Nif, Empresa y vfUrlTP
 
 procedure QueueToFiles(const Serie: string; Numero: Integer; const FechaISO, HoraISO: string;
   TotalConIVA: Double; const PayloadJSON: string); forward;
@@ -210,7 +210,8 @@ begin
       Port     := ini.ReadString('mariadb','port',Port);
       DBName   := ini.ReadString('mariadb','database',DBName);
       UserName := ini.ReadString('mariadb','user',UserName);
-      Password := ini.ReadString('mariadb','password',Password);
+      //-- Password := ini.ReadString('mariadb','password',Password);
+      Password := FLX_IniReadPassword(ini, 'mariadb', 'password', Password);
       Result := True;
     finally
       ini.Free;
