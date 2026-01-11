@@ -504,7 +504,7 @@ var
 implementation
 
 uses
-    Global, Funciones, Menu;
+    Global, Funciones, Menu, uFLX_CryptoIni;
 //---------------CARGA DE VALORES EN LAS VARIABLES
 //Recoge los valores introducidos en la página y se cargan las variables Globales
 procedure TFConfig.CargaValoresEnGlobales();
@@ -598,6 +598,11 @@ begin
     if RadioGroup1.ItemIndex = 0 then ImprePrevisu:='S';
     if RadioGroup1.ItemIndex = 1 then ImpreDirecto:='S';
     if RadioGroup1.ItemIndex = 2 then ImprePdf:='S';
+
+    LeyendaSuperiorQR:= EdLeyendaSuperior.Text;
+    LeyendaInferiorQR:= EdLeyendaInferior.Text;
+    TextoCodigoQR:= EdTextoQR.Text;
+
     //------------------------
       {  LA MAYORÍA DE LOS DATOS DE LA SECCIÓN PROGRAMA ESTÁN IMPLEMENTADOS EN LA SECCIÓN CONFIGURACIÓN GENERAL
          CON NUEVAS VARIABLES, REVISAR Y DECIDIR QUE Y COMO UTILIZARLAS
@@ -786,7 +791,9 @@ begin
     //----------- Seccion BBDD -----------
     IniReader.WriteString('BBDD','host',Edit11.Text);
     IniReader.WriteString('BBDD','usuario',Edit12.Text);
-    IniReader.WriteString('BBDD','passwd',Edit13.Text);
+    //-- IniReader.WriteString('BBDD','passwd',Edit13.Text);
+    FLX_IniWritePassword(IniReader, 'BBDD', 'passwd',Edit13.Text);
+
     IniReader.WriteString('BBDD','database',Edit14.Text);
     IniReader.WriteString('BBDD','puerto',Edit15.Text);
     IniReader.WriteString('BBDD','protocolo',Combo1.Text);
@@ -852,6 +859,11 @@ begin
     IniReader.WriteString('informes','ImprePrevisu','N');
     IniReader.WriteString('informes','ImpreDirecto','N');
     IniReader.WriteString('informes','ImprePdf','N');
+
+    IniReader.WriteString('informes','LeyendaInferiorQR',EdLeyendaInferior.Text);
+    IniReader.WriteString('informes','LeyendaSuperiorQR',EdLeyendaSuperior.Text);
+    IniReader.WriteString('informes','TextoCodigoQR',EdTextoQR.Text);
+
 
     if CheckBox2.Checked=true then IniReader.WriteString('informes','DatosEmpresa','S');
     if RadioGroup1.ItemIndex = 0 then IniReader.WriteString('informes','ImprePrevisu','S');
@@ -1143,7 +1155,8 @@ begin
   //----------- Seccion BBDD -----------
   Edit11.Text := IniReader.ReadString('BBDD','host','');
   Edit12.Text := IniReader.ReadString('BBDD','usuario','');
-  Edit13.Text := IniReader.ReadString('BBDD','passwd','');
+  //-- Edit13.Text := IniReader.ReadString('BBDD','passwd','');
+  Edit13.Text := FLX_IniReadPassword(IniReader, 'BBDD', 'passwd', '');
   Edit14.Text := IniReader.ReadString('BBDD','database','');
   Edit15.Text := IniReader.ReadString('BBDD','puerto','');
   Combo1.Text := IniReader.ReadString('BBDD','protocolo','');
@@ -1207,6 +1220,10 @@ begin
   if IniReader.ReadString('informes','ImprePrevisu','')='S' then RadioGroup1.ItemIndex:=0;
   if IniReader.ReadString('informes','ImpreDirecto','')='S' then RadioGroup1.ItemIndex:=1;
   if IniReader.ReadString('informes','ImprePdf','')='S' then RadioGroup1.ItemIndex:=2;
+
+  EdLeyendaInferior.Text:= IniReader.ReadString('informes','LeyendaInferiorQR','');
+  EdLeyendaSuperior.Text:= IniReader.ReadString('informes','LeyendaSuperiorQR','');
+  EdTextoQR.Text:= IniReader.ReadString('informes','TextoCodigoQR','');
 
 
 {
