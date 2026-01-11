@@ -706,7 +706,7 @@ begin
 //==== Insertamos la leyenda QR Tributario : en la parte superior del QR
     if (Trim(AQRImageFile) <> '') and FileExists(AQRImageFile) then
     begin
-        Page.WriteText(94, 8, PDFText('QR Tributario :'));
+        Page.WriteText(94, 8, PDFText(LeyendaSuperiorQR));
         Y := Y + LineH;
     end;
 
@@ -724,7 +724,7 @@ begin
 //==== Insertamos la leyenda Veri*Factu bajo el QR
     if (Trim(AQRImageFile) <> '') and FileExists(AQRImageFile) then
     begin
-        Page.WriteText(96, 44, PDFText('Veri*Factu'));
+        Page.WriteText(96, 44, PDFText(LeyendaInferiorQR));
         Y := Y + LineH;
     end;
 
