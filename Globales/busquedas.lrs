@@ -1,23 +1,25 @@
+{ This is an automatically generated lazarus resource file }
+
 LazarusResources.Add('TFBusquedas','FORMDATA',[
   'TPF0'#11'TFBusquedas'#10'FBusquedas'#4'Left'#3#8#1#6'Height'#3#18#2#3'Top'#3
-  +#187#1#5'Width'#3#244#3#13'ActiveControl'#7#8'CBCampos'#5'Align'#7#8'alCusto'
-  +'m'#11'BorderIcons'#11#10'biMinimize'#10'biMaximize'#0#11'BorderWidth'#2#3#7
-  +'Caption'#6#24'Formulario de B'#195#186'squedas'#12'ClientHeight'#3#18#2#11
-  +'ClientWidth'#3#244#3#5'Color'#7#12'clMoneyGreen'#10'KeyPreview'#9#8'Positio'
-  +'n'#7#15'poDesktopCenter'#8'ShowHint'#9#10'LCLVersion'#6#7'4.2.0.0'#7'OnClos'
-  +'e'#7#9'FormClose'#8'OnCreate'#7#10'FormCreate'#9'OnKeyDown'#7#11'FormKeyDow'
-  +'n'#0#7'TBitBtn'#8'BtCerrar'#4'Left'#3#224#2#6'Height'#2'!'#4'Hint'#6'><ENTE'
-  +'R> Acepta la opci'#195#179'n seleccionada en la rejilla de datos.'#3'Top'#3
-  +#232#1#5'Width'#2'g'#7'Caption'#6#8'&Aceptar'#10'Glyph.Data'#10#202#7#0#0#198
-  +#7#0#0'BM'#198#7#0#0#0#0#0#0'6'#0#0#0'('#0#0#0#22#0#0#0#22#0#0#0#1#0' '#0#0#0
-  +#0#0#144#7#0#0'd'#0#0#0'd'#0#0#0#0#0#0#0#0#0#0#0#255#255#255#0']0?'#255'SWU'
-  +#255'UYW'#255'VZX'#255'W[Y'#255'X\Z'#255'X\Z'#255'X\Z'#255'X\Z'#255'X\Z'#255
-  +'X\Z'#255'X\Z'#255'X\Z'#255'W[Y'#255'132'#255#189#189#189#0#186#186#186#0#197
-  +#197#197#0#234#234#234#0#253#253#253#0#255#255#255#0#254#254#254#0'BED'#255
-  +#167#172#169#255#181#188#185#255#187#194#191#255#191#197#194#255#192#198#196
-  +#255#193#199#196#255#193#199#197#255#193#200#197#255#193#200#197#255#194#200
-  +#197#255#193#200#197#255#193#200#197#255#192#198#195#255']a_'#255#134#134#134
-  +#0#137#137#137#0#133#133#133#0#151#151#151#0#215#215#215#0#253#253#253#0#241
+  +'X'#1#5'Width'#3#244#3#13'ActiveControl'#7#8'CBCampos'#5'Align'#7#8'alCustom'
+  +#11'BorderIcons'#11#10'biMinimize'#10'biMaximize'#0#11'BorderWidth'#2#3#7'Ca'
+  +'ption'#6#24'Formulario de B'#195#186'squedas'#12'ClientHeight'#3#18#2#11'Cl'
+  +'ientWidth'#3#244#3#5'Color'#7#12'clMoneyGreen'#10'KeyPreview'#9#8'Position'
+  +#7#14'poScreenCenter'#8'ShowHint'#9#10'LCLVersion'#6#7'4.2.0.0'#7'OnClose'#7
+  +#9'FormClose'#8'OnCreate'#7#10'FormCreate'#9'OnKeyDown'#7#11'FormKeyDown'#0#7
+  +'TBitBtn'#8'BtCerrar'#4'Left'#3#224#2#6'Height'#2'!'#4'Hint'#6'><ENTER> Acep'
+  +'ta la opci'#195#179'n seleccionada en la rejilla de datos.'#3'Top'#3#232#1#5
+  +'Width'#2'g'#7'Caption'#6#8'&Aceptar'#10'Glyph.Data'#10#202#7#0#0#198#7#0#0
+  +'BM'#198#7#0#0#0#0#0#0'6'#0#0#0'('#0#0#0#22#0#0#0#22#0#0#0#1#0' '#0#0#0#0#0
+  +#144#7#0#0'd'#0#0#0'd'#0#0#0#0#0#0#0#0#0#0#0#255#255#255#0']0?'#255'SWU'#255
+  +'UYW'#255'VZX'#255'W[Y'#255'X\Z'#255'X\Z'#255'X\Z'#255'X\Z'#255'X\Z'#255'X\Z'
+  +#255'X\Z'#255'X\Z'#255'W[Y'#255'132'#255#189#189#189#0#186#186#186#0#197#197
+  +#197#0#234#234#234#0#253#253#253#0#255#255#255#0#254#254#254#0'BED'#255#167
+  +#172#169#255#181#188#185#255#187#194#191#255#191#197#194#255#192#198#196#255
+  +#193#199#196#255#193#199#197#255#193#200#197#255#193#200#197#255#194#200#197
+  +#255#193#200#197#255#193#200#197#255#192#198#195#255']a_'#255#134#134#134#0
+  +#137#137#137#0#133#133#133#0#151#151#151#0#215#215#215#0#253#253#253#0#241
   +#241#241#0'PTR'#255#197#197#197#255#149#150#149#255#148#150#150#255#192#196
   +#194#255#200#205#203#255#205#210#208#255#207#211#210#255#208#212#210#255#208
   +#212#211#255#208#212#211#255#208#212#211#255#208#212#210#255#206#210#209#255
@@ -102,17 +104,17 @@ LazarusResources.Add('TFBusquedas','FORMDATA',[
   +#205#0#203#203#203#0#213#213#213#0#241#241#241#0#253#253#253#0#255#255#255#0
   +#8'TabOrder'#2#0#7'OnClick'#7#13'BtCerrarClick'#0#0#9'TGroupBox'#7'GBCampo'#4
   +'Left'#2#6#6'Height'#2'3'#3'Top'#2#4#5'Width'#3#7#1#7'Caption'#6'''   Campo '
-  +'para realizar la  b'#195#186'squeda   '#12'ClientHeight'#2#30#11'ClientWidt'
+  +'para realizar la  b'#195#186'squeda   '#12'ClientHeight'#2' '#11'ClientWidt'
   +'h'#3#3#1#16'ParentBackground'#8#8'TabOrder'#2#1#0#9'TComboBox'#8'CBCampos'#4
   +'Left'#2#9#6'Height'#2#27#4'Hint'#6'0Selecciona la columna por la que ordena'
   +'r/buscar.'#3'Top'#2#255#5'Width'#3#233#0#11'Font.Height'#2#243#9'Font.Name'
   +#6#12'DejaVu Serif'#10'ItemHeight'#2#0#13'Items.Strings'#1#6#0#0#10'ParentFo'
   +'nt'#8#8'TabOrder'#2#0#4'Text'#6#8'CBCampos'#8'OnChange'#7#14'CBCamposChange'
   +#0#0#0#9'TGroupBox'#7'GBTexto'#4'Left'#3#11#2#6'Height'#2'3'#3'Top'#2#4#5'Wi'
-  +'dth'#3#222#1#7'Caption'#6#18'  Texto a buscar  '#12'ClientHeight'#2#30#11'C'
+  +'dth'#3#222#1#7'Caption'#6#18'  Texto a buscar  '#12'ClientHeight'#2' '#11'C'
   +'lientWidth'#3#218#1#5'Color'#7#12'clMoneyGreen'#16'ParentBackground'#8#11'P'
   +'arentColor'#8#8'TabOrder'#2#2#0#5'TEdit'#7'EdTexto'#4'Left'#2#6#6'Height'#2
-  +#27#4'Hint'#6'''Introduce el dato a buscar en la tabla.'#3'Top'#2#1#5'Width'
+  +#25#4'Hint'#6'''Introduce el dato a buscar en la tabla.'#3'Top'#2#1#5'Width'
   +#3#204#1#8'CharCase'#7#11'ecUppercase'#8'TabOrder'#2#0#8'OnChange'#7#13'EdTe'
   +'xtoChange'#9'OnKeyDown'#7#14'EdTextoKeyDown'#0#0#0#7'TBitBtn'#9'BtAplicar'#4
   +'Left'#3'N'#2#6'Height'#2'!'#4'Hint'#6'#<F8> Activa el filtro seleccionado.'
@@ -265,9 +267,9 @@ LazarusResources.Add('TFBusquedas','FORMDATA',[
   +'lClick'#7#13'BtCerrarClick'#9'OnKeyDown'#7#20'GridBusquedasKeyDown'#12'OnTi'
   +'tleClick'#7#23'GridBusquedasTitleClick'#0#0#9'TGroupBox'#9'GroupBox1'#4'Lef'
   +'t'#3#16#1#6'Height'#2'3'#3'Top'#2#4#5'Width'#3#247#0#7'Caption'#6#20'  Filt'
-  +'ro a aplicar  '#12'ClientHeight'#2#30#11'ClientWidth'#3#243#0#16'ParentBack'
+  +'ro a aplicar  '#12'ClientHeight'#2' '#11'ClientWidth'#3#243#0#16'ParentBack'
   +'ground'#8#8'TabOrder'#2#6#0#9'TComboBox'#9'CBFiltros'#4'Left'#2#9#6'Height'
-  +#2#29#4'Hint'#6'''Slecciona el tipo del filtro a aplicar.'#3'Top'#2#255#5'Wi'
+  +#2#27#4'Hint'#6'''Slecciona el tipo del filtro a aplicar.'#3'Top'#2#255#5'Wi'
   +'dth'#3#224#0#10'ItemHeight'#2#0#9'ItemIndex'#2#0#13'Items.Strings'#1#6#18' '
   +'( == )  Igual que'#6#20' ( <> )  Distinto de'#6#26' ( <= )  Menor o igual q'
   +'ue'#6#26' ( >= )  Mayor o igual que'#6#22' ( +-- )  Contenido en'#6#24' Eli'

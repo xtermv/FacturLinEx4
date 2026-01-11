@@ -1,10 +1,11 @@
 object DataModule1: TDataModule1
   OnCreate = DataModuleCreate
   OldCreateOrder = False
-  Height = 301
-  HorizontalOffset = 1280
-  VerticalOffset = 427
-  Width = 398
+  Height = 260
+  HorizontalOffset = 743
+  VerticalOffset = 36
+  Width = 344
+  PPI = 83
   object dbConexion: TZConnection
     ControlsCodePage = cCP_UTF8
     RawCharacterTransliterateOptions.Encoding = encUTF8
@@ -16,7 +17,7 @@ object DataModule1: TDataModule1
     DisableSavepoints = False
     Port = 0
     Protocol = 'mysql'
-    Left = 46
-    Top = 30
+    Left = 40
+    Top = 26
   end
 end
