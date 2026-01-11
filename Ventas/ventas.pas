@@ -542,9 +542,34 @@ var
 implementation
 // === [Paso 1] Utilidades de registro y manejo de errores (no intrusivas) ===
 uses
-  Global, Funciones, creditos, Busquedas, Imprimir, uVeriFactu, uVeriHash;
+  Global, Funciones, creditos, Busquedas, Imprimir, uVeriFactu, uVeriHash, uFLX_Log, uFLX_Sound;
 
 { TFVentas }
+
+
+// --- Medición simple de tiempos (para detectar cuellos de botella al totalizar) ---
+// No altera la lógica: solo escribe marcas en el log si uFLX_Log está disponible.
+function VF_TickMS: QWord; inline;
+begin
+  Result := GetTickCount64;
+end;
+
+procedure VF_LogPerf(const Step: string; const T0: QWord);
+begin
+  try
+    FLX_WriteLog('VENTAS', Step + ' | ' + IntToStr(VF_TickMS - T0) + ' ms');
+  except
+    // No bloquear la venta si falla el log
+  end;
+end;
+
+procedure VF_LogInfo(const Msg: string);
+begin
+  try
+    FLX_WriteLog('VENTAS', Msg);
+  except
+  end;
+end;
 
 procedure LogErrorToFile(const AMsg: string);
 var
@@ -607,6 +632,8 @@ begin
     end;
 end;
 procedure TFVentas.FormCreate(Sender: TObject);
+var
+  T1: QWord;
 begin
   //--------- Conectar con la bbdd e inicializar datos globales
   //Conectate(dbConnect);   // Utilizamos datamodule1.dbConexión para toda la aplicación.
@@ -647,7 +674,11 @@ begin
 
    //Inicializamos QR
 
-  VerSerieFacturacion();//---- Ver la serie de facturacion por defecto
+  T1 := VF_TickMS;
+  T1 := VF_TickMS;
+  VerSerieFacturacion();//---- Ver la serie de facturacion por def
+  VF_LogPerf('TOTALIZAR: VerSerieFacturacion', T1);
+  VF_LogPerf('TOTALIZAR: VerSerieFacturacion', T1);
   NumeroTicket();//----------- Cargar número de ticket de la tabla de series
 
   txtQR:=vfUrl+'nif='+NIF+'&'+'numserie=FS-'+SERIEFACT+'-'+IntToStr(NOPERACION+1)+'&fecha='+FormatDateTime('dd-mm-yyyy',date);
@@ -671,25 +702,6 @@ function TFVentas.VerUltimoCliente: string;
 var
   Nuevocl : integer;
 begin
-  {
-  dbTrabajo.Active:=False;
-   dbTrabajo.Sql.Text:='SELECT * FROM clientes ORDER BY C0 DESC LIMIT 2';
-   dbTrabajo.Active:=True;
-   if dbTrabajo.RecordCount=0 then Result:='1'
-    else begin
-       if (dbTrabajo.RecordCount=1) and (dbTrabajo.FieldByName('C0').AsString=ClienteVario) then Result:='1';
-
-       if (dbTrabajo.RecordCount>1) and (dbTrabajo.FieldByName('C0').AsString=ClienteVario) then
-         begin
-           dbTrabajo.Next;
-           Result:=IntToStr(dbTrabajo.FieldByName('C0').AsInteger+1);
-         end;
-
-       if Result=ClienteVario then Result:=IntToStr(StrToInt(ClienteVario)+1);
-   end;
-
-   dbTrabajo.Active:=False;
-   }
   dbTrabajo.Active:=False;
   dbTrabajo.Sql.Text:='SELECT * FROM clientes WHERE C0<"'+IntToStr(StrToInt(ClienteVario)-9)+'" ORDER BY C0 DESC LIMIT 1';
   dbTrabajo.Active:=True;
@@ -893,7 +905,7 @@ begin
       if Edit3.Text='' then exit;//---- Si no hay articulo
       if LeerArticulo=False then
         if LeerAuxiliar=False then
-           begin Beep;      DataModule1.Mensaje('Información','No existe ese artículo', 1500 , clGray); Edit3.SetFocus; exit; end;
+           begin FLX_Beep(skError);      DataModule1.Mensaje('Información','No existe ese artículo', 1500 , clGray); Edit3.SetFocus; exit; end;
       VerTarifas();
     end;
   if key=VK_ESCAPE then BitBtn7Click(Self);
@@ -931,9 +943,8 @@ begin
     begin
       if LeerArticulo=False then
         if LeerAuxiliar=False then
-//--           begin Beep; DataModule1.Mensaje('Información','No existe ese artículo', 1500 , clGray); Edit3.SetFocus; exit; end;
            begin
-             Beep;
+             FLX_Beep(skError);
              while UpperCase(textoaprobacion)<>'C' do
                begin
                     textoaprobacion:=InputBox('Información - No existe ese artículo','Pulse C para aceptar y continuar','');
@@ -1122,8 +1133,6 @@ begin
       if LeerAuxiliar=False then
           begin
             PanelBuscaArticulos.Visible:=False;
-//            ListBox3.SendToBack;
-//            ListBox3.Visible:=False;
             Edit4.SetFocus;
             exit;
           end;
@@ -1136,20 +1145,16 @@ begin
       dbArti.Active:=False;
       dbArti.SQL.Text:='SELECT * FROM artitien'+Tienda+' WHERE A0="'+Edit3.Text+'"';
       dbArti.Active:=True;
-//      WriteLn('adios');
       VerTarifas();
       if LeerArticulo=False then
         begin
           PanelBuscaArticulos.Visible:=False;
-//          ListBox3.SendToBack;
-//          ListBox3.Visible:=False;
           Edit4.SetFocus;
           exit;
         end;
     end;
 
     PanelBuscaArticulos.Visible:=False;
-//  ListBox3.SendToBack; ListBox3.Visible:=False;
   BitBtn14.SetFocus;
 end;
 
@@ -1164,9 +1169,6 @@ begin
    if (Key=#13) then begin Key:=#0; ListBox3DblClick(self); End;
 end;
 
-
-
-
 //================= BUSCAR ARTICULOS =============
 procedure TFVentas.Edit4KeyPress(Sender: TObject; var Key: char);
 begin
@@ -1177,11 +1179,6 @@ begin
       Edit3.SetFocus;
     end;
 end;
-
-
-
-
-
 
 
 //=====================================================================
@@ -1293,12 +1290,6 @@ begin
   if not (EsFloat(Edit10.Text)) then begin Edit10.Text:='0';Edit10.SetFocus; exit; end;
   Edit7.Text:=FloatToStr(StrToFloat(Edit6.Text)/(1+(StrToFloat(Edit10.Text)/100)));
   Edit7.Text:=FormatFloat('0.000',StrToFloat(Edit7.Text));
-  {
-  QUE VIENE A SER LO MISMO QUE ESTO
-   PrecioSin := (100 * StrToFloat(Edit6.text)) / (100 + StrToFloat(Edit10.Text));
-   Edit7.Text:=FormatFloat('0.000',PrecioSin);
-   Edit7Exit(Self);
-  }
 end;
 
 //----------- Si se modifica la linea y pulsa ENTER (F11)
@@ -1313,9 +1304,6 @@ end;
 procedure TFVentas.Edit11Exit(Sender: TObject);
 begin
   if not (EsFloat(Edit11.Text)) then begin Edit11.Text:='0';Edit11.SetFocus; exit; end;
-//  if Edit11.Text='' then Edit11.Text:='0';
-  //-- ANULADA POR JOSE -- Calcular importe y el descuento --- CON ESTA LINEA ACTIVA NO CALCULABA EL DESCUENTO
-//  if (Edit10.Text='0') or (Edit8.Text='0') then exit; // Si no existe IVA o Dto, Salimos para que no de error de calculos
   //---- Calcular importe y el descuento Con esta linea, siempre que tenga iva puesto, calcula el importe y el descuento
   if (Edit10.Text='0') or (Edit7.Text='0') then exit; // Si no existe IVA o Dto, Salimos para que no de error de calculos
   VerDtoEntra();
@@ -1352,7 +1340,6 @@ begin
 
   Combo2.ItemIndex:=0; // Inicializamos forma de pago a contado.
 
-  //-- if TicketRegalo='S' then ChBoxRegalo.Checked:= true else chBoxRegalo.Checked:= false;
   chBoxRegalo.Checked:= false;                                                          //-- Checkbox anulado, si lo quiere, se activa
   if TicketRegalo='S' then ChBoxRegalo.Visible:=True else ChBoxRegalo.Visible:=False;   //-- Si está activada la opción, se muestra el checbox
 
@@ -1364,8 +1351,6 @@ begin
   Label31.Caption:='ENTREGA';
   Panel4.Visible:=True;
 
-//-- Retrasamos la apertura de cajón a la aceptación del usuario
-//--  cajon();  // Abrimos cajón al totalizar
  if PedirSiempreUsuario='N' then cajon();  // Abrimos cajón al totalizar
 
  if PedirSiempreUsuario='S' then
@@ -1447,7 +1432,12 @@ end;
 //================== TOTALIZAR SIN TICKET ================
 //========================================================
 procedure TFVentas.BitBtn10Click(Sender: TObject);
+var
+  T0, T1: QWord;
 begin
+  T0 := VF_TickMS;
+  VF_LogInfo('TOTALIZAR: BitBtn10Click START');
+
 
 	vfTipoFactura:='F2';  //-- Definimos TipoFactura Veri*Factu como F2 - Factura Simplificada
 
@@ -1468,8 +1458,16 @@ begin
   TIPOOPER:='NS';//----------- Tipo de operacion (Normal Sin ticket)
   while not dbVentas.EOF do
     begin
-      ActualizaDatos();
-      ActualizaIva();
+      T1 := VF_TickMS;
+  T1 := VF_TickMS;
+  ActualizaDatos();
+  VF_LogPerf('TOTALIZAR: ActualizaDatos', T1);
+  VF_LogPerf('TOTALIZAR: ActualizaDatos', T1);
+      T1 := VF_TickMS;
+  T1 := VF_TickMS;
+  ActualizaIva();
+  VF_LogPerf('TOTALIZAR: ActualizaIva', T1);
+  VF_LogPerf('TOTALIZAR: ActualizaIva', T1);
       dbVentas.Next;
     end;
     
@@ -1477,6 +1475,8 @@ begin
   // === Veri*Factu: Encolar factura (DB/Archivos) ===
   // =================================================
   try
+    T1 := VF_TickMS;
+    T1 := VF_TickMS;
     VeriFactu_QueueFactura(
       'FS-' + SERIEFACT,
       NOPERACION,
@@ -1484,6 +1484,7 @@ begin
       HoraVenta,
       StrToFloat(Edit14.Text)
     );
+    VF_LogPerf('TOTALIZAR: VeriFactu_QueueFactura', T1);
   except
         on E: Exception do
          begin
@@ -1492,14 +1493,28 @@ begin
   end;
   // =================================================
 
+  T1 := VF_TickMS;
+  T1 := VF_TickMS;
   ActualizaHisto();//--------- Actualizar Hist. Operaciones Cabeceras
+  VF_LogPerf('TOTALIZAR: ActualizaHisto', T1);
+  VF_LogPerf('TOTALIZAR: ActualizaHisto', T1);
 //  if Combo2.Text='TARJETA+CONTADO' then CajaTarjetas();//----- Apuntar tarjetas a las cajas
 //  showmessage(IntToStr(Combo2.ItemIndex));
   if ( Combo2.ItemIndex < 7 ) and ( Combo2.ItemIndex > 0 ) then CajaTarjetas(); //----- Apuntar tarjetas a las cajas
   if Combo2.Text='PUNTOS ACUMULADOS' then CajaPuntos();//----- Apuntar puntos a las cajas
   if (StrToFloat(Edit16.Text)<0) then ApuntaCredito();//-------- Apuntar a credito
-  if OperacionRecuperada='P' then Actualizapedido();//--- Actualizar pedido
-  if OperacionRecuperada='PRE' then Actualizaprepro();//- Actualizar presup./profoema
+  if OperacionRecuperada='P' then
+    begin
+      T1 := VF_TickMS;
+      Actualizapedido();//--- Actualizar pedido
+      VF_LogPerf('TOTALIZAR: Actualizapedido', T1);
+    end;
+  if OperacionRecuperada='PRE' then
+    begin
+      T1 := VF_TickMS;
+      Actualizaprepro();//- Actualizar presup./profoema
+      VF_LogPerf('TOTALIZAR: Actualizaprepro', T1);
+    end;
   BitBtn9Click(BitBtn9);//----- Ocultar panel totalizar
   BitBtn15Click(BitBtn15, false);//--- Borrar todas las lineas de venta
   dbVentas.Refresh; Edit1.Text:=ClienteVario; Edit1Exit(Edit1);
@@ -1508,6 +1523,7 @@ begin
   if dbVentas.RecordCount<>0 then CambiarTicket();
   OperacionRecuperada:='N'; Edit3.SetFocus;
   BitBtn24Click(BitBtn24);
+  VF_LogPerf('TOTALIZAR: BitBtn10Click END', T0);
 end;
 
 procedure TFVentas.BitBtn9Enter(Sender: TObject);
@@ -1586,7 +1602,12 @@ end;
 //================== TOTALIZAR CON TICKET ================
 //========================================================
 procedure TFVentas.BitBtn11Click(Sender: TObject);
+var
+  T0, T1: QWord;
 begin
+  T0 := VF_TickMS;
+  VF_LogInfo('TOTALIZAR: BitBtn11Click START');
+
 
   vfTipoFactura:='F2';  //-- Definimos TipoFactura Veri*Factu como F2 - Factura Simplificada
 
@@ -1597,8 +1618,8 @@ begin
 
   DirectorioQR:='';
 
-  if DirectoryExists(RutaPdf) then DirectorioQR:=RutaPdf+'QR.png'
-                              else DirectorioQR:= RutaIni+'QR.png';
+  if DirectoryExists(RutaPdf) then DirectorioQR:=RutaPdf+'/QR.png'
+                              else DirectorioQR:= RutaIni+'/QR.png';
 
   if FileExists(DirectorioQR) then DeleteFile(DirectorioQR);
                                                                 // Creamos el fichero QR para incluir en el report.
@@ -1629,6 +1650,7 @@ begin
       HoraVenta,
       StrToFloat(Edit14.Text)
     );
+    VF_LogPerf('TOTALIZAR: VeriFactu_QueueFactura', T1);
   except
         on E: Exception do
          begin
@@ -1638,12 +1660,21 @@ begin
   // =================================================
 
   ActualizaHisto();//--------- Actualizar Hist. Operaciones Cabeceras
-//  if Combo2.Text='TARJETA+CONTADO' then CajaTarjetas();//----- Apuntar tarjetas a las cajas
   if ( Combo2.ItemIndex < 7 ) and ( Combo2.ItemIndex > 0 ) then CajaTarjetas(); //----- Apuntar tarjetas a las cajas
   if Combo2.Text='PUNTOS ACUMULADOS' then CajaPuntos();//----- Apuntar puntos a las cajas
   if StrToFloat(Edit16.Text)<0 then ApuntaCredito();//--- Apuntar a credito
-  if OperacionRecuperada='P' then Actualizapedido();//--- Actualizar pedido
-  if OperacionRecuperada='PRE' then Actualizaprepro();//- Actualizar presup./profoema
+  if OperacionRecuperada='P' then
+    begin
+      T1 := VF_TickMS;
+      Actualizapedido();//--- Actualizar pedido
+      VF_LogPerf('TOTALIZAR: Actualizapedido', T1);
+    end;
+  if OperacionRecuperada='PRE' then
+    begin
+      T1 := VF_TickMS;
+      Actualizaprepro();//- Actualizar presup./profoema
+      VF_LogPerf('TOTALIZAR: Actualizaprepro', T1);
+    end;
   BitBtn9Click(BitBtn9);//---- Ocultar panel totalizar
   BitBtn15Click(BitBtn15, false);//-- Borrar todas las lineas de venta
   dbVentas.Refresh; Edit1.Text:=ClienteVario; Edit1Exit(Edit1);
@@ -1652,6 +1683,7 @@ begin
   if dbVentas.RecordCount<>0 then CambiarTicket();
   OperacionRecuperada:='N'; Edit3.SetFocus;
   BitBtn24Click(BitBtn24);
+  VF_LogPerf('TOTALIZAR: BitBtn11Click END', T0);
 end;
 
 //========================================================
@@ -1676,8 +1708,6 @@ begin
   dbTiendas.Active:=True;
   if dbTiendas.Recordcount=0 then begin DataModule1.Mensaje('Información','No sé en que tienda facturar', 2000 , clGray); Exit; end;
   dbSeries.Active:=False;
-  //  showmessage('SELECT * FROM seriesfactu WHERE SF5<>"E" and SF0 like "%'+copy(FormatDateTime('YYYY',(now)),3,2)+'%" ORDER BY SF0');
-  //  showmessage('SELECT * FROM seriesfactu WHERE SF5<>"E" ORDER BY SF0');
   dbSeries.SQL.Text:='SELECT * FROM seriesfactu WHERE SF5<>"E" and SF0 like "%'+copy(FormatDateTime('YYYY',(now)),3,2)+'%" ORDER BY SF0';
   dbSeries.Active:=True;
   if dbSeries.RecordCount=0 then begin DataModule1.Mensaje('Información','Falta serie de facturación', 2000 , clGray) ; exit; end;
@@ -1695,21 +1725,6 @@ begin
                         dbSeries.FieldByName('SF1').AsString);
   Edit21.Text:=IntToStr(dbSeries.FieldByName('SF3').AsInteger+1);
 
-//--  showmessage('ACTIVANDO BOTON DE ALBARANES');
-//--   BitBtn23.Enabled:=True;
-{
-  sleep(1000);
-  BitBtn19.Enabled:=True;
-  BitBtn19.Enabled:=False;
-  BitBtn19.SendToBack;
-  BitBtn19.Visible:=False;
-  sleep(1000);
-  BitBtn23.Enabled:=False;
-  BitBtn23.BringToFront;
-  BitBtn23.Enabled:=True;
-  sleep(1000);
-}
-//--  showmessage('BOTON DE ALBARANES, ACTIVADO');
   Panel14.Visible:=True;
   Panel15.Visible:=False;
   BitBtn19.SendToBack; BitBtn19.Enabled:=False; BitBtn23.Enabled:=True;
@@ -1740,7 +1755,6 @@ begin
   SERIEFACT:=dbSeries.FieldByName('SF0').AsString;
   if SERIEFACT='' then begin DataModule1.Mensaje('Información','Se necesita seleccionar SERIE a facturar', 2000 , clGray); Exit; end;
   BitBtn20Click(BitBtn20);//--- Ocultar panel series de albaranes
-  //if swhueco=0 then NumeroAlbaran();
   NumeroAlbaran();
   dbMuestrad.Active:=False;
   dbMuestrad.SQL.Text:='SELECT * FROM albad'+Tienda+' WHERE AD0='+Edit1.Text+
@@ -1815,7 +1829,6 @@ begin
   //-------------------
   TIPOOPER:='AL';//----------- Tipo de operacion (Normal Sin ticket)
   ActualizaHisto();//--------- Actualizar Hist. Operaciones Cabeceras
-//  if Combo2.Text='TARJETA+CONTADO' then CajaTarjetas();//----- Apuntar tarjetas a las cajas
   if ( Combo2.ItemIndex < 7 ) and ( Combo2.ItemIndex > 0 ) and ( CgForzAl='N') then CajaTarjetas(); //----- Apuntar tarjetas a las cajas
   if Combo2.Text='PUNTOS ACUMULADOS' then CajaPuntos();//----- Apuntar puntos a las cajas
   if (StrToFloat(Edit16.Text)<0) or (CgForzAl='S') then ApuntaCredito();//--- Apuntar a credito
@@ -1833,9 +1846,6 @@ begin
   ' AND AD1="'+FormatDateTime('YYYY/MM/DD',StrToDate(Edit22.Text))+'" AND AD2="'+SERIEFACT+'"'+
   ' AND AD3='+IntToStr(NOPERACION);
   dbMuestrad.Active:=True;
-
-//  if CgPrAlb='Ticketera' then FImpresion.ImpreTicket(dbMuestrad, dbTrabajo, dbClientes, 'ALBARAN')
-//   else if (cbImprimir.Checked) then FImpresion.Imprime(dbMuestrad, dbTrabajo, dbClientes, 'VALBARAN', cbImpresionDirecta.Checked);   //impresion directa o menu
 
   if (cbImprimir.Checked) then
     begin
@@ -1900,17 +1910,13 @@ begin
   vfTipoFactura:='F1';  //-- Definimos TipoFactura Veri*Factu como F1 - Factura Completa
 
   if Edit1.Text=ClienteVario then begin DataModule1.Mensaje('Información','No se puede hacer factura a clientes varios', 2000 , clGray); exit; end;
-//--  DataModule1.Mensaje('Información','OJO, Se va ha realizar una FACTURA', 2000 , clGray);
   if StrToFloat(Edit16.Text)<0 then if not VersiapuntarCredito then exit;//--- Si se apunta a credito o no
   //--- Ver la tienda activa para saber que serie usa por defecto
   dbTiendas.Active:=False;
   dbTiendas.Sql.Text:='SELECT * FROM tiendas WHERE T0='+NTienda;
   dbTiendas.Active:=True;
-  if dbTiendas.Recordcount=0 then begin DataModule1.Mensaje('Información','No sé en qué tienda facturar', 2000 , clGray); Exit; end;
+  if dbTiendas.Recordcount=0 then begin DataModule1.Mensaje('Información','No sé en qué tienda facturar', 2000 , clGray);Exit; end;
   dbSeries.Active:=False;
-//  showmessage('SELECT * FROM seriesfactu WHERE SF5<>"E" and SF0 like "%'+copy(FormatDateTime('YYYY',(now)),3,2)+'%" ORDER BY SF0');
-//  showmessage('SELECT * FROM seriesfactu WHERE SF5<>"E" ORDER BY SF0');
-//  dbSeries.SQL.Text:='SELECT * FROM seriesfactu WHERE SF5<>"E" ORDER BY SF0';
   dbSeries.SQL.Text:='SELECT * FROM seriesfactu WHERE SF5<>"E" and SF0 like "%'+copy(FormatDateTime('YYYY',(now)),3,2)+'%" ORDER BY SF0';
   dbSeries.Active:=True;
   if dbSeries.RecordCount=0 then begin DataModule1.Mensaje('Información','Falta serie de facturación', 2000 , clGray); exit; end;
@@ -1927,17 +1933,6 @@ begin
   ListBox1.ItemIndex:= ListBox1.Items.IndexOf(Space(3-length(dbSeries.FieldByName('SF0').AsString))+ dbSeries.FieldByName('SF0').AsString+' - '+
                         dbSeries.FieldByName('SF1').AsString);
   Edit21.Text:=IntToStr(dbSeries.FieldByName('SF2').AsInteger+1);
-{
-  sleep(1000);
-  BitBtn23.Enabled:=True;
-  BitBtn23.Enabled:=False;
-  BitBtn23.SendToBack;
-  BitBtn23.Visible:=False;
-  sleep(1000);
-  BitBtn19.Enabled:=False;
-  BitBtn19.BringToFront;
-  BitBtn19.Enabled:=True;
-}
   Panel14.Visible:=False;
   Panel15.Visible:=True;
 
@@ -1959,7 +1954,6 @@ begin
   SERIEFACT:=dbSeries.FieldByName('SF0').AsString;
   if SERIEFACT='' then begin DataModule1.Mensaje('Información','Seleccionar SERIE de facturación', 2000 , clGray); Exit; end;
   BitBtn20Click(BitBtn20);//--- Ocultar panel series de facturas
-  //if swhueco=0 then NumeroFactura();
   NumeroFactura();
   dbMuestrad.Active:=False;
   dbMuestrad.SQL.Text:='SELECT * FROM factud'+Tienda+' WHERE FD0='+Edit1.Text+
@@ -2068,9 +2062,6 @@ begin
   ' AND FD3='+IntToStr(NOPERACION);
   dbMuestrad.Active:=True;
 
-  // if CgPrFra='Ticketera' then FImpresion.ImpreTicket(dbMuestrad, dbTrabajo, dbClientes, 'FACTURA')
-  // else if (cbImprimir.Checked) then FIm
-
    if (cbImprimir.Checked) then
     begin
       EstadoImpresion:=FImpresion.Imprime(dbMuestrad, dbTrabajo, dbClientes, 'FACTURA', cbImpresionDirecta.Checked, StrToInt(edNumeroCopias.Text));
@@ -2095,11 +2086,29 @@ begin
           try
             dbTrabajo.ExecSQL;
           except
-            on EDB: EZSQLException do showmessage( 'Error al actualizar tabla de cabeceras de Facturas : '+ EDB.Message);
+            on EDB: EZSQLException do showmessage( 'Error al actualizar tabla de cabeceras de Facturas ( Imprimido ) : '+ EDB.Message);
           end;
 
         end;
+
     end;
+
+   // Factura PAGADA si el total = entrega + contado - cambio y no hay crédito.
+
+  if ( StrToFloat(Edit14.Text) = StrToFloat(Edit15.Text) + StrToFloat(Edit42.Text) - StrToFloat(Edit16.Text) )
+       and ( StrToFloat(Edit16.Text) >= 0 ) then
+     begin
+        TxtQ:='UPDATE factuc'+Tienda+' SET FC23="S" WHERE FC0='+Edit1.Text+                               //Pagado
+                            ' AND FC1="'+FormatDateTime('YYYY/MM/DD',StrToDate(Edit22.Text))+'"'+
+                            ' AND FC2="'+SERIEFACT+'" AND FC3='+IntToStr(NOPERACION);
+        dbTrabajo.SQL.Text:= TxtQ;
+        try
+           dbTrabajo.ExecSQL;
+        except
+           on EDB: EZSQLException do showmessage( 'Error al actualizar tabla de cabeceras de Facturas ( Pago ) : '+ EDB.Message);
+        end;
+
+     end;
 
   BitBtn9Click(BitBtn9);//----- Ocultar panel totalizar
   BitBtn15Click(BitBtn15, false);//--- Borrar todas las lineas de venta
@@ -2338,13 +2347,6 @@ begin
   TxtQ:='INSERT INTO iva'+Tienda+' (Fecha,Hora,TipoOP,Puesto,Cliente,Operacion,Serie,Base,Iva,TIva,Total) VALUES ("'+FormatDateTime('YYYY/MM/DD',FechaVenta)+'",'+
         '"'+FormatDateTime('HH:MM:SS',HoraVenta)+'","'+TIPOOPER+'","'+Puesto+'","'+dbVentas.FieldByName('V12').AsString+'",'+IntToStr(NOPERACION)+',"'+SERIEFACT+
         '",'+Base+','+Iva+','+dbVentas.FieldByName('V10').AsString+','+dbVentas.FieldByName('V11').AsString+')';
-{
-  case QuestionDlg ('Actualizando Datos de IVA','Si has llegado aquí, se van ha almacenar los datos del iva',mtCustom,[mrYes,'Si', mrNo, 'No', mrCancel,'Cancelar'],'La ayuda') of
-        mrYes: showmessage(TxtQ);
-        mrNo:  QuestionDlg ('Se van ha almacenar igual los datos de IVA',TxtQ,mtCustom,[mrOK,'Exacto'],'');
-        mrCancel: exit;
-  end;
-}
   dbIva.SQL.Text:=TxtQ;
   try
     dbIva.ExecSQL;
@@ -2838,13 +2840,6 @@ procedure TFVentas.ActualizaHisto();
 var
   TxtQ, IMPO1, IMPO2: String;
 begin
-  //------------ Ver si es tarjeta + contado ---------------
-  //if Combo2.Text='TARJETA+CONTADO' then
-  //  begin IMPO1:=Edit16.Text; IMPO2:=Edit42.Text; end
-  //else
-  //  begin IMPO1:=Edit16.Text; IMPO2:='0'; end;
-
-
   //-------------------------------------------------
   TxtQ:='INSERT INTO hisopcc'+Tienda+' (HO0,HO1,HO2,HO3,HO4,HO5,HO6,HO7,HO8,HO9,HO10,HO11'+
         ',HO12,HO13,HO14,HO15,HO19) VALUES ("'+FormatDateTime('YYYY/MM/DD',FechaVenta)+'",'+
@@ -3001,9 +2996,6 @@ begin
     begin
       dbCajas.FieldByName('CA14').Value := dbCajas.FieldByName('CA14').AsFloat + StrToFloat(Edit14.Text);// --- Imp. Tarjetas
     end;
-
-//  showmessage(FloatToStr(dbCajas.FieldByName('CA13').Value));
-//  showmessage(FloatToStr(dbCajas.FieldByName('CA14').Value));
   try
     dbCajas.Post;
   except
@@ -3075,8 +3067,6 @@ begin
   Total:=0;
   if RadioButton1.Checked=True then;
     begin
-//     OpenDialog1.FileName:=DevTicket; //cambiado por javi para quitar opendialog
-//     AssignFile(PrintText, OpenDialog1.FileName); //cambiado por javi para quitar opendialog
      AssignFile(PrintText, DevTicket); //añadido por javi para quitar opendialog
      Rewrite(PrintText);
      CabeceraTicket();
@@ -3157,7 +3147,7 @@ begin
  total6:='';
   if ( lDirecto <> False ) then
     begin
-         Beep;
+         FLX_Beep(skOk);
          textoaprobacion:=InputBox('Autorizacion para la Eliminacion de Venta completa','Anote el motivo del borrado y pulse ACEPTAR o ENTER','');
          fichero:='';
          if FileExists(RutaIni+'BorraDatos_'+FormatDateTime('YYYYMM',(Date-63))+'.txt' ) then
@@ -3964,6 +3954,8 @@ var
   Precio, SubTotal: Double;
   Texto: String;
   b1,b2,b3,tiva1,tiva2,tiva3,iiva1,iiva2,iiva3: Double;
+  LeyendaCabeceraQR, leyendaPieQR: string;
+
 begin
      b1:=0;
      b2:=0;
@@ -3974,12 +3966,23 @@ begin
      iiva1:=0;
      iiva2:=0;
      iiva3:=0;
-//  OpenDialog1.FileName:=DevTicket; //cambiado por javi para quitar opendialog
-//  AssignFile(PrintText, OpenDialog1.FileName); //cambiado por javi para quitar opendialog
+
+   if UpperCase(vfMode) = 'PRODUCCION' then
+     begin
+      LeyendaCabeceraQR := ' QR Tributario : ';
+      LeyendaPieQR := ' VERI*FACTU ';
+     end else
+     begin
+      LeyendaCabeceraQR := LeyendaSuperiorQR;
+      LeyendaPieQR := LeyendaInferiorQR;
+     end;
 
   AssignFile(PrintText, DevTicket);
   Rewrite(PrintText);
-  Writeln(PrintText, 'FacturLinEx VF 4');                //'       QR Tributario ');
+  Write(PrintText, #27#97#1); // Centrar
+  Writeln(PrintText,LeyendaCabeceraQR);
+  Write(PrintText, #27#97#0); // Volver a izquierda
+
   CloseFile(PrintText);
 
   ImprimeQRTicket();
@@ -3987,9 +3990,9 @@ begin
   AssignFile(PrintText, DevTicket); //Añadido por javi para quitar opendialog
   Rewrite(PrintText);
 
-  Writeln(PrintText, ' Ver. 4.0 Rev 202512 ');
-
-//  Writeln(PrintText, '       VERI*FACTU ');
+  Write(PrintText, #27#97#1); // Centrar
+  Writeln(PrintText,LeyendaPieQR);
+  Write(PrintText, #27#97#0); // Volver a izquierda
 
   if ChBoxRegalo.Checked then
     begin
@@ -4007,11 +4010,6 @@ begin
       if tiva1=dbVentas.FieldByName('V10').AsInteger then
         begin
           b1:=b1+((dbVentas.Fields[11].AsFloat)/(1+(dbVentas.FieldByName('V10').AsInteger/100)));
-          {
-          showmessage(FloatToStr(b1));
-          showmessage(FloatToStr(dbVentas.Fields[11].AsFloat));
-          showmessage(FloatToStr(1+(dbVentas.FieldByName('V10').AsInteger/100)));
-          }
           iiva1:=iiva1+((dbVentas.Fields[11].AsFloat)-(dbVentas.Fields[11].AsFloat/(1+(dbVentas.FieldByName('V10').AsInteger/100))))
         end;
       if tiva2=dbVentas.FieldByName('V10').AsInteger then
@@ -4079,7 +4077,14 @@ Procedure TFVentas.ImprimeQRTicket();
 var
   Ticketera: TLCLHandle;
   S: RawByteString;
+  LeyendaTextoQR: string;
+
 begin
+
+   if UpperCase(vfMode) = 'PRODUCCION' then
+        LeyendaTextoQR := BarcodeQR1.Text
+   else
+        LeyendaTextoQR := TextoCodigoQR;
 
   try
 
@@ -4090,10 +4095,10 @@ begin
 
    // Definir contenido del QR
    S += GS + '(k';
-   S += Char(Length(' FacturLinEx Veri*factu 4.0 ') + 3);     //Char(Length(BarcodeQR1.Text) + 3);
+   S += Char(Length(LeyendaTextoQR) + 3);
    S += #0;
    S += #49#80#48;
-   S += ' FacturLinEx Veri*factu 4.0 ';              //BarcodeQR1.Text;
+   S += LeyendaTextoQR;
 
    //Centrar QR
    S += ESC + 'a' + #1;
@@ -4127,12 +4132,6 @@ end;
 procedure TFVentas.CabeceraTicket();
 var
   hora: String;
-//-- PRUEBA DE JOSE PARA NEGRITA
-{
-  prueba,dnegro: String;
-  x,i: Integer;
-  }
-//-- FIN PRUEBA DE JOSE PARA NEGRITA
 begin
 
   if trim(DevLogo)<>'' then
@@ -4141,34 +4140,6 @@ begin
    except
      raise;
   end;
-
-  //-- PRUEBA DE JOSE PARA LOGOTIPO
-  {
-    prueba:='';
-    dnegro:='028112001000';
-    for i:=1 to length(dnegro) do
-      begin
-        if i=1 then x:=1 else x:=x+3;
-        if x>=length(dnegro) then break;
-        prueba:=prueba+chr(StrToInt(copy(dnegro,x,3)));
-      end;
-    Writeln(PrintText,prueba);
-   }
-   //-- FIN PRUEBA DE JOSE PARA LOGOTIPO
-
-    //-- PRUEBA DE JOSE PARA NEGRITA
-    {
-     prueba:='';
-     dnegro:='027069001';
-     for i:=1 to length(dnegro) do
-       begin
-         if i=1 then x:=1 else x:=x+3;
-         if x>=length(dnegro) then break;
-         prueba:=prueba+chr(StrToInt(copy(dnegro,x,3)));
-       end;
-     Writeln(PrintText,prueba);
-     }
-     //-- FIN PRUEBA DE JOSE PARA NEGRITA
 
   if trim(NegroD)<>'' then
   try
@@ -4185,39 +4156,24 @@ begin
   Writeln(PrintText, ' ');
   if HoraEnTicket='S' then hora:='   Hora.:'+FormatDateTime('hh:mm:ss',HoraVenta);
 
-  //-- PRUEBA DE JOSE PARA NEGRITA
-  {
-   prueba:='';
-   dnegro:='027069000';
-   for i:=1 to length(dnegro) do
-     begin
-       if i=1 then x:=1 else x:=x+3;
-       if x>=length(dnegro) then break;
-       prueba:=prueba+chr(StrToInt(copy(dnegro,x,3)));
-     end;
-   Writeln(PrintText,prueba);
-   }
-   //-- FIN PRUEBA DE JOSE PARA NEGRITA
+  if trim(Negro)<>'' then
+  try
+     WriteLn(PrintText, PNegro);
+   except
+     raise;
+  end;
 
-     if trim(Negro)<>'' then
-     try
-        WriteLn(PrintText, PNegro);
-      except
-        raise;
-     end;
-
-
-     //..Inserción de Prueba de Jose para QR
-     try
-       PrintQR(vfUrl+'nif='+NIF+'&'+'numserie='+'Serie FS-'+SERIEFACT+'-'+DataModule1.LFill(FormatFloat('#######',NOPERACION),7,' ')
-                                  +'&fecha='+FormatDateTime('dd-mm-yyyy',FechaVenta)
-                                  +'&importe='+DataModule1.LFill( FormatFloat('0.00',StrToFloat(Edit14.Text)),10,' '));
-       WriteLn('QR enviado correctamente.');
-     except
-       on E: Exception do
-         WriteLn('Error: ', E.Message);
-     end;
-     //..Inserción de Prueba de Jose para QR
+  //..Inserción de Prueba de Jose para QR
+  try
+    PrintQR(vfUrl+'nif='+NIF+'&'+'numserie='+'Serie FS-'+SERIEFACT+'-'+DataModule1.LFill(FormatFloat('#######',NOPERACION),7,' ')
+                               +'&fecha='+FormatDateTime('dd-mm-yyyy',FechaVenta)
+                               +'&importe='+DataModule1.LFill( FormatFloat('0.00',StrToFloat(Edit14.Text)),10,' '));
+    WriteLn('QR enviado correctamente.');
+  except
+    on E: Exception do
+      WriteLn('Error: ', E.Message);
+  end;
+  //..Inserción de Prueba de Jose para QR
 
 
   Writeln(PrintText, 'F A C T U R A   S I M P L I F I C A D A');
@@ -4248,11 +4204,6 @@ begin
     end;
 
   Descuento:=0;
-  { --------------------------------------------     ANULADO POR JOSE, PARA IMPLEMENTAR EL MULTI-IVA ----------------------------------------
-  Neto:= StrToFloat(Edit14.Text)/(1+(dbVentas.FieldByName('V10').AsInteger/100));
-  Impuestos:=StrToFloat(Edit14.Text)-Neto;
-  TipoI:=dbVentas.FieldByName('V10').AsInteger;
-  --------------------------------------------     ANULADO POR JOSE, PARA IMPLEMENTAR EL MULTI-IVA ---------------------------------------- }
 
   if (Edit13.Text<>'') and (StrToFloat(Edit13.Text)<>0) then
      Descuento:=StrToFloat(Edit12.Text)-StrToFloat(Edit14.Text);
@@ -4282,12 +4233,6 @@ begin
            Writeln(PrintText, ''+DataModule1.LFill( FormatFloat('######0.00',i3),10,' '));
         end;
 
-//-------- FIN IMPLEMENTACIÓN JOSE PARA CONTROLAR EL MULTI-IVA
-      { ------------------------------------------------- MODIFICADO POR JOSE PARA IMPLEMENTAR EL MULTI-IVA -----------------------------------
-      Write(PrintText, ''+DataModule1.LFill( FormatFloat('######0.00',Neto),10,' '));
-      Write(PrintText, ''+DataModule1.LFill( FormatFloat('######0.00',TipoI),10,' '));
-      Writeln(PrintText, ''+DataModule1.LFill( FormatFloat('######0.00',Impuestos),10,' '));
-      ------------------------------------------------- MODIFICADO POR JOSE PARA IMPLEMENTAR EL MULTI-IVA ----------------------------------- }
       Writeln(PrintText, '----------------------------------------');
       Writeln(PrintText, ' ');
    end;
@@ -4303,7 +4248,6 @@ begin
           Writeln(PrintText, '                    SUBTOTAL  '+Texto1);
           Writeln(PrintText, '                    DCTO.   - '+Texto2);
           Writeln(PrintText, '                               ---------');
-        //  Writeln(PrintText, '                    TOTAL     '+Texto3);
         end
         else
         begin
@@ -4387,9 +4331,9 @@ begin
 
    AssignFile(PrintText, DevTicket);
 
- //-- TEST COMPROBACIÓN ERROR CAJON
+//-- TEST COMPROBACIÓN ERROR CAJON
 //   showmessage(DevTicket);
- //-- FIN TEST COMPROBACIÓN ERROR CAJON
+//-- FIN TEST COMPROBACIÓN ERROR CAJON
 
    Rewrite(PrintText);
 
@@ -4418,8 +4362,6 @@ begin
      begin
        ShowMessage('El error provocado en inserción ha sido: '+E.Message);
      end;
-//-- Prueba Jose   raise;
-//-- Prueba Jose   DataModule1.Mensaje('Información','Revise ticketera, no se puede abrir cajón.', 2000 , clGray);
   end;
 end;
 
@@ -5108,7 +5050,6 @@ begin
   Edit35.Text:=dbPedi.FieldByName('PRC3').AsString;//---- N. Pre/Pro
 
   Edit34.Text:=dbPedi.FieldByName('PRC0').AsString;//---- Cgo Cliente
-  //Edit24Exit(Edit24);
   Edit33.Text:=dbPedi.FieldByName('C1').AsString;//----- Nombre cliente
   Edit36.Text:=dbPedi.FieldByName('C3').AsString;//----- Dirección cliente
   Edit30.Text:=dbPedi.FieldByName('C6').AsString;//----- Telefono del cliente.
@@ -5421,10 +5362,6 @@ var
   TxtQ: String;
   Numero: Integer;
 begin
-//  if RadioButton9.Checked=true then TipoDocumento:='PROFORMA'
-//                               else TipoDocumento:='PRESUPUESTO';
-
-//  FImpresion.Imprime(dbMuestrad, dbPedi, dbClientes, TipoDocumento);
 
   frDBDataSet1.DataSet:=dbMuestrad;
   IMPOIVA1:=0; BASE1:=0; TOTAL1:=0; IRIVA1:=0; PIVA1:=0; PRIVA1:=0;
@@ -5493,10 +5430,8 @@ begin
    dbMuestrad.SQL.Text:=dbPedid.SQL.Text;
    dbMuestrad.Active:=True;
    if RadioButton9.Checked=true then Numero:=1 else Numero:=2;
-//   showmessage(Impreso[Numero]);
    frReport1.LoadFromFile(Impreso[Numero]);
    frReport1.ShowReport;
- //frReport1.DesignReport;
 end;
 
 //=============================================================
@@ -5722,20 +5657,9 @@ begin
 
   //------------ Totalizar Operacion / Sin ticket ------------------
   if key=VK_F8 then
-   {
 
-//-----   PENDIENTE JOSE  --- BUSCAR PENDIENTE --- TECLAS CONTROL Y SHIFT O MAYUSCULA PARA VISA O TARJETA
-
-    begin
-    if GetKeyState(VK_CONTROL) < 0 then  // se presionó CONTROL
-      begin
-        showmessage('OJO');
-        Combo2.ItemIndex:=1;
-        Combo2.Refresh;
-      end;
-    }
     if BitBtn8.Enabled=true then begin BitBtn8Click(BitBtn8); key:=0; exit; end
-// OJO, solo valido con el begin inicial   end
+  // OJO, solo valido con el begin inicial   end
     else
         begin
           if BitBtn10.Enabled=true then begin BitBtn10Click(BitBtn10); key:= 0; exit; end;
@@ -5743,12 +5667,8 @@ begin
   //------------ Totalizar con ticket ------------------
   if key=VK_F9 then
     begin
-      //-- Showmessage(BoolToStr(Panel4.Visible));
-      //-- if (Panel4.Visible=True) then begin BitBtn11Click(BitBtn11); key:=0; exit; end;  ;    //-- Bloqueo la linea porque permitia la venta con F9 saltandose todos los protocolos
       if BitBtn9.Enabled=true and Panel4.Visible=True then
         begin
-           //-- CargaValoresTotalizar();
-           //-- cajon();  // Abrimos cajón al totalizar
            if PedirSiempreUsuario='S' then Panel12.Visible:=True;
            if BitBtn11.Enabled=True then begin BitBtn11Click(BitBtn11); key:=0; exit; end;
         end;
@@ -5768,44 +5688,50 @@ begin
 
   //-------------- Control en totalizar de la impresion directa / email -----------------
 
-   if (key=VK_C) and (panel4.Visible=True) then
-   begin
-      edNumeroCopias.SetFocus;                                                   // Editamos valor en número copias
-      key:=0;
-      exit;
-   end;
 
-   if (key=VK_N) and (panel4.Visible=True) then
-    begin
-       Edit15.SetFocus;                                                        // Editamos valor Entega
+   if ssCtrl in Shift then // Verifica si la tecla Ctrl está presionada
+   begin
+
+     if (key=VK_C) and (panel4.Visible=True) then
+     begin
+       edNumeroCopias.SetFocus;                                                   // Editamos valor en número copias
        key:=0;
        exit;
-    end;
-
-   if (key=VK_E) and (panel4.Visible=True) then
-     begin
-        if (cbCorreoElectronico.Checked=False) then cbCorreoElectronico.Checked:=True
-                                               else cbCorreoElectronico.Checked:=False;
-        key:=0;
-        exit;                                                                                                   //Cambiamos valor check correos.
      end;
 
-   if (key=VK_I) and (panel4.Visible=True) then
+     if (key=VK_N) and (panel4.Visible=True) then
      begin
-        if (cbImprimir.Checked=False) then cbImprimir.Checked:=True
+        Edit15.SetFocus;                                                        // Editamos valor Entega
+        key:=0;
+        exit;
+     end;
+
+     if (key=VK_E) and (panel4.Visible=True) then
+     begin
+         if (cbCorreoElectronico.Checked=False) then cbCorreoElectronico.Checked:=True
+                                                else cbCorreoElectronico.Checked:=False;
+         key:=0;
+         exit;                                                                                                   //Cambiamos valor check correos.
+     end;
+
+     if (key=VK_I) and (panel4.Visible=True) then
+     begin
+         if (cbImprimir.Checked=False) then cbImprimir.Checked:=True
                                        else cbImprimir.Checked:=False;                                          //Cambiamos valor Imprimir.
-        key:=0;
-        exit;
+         key:=0;
+         exit;
      end;
 
-   if (key=VK_D) and (panel4.Visible=True) then
+     if (key=VK_D) and (panel4.Visible=True) then
      begin
-        if (cbImpresionDirecta.Checked=False) then cbImpresionDirecta.Checked:=True
-                                              else cbImpresionDirecta.Checked:=False;  //Cambiamos valor Impresión directa
-        key:=0;
-        exit;
+         if (cbImpresionDirecta.Checked=False) then cbImpresionDirecta.Checked:=True
+                                               else cbImpresionDirecta.Checked:=False;  //Cambiamos valor Impresión directa
+         key:=0;
+         exit;
      end;
 
+
+   end;
 end;
 
 procedure TFVentas.FormShow(Sender: TObject);
