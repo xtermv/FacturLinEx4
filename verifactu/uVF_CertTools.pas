@@ -28,7 +28,7 @@ function VF_TLS_EnsurePEMsFromP12(out Msg: string): Boolean;
 implementation
 
 uses
-  IniFiles, Process, Global;
+  IniFiles, Process, Global, uFLX_CryptoIni;
 
 type
   TVFTLSIni = record
@@ -115,7 +115,9 @@ begin
   ini := TIniFile.Create(fn);
   try
     C.P12File     := Trim(ini.ReadString('VeriFactuTLS', 'P12File', ''));
-    C.P12Password := ini.ReadString('VeriFactuTLS', 'P12Password', '');
+    //-- C.P12Password := ini.ReadString('VeriFactuTLS', 'P12Password', '');
+    C.P12Password := '';
+    C.P12Password := FLX_IniReadPassword(ini, 'VeriFactuTLS', 'P12Password', C.P12Password);
     C.OpenSSLPath := Trim(ini.ReadString('VeriFactuTLS', 'OpenSSLPath', ''));
     C.CertFile    := Trim(ini.ReadString('VeriFactuTLS', 'CertFile', ''));
     C.KeyFile     := Trim(ini.ReadString('VeriFactuTLS', 'KeyFile', ''));

@@ -58,6 +58,11 @@ var
 
 implementation
 
+uses
+  // ...
+  uFLX_CryptoIni; // <-- TU unidad de encriptación (pon aquí el nombre real)
+
+
 {$R *.lfm}
 
 { TFSIFConfig }
@@ -161,8 +166,9 @@ var
           Ini.ReadString('VeriFactuTLS', 'P12File', '');
 
       if Assigned(EditP12Password) then
-        EditP12Password.Text :=
-          Ini.ReadString('VeriFactuTLS', 'P12Password', '');
+        {EditP12Password.Text :=
+          Ini.ReadString('VeriFactuTLS', 'P12Password', '');}
+        FLX_IniReadPassword(Ini, 'VeriFactuTLS', 'P12Password', EditP12Password.Text);
 
       if Assigned(EditOpenSSLPath) then
         EditOpenSSLPath.Text :=
@@ -227,7 +233,8 @@ begin
       Ini.WriteString('VeriFactuTLS', 'P12File', Trim(EditP12File.Text));
 
     if Assigned(EditP12Password) then
-      Ini.WriteString('VeriFactuTLS', 'P12Password', EditP12Password.Text);
+      {Ini.WriteString('VeriFactuTLS', 'P12Password', EditP12Password.Text);}
+      FLX_IniWritePassword(Ini, 'VeriFactuTLS', 'P12Password', EditP12Password.Text);
 
     if Assigned(EditOpenSSLPath) then
       Ini.WriteString('VeriFactuTLS', 'OpenSSLPath', Trim(EditOpenSSLPath.Text));
