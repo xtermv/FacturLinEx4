@@ -7,7 +7,7 @@
     <KeyWords Value=""/>
     <Comments Value=""/>
     <ReportCreateDate Value="2016-01-05 10:59:24"/>
-    <ReportLastChange Value="2025-12-23 09:16:19"/>
+    <ReportLastChange Value="2026-01-08 13:54:13"/>
     <ReportVersionBuild Value=""/>
     <ReportVersionMajor Value=""/>
     <ReportVersionMinor Value=""/>
@@ -4966,7 +4966,7 @@
           <Typ Value="gtPicture"/>
           <StreamMode Value="0"/>
           <Size>
-            <Left Value="358"/>
+            <Left Value="386"/>
             <Top Value="46"/>
             <Width Value="133"/>
             <Height Value="101"/>
@@ -5215,12 +5215,12 @@
           <Typ Value="gtMemo"/>
           <StreamMode Value="0"/>
           <Size>
-            <Left Value="358"/>
+            <Left Value="347"/>
             <Top Value="27"/>
-            <Width Value="134"/>
+            <Width Value="219"/>
             <Height Value="18"/>
           </Size>
-          <Flags Value="11"/>
+          <Flags Value="3"/>
           <FillColor Value="clNone"/>
           <Frames>
             <FrameColor Value="clBlack"/>
@@ -5271,12 +5271,12 @@
           <Typ Value="gtMemo"/>
           <StreamMode Value="0"/>
           <Size>
-            <Left Value="356"/>
-            <Top Value="148"/>
-            <Width Value="134"/>
+            <Left Value="350"/>
+            <Top Value="149"/>
+            <Width Value="218"/>
             <Height Value="18"/>
           </Size>
-          <Flags Value="11"/>
+          <Flags Value="3"/>
           <FillColor Value="clNone"/>
           <Frames>
             <FrameColor Value="clBlack"/>
