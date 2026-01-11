@@ -353,7 +353,7 @@ uses
    envioarti, roles, promociones, facturaped, histofaprov, copiasegauto, Modelo347,
    uVeriFactu, uVeriFactuDispatcher, uVeriFactuHTTPSender, uVFServer, uVF_Sender,
    uVF_Integration, uVeriChain, uVeriChainCheck, uVF_QueueResult,
-   uVF_Stub, uVFSenderAEAT, uVeriSIFForm, uFLX_Log, uFLX_Backup;
+   uVF_Stub, uVFSenderAEAT, uVeriSIFForm, uFLX_Log, uFLX_Backup, uFLX_CryptoIni;
 
 //====================================================================
 // ==== CONSTANTE PARA TRABAJAR EN LA BARRA DE ESTADO VERI*FACTU =====
@@ -414,7 +414,7 @@ function VF_DotRed: string; inline;    begin Result := '🔴'; end;
 function VF_ModeDot: string;
 begin
   // En PRUEBAS: verde si el mock está corriendo; rojo si no
-  if UpperCase(vfMode) <> 'PRODUCCIÓN' then
+  if UpperCase(vfMode) <> 'PRODUCCION' then
   begin
     if Assigned(@VFMockServerIsRunning) and VFMockServerIsRunning then
       Exit(VF_DotGreen)
@@ -853,7 +853,8 @@ begin
     datamodule1.dbConexion.HostName:=IniReader.ReadString('BBDD','host','');
     datamodule1.dbConexion.Database:=IniReader.ReadString('BBDD','database','');
     datamodule1.dbConexion.User:=IniReader.ReadString('BBDD','usuario','');
-    datamodule1.dbConexion.Password:=IniReader.ReadString('BBDD','passwd','');
+    //-- datamodule1.dbConexion.Password:=IniReader.ReadString('BBDD','passwd','');
+    datamodule1.dbConexion.Password:=FLX_IniReadPassword(IniReader, 'BBDD', 'passwd', '');
     datamodule1.dbConexion.Port:=StrToInt(IniReader.ReadString('BBDD','puerto',''));
     datamodule1.dbConexion.Protocol:=IniReader.ReadString('BBDD','protocolo','');
     datamodule1.dbConexion.Connected:=True;
@@ -909,7 +910,7 @@ begin
       //===========================================================
       //=== Veri*Factu paso de datos por si no existe el .ini en ~/.config/verficatu/verifactu.ini con los datos
       //===========================================================
-      VeriFactu_SetDBParams(IniReader.ReadString('BBDD','host',''), IniReader.ReadString('BBDD','puerto',''), IniReader.ReadString('BBDD','database',''), IniReader.ReadString('BBDD','usuario',''), IniReader.ReadString('BBDD','passwd',''));
+      VeriFactu_SetDBParams(IniReader.ReadString('BBDD','host',''), IniReader.ReadString('BBDD','puerto',''), IniReader.ReadString('BBDD','database',''), IniReader.ReadString('BBDD','usuario',''), FLX_IniReadPassword(IniReader, 'BBDD', 'passwd', ''));
       VeriFactu_EnableDualWriteJSON(True); // ya viene activado; aquí por claridad
       // Configura destino HTTP (sandbox local o tu gateway)
       { Version para PRUEBAS FIJAS
@@ -2026,7 +2027,8 @@ begin
   //----------- Seccion BBDD -----------
   IniReader.WriteString('BBDD','host',Edit21.Text);
   IniReader.WriteString('BBDD','usuario',Edit22.Text);
-  IniReader.WriteString('BBDD','passwd',Edit23.Text);
+  //-- IniReader.WriteString('BBDD','passwd',Edit23.Text);
+  FLX_IniWritePassword(IniReader, 'BBDD', 'passwd', Edit23.Text);
   IniReader.WriteString('BBDD','database',Edit24.Text);
   IniReader.WriteString('BBDD','puerto',Edit25.Text);
   IniReader.WriteString('BBDD','protocolo',ComboServidoresBD.Text);
