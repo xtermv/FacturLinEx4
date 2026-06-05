@@ -1,0 +1,11 @@
+Dependencias
+
+Para esta versión necesitas:
+
+rsync y mysql/mariadb-client, igual que ahora
+
+7z o 7zz si quieres .7z
+
+lftp para FTP/FTPS
+
+p7zip-full

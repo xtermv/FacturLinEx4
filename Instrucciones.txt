@@ -1,0 +1,19 @@
+sudo cp flx_restore_run.sh /usr/local/sbin/flx_restore_run.sh
+sudo chmod 750 /usr/local/sbin/flx_restore_run.sh
+sudo chown root:root /usr/local/sbin/flx_restore_run.sh
+
+sudo cp flx_restore_run.sh /usr/local/sbin/flx_backup.sh
+sudo chmod 750 /usr/local/sbin/flx_backup.sh
+sudo chown root:root /usr/local/sbin/flx_backup.sh
+
+sudo cp flx_restore_run.sh /usr/local/sbin/flx_restore.sh
+sudo chmod 750 /usr/local/sbin/flx_restore.sh
+sudo chown root:root /usr/local/sbin/flx_restore.sh
+
+sudo cp flx_restore_run.sh /usr/local/sbin/flx_restore_run_ftp.sh
+sudo chmod 750 /usr/local/sbin/flx_restore_run_ftp.sh
+sudo chown root:root /usr/local/sbin/flx_restore_run_ftp.sh
+
+sudo visudo -f /etc/sudoers.d/flx-resotre
+usuario ALL=(root) NOPASSWD: /usr/local/sbin/flx_backup.sh, /usr/local/sbin/flx_restore.sh, /usr/local/sbin/flx_restore_run.sh, /usr/local/sbin/flx_restore_run_ftp.sh
+

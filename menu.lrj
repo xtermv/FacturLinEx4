@@ -78,6 +78,7 @@
 {"hash":247910232,"name":"tfmenu.btnenviarahora.caption","sourcebytes":[67,111,110,116,114,111,108,32,69,114,114,111,114,101,115,32,72,97,115,104],"value":"Control Errores Hash"},
 {"hash":98979713,"name":"tfmenu.btnvfreenviarerrores.caption","sourcebytes":[82,69,45,69,78,86,73,65,82,32,65,72,79,82,65],"value":"RE-ENVIAR AHORA"},
 {"hash":238462206,"name":"tfmenu.bitbtn61.caption","sourcebytes":[67,111,110,102,105,103,117,114,97,99,105,195,179,110],"value":"Configuraci\u00F3n"},
+{"hash":73582370,"name":"tfmenu.bitbtnmonitor.caption","sourcebytes":[86,102,95,77,111,110,105,116,111,114],"value":"Vf_Monitor"},
 {"hash":237110558,"name":"tfmenu.tabsheet8.hint","sourcebytes":[80,97,114,97,32,108,97,32,97,121,117,100,97,32,112,117,108,115,97,32,60,65,76,84,32,121,32,57,62],"value":"Para la ayuda pulsa <ALT y 9>"},
 {"hash":151748960,"name":"tfmenu.tabsheet8.caption","sourcebytes":[32,32,65,121,117,100,97,32,32],"value":"  Ayuda  "},
 {"hash":210567221,"name":"tfmenu.bitbtnabout.caption","sourcebytes":[65,32,99,101,114,99,97,32,100,101],"value":"A cerca de"},

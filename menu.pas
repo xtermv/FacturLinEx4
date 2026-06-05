@@ -98,6 +98,7 @@ Type
     BitBtn59: TBitBtn;
     BitBtn60: TBitBtn;
     BitBtn61: TBitBtn;
+    BitBtnMonitor: TBitBtn;
     btnEnviarAhora: TBitBtn;
     BitBtnAbout: TBitBtn;
     BitBtnActuArti: TBitBtn;
@@ -236,6 +237,13 @@ Type
     procedure BitBtn35Click(Sender: TObject);
     procedure BitBtn36Click(Sender: TObject);
     procedure BitBtn37Click(Sender: TObject);
+    procedure InitBackupPopupMenu;
+    procedure MenuBackupManualClick(Sender: TObject);
+    procedure MenuBackupFLXClick(Sender: TObject);
+    procedure MenuBackupFLXFTPClick(Sender: TObject);
+    procedure MenuBackupFTPConfigClick(Sender: TObject);
+    procedure MenuDescomprimirBackupClick(Sender: TObject);
+    procedure MenuRestoreCopiaClick(Sender: TObject);
     procedure BitBtn44Click(Sender: TObject);
     procedure BitBtn45Click(Sender: TObject);
     procedure BitBtn46Click(Sender: TObject);
@@ -272,6 +280,9 @@ Type
     procedure BitBtnActuEansClick(Sender: TObject);
     procedure BitBtnComunClick(Sender: TObject);
     procedure BitBtnAboutClick(Sender: TObject);
+    procedure BitBtnMonitorClick(Sender: TObject);
+    procedure PedidoProvVentasClick(Sender: TObject);
+    procedure AddPedidoProvVentasButton;
     procedure btnEnviarAhoraClick(Sender: TObject);
     procedure btnVFReenviarErroresClick(Sender: TObject);
     procedure Edit26Enter(Sender: TObject);
@@ -304,13 +315,13 @@ Type
 
   Private
     { Private Declarations }
+    FPopupBackup: TPopupMenu;
     //-------------------------------------------------
     //-- Barra de Estado Información SERVER Veri*Factu
     //-------------------------------------------------
     procedure UpdateVFStatusBar;
     function VF_GetEndpointSummary: string;
     function VF_GetQueuePending(out Pending: Integer): Boolean;
-
 
     procedure VF_ToggleMode(Sender: TObject);
 
@@ -352,8 +363,10 @@ uses
    CopiaSeg, ActAutArt, unirpedido, generarped, actualizapedi, envioclientes,
    envioarti, roles, promociones, facturaped, histofaprov, copiasegauto, Modelo347,
    uVeriFactu, uVeriFactuDispatcher, uVeriFactuHTTPSender, uVFServer, uVF_Sender,
-   uVF_Integration, uVeriChain, uVeriChainCheck, uVF_QueueResult,
-   uVF_Stub, uVFSenderAEAT, uVeriSIFForm, uFLX_Log, uFLX_Backup, uFLX_CryptoIni;
+   uVF_Integration, uVeriChain, uVeriChainCheck, uVF_QueueResult, uvfqueuemonitor,
+   uVF_Stub, uVFSenderAEAT, uVeriSIFForm, uFLX_Log, uFLX_Backup, uFLX_CryptoIni,
+   uBackupFTPConfig, uRestoreBackup, uBackupUnpackHelper, uFLXRestoreRemote,
+   uFLX_PedidoProveedorVentasPDF, Types, BaseUnix;
 
 //====================================================================
 // ==== CONSTANTE PARA TRABAJAR EN LA BARRA DE ESTADO VERI*FACTU =====
@@ -694,7 +707,6 @@ begin
   end;
 end;
 
-
 { TFMenu }
 
 //===================== CREAR APLICACION ==============
@@ -820,6 +832,7 @@ Begin
       //-- INICIAR SERVIDOR LOCAL VERI*FACTU
   if vfMode = 'PRUEBAS' then IniciarVerifactuLocal;
 
+     AddPedidoProvVentasButton;
      UpdateVFStatusBar;
 
 End;
@@ -944,7 +957,7 @@ end;
 procedure TFMenu.TimerVFTimer(Sender: TObject);
 begin
   VF_Tick(10{min lease}, 25{max por pulso});
-  VF_TimerStep;  // refresca barra y si hay pendientes envía 1
+  // VF_TimerStep;  // DESACTIVADO: ruta antigua uVF_Sender consultaba payload en vez de payload_json y duplicaba el dispatcher VF_Tick.
   // DEBUG 1s:
   // StatusBar1.SimpleText := StatusBar1.SimpleText + '  [tick]';
   { ERA PARA COMPROBAR QUE APUNTABA A LAS DIRECCIONES REQUERIDAS, AUNQUE NO ACTUALIZA EL NÚMERO DE DOCUMENTOS EN COLA, :(
@@ -959,11 +972,14 @@ end;
 procedure TFMenu.ActualizamosPromociones();
 begin
   //---------------------- Revisamos las promociones -------------------
-   fPromociones:=TfPromociones.Create(Application);    // Creamos el formulario para acceder a su contenido
-   fPromociones.WindowState:=wsMinimized;
-   fPromociones.Show;
-   fPromociones.ActualizarPromociones();
-   fPromociones.Free;
+  // MODO PRO / SEGURO:
+  // Creamos el formulario solo para reutilizar sus queries, sin mostrarlo ni tocar artitien.
+  fPromociones := TfPromociones.Create(Application);
+  try
+    fPromociones.ActualizarPromociones();
+  finally
+    FreeAndNil(fPromociones);
+  end;
 end;
 
 //===========================================================
@@ -1210,6 +1226,36 @@ begin
 end;
 
 
+
+procedure TFMenu.AddPedidoProvVentasButton;
+var
+  B: TBitBtn;
+begin
+  if FindComponent('BitBtnPedidoVentasProveedor') <> nil then Exit;
+
+  B := TBitBtn.Create(Self);
+  B.Name := 'BitBtnPedidoVentasProveedor';
+  B.Parent := BitBtn57.Parent;
+  B.Left := BitBtn57.Left + BitBtn57.Width + 8;
+  B.Top := BitBtn57.Top;
+  B.Width := BitBtn57.Width;
+  B.Height := BitBtn57.Height;
+  B.Caption := 'Pedido ventas prov.';
+  B.Hint := 'Generar PDF de pedido orientativo por ventas de proveedor';
+  B.ShowHint := True;
+  B.OnClick := @PedidoProvVentasClick;
+end;
+
+procedure TFMenu.PedidoProvVentasClick(Sender: TObject);
+begin
+  timer1.enabled := false;
+  try
+    ShowFormFLXPedidoProveedorVentas(Self, TZConnection(dbQuery.Connection), Tienda, RutaPdf);
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+
 //===========================================================
 //======================== PEDIDOS ==========================
 //===========================================================
@@ -1367,11 +1413,205 @@ begin
   Timer1Timer(nil);
 end;
 //---------------------- Copias de seguridad ----------------
-procedure TFMenu.BitBtn37Click(Sender: TObject);
+procedure TFMenu.InitBackupPopupMenu;
+var
+  MI: TMenuItem;
 begin
-  timer1.enabled:=false;
+  if Assigned(FPopupBackup) then
+    Exit;
+
+  FPopupBackup := TPopupMenu.Create(Self);
+
+  MI := TMenuItem.Create(FPopupBackup);
+  MI.Caption := 'Backup manual';
+  MI.OnClick := @MenuBackupManualClick;
+  FPopupBackup.Items.Add(MI);
+
+  MI := TMenuItem.Create(FPopupBackup);
+  MI.Caption := 'Backup FLX';
+  MI.OnClick := @MenuBackupFLXClick;
+  FPopupBackup.Items.Add(MI);
+
+  MI := TMenuItem.Create(FPopupBackup);
+  MI.Caption := 'Backup FLX + FTP';
+  MI.OnClick := @MenuBackupFLXFTPClick;
+  FPopupBackup.Items.Add(MI);
+
+  MI := TMenuItem.Create(FPopupBackup);
+  MI.Caption := 'Configurar backup FTP';
+  MI.OnClick := @MenuBackupFTPConfigClick;
+  FPopupBackup.Items.Add(MI);
+
+  MI := TMenuItem.Create(FPopupBackup);
+  MI.Caption := 'Descomprimir backup .7z';
+  MI.OnClick := @MenuDescomprimirBackupClick;
+  FPopupBackup.Items.Add(MI);
+
+  MI := TMenuItem.Create(FPopupBackup);
+  MI.Caption := 'Restaurar copia';
+  MI.OnClick := @MenuRestoreCopiaClick;
+  FPopupBackup.Items.Add(MI);
+end;
+
+procedure TFMenu.MenuBackupManualClick(Sender: TObject);
+begin
+  timer1.Enabled := False;
   ShowFormCopiaSeg();
   Timer1Timer(nil);
+end;
+
+procedure TFMenu.MenuBackupFLXClick(Sender: TObject);
+var
+  DBSel, Txt: string;
+begin
+  timer1.Enabled := False;
+  DBSel := Trim(IniReader.ReadString('BBDD','database',''));
+  if DBSel = '' then
+    DBSel := DBDataBase;
+
+  ShowMessage('Voy a iniciar la copia de seguridad FLX, esto puede tardar un tiempo.');
+
+  if not FLX_RunBackup(DBSel, RutaIni, Txt) then
+    ShowMessage('ERROR: la copia no se pudo ejecutar. Revisa permisos sudo y el log BACKUP.')
+  else
+    ShowMessage('La copia ha finalizado, GRACIAS.');
+
+  Timer1Timer(nil);
+end;
+
+procedure TFMenu.MenuBackupFLXFTPClick(Sender: TObject);
+var
+  Cfg: TBackupFTPConfigData;
+  P: TProcess;
+  IniFile, DBSel, FacturConfPath, FTPPass, ArchivePass, FechaParam: string;
+begin
+  timer1.Enabled := False;
+
+  IniFile := GetUserDir + '.config/facturlinex/backup_ftp.ini';
+  if not LoadBackupFTPConfig(IniFile, Cfg) then
+  begin
+    ShowMessage('No existe la configuración de Backup FTP. Configúrala primero.');
+    Exit;
+  end;
+
+  if Trim(Cfg.Host) = '' then
+  begin
+    ShowMessage('Falta el servidor FTP en la configuración.');
+    Exit;
+  end;
+
+  if Trim(Cfg.User) = '' then
+  begin
+    ShowMessage('Falta el usuario FTP en la configuración.');
+    Exit;
+  end;
+
+  FTPPass := '';
+  ArchivePass := '';
+
+  if Trim(Cfg.PasswordEnc) <> '' then
+    FTPPass := FLX_DecryptStringCtx(Cfg.PasswordEnc, 'FTP|PasswordEnc');
+
+  if Trim(Cfg.ArchivePasswordEnc) <> '' then
+    ArchivePass := FLX_DecryptStringCtx(Cfg.ArchivePasswordEnc, 'BACKUP|ArchivePasswordEnc');
+
+  DBSel := Trim(IniReader.ReadString('BBDD','database',''));
+  if DBSel = '' then
+    DBSel := DBDataBase;
+
+  FacturConfPath := IncludeTrailingPathDelimiter(RutaIni) + 'FacturConf.ini';
+  FechaParam := FormatDateTime('yyyymmdd', Date);
+
+  P := TProcess.Create(nil);
+  try
+    P.Executable := 'sudo';
+    P.Parameters.Add('/usr/local/sbin/flx_backup_run_ftp.sh');
+    P.Parameters.Add(FechaParam);
+    P.Parameters.Add(GetUserDir);
+    P.Parameters.Add(DBSel);
+    P.Parameters.Add(FacturConfPath);
+
+    if Cfg.UseFTPS then
+      P.Parameters.Add('ftps')
+    else
+      P.Parameters.Add('ftp');
+
+    P.Parameters.Add(Cfg.Host);
+    P.Parameters.Add(IntToStr(Cfg.Port));
+    P.Parameters.Add(Cfg.User);
+    P.Parameters.Add(FTPPass);
+    P.Parameters.Add(Cfg.RemoteDir);
+
+    if Cfg.Passive then P.Parameters.Add('1') else P.Parameters.Add('0');
+    if Cfg.CreateRemoteDir then P.Parameters.Add('1') else P.Parameters.Add('0');
+    if Cfg.Compress then P.Parameters.Add('1') else P.Parameters.Add('0');
+    P.Parameters.Add(Cfg.ArchiveFormat);
+    if Cfg.EncryptArchive then P.Parameters.Add('1') else P.Parameters.Add('0');
+    P.Parameters.Add(ArchivePass);
+    if Cfg.DeleteSourceAfterArchive then P.Parameters.Add('1') else P.Parameters.Add('0');
+    if Cfg.DeleteArchiveAfterFTP then P.Parameters.Add('1') else P.Parameters.Add('0');
+
+    P.Options := [];
+    P.ShowWindow := swoShow;
+    P.Execute;
+
+    ShowMessage('Se ha lanzado Backup FLX + FTP. Revisa el log si fuera necesario.');
+  finally
+    P.Free;
+  end;
+
+  Timer1Timer(nil);
+end;
+
+procedure TFMenu.MenuBackupFTPConfigClick(Sender: TObject);
+var
+  F: TfBackupFTPConfig;
+  IniFile: string;
+begin
+  IniFile := GetUserDir + '.config/facturlinex/backup_ftp.ini';
+  ForceDirectories(ExtractFileDir(IniFile));
+
+  F := TfBackupFTPConfig.Create(Self);
+  try
+    F.ConfigFileName := IniFile;
+    F.ShowModal;
+  finally
+    F.Free;
+  end;
+end;
+
+//-- Handler para el sitema interactivo de descompresión
+procedure Tfmenu.MenuDescomprimirBackupClick(Sender: TObject);
+begin
+  FLX_UnpackBackupInteractive(Self, GetUserDir);
+end;
+
+procedure TFMenu.MenuRestoreCopiaClick(Sender: TObject);
+begin
+  timer1.Enabled := False;
+
+  if not Assigned(fRestoreBackup) then
+    fRestoreBackup := TfRestoreBackup.Create(Application);
+
+  fRestoreBackup.DBNameActual := Trim(IniReader.ReadString('BBDD','database',''));
+  if fRestoreBackup.DBNameActual = '' then
+    fRestoreBackup.DBNameActual := DBDataBase;
+
+  fRestoreBackup.RutaIni := RutaIni;
+  fRestoreBackup.UsarPkExec := False;
+  fRestoreBackup.ShowModal;
+
+  Timer1Timer(nil);
+end;
+
+procedure TFMenu.BitBtn37Click(Sender: TObject);
+var
+  P: TPoint;
+begin
+  timer1.Enabled := False;
+  InitBackupPopupMenu;
+  P := BitBtn37.ClientToScreen(Types.Point(0, BitBtn37.Height));
+  FPopupBackup.PopUp(P.X, P.Y);
 end;
 //-------------------- Actualizaciones BBDD -----------------
 procedure TFMenu.ActualizaBBDD(Sender: TObject);
@@ -1469,6 +1709,11 @@ begin
   timer1.enabled:=false;
   AboutShow();
   Timer1Timer(nil);
+end;
+
+procedure TFMenu.BitBtnMonitorClick(Sender: TObject);
+begin
+  VFQ_OpenMonitor(TZConnection(dbQuery.Connection), tienda);
 end;
 
 //===========================================================
