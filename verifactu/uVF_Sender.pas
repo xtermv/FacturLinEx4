@@ -63,17 +63,26 @@ end;
 
 function UpdateQueueEstado(const Conn: TZConnection; const Serie: string; const Numero: Integer;
   const Estado: string; const RespCode: Integer; const RespMsg: string): Boolean;
-var q: TZQuery;
+var
+  q: TZQuery;
+  Msg: string;
 begin
   Result := False;
   q := TZQuery.Create(nil);
   try
     q.Connection := Conn;
+    Msg := Copy(RespMsg, 1, 255);
     try
-      q.SQL.Text := 'UPDATE verifactu_queue SET estado=:e, resp_code=:c, resp_msg=:m WHERE serie=:s AND numero=:n';
+      // Estructura actual de verifactu_queue:
+      // estado ENUM('PENDIENTE','EN_PROCESO','ENVIADO','ERROR')
+      // respuesta_text / last_error en lugar de resp_code / resp_msg.
+      q.SQL.Text :=
+        'UPDATE verifactu_queue SET ' +
+        'estado=:e, respuesta_text=:r, last_error=:m, updated_at=NOW() ' +
+        'WHERE serie=:s AND numero=:n';
       q.ParamByName('e').AsString := Estado;
-      q.ParamByName('c').AsInteger:= RespCode;
-      q.ParamByName('m').AsString := Copy(RespMsg,1,512);
+      q.ParamByName('r').AsString := RespMsg;
+      q.ParamByName('m').AsString := Msg;
       q.ParamByName('s').AsString := Serie;
       q.ParamByName('n').AsInteger:= Numero;
       q.ExecSQL;
@@ -104,7 +113,7 @@ begin
   try
     q.Connection := Conn;
     q.SQL.Text :=
-      'SELECT COALESCE(fecha_isoz,'''') AS fz, COALESCE(payload,'''') AS pl, ' +
+      'SELECT COALESCE(fecha_isoz,'''') AS fz, COALESCE(payload_json,'''') AS pl, ' +
       '       COALESCE(canonical,'''') AS ca, COALESCE(hash_prev,'''') AS hp, COALESCE(hash,'''') AS hh ' +
       'FROM verifactu_queue WHERE serie=:s AND numero=:n LIMIT 1';
     q.ParamByName('s').AsString := Serie;
@@ -199,8 +208,8 @@ begin
     Exit(srPermanentError);
   end;
 
-  UpdateQueueEstado(Conn, Serie, Numero, 'ENVIANDO', 0, '...');
-  EmitStatus(OnStatus, 'Cola', 'ENVIANDO', 0);
+  UpdateQueueEstado(Conn, Serie, Numero, 'EN_PROCESO', 0, '...');
+  EmitStatus(OnStatus, 'Cola', 'EN_PROCESO', 0);
 
   Body := ComposeLocalJSON(Serie, Numero, FechaZ, Payload, Canonical, HashPrev, Hash);
 
@@ -225,7 +234,7 @@ begin
         if C.BackoffMS > 0 then Sleep(C.BackoffMS);
         Continue;
       end;
-      UpdateQueueEstado(Conn, Serie, Numero, 'REINTENTAR', Code, string(Resp));
+      UpdateQueueEstado(Conn, Serie, Numero, 'PENDIENTE', Code, string(Resp));
       Exit(srTemporaryError);
     end
     else
@@ -236,7 +245,7 @@ begin
     end;
   end;
 
-  UpdateQueueEstado(Conn, Serie, Numero, 'REINTENTAR', Code, string(Resp));
+  UpdateQueueEstado(Conn, Serie, Numero, 'PENDIENTE', Code, string(Resp));
   Result := srTemporaryError;
 end;
 
@@ -254,7 +263,7 @@ begin
   q := TZQuery.Create(nil);
   try
     q.Connection := Conn;
-    q.SQL.Text := 'SELECT serie, numero FROM verifactu_queue WHERE estado="PENDIENTE" ORDER BY id ASC LIMIT 1';
+    q.SQL.Text := 'SELECT serie, numero FROM verifactu_queue WHERE estado=''PENDIENTE'' ORDER BY id ASC LIMIT 1';
     q.Open;
     if q.EOF then
     begin

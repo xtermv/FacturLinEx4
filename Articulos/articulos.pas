@@ -1610,6 +1610,7 @@ procedure TFArticulos.BitBtn7Click(Sender: TObject);
 begin
   if Edit51.Text='' then begin showmessage('DEBE TECLEAR EL CODIGO AUXILIAR A CREAR'); exit; end;
   if Edit52.Text='' then begin showmessage('DEBE TECLEAR LA DESCRIPCION DEL AUXILIAR A CREAR'); exit; end;
+  if Edit52.Text=' ' then begin showmessage('DEBE TECLEAR LA DESCRIPCION DEL AUXILIAR A CREAR'); exit; end;
   if Edit53.Text='' then begin showmessage('DEBE TECLEAR AL MENOS UNA UNIDAD EL CODIGO AUXILIAR A CREAR'); exit; end;
   dbTrabajo.Active:=False;          // Comprobamos si ya existe otro código auxiliar igual
   dbTrabajo.SQL.Text:='SELECT * FROM eans WHERE EAN0="'+Edit51.Text+'"';

@@ -166,9 +166,12 @@ var
           Ini.ReadString('VeriFactuTLS', 'P12File', '');
 
       if Assigned(EditP12Password) then
+      begin
         {EditP12Password.Text :=
           Ini.ReadString('VeriFactuTLS', 'P12Password', '');}
-        FLX_IniReadPassword(Ini, 'VeriFactuTLS', 'P12Password', EditP12Password.Text);
+        EditP12Password.Text :=
+          FLX_IniReadPassword(Ini, 'VeriFactuTLS', 'P12Password', '');
+      end;
 
       if Assigned(EditOpenSSLPath) then
         EditOpenSSLPath.Text :=
@@ -233,8 +236,13 @@ begin
       Ini.WriteString('VeriFactuTLS', 'P12File', Trim(EditP12File.Text));
 
     if Assigned(EditP12Password) then
+    begin
       {Ini.WriteString('VeriFactuTLS', 'P12Password', EditP12Password.Text);}
-      FLX_IniWritePassword(Ini, 'VeriFactuTLS', 'P12Password', EditP12Password.Text);
+      if SameText(Trim(EditP12Password.Text), 'P12Password') then
+        FLX_IniWritePassword(Ini, 'VeriFactuTLS', 'P12Password', '')
+      else
+        FLX_IniWritePassword(Ini, 'VeriFactuTLS', 'P12Password', EditP12Password.Text);
+    end;
 
     if Assigned(EditOpenSSLPath) then
       Ini.WriteString('VeriFactuTLS', 'OpenSSLPath', Trim(EditOpenSSLPath.Text));

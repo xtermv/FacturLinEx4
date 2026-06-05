@@ -36,10 +36,47 @@ function VF_SendAEAT_HTTP(const Serie: string; Numero: Integer;
 implementation
 
 uses
-  fpjson, jsonparser, IniFiles;
+  fpjson, jsonparser, IniFiles, DateUtils;
 
 //--- Forward para poder usar JsonGetField antes de su implementación real
 function JsonGetField(const JSON, Key: string): string; forward;
+
+function VF_LocalISO8601NowWithOffset: string;
+var
+  L, U: TDateTime;
+  OffsetMinutes, AbsMinutes: Integer;
+  SignStr: string;
+  FS: TFormatSettings;
+
+  function Pad2(N: Integer): string;
+  begin
+    Result := IntToStr(N);
+    if Length(Result) < 2 then
+      Result := '0' + Result;
+  end;
+
+begin
+  // AEAT exige YYYY-MM-DDThh:mm:ssTZD con el huso local real.
+  // No vale fijar +01:00, porque en horario de verano España peninsular es +02:00.
+  L := Now;
+  U := LocalTimeToUniversal(L);
+  OffsetMinutes := Round((L - U) * 24 * 60);
+
+  if OffsetMinutes >= 0 then
+    SignStr := '+'
+  else
+    SignStr := '-';
+
+  AbsMinutes := Abs(OffsetMinutes);
+
+  FS := DefaultFormatSettings;
+  FS.DateSeparator := '-';
+  FS.TimeSeparator := ':';
+
+  Result := FormatDateTime('yyyy"-"mm"-"dd"T"hh":"nn":"ss', L, FS) +
+            SignStr + Pad2(AbsMinutes div 60) + ':' + Pad2(AbsMinutes mod 60);
+end;
+
 
  // Ruta al FacturConf.ini según tu lógica de RutaIni / HOME
 function VF_GetIniPath: string;
@@ -559,6 +596,12 @@ var
   NumSerieFactura: string;
   FS: TFormatSettings;
 
+  // === Rectificativas (R4 / R5) ===
+  IsRectif, RectifOK, OrigIsFS: Boolean;
+  RectTipo, OrigSerieAEAT, OrigSerieInt, OrigNumStr, OrigFechaRaw: string;
+  OrigNumInt: Integer;
+  OrigFechaAEAT: string;
+
   function CleanNIF(const S: string): string;
   var
     C: Char;
@@ -618,18 +661,27 @@ var
   var
     SerieUpper, TFJson: string;
   begin
-    // 1) Primero intentamos leerlo del propio JSON (por si en el futuro lo grabamos ahí)
+    // 1) Primero intentamos leerlo del propio JSON.
     TFJson := UpperCase(Trim(JsonGetField(PayloadJSON, 'cabecera.tipoFactura')));
-    if (TFJson = 'F1') or (TFJson = 'F2') then
+    if (TFJson = 'F1') or (TFJson = 'F2') or
+       (TFJson = 'R1') or (TFJson = 'R2') or (TFJson = 'R3') or
+       (TFJson = 'R4') or (TFJson = 'R5') then
       Exit(TFJson);
 
     SerieUpper := UpperCase(Trim(Serie));
 
-    // 2) Tickets / TPV: series que empiezan por FS (FS-A25, FS001, etc.) → F2
+    // Rectificativa de simplificada: FS-R26, FS-R25...
+    if (Copy(SerieUpper, 1, 4) = 'FS-R') or (Copy(SerieUpper, 1, 5) = 'FS-R-') then
+      Exit('R5');
+
+    // Rectificativa de factura completa: R26, R25...
+    if (Length(SerieUpper) >= 1) and (SerieUpper[1] = 'R') then
+      Exit('R1');
+
+    // Tickets / TPV: FS-A26, FS-B26...
     if Copy(SerieUpper, 1, 2) = 'FS' then
       Exit('F2');
 
-    // 3) Todo lo demás lo consideramos factura completa F1
     Result := 'F1';
   end;
 
@@ -689,6 +741,67 @@ begin
   SerieXML := Trim(Serie);
   TipoFacturaXML := TipoFacGlobal;
 
+  // =====================================================
+  //   RECTIFICATIVAS (R4 / R5)
+  //   - Se activan si existe cabecera.rectif_tag
+  //   - Se leen datos del bloque estructurado cabecera.rectif.*
+  //   - Solo forzamos R4/R5 si tenemos serie+num+fecha de la factura origen
+  //     (si no, NO tocamos el XML para no romper envíos).
+  // =====================================================
+  IsRectif := Trim(JsonGetField(PayloadJSON, 'cabecera.rectif_tag')) <> '';
+  RectifOK := False;
+  OrigIsFS := False;
+  RectTipo := 'I';
+  OrigSerieAEAT := '';
+  OrigSerieInt := '';
+  OrigNumStr := '';
+  OrigFechaRaw := '';
+  OrigNumInt := 0;
+  OrigFechaAEAT := '';
+
+  if IsRectif then
+  begin
+    RectTipo      := Trim(JsonGetField(PayloadJSON, 'cabecera.rectif.tipo_rect'));
+    OrigSerieAEAT := Trim(JsonGetField(PayloadJSON, 'cabecera.rectif.orig_serie'));
+    OrigSerieInt  := Trim(JsonGetField(PayloadJSON, 'cabecera.rectif.orig_serie_int'));
+    OrigNumStr    := Trim(JsonGetField(PayloadJSON, 'cabecera.rectif.orig_num'));
+    OrigFechaRaw  := Trim(JsonGetField(PayloadJSON, 'cabecera.rectif.orig_fecha'));
+
+    if RectTipo = '' then RectTipo := 'I';
+    OrigIsFS := SameText(Trim(JsonGetField(PayloadJSON, 'cabecera.rectif.orig_is_fs')), 'true');
+
+    // Si no viene OrigSerieAEAT, usamos la interna como fallback.
+    if (OrigSerieAEAT = '') and (OrigSerieInt <> '') then
+      OrigSerieAEAT := OrigSerieInt;
+
+    // Normalizamos serie interna si falta
+    if OrigSerieInt = '' then
+    begin
+      if OrigSerieAEAT <> '' then
+      begin
+        if Copy(UpperCase(OrigSerieAEAT), 1, 3) = 'FS-' then
+          OrigSerieInt := Copy(OrigSerieAEAT, 4, 3)
+        else
+          OrigSerieInt := OrigSerieAEAT;
+      end;
+    end;
+
+    OrigNumInt := StrToIntDef(OrigNumStr, 0);
+    if (OrigSerieAEAT <> '') and (OrigNumInt > 0) and (OrigFechaRaw <> '') then
+    begin
+      OrigFechaAEAT := FechaToAEAT(OrigFechaRaw);
+      RectifOK := (OrigFechaAEAT <> '');
+    end;
+
+    if RectifOK then
+    begin
+      if OrigIsFS then
+        TipoFacturaXML := 'R5'
+      else
+        TipoFacturaXML := 'R1';
+    end;
+  end;
+
   VF_WriteDiag(Format(
     'BuildVeriFactuXMLFromJSON: Serie=%s Numero=%d TipoFactura=%s',
     [SerieXML, Numero, TipoFacturaXML]
@@ -697,7 +810,7 @@ begin
   // Datos del receptor desde JSON (estructura nueva 1.2.x)
   NIFClienteRaw := JsonGetField(PayloadJSON, 'cabecera.nifCliente');
   NIFCliente    := CleanNIF(NIFClienteRaw);
-  if SameText(TipoFacGlobal, 'F2') then
+  if SameText(TipoFacturaXML, 'F2') or SameText(TipoFacturaXML, 'R5') then
     NombreCliente := 'CLIENTE DE PASO' // si luego quieres, lo sacamos del JSON
   else
   begin
@@ -715,9 +828,9 @@ begin
   ImporteTotal := JsonGetField(PayloadJSON, 'cabecera.totalConIVA');
   ImporteTotal := To2Dec(ImporteTotal); // 2 decimales
 
-  // Fecha/hora generación registro con huso (formato ejemplo AEAT)
-  FechaHoraGenRegistro :=
-    FormatDateTime('yyyy"-"mm"-"dd"T"hh":"nn":"ss', Now) + '+01:00';
+  // Fecha/hora generación registro con huso local real.
+  // Se calcula justo al construir el XML, no desde la fecha/hora de la venta.
+  FechaHoraGenRegistro := VF_LocalISO8601NowWithOffset;
 
   // =========================
   //  CABECERA + REGISTROALTA
@@ -750,11 +863,29 @@ begin
     '          <sum1:NombreRazonEmisor>' + NombreEmisor + '</sum1:NombreRazonEmisor>' + LineEnding +
     '          <sum1:Subsanacion>N</sum1:Subsanacion>' + LineEnding +
     '          <sum1:RechazoPrevio>N</sum1:RechazoPrevio>' + LineEnding +
-    '          <sum1:TipoFactura>' + TipoFacturaXML + '</sum1:TipoFactura>' + LineEnding +
+    '          <sum1:TipoFactura>' + TipoFacturaXML + '</sum1:TipoFactura>' + LineEnding;
+
+  // =====================================================
+  //  RECTIFICATIVAS (orden XSD): justo tras TipoFactura
+  // =====================================================
+  if RectifOK then
+  begin
+    Result := Result +
+      '          <sum1:TipoRectificativa>' + RectTipo + '</sum1:TipoRectificativa>' + LineEnding +
+      '          <sum1:FacturasRectificadas>' + LineEnding +
+      '            <sum1:IDFacturaRectificada>' + LineEnding +
+      '              <sum1:IDEmisorFactura>' + NIFEmisor + '</sum1:IDEmisorFactura>' + LineEnding +
+      '              <sum1:NumSerieFactura>' + OrigSerieAEAT + '-' + IntToStr(OrigNumInt) + '</sum1:NumSerieFactura>' + LineEnding +
+      '              <sum1:FechaExpedicionFactura>' + OrigFechaAEAT + '</sum1:FechaExpedicionFactura>' + LineEnding +
+      '            </sum1:IDFacturaRectificada>' + LineEnding +
+      '          </sum1:FacturasRectificadas>' + LineEnding;
+  end;
+
+  Result := Result +
     '          <sum1:FechaOperacion>' + FechaAEAT + '</sum1:FechaOperacion>' + LineEnding;
 
   // -- Si Tipo F2 (Factura Simplificada)
-  if SameText(TipoFacGlobal, 'F2') then
+  if SameText(TipoFacturaXML, 'F2') or SameText(TipoFacturaXML, 'R5') then
     Result := Result + '          <sum1:DescripcionOperacion>VENTA TPV</sum1:DescripcionOperacion>' + LineEnding
   else
     Result := Result + '          <sum1:DescripcionOperacion>VENTA FACTURA COMPLETA TIPO F1</sum1:DescripcionOperacion>' + LineEnding;
@@ -946,6 +1077,24 @@ begin
 end;
 
 
+function VF_ContainsTextCI(const S, Needle: string): Boolean;
+begin
+  Result := Pos(UpperCase(Needle), UpperCase(S)) > 0;
+end;
+
+function VF_IsWSDLResponse(const S: string): Boolean;
+begin
+  Result := VF_ContainsTextCI(S, '<wsdl:definitions') or
+            VF_ContainsTextCI(S, 'SistemaFacturacion.wsdl');
+end;
+
+function VF_IsSOAPFaultResponse(const S: string): Boolean;
+begin
+  Result := VF_ContainsTextCI(S, '<env:Fault') or
+            VF_ContainsTextCI(S, '<soap:Fault') or
+            VF_ContainsTextCI(S, 'faultstring');
+end;
+
 {==============================================================================
                            URL DE AEAT (vfUrlTP)
 ==============================================================================}
@@ -1048,7 +1197,10 @@ begin
     VF_WriteDiag(Format('TLSCfg.CertFile=%s', [TLSCfg.CertFile]));
     VF_WriteDiag(Format('TLSCfg.KeyFile=%s',  [TLSCfg.KeyFile]));
     VF_WriteDiag(Format('TLSCfg.CAFile=%s',   [TLSCfg.CAFile]));
-    VF_WriteDiag(Format('TLSCfg.KeyPassword=%s', [TLSCfg.KeyPassword]));
+    if TLSCfg.KeyPassword <> '' then
+      VF_WriteDiag('TLSCfg.KeyPassword=(configurada, oculta)')
+    else
+      VF_WriteDiag('TLSCfg.KeyPassword=(vacía)');
 
     if Assigned(SSL) then
     begin
@@ -1105,6 +1257,24 @@ begin
 
     VF_WriteDiag('VF_SendAEAT_HTTP: cuerpo respuesta AEAT: ' + Respuesta);
 
+    // Seguridad: si AEAT devuelve el WSDL o un SOAP Fault, NO es un registro correcto.
+    // Aunque el servidor responda HTTP 200, esto debe quedar como ERROR.
+    if VF_IsWSDLResponse(Respuesta) then
+    begin
+      Respuesta := Respuesta + LineEnding +
+        '[VF ERROR] Respuesta invalida: se recibio WSDL en lugar de respuesta SOAP AEAT.';
+      VF_WriteDiag('VF_SendAEAT_HTTP: respuesta WSDL recibida; devolviendo Result=False.');
+      Exit(False);
+    end;
+
+    if VF_IsSOAPFaultResponse(Respuesta) then
+    begin
+      Respuesta := Respuesta + LineEnding +
+        '[VF ERROR] SOAP Fault recibido: no es una respuesta de registro correcta.';
+      VF_WriteDiag('VF_SendAEAT_HTTP: SOAP Fault recibido; devolviendo Result=False.');
+      Exit(False);
+    end;
+
     if Http.ResultCode <> 200 then
     begin
       VF_WriteDiag('VF_SendAEAT_HTTP: error HTTP, cuerpo: ' + Respuesta);
@@ -1142,7 +1312,7 @@ begin
     // ================= DECISIÓN DE "ÉXITO" O "ERROR" =================
     //
     // - Correcto            -> devolvemos True  (dispatcher la marcará ENVIADO)
-    // - AceptadoConErrores -> devolvemos False (NO se marca como ENVIADO)
+    // - AceptadoConErrores -> devolvemos True (AEAT lo registra; luego se subsana)
     // - Rechazado u otros  -> devolvemos False
     // - Si no podemos leer nada, mantenemos compatibilidad y devolvemos True.
 
@@ -1152,16 +1322,16 @@ begin
     end
     else if SameText(AEAT_EstadoRegistro, 'AceptadoConErrores') then
     begin
-      // Lo tratamos como error lógico: la factura NO debe quedar como ENVIADA
-      Result := False;
+      // AEAT ha registrado el asiento, aunque quede pendiente de subsanar.
+      // Devolvemos True para que el dispatcher no lo reenvíe en bucle y conserve la huella.
+      Result := True;
 
-      // Enriquecemos el texto de respuesta para que quede claro el motivo
       Respuesta :=
         Respuesta + LineEnding +
         Format('[AEAT AceptadoConErrores %s] %s',
                [AEAT_CodError, AEAT_DescError]);
 
-      VF_WriteDiag('VF_SendAEAT_HTTP: EstadoRegistro = AceptadoConErrores, devolviendo Result=False');
+      VF_WriteDiag('VF_SendAEAT_HTTP: EstadoRegistro = AceptadoConErrores, devolviendo Result=True');
     end
     else if (AEAT_EstadoRegistro <> '') then
     begin
@@ -1176,9 +1346,12 @@ begin
     end
     else
     begin
-      // No hemos encontrado EstadoRegistro -> comportamiento antiguo (asumimos OK)
-      VF_WriteDiag('VF_SendAEAT_HTTP: no se encontró EstadoRegistro; se asume Correcto por compatibilidad.');
-      Result := True;
+      // No hemos encontrado EstadoRegistro: NO lo damos por correcto.
+      // Evita marcar WSDL/HTML/XML no reconocido como ENVIADO.
+      Respuesta := Respuesta + LineEnding +
+        '[VF ERROR] Respuesta AEAT no reconocida: no se encontro EstadoRegistro.';
+      VF_WriteDiag('VF_SendAEAT_HTTP: no se encontro EstadoRegistro; devolviendo Result=False.');
+      Result := False;
     end;
 
   finally
