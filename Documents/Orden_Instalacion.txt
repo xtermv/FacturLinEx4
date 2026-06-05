@@ -1,0 +1,40 @@
+Orden de Instalación Entorno de Trabajo
+
+1	fpc-src
+2	fpc-laz
+3	lazarus-ide
+
+4	apt install		openssl
+					autoinstall
+					make
+					y otros requisitos
+					
+4.1	Se recomienda si existe la carpeta .lazarus (Eliminarla o renombrarla antes de arrancar el entorno)
+					
+5	Arrancar Lazarus (Por cada instalación de paquete recompilado del entorno)
+		Instalación de Paquetes
+				5.1	lazreport
+				
+		Online Package Manager
+				5.2 PowerPdf
+				
+		Instalación de Paquetes
+				5.3	lazreportpdfexport
+				
+		Online Package Manager
+				5.4	Zeos
+				5.5	LazBarcode
+				5.6	DcpCrypt
+				5.7	QRCodeGenLib
+				5.8	Synapse 40
+				5.9.1	Xmailer
+				5.9.2	XMLStreaming
+				
+	Opciones Para futuro
+	*	6.0	HashLib (HashLib4Pascal)
+		6.1	mORMot2 (Recomendado por la iA para Json , logs potentes, etc)	// OJO, PUEDE PROVOCAR ERRORES EN EL IDE Y NO RECUPERABLES 
+	*	6.2 FPCUnit+fpcunitreport
+		6.3	Pascal XML (FPC DOM/XMLRead)+ una capa de "XML Writer" controlada
+		6.4	HTTP/REST/SOAP: mantener Synapse, pero con una alternativa
+		
+		
