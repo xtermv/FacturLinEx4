@@ -448,8 +448,19 @@ type
     procedure VerRecargo();
     procedure CargaValorEntrada(Sender: TObject);
 
-  private
+
+    //--- STOCK informativo (solo lectura)
+    procedure Stock_InitUI;
+    procedure Stock_UpdateUIFromArti;
+    procedure Stock_EnsureGridColumn;
+  
+    procedure Stock_ReadOnlyKeyPress(Sender: TObject; var Key: char);
+    procedure Stock_ReadOnlyKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+private
     { private declarations }
+    //--- STOCK informativo (solo lectura)
+    FLabelStock: TLabel;
+    FEditStock: TEdit;
   public
     { public declarations }
   end;
@@ -498,6 +509,9 @@ begin
   Panel4.Align:=AlClient;
   //-- ORDENAR COLUMNAS PEDIDOS
   sOrden:='DESC';
+
+  //--- STOCK informativo (solo lectura)
+  Stock_InitUI;
 end;
 
 procedure TFPedido.FormKeyDown(Sender: TObject; var Key: Word;
@@ -694,13 +708,30 @@ end;
 //------------ Pintar Linea en azul si es pedido de clientes ----
 procedure TFPedido.DBGrid1DrawColumnCell(Sender: TObject; const Rect: TRect;
   DataCol: Integer; Column: TColumn; State: TGridDrawState);
+var
+  s: string;
 begin
-  if dbPedic.FieldByName('PC15').AsString<>'' then
-   begin
-     DBGrid1.Canvas.Font.Color := clBlue;
-     //DBGrid2.Canvas.Brush.Color := $00CDDAF1;
-     DBGrid1.DefaultDrawColumnCell(Rect, DataCol, Column, State);
-   end;
+  // Calcula color de texto (tu lógica existente)
+  if (dbPedic.Active) and (dbPedic.FindField('PC15')<>nil) and (dbPedic.FieldByName('PC15').AsString<>'') then
+    DBGrid1.Canvas.Font.Color := clBlue
+  else
+    DBGrid1.Canvas.Font.Color := clBlack;
+
+  // Selección en amarillo suave (sin azul de selección del sistema)
+  if gdSelected in State then
+  begin
+    DBGrid1.Canvas.Brush.Color := clInfoBk;
+    DBGrid1.Canvas.FillRect(Rect);
+    if (Column<>nil) and (Column.Field<>nil) then
+      s := Column.Field.DisplayText
+    else
+      s := '';
+    DBGrid1.Canvas.TextRect(Rect, Rect.Left+2, Rect.Top+2, s);
+    Exit;
+  end;
+
+  // Resto normal
+  DBGrid1.DefaultDrawColumnCell(Rect, DataCol, Column, State);
 end;
 
 procedure TFPedido.DBGrid2DblClick(Sender: TObject);
@@ -851,6 +882,8 @@ begin
                      ' AND PD3="'+dbPedic.FieldByName('PC3').AsString+'"'+
                      ' AND PD4='+dbPedic.FieldByName('PC4').AsString;
   dbPedid.Active:=True;
+  Stock_EnsureGridColumn;
+
   PintaProveedor();
   Label48.Caption:=dbPedic.FieldByName('PC3').AsString;//---- Serie
   Label31.Caption:=dbPedic.FieldByName('PC4').AsString;//---- N. Pedido
@@ -898,6 +931,7 @@ begin
   dbArti.SQL.Text:='SELECT * FROM artitien'+Tienda+' WHERE A0="'+Edit5.Text+'"';
   dbArti.Active:=True;
   if dbArti.RecordCount=0 then showmessage('SE HA BORRADO LA FICHA DE ESTE ARTICULO?');
+  Stock_UpdateUIFromArti;
   //-----------------
   Edit6.Text:=dbPedid.FieldByName('PD7').AsString;//------ Descripcion
   Edit7.Text:=dbPedid.FieldByName('PD8').AsString;//------ Unidades
@@ -995,6 +1029,7 @@ begin
                        ' ORDER BY '+Column.FieldName+' '+sOrden;
   if sOrden='DESC' then sOrden:='ASC' else sOrden:='DESC';
   dbPedid.Sql.Text:=corden; dbPedid.Active:=True;
+  Stock_EnsureGridColumn;
   dbPedid.Refresh; DBGrid2.Refresh;
   DBGrid2.Enabled:=True;
 end;
@@ -1002,13 +1037,38 @@ end;
 //---------------- PINTAR LINEAS MARCADAS EN ROJO ----------------
 procedure TFPedido.DBGrid2DrawColumnCell(Sender: TObject; const Rect: TRect;
   DataCol: Integer; Column: TColumn; State: TGridDrawState);
+var
+  vStock: Double;
+  s: string;
 begin
-  if dbPedid.FieldByName('PD23').AsString='N' then
-    begin
-      DBGrid2.Canvas.Font.Color := clRed;
-      //DBGrid2.Canvas.Brush.Color := $00CDDAF1;
-      DBGrid2.DefaultDrawColumnCell(Rect, DataCol, Column, State);
-    end;
+  // Color por defecto
+  DBGrid2.Canvas.Font.Color := clBlack;
+
+  // Líneas marcadas en rojo (tu lógica existente)
+  if (dbPedid.Active) and (dbPedid.FindField('PD23')<>nil) and (dbPedid.FieldByName('PD23').AsString='N') then
+    DBGrid2.Canvas.Font.Color := clRed;
+
+  // Stock negativo (PD20): el número en rojo
+  if (dbPedid.Active) and (Column<>nil) and SameText(Column.FieldName,'PD20') and
+     (dbPedid.FindField('PD20')<>nil) and
+     TryStrToFloat(StringReplace(dbPedid.FieldByName('PD20').AsString, ',', '.', [rfReplaceAll]), vStock) and
+     (vStock < 0) then
+    DBGrid2.Canvas.Font.Color := clRed;
+
+  // Selección en amarillo suave (sin azul de selección del sistema)
+  if gdSelected in State then
+  begin
+    DBGrid2.Canvas.Brush.Color := clInfoBk;
+    DBGrid2.Canvas.FillRect(Rect);
+    if (Column<>nil) and (Column.Field<>nil) then
+      s := Column.Field.DisplayText
+    else
+      s := '';
+    DBGrid2.Canvas.TextRect(Rect, Rect.Left+2, Rect.Top+2, s);
+    Exit;
+  end;
+
+  DBGrid2.DefaultDrawColumnCell(Rect, DataCol, Column, State);
 end;
 
 procedure TFPedido.DBGrid2KeyDown(Sender: TObject; var Key: Word;
@@ -1158,7 +1218,8 @@ end;
 //======================= PINTAR DATOS LINEAS ==================
 procedure TFPedido.Pintadd();
 begin
-  Edit5.Text:=dbArti.FieldByName('A0').AsString;//------ Codigo
+    Stock_UpdateUIFromArti;
+Edit5.Text:=dbArti.FieldByName('A0').AsString;//------ Codigo
   Edit6.Text:=dbArti.FieldByName('A1').AsString;//-------- Descripcion
   Edit7.Text:='1';//-------------------------------------- Unidades
   Edit39.Text:='0';//-------------------------------------- Unidades Bonificadas
@@ -1188,6 +1249,8 @@ begin
   Edit11.Text:='0'; Edit12.Text:='0'; Edit13.Text:='0'; Edit18.Text:='0';
   Edit19.Text:='0'; Edit22.Text:='0'; Edit27.Text:='0'; Edit29.Text:='0';
   Edit31.Text:='0'; Edit32.Text:='0'; Edit33.Text:='0'; Edit37.Text:='0';
+
+  if Assigned(FEditStock) then FEditStock.Text:='';
 end;
 
 //================== MODIFICAR TARIFA DE COMPRA =================
@@ -2561,6 +2624,161 @@ end;
 procedure TFPedido.BitBtn35Click(Sender: TObject);
 begin
   Panel14.Visible:=False;
+end;
+
+
+
+//=============================================================
+//================ STOCK INFORMATIVO (SOLO LECTURA) =============
+//=============================================================
+procedure TFPedido.Stock_InitUI;
+begin
+  // Creamos controles en runtime para NO tocar el .lfm y evitar roturas.
+  if Assigned(FEditStock) then exit;
+
+  try
+    FLabelStock := TLabel.Create(Self);
+    FLabelStock.Parent := Panel6;
+    FLabelStock.Caption := 'STOCK';
+    FLabelStock.AutoSize := True;
+
+    FEditStock := TEdit.Create(Self);
+    FEditStock.Parent := Panel6;
+    FEditStock.ReadOnly := True;
+    FEditStock.TabStop := False;
+    FEditStock.Enabled := True;           // lo mantenemos habilitado para que el texto no salga "gris"
+    FEditStock.Color := clBtnFace;        // visualmente "informativo"
+    FEditStock.Alignment := taRightJustify;
+    
+    FEditStock.Cursor := crArrow;FEditStock.Text := '';
+    // Blindaje: que NO sea editable de ninguna forma (teclado/pegado)
+    FEditStock.OnKeyPress := @Stock_ReadOnlyKeyPress;
+    FEditStock.OnKeyDown  := @Stock_ReadOnlyKeyDown;
+
+    // Posición pedida (sin solaparse con COSTO):
+    // - Label "STOCK" a la derecha del label COSTO (Label14)
+    // - Edit de stock bajo la palabra STOCK y a la derecha del Edit COSTO (Edit8)
+    if Assigned(Label14) then
+    begin
+      FLabelStock.Top := Label14.Top;
+      FLabelStock.Left := Label14.Left + Label14.Width + 8;
+      FLabelStock.Anchors := [akTop];
+    end;
+
+    if Assigned(Edit8) then
+    begin
+      FEditStock.Height := Edit8.Height;
+      FEditStock.Width := (Edit8.Width div 2);
+      if FEditStock.Width < 20 then FEditStock.Width := 20;
+
+      // Columna a la derecha del COSTO
+      if Assigned(FLabelStock) then
+        FEditStock.Left := FLabelStock.Left
+      else
+        FEditStock.Left := Edit8.Left + Edit8.Width + 8;
+
+      // Mismo "renglón" que el edit COSTO (pero sin solapar porque va a la derecha)
+      if Assigned(FLabelStock) then
+        FEditStock.Top := FLabelStock.Top + FLabelStock.Height + 2
+      else
+        FEditStock.Top := Edit8.Top;
+
+      // Ajuste para no salirse del panel
+      if FEditStock.Left + FEditStock.Width > Panel6.ClientWidth - 8 then
+        FEditStock.Left := Panel6.ClientWidth - FEditStock.Width - 8;
+
+      FEditStock.Anchors := [akTop, akRight];
+    end
+    else
+    begin
+      // fallback seguro
+      FEditStock.Width := 45;
+      FEditStock.Height := Edit5.Height;
+      FEditStock.Left := Panel6.ClientWidth - FEditStock.Width - 12;
+      FEditStock.Top := Edit5.Top;
+      FEditStock.Anchors := [akTop, akRight];
+      if Assigned(FLabelStock) then
+      begin
+        FLabelStock.Left := FEditStock.Left;
+        FLabelStock.Top := FEditStock.Top - FLabelStock.Height - 2;
+        FLabelStock.Anchors := FEditStock.Anchors;
+      end;
+    end;
+  except
+    // Si algo falla, no debe romper nada: es meramente informativo.
+    if Assigned(FEditStock) then FreeAndNil(FEditStock);
+    if Assigned(FLabelStock) then FreeAndNil(FLabelStock);
+  end;
+end;
+
+procedure TFPedido.Stock_ReadOnlyKeyPress(Sender: TObject; var Key: char);
+begin
+  // Campo informativo: anula cualquier tecla
+  Key := #0;
+end;
+
+procedure TFPedido.Stock_ReadOnlyKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  // Campo informativo: anula combinaciones (Ctrl+V, etc.)
+  Key := 0;
+end;
+
+procedure TFPedido.Stock_UpdateUIFromArti;
+var
+  v: Double;
+begin
+  if not Assigned(FEditStock) then exit;
+  try
+    FEditStock.Font.Color := clBlack;
+    if (dbArti.Active) and (dbArti.FindField('A4')<>nil) and (dbArti.RecordCount>0) then
+    begin
+      v := dbArti.FieldByName('A4').AsFloat;
+      FEditStock.Text := FormatFloat('0.###', v);
+      if v < 0 then
+        FEditStock.Font.Color := clRed;
+    end
+    else
+      FEditStock.Text := '';
+  except
+    FEditStock.Text := '';
+  end;
+end;
+
+procedure TFPedido.Stock_EnsureGridColumn;
+var
+  i: Integer;
+  col: TColumn;
+begin
+  // Mostramos el campo PD20 (ya existe y guarda el stock del momento de pedir).
+  // Lo renombramos visualmente a "Stock". No se edita.
+  try
+    if not Assigned(DBGrid2) then exit;
+    if not Assigned(dbPedid) then exit;
+    if not dbPedid.Active then exit;
+    if dbPedid.FindField('PD20')=nil then exit;
+
+    // Si el grid tiene columnas persistentes, buscamos PD20; si no existe, la añadimos.
+    col := nil;
+    if DBGrid2.Columns.Count>0 then
+    begin
+      for i:=0 to DBGrid2.Columns.Count-1 do
+        if SameText(DBGrid2.Columns[i].FieldName, 'PD20') then begin col:=DBGrid2.Columns[i]; break; end;
+      if col=nil then
+      begin
+        col := DBGrid2.Columns.Add;
+        col.FieldName := 'PD20';
+      end;
+    end;
+
+    if col<>nil then
+    begin
+      col.Title.Caption := 'Stock';
+      col.ReadOnly := True;
+      if col.Width<60 then col.Width := 70;
+    end;
+  except
+    // Nunca debe romper la pantalla: es informativo.
+  end;
 end;
 
 

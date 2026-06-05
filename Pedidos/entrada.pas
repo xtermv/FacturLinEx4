@@ -188,6 +188,17 @@ type
 
   private
     { private declarations }
+    function TextoAFloat(const S: String): Double;
+    function SQLFloat(AValue: Double): String;
+    function RedondearCentimos(AValue: Double): Double;
+    function TotalPedidoCalculado(): Double;
+    function TotalPedidoConGastos(): Double;
+    function FechaBaseVencimiento(): TDateTime;
+    procedure CargarProveedorActual();
+    procedure NormalizarImportesVencimientos();
+    procedure AsignarFechaOClear(AField: TField; ADateEdit: TDateEdit);
+    procedure RecalcularTotalesSegunSeleccionAceptada();
+    procedure AplicarValoresAceptadosAHistoricoDetalle();
   public
     { public declarations }
   end; 
@@ -218,9 +229,201 @@ implementation
 uses
   Global, Funciones, CambiPrecio;
 
+//===================== FUNCIONES INTERNAS SEGURAS =====================
+function TFEntrada.TextoAFloat(const S: String): Double;
+var
+  Tmp: String;
+begin
+  Tmp:=Trim(S);
+  if Tmp='' then
+    begin
+      Result:=0;
+      exit;
+    end;
+  if TryStrToFloat(Tmp,Result) then exit;
+
+  // Soporta textos con punto o coma decimal, independientemente de la locale.
+  Tmp:=StringReplace(Tmp,'.',DefaultFormatSettings.DecimalSeparator,[rfReplaceAll]);
+  Tmp:=StringReplace(Tmp,',',DefaultFormatSettings.DecimalSeparator,[rfReplaceAll]);
+  Result:=StrToFloatDef(Tmp,0);
+end;
+
+function TFEntrada.SQLFloat(AValue: Double): String;
+var
+  FS: TFormatSettings;
+begin
+  FS:=DefaultFormatSettings;
+  FS.DecimalSeparator:='.';
+  Result:=FormatFloat('0.###############',AValue,FS);
+end;
+
+function TFEntrada.RedondearCentimos(AValue: Double): Double;
+begin
+  Result:=Round(AValue*100)/100;
+end;
+
+//----------------- Total calculado desde las bases e impuestos mostrados
+// IMPORTANTE: no se mezcla PC8 con importes recalculados desde lineas.
+function TFEntrada.TotalPedidoCalculado(): Double;
+begin
+  Result:=TextoAFloat(StaticText1.Caption)+TextoAFloat(StaticText2.Caption);
+end;
+
+//----------------- Total mas otros gastos, solo si se han marcado para vencimientos
+function TFEntrada.TotalPedidoConGastos(): Double;
+begin
+  Result:=TotalPedidoCalculado();
+  if CheckBox1.Checked then
+    Result:=Result+TextoAFloat(EditOtrosGastos.Text);
+end;
+
+function TFEntrada.FechaBaseVencimiento(): TDateTime;
+begin
+  if DateEdit10.Text<>'' then
+    Result:=DateEdit10.Date
+  else
+    Result:=dbPedic.FieldByName('PC1').AsDateTime;
+end;
+
+procedure TFEntrada.CargarProveedorActual();
+begin
+  dbProve.Active:=False;
+  dbProve.SQL.Text:='SELECT * FROM proveedores WHERE P0='+dbPedic.FieldByName('PC2').AsString;
+  dbProve.Active:=True;
+end;
+
+procedure TFEntrada.NormalizarImportesVencimientos();
+begin
+  if Edit24.Text='' then Edit24.Text:='0.00';
+  if Edit26.Text='' then Edit26.Text:='0.00';
+  if Edit28.Text='' then Edit28.Text:='0.00';
+  if Edit30.Text='' then Edit30.Text:='0.00';
+  if EditOtrosGastos.Text='' then EditOtrosGastos.Text:='0.00';
+end;
+
+procedure TFEntrada.AsignarFechaOClear(AField: TField; ADateEdit: TDateEdit);
+begin
+  if ADateEdit.Text='' then
+    AField.Clear
+  else
+    AField.Value:=ADateEdit.Date;
+end;
+
+//----------------- Recalcula bases e impuestos con los valores finales aceptados
+// linea a linea. Esto es clave porque ShowCambioPrecio puede dejar en la ficha
+// los datos nuevos del pedido o conservar los datos antiguos, segun la decision
+// tomada en cada linea.
+procedure TFEntrada.RecalcularTotalesSegunSeleccionAceptada();
+var
+  B1, B2, B3, B0: Double;
+  I1, I2, I3, I0: Double;
+  CantidadLinea, BaseLinea, ImpLinea: Double;
+  TipoIva, TipoRec: Integer;
+
+  procedure SumarLinea(AIva: Integer; ABase, AImp: Double);
+  begin
+    if AIva=Round(IVA1) then
+      begin B1:=B1+ABase; I1:=I1+AImp; end
+    else if AIva=Round(IVA2) then
+      begin B2:=B2+ABase; I2:=I2+AImp; end
+    else if AIva=Round(IVA3) then
+      begin B3:=B3+ABase; I3:=I3+AImp; end
+    else
+      begin B0:=B0+ABase; I0:=I0+AImp; end;
+  end;
+
+begin
+  B1:=0; B2:=0; B3:=0; B0:=0;
+  I1:=0; I2:=0; I3:=0; I0:=0;
+
+  if (not dbPedid.Active) or (dbPedid.RecordCount=0) then exit;
+
+  dbPedid.First;
+  while not dbPedid.EOF do
+    begin
+      dbArti.Active:=False;
+      dbArti.SQL.Text:='SELECT * FROM artitien'+Tienda+' WHERE A0="'+dbPedid.FieldByName('PD6').AsString+'"';
+      dbArti.Active:=True;
+      if dbArti.RecordCount=0 then
+        raise Exception.Create('Articulo no encontrado al recalcular totales aceptados: '+dbPedid.FieldByName('PD6').AsString);
+
+      CantidadLinea:=dbPedid.FieldByName('PD8').AsFloat;
+      BaseLinea:=dbArti.FieldByName('A24').AsFloat*CantidadLinea;
+      TipoIva:=dbArti.FieldByName('A3').AsInteger;
+      TipoRec:=dbArti.FieldByName('A36').AsInteger;
+      ImpLinea:=BaseLinea*((TipoIva+TipoRec)/100);
+
+      SumarLinea(TipoIva,BaseLinea,ImpLinea);
+      dbPedid.Next;
+    end;
+
+  Edit25.Text:=FormatFloat('0.000',B1); Edit32.Text:=FormatFloat('0.000',I1);
+  Edit27.Text:=FormatFloat('0.000',B2); Edit33.Text:=FormatFloat('0.000',I2);
+  Edit29.Text:=FormatFloat('0.000',B3); Edit35.Text:=FormatFloat('0.000',I3);
+  Edit31.Text:=FormatFloat('0.000',B0); Edit36.Text:=FormatFloat('0.000',I0);
+
+  StaticText1.Caption:=FormatFloat('0.000',B1+B2+B3+B0);
+  StaticText2.Caption:=FormatFloat('0.000',I1+I2+I3+I0);
+  PintarTotalVencimientos();
+end;
+
+//----------------- Ajusta la linea que se va a copiar al historico con los
+// valores finales de la ficha, que ya reflejan la seleccion tomada en el
+// dialogo de cambio de precio.
+procedure TFEntrada.AplicarValoresAceptadosAHistoricoDetalle();
+var
+  CantidadLinea, CostoUnitario, TotalUnitario: Double;
+begin
+  dbArti.Active:=False;
+  dbArti.SQL.Text:='SELECT * FROM artitien'+Tienda+' WHERE A0="'+dbPedid.FieldByName('PD6').AsString+'"';
+  dbArti.Active:=True;
+  if dbArti.RecordCount=0 then
+    raise Exception.Create('Articulo no encontrado al guardar historico de detalle: '+dbPedid.FieldByName('PD6').AsString);
+
+  CantidadLinea:=dbPedid.FieldByName('PD8').AsFloat;
+  CostoUnitario:=dbArti.FieldByName('A24').AsFloat;
+  TotalUnitario:=CostoUnitario+
+                 (CostoUnitario*dbArti.FieldByName('A3').AsFloat/100)+
+                 (CostoUnitario*dbArti.FieldByName('A36').AsFloat/100);
+
+  if dbTrabajo.FindField('HPD7')<>nil then
+    dbTrabajo.FieldByName('HPD7').AsString:=dbArti.FieldByName('A1').AsString;
+  if dbTrabajo.FindField('HPD10')<>nil then
+    dbTrabajo.FieldByName('HPD10').AsFloat:=dbArti.FieldByName('A24').AsFloat;
+  if dbTrabajo.FindField('HPD11')<>nil then
+    dbTrabajo.FieldByName('HPD11').AsFloat:=dbArti.FieldByName('A26').AsFloat;
+  if dbTrabajo.FindField('HPD12')<>nil then
+    dbTrabajo.FieldByName('HPD12').AsFloat:=dbArti.FieldByName('A21').AsFloat;
+  if dbTrabajo.FindField('HPD13')<>nil then
+    dbTrabajo.FieldByName('HPD13').AsFloat:=dbArti.FieldByName('A36').AsFloat;
+  if dbTrabajo.FindField('HPD14')<>nil then
+    dbTrabajo.FieldByName('HPD14').AsFloat:=dbArti.FieldByName('A3').AsFloat;
+  if dbTrabajo.FindField('HPD15')<>nil then
+    dbTrabajo.FieldByName('HPD15').AsFloat:=TotalUnitario;
+  if dbTrabajo.FindField('HPD16')<>nil then
+    dbTrabajo.FieldByName('HPD16').AsFloat:=dbArti.FieldByName('A2').AsFloat;
+  if dbTrabajo.FindField('HPD17')<>nil then
+    dbTrabajo.FieldByName('HPD17').AsFloat:=TotalUnitario*CantidadLinea;
+  if dbTrabajo.FindField('HPD19')<>nil then
+    dbTrabajo.FieldByName('HPD19').Value:=dbArti.FieldByName('A14').Value;
+  if dbTrabajo.FindField('HPD26')<>nil then
+    dbTrabajo.FieldByName('HPD26').AsFloat:=dbArti.FieldByName('A28').AsFloat;
+  if dbTrabajo.FindField('HPD27')<>nil then
+    dbTrabajo.FieldByName('HPD27').AsFloat:=dbArti.FieldByName('A29').AsFloat;
+  if dbTrabajo.FindField('HPD28')<>nil then
+    dbTrabajo.FieldByName('HPD28').AsFloat:=dbArti.FieldByName('A30').AsFloat;
+  if dbTrabajo.FindField('HPD29')<>nil then
+    dbTrabajo.FieldByName('HPD29').AsFloat:=dbArti.FieldByName('A31').AsFloat;
+  if dbTrabajo.FindField('HPD30')<>nil then
+    dbTrabajo.FieldByName('HPD30').AsFloat:=dbArti.FieldByName('A37').AsFloat;
+end;
+
 //===================== CREAR EL FORMULARIO =====================
 procedure ShowFormEntradaPedido(PaTienda,PaFecha,PaProveedor,PaSerie,PaNPedido:String);
 begin
+  // Evita arrastrar una seleccion anterior si se abre el formulario sin parametros.
+  PasaPD0:=0; PasaPD1:=0; PasaPD2:=0; PasaPD3:=''; PasaPD4:=0;
+
   if PaTienda<>'' then PasaPD0:=StrToInt(PaTienda);
   if PaFecha<>'' then PasaPD1:=StrToDate(PaFecha);
   if PaProveedor<>'' then PasaPD2:=StrToInt(PaProveedor);
@@ -282,6 +485,7 @@ begin
   Label52.Caption:=FloatToStr(IVA3)+'%'; Edit29.Text:='0.00'; Edit35.Text:='0.000';
   Label53.Caption:='0%'; Edit31.Text:='0.000'; Edit36.Text:='0.000';
   StaticText1.Caption:='0.000'; StaticText2.Caption:='0.000';
+  EditOtrosGastos.Text:='0.00';
   //--------------- Datos del pedido ----------
   Label65.Caption:=dbPedic.FieldByName('PC3').AsString+' - '+dbPedic.FieldByName('PC4').AsString;
   Label66.Caption:=FormatDateTime('DD/MM/YYYY',dbPedic.FieldByName('PC1').AsDateTime);
@@ -308,8 +512,10 @@ begin
         ' AND PD1="'+FormatDateTime('yyyy/mm/dd',dbPedic.Fields[1].asDateTime)+'"'+
         ' AND PD2='+dbPedic.Fields[2].AsString+
         ' AND PD3="'+dbPedic.Fields[3].AsString+'"'+
-        ' AND PD4='+dbPedic.Fields[4].AsString;
+        ' AND PD4='+dbPedic.Fields[4].AsString+
+        ' AND PD23="S"';//------------------Solo lineas recibidas, igual que la aceptacion
   TxtQ:=TxtQ+' GROUP BY PD14 ORDER BY PD14 ASC';
+  dbTotales.Active:=False;
   dbTotales.SQL.Text:=TxtQ; dbTotales.Active:=True;
   if dbTotales.RecordCount<>0 then
     begin
@@ -334,18 +540,18 @@ begin
           Edit36.Text:=FormatFloat('0.000',dbTotales.Fields[1].AsFloat);//-------------- Imp. Iva
         end;
     end;
-  StaticText1.Caption:=FormatFloat('0.000',StrToFloat(Edit25.Text)+
-                                          StrToFloat(Edit27.Text)+
-                                          StrToFloat(Edit29.Text)+
-                                          StrToFloat(Edit31.Text));
-  StaticText2.Caption:=FormatFloat('0.000',StrToFloat(Edit32.Text)+
-                                          StrToFloat(Edit33.Text)+
-                                          StrToFloat(Edit35.Text)+
-                                          StrToFloat(Edit36.Text));
+  StaticText1.Caption:=FormatFloat('0.000',TextoAFloat(Edit25.Text)+
+                                          TextoAFloat(Edit27.Text)+
+                                          TextoAFloat(Edit29.Text)+
+                                          TextoAFloat(Edit31.Text));
+  StaticText2.Caption:=FormatFloat('0.000',TextoAFloat(Edit32.Text)+
+                                          TextoAFloat(Edit33.Text)+
+                                          TextoAFloat(Edit35.Text)+
+                                          TextoAFloat(Edit36.Text));
   //---------------- Vencimientos -------------
   DateEdit3.Clear; DateEdit4.Clear;
   DateEdit5.Clear; DateEdit6.Clear;
-  Label46.Caption:='0.00'; Label47.Caption:=FormatFloat('0.00',dbPedic.FieldByName('PC8').AsFloat);
+  Label46.Caption:='0.00'; Label47.Caption:=FormatFloat('0.00',TotalPedidoCalculado());
   if dbPedic.FieldByName('PC20').AsString<>'' then
      DateEdit3.Date:=dbPedic.FieldByName('PC20').AsDateTime;
   Edit24.Text:=FormatFloat('0.00',dbPedic.FieldByName('PC21').AsFloat);
@@ -364,16 +570,18 @@ begin
                                    dbPedic.FieldByName('PC25').AsFloat+
                                    dbPedic.FieldByName('PC27').AsFloat);
   //------ Total Pedido costo+impuestos-suma de vencimientos
-  Label47.Caption:=FormatFloat('0.00',dbPedic.FieldByName('PC8').AsFloat-StrToFloat(Label46.Caption));
+  Label47.Caption:=FormatFloat('0.00',TotalPedidoCalculado()-TextoAFloat(Label46.Caption));
 
     //------------ Si no hay vencimientos ver los del proveedor
   if (DateEdit3.Text='') and (DateEdit4.Text='') and (DateEdit5.Text='') and (DateEdit6.Text='') then
     begin
-      dbProve.Active:=False;
-      dbProve.Sql.Text:='SELECT * FROM proveedores where P0='+dbPedic.FieldByName('PC2').AsString;
-      dbProve.Active:=True;
+      CargarProveedorActual();
       if dbProve.RecordCount=0 then begin showmessage('NO EXISTE ESE PROVEEDOR???'); exit; end;
-      if dbProve.FieldByName('P15').AsInteger<>0 then VerVencimientos();
+      if dbProve.FieldByName('P15').AsInteger<>0 then
+        begin
+          VerVencimientos();
+          PintarTotalVencimientos();
+        end;
     end;
 end;
 
@@ -381,73 +589,144 @@ end;
 procedure TFEntrada.BitBtn30Click(Sender: TObject);
 var
   TxtQ: String;
+  HayTransaccion: Boolean;
 begin
   ProgressBar1.Position:=0; ProgressBar1.Caption:='0';
+  NormalizarImportesVencimientos();
+  PintarTotalVencimientos();
+
   if Application.MessageBox('DAR ENTRADA AL PEDIDO SELECCIONADO?','FacturLinEx', boxstyle) = IDNO Then
       begin
         Panel1.Visible:=False; Panel11.Visible:=False;
-        DBGrid1.Enabled:=True; exit;
+        DBGrid1.Enabled:=True; BitBtn3.Enabled:=True; BitBtn2.Enabled:=True;
+        exit;
       end;
-  Panel11.Visible:=False; DBGrid1.Repaint;
+
   TxtQ:='SELECT * FROM pedidd'+Tienda+' WHERE PD0='+dbPedic.Fields[0].AsString+
         ' AND PD1="'+FormatDateTime('yyyy/mm/dd',dbPedic.Fields[1].asDateTime)+'"'+
         ' AND PD2='+dbPedic.Fields[2].AsString+
         ' AND PD3="'+dbPedic.Fields[3].AsString+'"'+
         ' AND PD4='+dbPedic.Fields[4].AsString+
         ' AND PD23="S"';//------------------Solo las lineas recibidas
+  dbPedid.Active:=False;
   dbPedid.SQL.Text:=TxtQ; dbPedid.Active:=True;
   if dbPedid.RecordCount=0 then
      begin
        showmessage('ESTE PEDIDO NO TIENE LINEAS PARA ACEPTAR!');
        Panel1.Visible:=False; Panel11.Visible:=False;
-       DBGrid1.Enabled:=True; exit;
+       DBGrid1.Enabled:=True; BitBtn3.Enabled:=True; BitBtn2.Enabled:=True;
+       exit;
      end;
 
-  Panel1.Visible:=True; Panel1.Repaint;
-  DBGrid1.Enabled:=False;
+  // Seguridad: esta unidad borra el pedido completo al final. Si quedara alguna
+  // linea no marcada como recibida, se perderia. Mejor abortar antes de tocar nada.
+  TxtQ:='SELECT COUNT(*) AS Pendientes FROM pedidd'+Tienda+
+        ' WHERE PD0='+dbPedic.Fields[0].AsString+
+        ' AND PD1="'+FormatDateTime('yyyy/mm/dd',dbPedic.Fields[1].asDateTime)+'"'+
+        ' AND PD2='+dbPedic.Fields[2].AsString+
+        ' AND PD3="'+dbPedic.Fields[3].AsString+'"'+
+        ' AND PD4='+dbPedic.Fields[4].AsString+
+        ' AND (PD23<>"S" OR PD23 IS NULL)';
+  dbTrabajo.Active:=False;
+  dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.Active:=True;
+  if dbTrabajo.FieldByName('Pendientes').AsInteger>0 then
+    begin
+      showmessage('NO SE PUEDE ACEPTAR EL PEDIDO COMPLETO: HAY LINEAS NO RECIBIDAS. Revise las lineas antes de aceptar, porque este proceso borra el pedido original al terminar.');
+      Panel1.Visible:=False; Panel11.Visible:=False;
+      DBGrid1.Enabled:=True; BitBtn3.Enabled:=True; BitBtn2.Enabled:=True;
+      exit;
+    end;
 
-  dbPedid.First; ProgressBar1.Max:=dbPedid.RecordCount;
+  // Validacion previa: todos los articulos deben existir antes de actualizar stock,
+  // estadisticas, historicos y proveedor.
+  dbPedid.First;
   while not dbPedid.EOF do
     begin
+      dbArti.Active:=False;
       dbArti.SQL.Text:='SELECT * FROM artitien'+Tienda+' WHERE A0="'+dbPedid.FieldByName('PD6').AsString+'"';
       dbArti.Active:=True;
-      if dbArti.RecordCount=0 then begin showmessage('Se ha borrado un ARTICULO y NO Existe en la Ficha'); end; { TODO 1 -onicolas -cPedidos : Hay que ver si no existe el articulo, debe existir!
- }
-
-      PreciohaCambiado:=False; PintaLineas();//------------ Pintar las lineas conforme se acepta el pedido
-      if PreciohaCambiado=True then
-         begin
-         //ShowCambioPrecio(Tienda,Proveedor,Numero,Linea: Integer; Fecha: TdateTime; Codigo,Serie: string);
-
-           ShowCambioPrecio(dbPedid.FieldByName('PD0').Value,
-                            dbPedid.FieldByName('PD2').Value,
-                            dbPedid.FieldByName('PD4').Value,
-                            dbPedid.FieldByName('PD5').Value,
-                            dbPedid.FieldByName('PD1').Value,
-                            dbPedid.FieldByName('PD6').Value,
-                            dbPedid.FieldByName('PD3').Value);
-         end;
-
-      LeerDatosArticulo();//------ Consultar los nuevos datos del articulo que vienen de cambio
-      ActuArticulos();//---------- Actualizar Articulos
-      ActuEstaArti();//----------- Estadistica de articulos
-      ActuUltimoPedi();//--------- Ultimo pedido
-      ActuEstaTiendas();//-------- Estadistica de Tienda
-      ActuFamilia();//------------ Familias y estadistica
-      ActuDeparta();//------------ Departamentos y estadistica
-      ActuEstaProveedor();//------ Estadistica de Proveedor
-
+      if dbArti.RecordCount=0 then
+        begin
+          showmessage('NO SE PUEDE ACEPTAR: el articulo '+dbPedid.FieldByName('PD6').AsString+' no existe en la ficha.');
+          Panel1.Visible:=False; Panel11.Visible:=False;
+          DBGrid1.Enabled:=True; BitBtn3.Enabled:=True; BitBtn2.Enabled:=True;
+          exit;
+        end;
       dbPedid.Next;
-      ProgressBar1.Position:=ProgressBar1.Position+1;
-      ProgressBar1.Caption:=IntToStr(ProgressBar1.Position); ProgressBar1.Repaint;
     end;
-  ActuProveedor();//---------- Proveedor
-  ActuTiendas();//------------ Tienda
-  ActuHistocc();//------------ Hist. pedidos cabeceras
-  ActuHistodd();//------------ Hist. pedidos detalles
-  BorrarPedido();//----------- Borrar pedido
-  Showmessage('PEDIDO ACEPTADO CORRECTAMENTE!');
-  Panel1.Visible:=False; DBGrid1.Enabled:=True;
+
+  HayTransaccion:=False;
+  Panel11.Visible:=False; DBGrid1.Repaint;
+  Panel1.Visible:=True; Panel1.Repaint;
+  DBGrid1.Enabled:=False; BitBtn3.Enabled:=False; BitBtn2.Enabled:=False;
+
+  try
+    if (dbTrabajo.Connection<>nil) and (not dbTrabajo.Connection.InTransaction) then
+      begin
+        dbTrabajo.Connection.StartTransaction;
+        HayTransaccion:=True;
+      end;
+
+    dbPedid.First; ProgressBar1.Max:=dbPedid.RecordCount;
+    while not dbPedid.EOF do
+      begin
+        dbArti.Active:=False;
+        dbArti.SQL.Text:='SELECT * FROM artitien'+Tienda+' WHERE A0="'+dbPedid.FieldByName('PD6').AsString+'"';
+        dbArti.Active:=True;
+        if dbArti.RecordCount=0 then
+          raise Exception.Create('Articulo no encontrado al aceptar: '+dbPedid.FieldByName('PD6').AsString);
+
+        PreciohaCambiado:=False;
+        PintaLineas();//------------ Pintar las lineas conforme se acepta el pedido
+        if PreciohaCambiado=True then
+           begin
+             ShowCambioPrecio(dbPedid.FieldByName('PD0').Value,
+                              dbPedid.FieldByName('PD2').Value,
+                              dbPedid.FieldByName('PD4').Value,
+                              dbPedid.FieldByName('PD5').Value,
+                              dbPedid.FieldByName('PD1').Value,
+                              dbPedid.FieldByName('PD6').Value,
+                              dbPedid.FieldByName('PD3').Value);
+           end;
+
+        LeerDatosArticulo();//------ Consultar los datos finales del articulo tras la decision del dialogo
+        if dbArti.RecordCount=0 then
+          raise Exception.Create('Articulo no encontrado despues del cambio de precio: '+dbPedid.FieldByName('PD6').AsString);
+
+        ActuArticulos();//---------- Actualizar Articulos
+        ActuEstaArti();//----------- Estadistica de articulos
+        ActuUltimoPedi();//--------- Ultimo pedido
+        ActuEstaTiendas();//-------- Estadistica de Tienda
+        ActuFamilia();//------------ Familias y estadistica
+        ActuDeparta();//------------ Departamentos y estadistica
+        ActuEstaProveedor();//------ Estadistica de Proveedor
+
+        dbPedid.Next;
+        ProgressBar1.Position:=ProgressBar1.Position+1;
+        ProgressBar1.Caption:=IntToStr(ProgressBar1.Position); ProgressBar1.Repaint;
+      end;
+
+    ActuProveedor();//---------- Proveedor
+    ActuTiendas();//------------ Tienda
+    RecalcularTotalesSegunSeleccionAceptada();//-- Totales finales segun decision linea a linea
+    ActuHistocc();//------------ Hist. pedidos cabeceras
+    ActuHistodd();//------------ Hist. pedidos detalles
+    BorrarPedido();//----------- Borrar pedido
+
+    if HayTransaccion then
+      dbTrabajo.Connection.Commit;
+    Showmessage('PEDIDO ACEPTADO CORRECTAMENTE!');
+  except
+    on E: Exception do
+      begin
+        if HayTransaccion and (dbTrabajo.Connection<>nil) and dbTrabajo.Connection.InTransaction then
+          dbTrabajo.Connection.Rollback;
+        ShowMessage('NO SE HA PODIDO ACEPTAR EL PEDIDO: '+E.Message);
+      end;
+  end;
+
+  Panel1.Visible:=False; Panel11.Visible:=False;
+  DBGrid1.Enabled:=True;
   BitBtn3.Enabled:=True; BitBtn2.Enabled:=True;
 end;
 
@@ -486,37 +765,39 @@ procedure TFEntrada.ActuEstaArti();
 var
   TxtQ: String;
 begin
+  dbTrabajo.Active:=False;
   dbTrabajo.SQL.Text:='SELECT * from estaarti'+Tienda+' WHERE TA0="'+Codigo+'"'+
-                     ' AND TA1='+FormatDateTime('YYYY',Date)+' AND TA2='+FormatDateTime('MM',Date);
+                     ' AND TA1='+FormatDateTime('YYYY',dbPedid.FieldByName('PD1').AsDateTime)+' AND TA2='+FormatDateTime('MM',dbPedid.FieldByName('PD1').AsDateTime);
   dbTrabajo.Active:=True;
   if dbTrabajo.RecordCount<>0 then
     TxtQ:='UPDATE estaarti'+Tienda+' SET TA3=TA3+'+Cantidad+
           ', TA4=TA4+'+Costo+' WHERE TA0="'+Codigo+'"'+
-          ' AND TA1='+FormatDateTime('YYYY',Date)+' AND TA2='+FormatDateTime('MM',Date)
+          ' AND TA1='+FormatDateTime('YYYY',dbPedid.FieldByName('PD1').AsDateTime)+' AND TA2='+FormatDateTime('MM',dbPedid.FieldByName('PD1').AsDateTime)
   else
     TxtQ:='INSERT INTO estaarti'+Tienda+' (TA0,TA1,TA2,TA3,TA4) VALUES ("'+
-          Codigo+'",'+FormatDateTime('YYYY',Date)+','+FormatDateTime('MM',Date)+
+          Codigo+'",'+FormatDateTime('YYYY',dbPedid.FieldByName('PD1').AsDateTime)+','+FormatDateTime('MM',dbPedid.FieldByName('PD1').AsDateTime)+
           ','+Cantidad+','+Costo+')';
-  dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
+  dbTrabajo.Active:=False; dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
 end;
 //---------------- Ultimo pedido
 procedure TFEntrada.ActuUltimoPedi();
 var
   TxtQ: String;
 begin
+  dbTrabajo.Active:=False;
   dbTrabajo.SQL.Text:='SELECT * from ultimopedi'+Tienda+' WHERE AP0="'+Codigo+'"'+
                      ' AND AP1="'+FormatDateTime('YYYY/MM/DD',dbPedid.FieldByName('PD1').Value)+'"';
   dbTrabajo.Active:=True;
   if dbTrabajo.RecordCount<>0 then
     TxtQ:='UPDATE ultimopedi'+Tienda+' SET AP3='+Cantidad+
-          ', AP4='+dbPedid.FieldByName('PD10').AsString+' WHERE AP0="'+Codigo+'"'+
+          ', AP4='+SQLFloat(dbArti.FieldByName('A24').AsFloat)+' WHERE AP0="'+Codigo+'"'+
           ' AND AP1="'+FormatDateTime('YYYY/MM/DD',dbPedid.FieldByName('PD1').Value)+'"'
   else
     TxtQ:='INSERT INTO ultimopedi'+Tienda+' (AP0,AP1,AP2,AP3,AP4) VALUES ("'+
           Codigo+'","'+FormatDateTime('YYYY/MM/DD',dbPedid.FieldByName('PD1').Value)+'",'+
           dbPedid.FieldByName('PD2').AsString+','+Cantidad+','+
-          dbPedid.FieldByName('PD10').AsString+')';
-  dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
+          SQLFloat(dbArti.FieldByName('A24').AsFloat)+')';
+  dbTrabajo.Active:=False; dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
 end;
 
 //---------------- Tienda y estadisticas tienda
@@ -524,13 +805,14 @@ procedure TFEntrada.ActuTiendas();
 var
   TxtQ: String;
 begin
+  dbTrabajo.Active:=False;
   dbTrabajo.SQL.Text:='SELECT * from tiendas WHERE T0='+NTienda;
   dbTrabajo.Active:=True;
   if dbTrabajo.RecordCount<>0 then
    begin
     TxtQ:='UPDATE tiendas SET T10="'+FormatDateTime('YYYY/MM/DD',dbPedic.FieldByName('PC1').Value)+'"'+
           ' WHERE T0='+NTienda;
-    dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
+    dbTrabajo.Active:=False; dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
    end;
 end;
 //---------------- Estadistica de tienda
@@ -538,18 +820,19 @@ procedure TFEntrada.ActuEstaTiendas();
 var
   TxtQ: String;
 begin
+  dbTrabajo.Active:=False;
   dbTrabajo.SQL.Text:='SELECT * from estatien'+Tienda+' WHERE TT0='+NTienda+
-                     ' AND TT1='+FormatDateTime('YYYY',Date)+' AND TT2='+FormatDateTime('MM',Date);
+                     ' AND TT1='+FormatDateTime('YYYY',dbPedid.FieldByName('PD1').AsDateTime)+' AND TT2='+FormatDateTime('MM',dbPedid.FieldByName('PD1').AsDateTime);
   dbTrabajo.Active:=True;
   if dbTrabajo.RecordCount<>0 then
     TxtQ:='UPDATE estatien'+Tienda+' SET TT3=TT3+'+Cantidad+
           ', TT4=TT4+'+Costo+' WHERE TT0='+NTienda+
-          ' AND TT1='+FormatDateTime('YYYY',Date)+' AND TT2='+FormatDateTime('MM',Date)
+          ' AND TT1='+FormatDateTime('YYYY',dbPedid.FieldByName('PD1').AsDateTime)+' AND TT2='+FormatDateTime('MM',dbPedid.FieldByName('PD1').AsDateTime)
   else
     TxtQ:='INSERT INTO estatien'+Tienda+' (TT0,TT1,TT2,TT3,TT4) VALUES ('+
-          NTienda+','+FormatDateTime('YYYY',Date)+','+FormatDateTime('MM',Date)+
+          NTienda+','+FormatDateTime('YYYY',dbPedid.FieldByName('PD1').AsDateTime)+','+FormatDateTime('MM',dbPedid.FieldByName('PD1').AsDateTime)+
           ','+Cantidad+','+Costo+')';
-  dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
+  dbTrabajo.Active:=False; dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
 end;
 
 //---------------- Familias y estadisticas
@@ -557,6 +840,7 @@ procedure TFEntrada.ActuFamilia();
 var
   TxtQ: String;
 begin
+  dbTrabajo.Active:=False;
   dbTrabajo.SQL.Text:='SELECT * from familias'+Tienda+' WHERE F0='+dbArti.FieldByName('A14').AsString;
   dbTrabajo.Active:=True; Departa:='';
   if dbTrabajo.RecordCount<>0 then
@@ -564,21 +848,22 @@ begin
     Departa:=dbTrabajo.FieldByName('F2').AsString;//---- Guardo el departamento
     TxtQ:='UPDATE familias'+Tienda+' SET F4="'+FormatDateTime('YYYY/MM/DD',dbPedid.FieldByName('PD1').Value)+'"'+
           ' WHERE F0='+dbArti.FieldByName('A14').AsString;
-    dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
+    dbTrabajo.Active:=False; dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
    end;
   //---------- estadistica
+  dbTrabajo.Active:=False;
   dbTrabajo.SQL.Text:='SELECT * from estafami'+Tienda+' WHERE FF0='+dbArti.FieldByName('A14').AsString+
-                     ' AND FF1='+FormatDateTime('YYYY',Date)+' AND FF2='+FormatDateTime('MM',Date);
+                     ' AND FF1='+FormatDateTime('YYYY',dbPedid.FieldByName('PD1').AsDateTime)+' AND FF2='+FormatDateTime('MM',dbPedid.FieldByName('PD1').AsDateTime);
   dbTrabajo.Active:=True;
   if dbTrabajo.RecordCount<>0 then
     TxtQ:='UPDATE estafami'+Tienda+' SET FF3=FF3+'+Cantidad+
           ', FF4=FF4+'+Costo+' WHERE FF0='+dbArti.FieldByName('A14').AsString+
-          ' AND FF1='+FormatDateTime('YYYY',Date)+' AND FF2='+FormatDateTime('MM',Date)
+          ' AND FF1='+FormatDateTime('YYYY',dbPedid.FieldByName('PD1').AsDateTime)+' AND FF2='+FormatDateTime('MM',dbPedid.FieldByName('PD1').AsDateTime)
   else
     TxtQ:='INSERT INTO estafami'+Tienda+' (FF0,FF1,FF2,FF3,FF4) VALUES ('+
-          dbArti.FieldByName('A14').AsString+','+FormatDateTime('YYYY',Date)+','+
-          FormatDateTime('MM',Date)+','+Cantidad+','+Costo+')';
-  dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
+          dbArti.FieldByName('A14').AsString+','+FormatDateTime('YYYY',dbPedid.FieldByName('PD1').AsDateTime)+','+
+          FormatDateTime('MM',dbPedid.FieldByName('PD1').AsDateTime)+','+Cantidad+','+Costo+')';
+  dbTrabajo.Active:=False; dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
 end;
 
 //---------------- Departamentos y estadisticas
@@ -587,27 +872,29 @@ var
   TxtQ: String;
 begin
   if Departa='' then exit;
+  dbTrabajo.Active:=False;
   dbTrabajo.SQL.Text:='SELECT * from departamentos'+Tienda+' WHERE D0='+Departa;
   dbTrabajo.Active:=True;
   if dbTrabajo.RecordCount<>0 then
    begin
     TxtQ:='UPDATE departamentos'+Tienda+' SET D3="'+FormatDateTime('YYYY/MM/DD',dbPedid.FieldByName('PD1').Value)+'"'+
           ' WHERE D0='+Departa;
-    dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
+    dbTrabajo.Active:=False; dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
    end;
   //---------- estadistica
+  dbTrabajo.Active:=False;
   dbTrabajo.SQL.Text:='SELECT * from estadepa'+Tienda+' WHERE DD0='+Departa+
-                     ' AND DD1='+FormatDateTime('YYYY',Date)+' AND DD2='+FormatDateTime('MM',Date);
+                     ' AND DD1='+FormatDateTime('YYYY',dbPedid.FieldByName('PD1').AsDateTime)+' AND DD2='+FormatDateTime('MM',dbPedid.FieldByName('PD1').AsDateTime);
   dbTrabajo.Active:=True;
   if dbTrabajo.RecordCount<>0 then
     TxtQ:='UPDATE estadepa'+Tienda+' SET DD3=DD3+'+Cantidad+
           ', DD4=DD4+'+Costo+' WHERE DD0='+Departa+
-          ' AND DD1='+FormatDateTime('YYYY',Date)+' AND DD2='+FormatDateTime('MM',Date)
+          ' AND DD1='+FormatDateTime('YYYY',dbPedid.FieldByName('PD1').AsDateTime)+' AND DD2='+FormatDateTime('MM',dbPedid.FieldByName('PD1').AsDateTime)
   else
     TxtQ:='INSERT INTO estadepa'+Tienda+' (DD0,DD1,DD2,DD3,DD4) VALUES ('+
-          Departa+','+FormatDateTime('YYYY',Date)+','+FormatDateTime('MM',Date)+
+          Departa+','+FormatDateTime('YYYY',dbPedid.FieldByName('PD1').AsDateTime)+','+FormatDateTime('MM',dbPedid.FieldByName('PD1').AsDateTime)+
           ','+Cantidad+','+Costo+')';
-  dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
+  dbTrabajo.Active:=False; dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
 end;
 
 //---------------- Proveedor
@@ -615,13 +902,14 @@ procedure TFEntrada.ActuProveedor();
 var
   TxtQ: String;
 begin
+  dbTrabajo.Active:=False;
   dbTrabajo.SQL.Text:='SELECT * from proveedores WHERE P0='+dbPedic.FieldByName('PC2').AsString;
   dbTrabajo.Active:=True;
   if dbTrabajo.RecordCount<>0 then
    begin
     TxtQ:='UPDATE proveedores SET P23="'+FormatDateTime('YYYY/MM/DD',dbPedic.FieldByName('PC1').Value)+'"'+
           ' WHERE P0='+dbPedic.FieldByName('PC2').AsString;
-    dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
+    dbTrabajo.Active:=False; dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
    end;
 end;
 //---------------- Proveedor Estadisticas
@@ -629,18 +917,19 @@ procedure TFEntrada.ActuEstaProveedor();
 var
   TxtQ: String;
 begin
+  dbTrabajo.Active:=False;
   dbTrabajo.SQL.Text:='SELECT * from estaprove WHERE PP0='+dbPedid.FieldByName('PD2').AsString+
-                     ' AND PP1='+FormatDateTime('YYYY',Date)+' AND PP2='+FormatDateTime('MM',Date);
+                     ' AND PP1='+FormatDateTime('YYYY',dbPedid.FieldByName('PD1').AsDateTime)+' AND PP2='+FormatDateTime('MM',dbPedid.FieldByName('PD1').AsDateTime);
   dbTrabajo.Active:=True;
   if dbTrabajo.RecordCount<>0 then
     TxtQ:='UPDATE estaprove SET PP3=PP3+'+Cantidad+
           ', PP4=PP4+'+Costo+' WHERE PP0='+dbPedid.FieldByName('PD2').AsString+
-          ' AND PP1='+FormatDateTime('YYYY',Date)+' AND PP2='+FormatDateTime('MM',Date)
+          ' AND PP1='+FormatDateTime('YYYY',dbPedid.FieldByName('PD1').AsDateTime)+' AND PP2='+FormatDateTime('MM',dbPedid.FieldByName('PD1').AsDateTime)
   else
     TxtQ:='INSERT INTO estaprove (PP0,PP1,PP2,PP3,PP4) VALUES ('+
-          dbPedid.FieldByName('PD2').AsString+','+FormatDateTime('YYYY',Date)+','+
-          FormatDateTime('MM',Date)+','+Cantidad+','+Costo+')';
-  dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
+          dbPedid.FieldByName('PD2').AsString+','+FormatDateTime('YYYY',dbPedid.FieldByName('PD1').AsDateTime)+','+
+          FormatDateTime('MM',dbPedid.FieldByName('PD1').AsDateTime)+','+Cantidad+','+Costo+')';
+  dbTrabajo.Active:=False; dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
 end;
 
 //------------------- Historico de pedidos cabeceras
@@ -658,20 +947,29 @@ begin
         ' AND HPC2='+dbPedic.Fields[2].AsString+
         ' AND HPC3="'+dbPedic.Fields[3].AsString+'"'+
         ' AND HPC4='+dbPedic.Fields[4].AsString;
+  dbTrabajo.Active:=False;
   dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.Active:=True;
-  if dbTrabajo.RecordCount<>0 then begin showmessage('ESE PEDIDO YA EXISTE EN EL HISTORICO'); end;
+  if dbTrabajo.RecordCount<>0 then
+    raise Exception.Create('ESE PEDIDO YA EXISTE EN EL HISTORICO');
+
   dbTrabajo.Append;
   for conta:=0 to 27 do
     dbTrabajo.Fields[Conta].Value:=dbPedic.Fields[Conta].Value;
+
+  // Guardamos la cabecera con el mismo total que se muestra y se acepta.
+  // PC8 queda solo como valor historico de origen; si venia descuadrado no se arrastra.
+  if dbTrabajo.FindField('HPC8')<>nil then
+    dbTrabajo.FieldByName('HPC8').AsFloat:=TotalPedidoCalculado();
+
   //------- Vencimientos
-  dbTrabajo.FieldByName('HPC20').Value:=DateEdit3.Date;//------- Fecha 1 Vencimiento
-  dbTrabajo.FieldByName('HPC21').AsString:=Edit24.text;//------- Importe 1 Vencimiento
-  dbTrabajo.FieldByName('HPC22').Value:=DateEdit4.Date;//------- Fecha 2 Vencimiento
-  dbTrabajo.FieldByName('HPC23').AsString:=Edit26.text;//------- Importe 2 Vencimiento
-  dbTrabajo.FieldByName('HPC24').Value:=DateEdit5.Date;//------- Fecha 3 Vencimiento
-  dbTrabajo.FieldByName('HPC25').AsString:=Edit28.text;//------- Importe 3 Vencimiento
-  dbTrabajo.FieldByName('HPC26').Value:=DateEdit6.Date;//------- Fecha 3 Vencimiento
-  dbTrabajo.FieldByName('HPC27').AsString:=Edit30.text;//------- Importe 3 Vencimiento
+  AsignarFechaOClear(dbTrabajo.FieldByName('HPC20'),DateEdit3);//------- Fecha 1 Vencimiento
+  dbTrabajo.FieldByName('HPC21').AsFloat:=TextoAFloat(Edit24.Text);//---- Importe 1 Vencimiento
+  AsignarFechaOClear(dbTrabajo.FieldByName('HPC22'),DateEdit4);//------- Fecha 2 Vencimiento
+  dbTrabajo.FieldByName('HPC23').AsFloat:=TextoAFloat(Edit26.Text);//---- Importe 2 Vencimiento
+  AsignarFechaOClear(dbTrabajo.FieldByName('HPC24'),DateEdit5);//------- Fecha 3 Vencimiento
+  dbTrabajo.FieldByName('HPC25').AsFloat:=TextoAFloat(Edit28.Text);//---- Importe 3 Vencimiento
+  AsignarFechaOClear(dbTrabajo.FieldByName('HPC26'),DateEdit6);//------- Fecha 4 Vencimiento
+  dbTrabajo.FieldByName('HPC27').AsFloat:=TextoAFloat(Edit30.Text);//---- Importe 4 Vencimiento
   //---- Tipo documento prov.
   if RadioButton17.Checked=true then
    dbTrabajo.FieldByName('HPC28').AsString:='P';//--- Pedido
@@ -682,18 +980,19 @@ begin
   if RadioButton16.Checked=true then
    dbTrabajo.FieldByName('HPC28').AsString:='F';//--- Factura
   dbTrabajo.FieldByName('HPC29').AsString:=Edit34.Text;//---- N.Documento
-  dbTrabajo.FieldByName('HPC30').Value:=DateEdit10.Date;//--- Fecha
-  dbTrabajo.FieldByName('HPC31').AsString:=Edit25.Text;//---- Base Imp. 1
-  dbTrabajo.FieldByName('HPC32').AsString:=Edit32.Text;//---- Importe IVA 1
-  dbTrabajo.FieldByName('HPC33').AsString:=Edit27.Text;//---- Base Imp. 2
-  dbTrabajo.FieldByName('HPC34').AsString:=Edit33.Text;//---- Importe IVA 2
-  dbTrabajo.FieldByName('HPC35').AsString:=Edit29.Text;//---- Base Imp. 3
-  dbTrabajo.FieldByName('HPC36').AsString:=Edit35.Text;//---- Importe IVA 3
-  dbTrabajo.FieldByName('HPC37').AsString:=Edit31.Text;//---- Base Imp. 4
-  dbTrabajo.FieldByName('HPC38').AsString:=Edit36.Text;//---- Importe IVA 4
+  AsignarFechaOClear(dbTrabajo.FieldByName('HPC30'),DateEdit10);//--- Fecha documento proveedor
+  dbTrabajo.FieldByName('HPC31').AsFloat:=TextoAFloat(Edit25.Text);//---- Base Imp. 1
+  dbTrabajo.FieldByName('HPC32').AsFloat:=TextoAFloat(Edit32.Text);//---- Importe IVA 1
+  dbTrabajo.FieldByName('HPC33').AsFloat:=TextoAFloat(Edit27.Text);//---- Base Imp. 2
+  dbTrabajo.FieldByName('HPC34').AsFloat:=TextoAFloat(Edit33.Text);//---- Importe IVA 2
+  dbTrabajo.FieldByName('HPC35').AsFloat:=TextoAFloat(Edit29.Text);//---- Base Imp. 3
+  dbTrabajo.FieldByName('HPC36').AsFloat:=TextoAFloat(Edit35.Text);//---- Importe IVA 3
+  dbTrabajo.FieldByName('HPC37').AsFloat:=TextoAFloat(Edit31.Text);//---- Base Imp. 4
+  dbTrabajo.FieldByName('HPC38').AsFloat:=TextoAFloat(Edit36.Text);//---- Importe IVA 4
   dbTrabajo.FieldByName('HPC43').Value:=dbPedic.FieldByName('PC31').Value;//- Observaciones
-  dbTrabajo.FieldByName('HPC44').AsString:=EditOtrosGastos.Text;//---- Importe otros gastos
-  dbTrabajo.FieldByName('HPC45').AsString:=dbPedic.Fields[32].AsString;//---- Codigo pedido Tienda Virtual
+  dbTrabajo.FieldByName('HPC44').AsFloat:=TextoAFloat(EditOtrosGastos.Text);//---- Importe otros gastos
+  if (dbTrabajo.FindField('HPC45')<>nil) and (dbPedic.FieldCount>32) then
+    dbTrabajo.FieldByName('HPC45').AsString:=dbPedic.Fields[32].AsString;//---- Codigo pedido Tienda Virtual
   dbTrabajo.Post;
 end;
 
@@ -712,16 +1011,19 @@ begin
         ' AND HPD2='+dbPedic.Fields[2].AsString+
         ' AND HPD3="'+dbPedic.Fields[3].AsString+'"'+
         ' AND HPD4='+dbPedic.Fields[4].AsString;
+  dbTrabajo.Active:=False;
   dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.Active:=True;
-  if dbTrabajo.RecordCount<>0 then begin showmessage('ESE PEDIDO YA EXISTE EN EL HISTORICO'); end;
+  if dbTrabajo.RecordCount<>0 then
+    raise Exception.Create('ESE PEDIDO YA EXISTE EN EL HISTORICO');
   dbPedid.First;
   while not dbPedid.EOF do
     begin
       dbTrabajo.Append;
       for conta:=0 to 30 do
         dbTrabajo.Fields[Conta].Value:=dbPedid.Fields[Conta].Value;
+      AplicarValoresAceptadosAHistoricoDetalle();
 //-- Linea que transfiere a Historico el valor de las unidades Bonificadas - Jose -
-    dbTrabajo.FieldByName('HPD8B').Value:=dbPedid.FieldByName('PD8B').Value;
+      dbTrabajo.FieldByName('HPD8B').Value:=dbPedid.FieldByName('PD8B').Value;
       dbTrabajo.Post;
       dbPedid.Next;
     end;
@@ -738,14 +1040,14 @@ begin
         ' AND PC2='+dbPedic.Fields[2].AsString+
         ' AND PC3="'+dbPedic.Fields[3].AsString+'"'+
         ' AND PC4='+dbPedic.Fields[4].AsString;
-  dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
+  dbTrabajo.Active:=False; dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
   //-------------- Detalles
   TxtQ:='DELETE FROM pedidd'+Tienda+' WHERE PD0='+dbPedic.Fields[0].AsString+
         ' AND PD1="'+FormatDateTime('yyyy/mm/dd',dbPedic.Fields[1].asDateTime)+'"'+
         ' AND PD2='+dbPedic.Fields[2].AsString+
         ' AND PD3="'+dbPedic.Fields[3].AsString+'"'+
         ' AND PD4='+dbPedic.Fields[4].AsString;
-  dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
+  dbTrabajo.Active:=False; dbTrabajo.SQL.Text:=TxtQ; dbTrabajo.ExecSQL;
   dbPedic.Refresh;
 end;
 
@@ -753,18 +1055,33 @@ end;
 //==================== Consultar los nuevos datos del articulo que vienen de cambio
 procedure TFEntrada.LeerDatosArticulo();
 begin
+  // IMPORTANTE:
+  // No se debe calcular la estadistica directamente desde PD10/PD12,
+  // porque al aceptar la entrada el formulario de cambio de precio permite
+  // decidir linea a linea si se usan los valores nuevos del pedido o si se
+  // conservan los de la ficha del articulo.
+  //
+  // Esa decision queda reflejada en la ficha artitien: si se aceptan los
+  // valores del pedido, ShowCambioPrecio actualiza A24/A21; si se conserva
+  // la ficha, A24/A21 quedan como estaban. Por eso recargamos siempre el
+  // articulo despues del dialogo y usamos esos valores finales.
+  dbArti.Active:=False;
   dbArti.SQL.Text:='SELECT * FROM artitien'+Tienda+' WHERE A0="'+dbPedid.FieldByName('PD6').AsString+'"';
   dbArti.Active:=True;
+
   Codigo:=dbPedid.FieldByName('PD6').AsString;//-------- Cgo Articulo
-  Cantidad:=dbPedid.FieldByName('PD8').AsString;//------ Unidades
-  Precio:=FloatToStr(StrToFloat(Cantidad)*dbArti.FieldByName('A21').AsFloat);//-- Importe de la linea sin iva
-  Costo:=FloatToStr(StrToFloat(Cantidad)*dbArti.FieldByName('A24').AsFloat);//--- Costo de la linea sin iva.
+  Cantidad:=SQLFloat(dbPedid.FieldByName('PD8').AsFloat);//------ Unidades
+  Precio:=SQLFloat(dbPedid.FieldByName('PD8').AsFloat*dbArti.FieldByName('A21').AsFloat);//-- Importe de la linea sin iva segun valor final aceptado
+  Costo:=SQLFloat(dbPedid.FieldByName('PD8').AsFloat*dbArti.FieldByName('A24').AsFloat);//--- Costo de la linea sin iva segun valor final aceptado
 end;
 
 
 //======================= PINTAR LINEAS DEL PEDIDO AL ACEPTARLAS ==============
 procedure TFEntrada.PintaLineas();
 begin
+  StaticText4.Color:=clBtnFace; StaticText12.Color:=clBtnFace; StaticText13.Color:=clBtnFace;
+  StaticText14.Color:=clBtnFace; StaticText15.Color:=clBtnFace;
+  StaticText16.Color:=clBtnFace; StaticText17.Color:=clBtnFace;
   StaticText12.Font.Color:=clBlack; StaticText13.Font.Color:=clBlack;
   StaticText14.Font.Color:=clBlack; StaticText15.Font.Color:=clBlack;
   StaticText16.Font.Color:=clBlack; StaticText17.Font.Color:=clBlack;
@@ -849,74 +1166,102 @@ end;
 //----------------- Salir de los importes ----------
 procedure TFEntrada.Edit24Exit(Sender: TObject);
 begin
-   if Edit24.Text='' then Edit24.Text:='0.00';
-   if Edit26.Text='' then Edit26.Text:='0.00';
-   if Edit28.Text='' then Edit28.Text:='0.00';
-   if Edit30.Text='' then Edit30.Text:='0.00';
+   NormalizarImportesVencimientos();
    if VersiNumero(Edit24.Text)=False then
-     begin showmessage('1º IMPORTE ERRONEO'); exit; Edit24.SetFocus; end;
+     begin showmessage('1º IMPORTE ERRONEO'); Edit24.SetFocus; exit; end;
    if VersiNumero(Edit26.Text)=False then
-     begin showmessage('2º IMPORTE ERRONEO'); exit; Edit26.SetFocus; end;
+     begin showmessage('2º IMPORTE ERRONEO'); Edit26.SetFocus; exit; end;
    if VersiNumero(Edit28.Text)=False then
-     begin showmessage('3º IMPORTE ERRONEO'); exit; Edit28.SetFocus; end;
+     begin showmessage('3º IMPORTE ERRONEO'); Edit28.SetFocus; exit; end;
    if VersiNumero(Edit30.Text)=False then
-     begin showmessage('4º IMPORTE ERRONEO'); exit; Edit30.SetFocus; end;
+     begin showmessage('4º IMPORTE ERRONEO'); Edit30.SetFocus; exit; end;
+   Edit24.Text:=FormatFloat('0.00',TextoAFloat(Edit24.Text));
+   Edit26.Text:=FormatFloat('0.00',TextoAFloat(Edit26.Text));
+   Edit28.Text:=FormatFloat('0.00',TextoAFloat(Edit28.Text));
+   Edit30.Text:=FormatFloat('0.00',TextoAFloat(Edit30.Text));
    PintarTotalVencimientos();
 end;
 
 //---------------- Totales vencimientos ------------
 procedure TFEntrada.PintarTotalVencimientos();
 begin
+  NormalizarImportesVencimientos();
   //------------ Suma de vencimientos
-  Label46.Caption:=FormatFloat('0.00',StrToFloat(Edit24.Text)+StrToFloat(Edit26.Text)+
-                                   StrToFloat(Edit28.Text)+
-                                   StrToFloat(Edit30.Text));
-  //------ Total Pedido costo+impuestos-suma de vencimientos
-  if checkbox1.Checked=true then
-    Label47.Caption:=FormatFloat('0.00',dbPedic.FieldByName('PC8').AsFloat+StrToFloat(EditOtrosGastos.Text)-StrToFloat(Label46.Caption))
-  else
-    Label47.Caption:=FormatFloat('0.00',dbPedic.FieldByName('PC8').AsFloat-StrToFloat(Label46.Caption));
+  Label46.Caption:=FormatFloat('0.00',TextoAFloat(Edit24.Text)+TextoAFloat(Edit26.Text)+
+                                   TextoAFloat(Edit28.Text)+
+                                   TextoAFloat(Edit30.Text));
+  //------ Total Pedido calculado desde bases+impuestos - suma de vencimientos
+  Label47.Caption:=FormatFloat('0.00',TotalPedidoConGastos()-TextoAFloat(Label46.Caption));
 end;
 
 //================== CALCULAR LOS VENCIMIENTOS =======================
 procedure TFEntrada.VerVencimientos();//---------------- Ver si tiene vencimientos
 var
-  TotalFact: Double;
+  TotalFact, ImportePlazo, Acumulado: Double;
   Plazos: Integer;
   Dias: TDateTime;
 begin
+  NormalizarImportesVencimientos();
+  if not dbProve.Active then CargarProveedorActual();
+  if (not dbProve.Active) or (dbProve.RecordCount=0) then exit;
+
   //-------------- El total del pedido mas los gastos si los hay
-  if checkbox1.Checked=true then
-     TotalFact:=dbPedic.FieldByName('PC8').AsFloat+StrToFloat(EditOtrosGastos.Text)
-  else
-    TotalFact:=dbPedic.FieldByName('PC8').AsFloat;
+  TotalFact:=RedondearCentimos(TotalPedidoConGastos());
   //----------- Plazos de pagos (Vencimientos) --------------------------
   if (TotalFact>dbProve.FieldByName('P21').AsFloat) And (dbProve.FieldByName('P15').AsInteger>0) then
     begin
-      Plazos:=dbProve.FieldByName('P17').AsInteger; if Plazos=0 then Plazos:=1;
-      Dias:=DateEdit10.Date+dbProve.FieldByName('P15').AsInteger;
+      Plazos:=dbProve.FieldByName('P17').AsInteger;
+      if Plazos<1 then Plazos:=1;
+      if Plazos>4 then Plazos:=4;
+
+      Edit24.Text:='0.00'; Edit26.Text:='0.00'; Edit28.Text:='0.00'; Edit30.Text:='0.00';
+      DateEdit3.Clear; DateEdit4.Clear; DateEdit5.Clear; DateEdit6.Clear;
+
+      ImportePlazo:=RedondearCentimos(TotalFact/Plazos);
+      Acumulado:=0;
+      Dias:=FechaBaseVencimiento()+dbProve.FieldByName('P15').AsInteger;
+
       DateEdit3.Text:=FormatDateTime('DD/MM/YYYY',Dias);
-      Edit24.Text:=FormatFloat('0.00',TotalFact/Plazos);
+      if Plazos=1 then
+        Edit24.Text:=FormatFloat('0.00',TotalFact)
+      else
+        begin
+          Edit24.Text:=FormatFloat('0.00',ImportePlazo);
+          Acumulado:=Acumulado+ImportePlazo;
+        end;
+
       //------------------- Segundo Plazo
       if Plazos>1 then
         begin
           Dias:=Dias+dbProve.FieldByName('P16').AsInteger;
           DateEdit4.Text:=FormatDateTime('DD/MM/YYYY',Dias);
-          Edit26.Text:=FormatFloat('0.00',TotalFact/Plazos);
+          if Plazos=2 then
+            Edit26.Text:=FormatFloat('0.00',RedondearCentimos(TotalFact-Acumulado))
+          else
+            begin
+              Edit26.Text:=FormatFloat('0.00',ImportePlazo);
+              Acumulado:=Acumulado+ImportePlazo;
+            end;
         end;
       //------------------- Tercer Plazo
       if Plazos>2 then
         begin
           Dias:=Dias+dbProve.FieldByName('P16').AsInteger;
           DateEdit5.Text:=FormatDateTime('DD/MM/YYYY',Dias);
-          Edit28.Text:=FormatFloat('0.00',TotalFact/Plazos);
+          if Plazos=3 then
+            Edit28.Text:=FormatFloat('0.00',RedondearCentimos(TotalFact-Acumulado))
+          else
+            begin
+              Edit28.Text:=FormatFloat('0.00',ImportePlazo);
+              Acumulado:=Acumulado+ImportePlazo;
+            end;
         end;
       //------------------- Cuarto Plazo
       if Plazos>3 then
         begin
           Dias:=Dias+dbProve.FieldByName('P16').AsInteger;
           DateEdit6.Text:=FormatDateTime('DD/MM/YYYY',Dias);
-          Edit30.Text:=FormatFloat('0.00',TotalFact/Plazos);
+          Edit30.Text:=FormatFloat('0.00',RedondearCentimos(TotalFact-Acumulado));
         end;
     end;
 end;
@@ -926,11 +1271,16 @@ end;
 procedure TFEntrada.EditOtrosGastosExit(Sender: TObject);
 begin
    if EditOtrosGastos.Text='' then EditOtrosGastos.Text:='0.00';
+   if VersiNumero(EditOtrosGastos.Text)=False then
+     begin showmessage('IMPORTE DE GASTOS ERRONEO'); EditOtrosGastos.SetFocus; exit; end;
+   EditOtrosGastos.Text:=FormatFloat('0.00',TextoAFloat(EditOtrosGastos.Text));
+   PintarTotalVencimientos();
 end;
 
 //================ AÑADIR GASTOS A LOS VENCIMIENTOS ======================
 procedure TFEntrada.CheckBox1Change(Sender: TObject);
 begin
+  NormalizarImportesVencimientos();
   VerVencimientos();
   PintarTotalVencimientos();
 end;

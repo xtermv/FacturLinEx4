@@ -21,6 +21,11 @@ procedure VF_SetSender(SendFunc: TVFSendFunc);
 // Devuelve True si ha procesado alguna (aunque sea con error de envío).
 function VF_DispatchNextPending: Boolean;
 
+// Envía UNA factura concreta (si existe y está PENDIENTE).
+// Devuelve True si ha procesado alguna (aunque sea con error de envío).
+function VF_DispatchSpecific(const Serie: string; Numero: Integer): Boolean;
+
+
 // Envía hasta MaxPerRun facturas pendientes.
 // Devuelve cuántas ha procesado.
 function VF_DispatchAllPending(MaxPerRun: Integer): Integer;
@@ -95,6 +100,60 @@ begin
   WriteLn(FormatDateTime('yyyy-mm-dd hh:nn:ss', Now) + '  ' + Msg);
 end;
 
+function VF_ContainsText(const S, Needle: string): Boolean;
+begin
+  Result := Pos(UpperCase(Needle), UpperCase(S)) > 0;
+end;
+
+function VF_IsWSDLResponse(const S: string): Boolean;
+begin
+  Result := VF_ContainsText(S, '<wsdl:definitions') or
+            VF_ContainsText(S, 'SistemaFacturacion.wsdl');
+end;
+
+function VF_IsSOAPFaultResponse(const S: string): Boolean;
+begin
+  Result := VF_ContainsText(S, '<env:Fault') or
+            VF_ContainsText(S, '<soap:Fault') or
+            VF_ContainsText(S, 'faultstring');
+end;
+
+function VF_ExtractXMLLocalTagValue(const XMLText, LocalTag: string): string;
+var
+  U, UTag: string;
+  P, GT, LT: SizeInt;
+begin
+  Result := '';
+  U := UpperCase(XMLText);
+  UTag := UpperCase(LocalTag);
+  P := Pos(UTag, U);
+  while P > 0 do
+  begin
+    GT := PosEx('>', XMLText, P);
+    if GT <= 0 then Exit;
+    LT := PosEx('<', XMLText, GT + 1);
+    if LT <= GT then Exit;
+    Result := Trim(Copy(XMLText, GT + 1, LT - GT - 1));
+    Exit;
+  end;
+end;
+
+function VF_XMLTieneEstadoRegistro(const XMLText: string): Boolean;
+begin
+  Result := VF_ExtractXMLLocalTagValue(XMLText, 'EstadoRegistro') <> '';
+end;
+
+function VF_XMLEstadoRegistroEs(const XMLText, Estado: string): Boolean;
+begin
+  Result := SameText(VF_ExtractXMLLocalTagValue(XMLText, 'EstadoRegistro'), Estado);
+end;
+
+procedure VF_MarkInvalidResponse(const Serie: string; Numero: Integer; const Code, Msg, RespStr: string);
+begin
+  VeriFactu_MarkError(Serie, Numero, Code, Msg + LineEnding + Copy(RespStr, 1, 3000));
+  WriteDiag(Format('ERROR %s-%d  %s - %s', [Serie, Numero, Code, Msg]));
+end;
+
 // ------------------------------------------------------------------
 // Asignar función de envío
 // ------------------------------------------------------------------
@@ -141,6 +200,21 @@ begin
         // -------------------------------
         Trimmed := Trim(RespStr);
 
+        // Seguridad: un WSDL o un SOAP Fault NO son una respuesta registrada correctamente.
+        if VF_IsWSDLResponse(Trimmed) then
+        begin
+          VF_MarkInvalidResponse(Serie, Numero, 'RESPUESTA_INVALIDA',
+            'Se recibio WSDL en lugar de respuesta SOAP AEAT.', RespStr);
+          Exit(True);
+        end;
+
+        if VF_IsSOAPFaultResponse(Trimmed) then
+        begin
+          VF_MarkInvalidResponse(Serie, Numero, 'SOAP_FAULT',
+            'AEAT devolvio un SOAP Fault. Revisar endpoint/servicio/certificado.', RespStr);
+          Exit(True);
+        end;
+
         // AEAT suele responder con un SOAP Envelope en XML.
         // Evitamos parsear HTML (302, errores, etc.).
         IsAEATXML :=
@@ -155,18 +229,27 @@ begin
           try
             Resp := VF_ParseResponseXML(RespStr);
 
-            if Resp.CodigoError = '' then
+            if VF_XMLEstadoRegistroEs(RespStr, 'Correcto') then
             begin
-              // OK: marcamos como enviada. Guardamos la respuesta COMPLETA para poder depurar.
-			  VeriFactu_MarkSent(Serie, Numero, Hash, RespStr);
+              VeriFactu_MarkSent(Serie, Numero, Hash, RespStr);
               WriteDiag(Format(
                 'ENVIADO %s-%d  hash=%s  CSV=%s',
                 [Serie, Numero, Hash, Resp.CSV]
               ));
             end
-            else
+            else if VF_XMLEstadoRegistroEs(RespStr, 'AceptadoConErrores') or
+                    (Pos('AceptadoConErrores', RespStr) > 0) then
             begin
-              // ERROR: guardamos código + descripción
+              // AEAT ha registrado el asiento, aunque quede pendiente de subsanar.
+              VeriFactu_MarkSent(Serie, Numero, Hash, RespStr);
+              WriteDiag(Format(
+                'ACEPTADO_CON_ERRORES %s-%d  %s - %s',
+                [Serie, Numero, Resp.CodigoError, Resp.DescripcionError]
+              ));
+            end
+            else if VF_XMLTieneEstadoRegistro(RespStr) or (Resp.CodigoError <> '') then
+            begin
+              // Incorrecto/Rechazado: guardamos código + descripción
               VeriFactu_MarkError(Serie, Numero,
                                   Resp.CodigoError,
                                   Resp.DescripcionError);
@@ -176,6 +259,12 @@ begin
                  Resp.CodigoError,
                  Resp.DescripcionError]
               ));
+            end
+            else
+            begin
+              // XML recibido, pero no contiene EstadoRegistro reconocible.
+              VF_MarkInvalidResponse(Serie, Numero, 'RESPUESTA_NO_RECONOCIDA',
+                'Respuesta XML sin EstadoRegistro AEAT reconocible.', RespStr);
             end;
           except
             on E: Exception do
@@ -227,6 +316,128 @@ begin
       WriteDiag('VF_DispatchNextPending exception: ' + E.Message);
   end;
 end;
+
+// ------------------------------------------------------------------
+// Envío de UNA factura concreta (Serie+Numero) - reintento exacto
+// ------------------------------------------------------------------
+function VF_DispatchSpecific(const Serie: string; Numero: Integer): Boolean;
+var
+  Payload: string;
+  EncadenamientoHash: string;
+  Hash, RespStr: string;
+  Trimmed: string;
+  Resp: TVFResponse;
+  IsAEATXML: Boolean;
+begin
+  Result := False;
+
+  try
+    // Si no hay sender asignado, no hacemos nada (evitamos errores).
+    if not Assigned(GSender) then
+    begin
+      WriteDiag('VF_DispatchSpecific: NO hay sender asignado, salgo.');
+      Exit(False);
+    end;
+
+    // Intenta tomar ESA pendiente (claim seguro en la cola)
+    if not VeriFactu_TakeSpecificPending(Serie, Numero, Payload, EncadenamientoHash) then
+      Exit(False); // no está pendiente o no es reclamable
+
+    // Enviar usando el sender actual (puede ser local JSON o AEAT XML)
+    try
+      if GSender(Serie, Numero, Payload, EncadenamientoHash, Hash, RespStr) then
+      begin
+        // -------------------------------
+        // Detectar tipo de respuesta
+        // -------------------------------
+        Trimmed := Trim(RespStr);
+
+        // Seguridad: un WSDL o un SOAP Fault NO son una respuesta registrada correctamente.
+        if VF_IsWSDLResponse(Trimmed) then
+        begin
+          VF_MarkInvalidResponse(Serie, Numero, 'RESPUESTA_INVALIDA',
+            'Se recibio WSDL en lugar de respuesta SOAP AEAT.', RespStr);
+          Exit(True);
+        end;
+
+        if VF_IsSOAPFaultResponse(Trimmed) then
+        begin
+          VF_MarkInvalidResponse(Serie, Numero, 'SOAP_FAULT',
+            'AEAT devolvio un SOAP Fault. Revisar endpoint/servicio/certificado.', RespStr);
+          Exit(True);
+        end;
+
+        // AEAT suele responder con un SOAP Envelope en XML.
+        // Evitamos parsear HTML (302, errores, etc.).
+        IsAEATXML :=
+          (Pos('<?xml', Trimmed) = 1) or
+          (Pos('<soapenv:Envelope', Trimmed) > 0) or
+          (Pos('<soap:Envelope', Trimmed) > 0) or
+          (Pos(':Envelope', Trimmed) > 0);
+
+        if IsAEATXML then
+        begin
+          // *** MODO AEAT: RESPUESTA XML ***
+          try
+            Resp := VF_ParseResponseXML(RespStr);
+
+            if VF_XMLEstadoRegistroEs(RespStr, 'Correcto') then
+            begin
+              VeriFactu_MarkSent(Serie, Numero, Hash, RespStr);
+              WriteDiag(Format('ENVIADO %s-%d  hash=%s  CSV=%s', [Serie, Numero, Hash, Resp.CSV]));
+            end
+            else if VF_XMLEstadoRegistroEs(RespStr, 'AceptadoConErrores') or
+                    (Pos('AceptadoConErrores', RespStr) > 0) then
+            begin
+              VeriFactu_MarkSent(Serie, Numero, Hash, RespStr);
+              WriteDiag(Format('ACEPTADO_CON_ERRORES %s-%d  %s - %s', [Serie, Numero, Resp.CodigoError, Resp.DescripcionError]));
+            end
+            else if VF_XMLTieneEstadoRegistro(RespStr) or (Resp.CodigoError <> '') then
+            begin
+              VeriFactu_MarkError(Serie, Numero, Resp.CodigoError, Resp.DescripcionError);
+              WriteDiag(Format('ERROR %s-%d  %s - %s', [Serie, Numero, Resp.CodigoError, Resp.DescripcionError]));
+            end
+            else
+            begin
+              VF_MarkInvalidResponse(Serie, Numero, 'RESPUESTA_NO_RECONOCIDA',
+                'Respuesta XML sin EstadoRegistro AEAT reconocible.', RespStr);
+            end;
+          except
+            on E: Exception do
+            begin
+              VeriFactu_MarkError(Serie, Numero, 'PARSE_XML', E.Message);
+              WriteDiag(Format('EXCEPTION parse XML %s-%d  %s', [Serie, Numero, E.Message]));
+            end;
+          end;
+        end
+        else
+        begin
+          // Respuesta no XML (modo local o texto): si GSender devolvió True, lo consideramos enviado
+          VeriFactu_MarkSent(Serie, Numero, Hash, RespStr);
+          WriteDiag(Format('ENVIADO %s-%d  hash=%s (no XML AEAT)', [Serie, Numero, Hash]));
+        end;
+      end
+      else
+      begin
+        // GSender devolvió False: error de transporte/temporal. Guardamos texto de error.
+        VeriFactu_MarkError(Serie, Numero, 'ENVIO_FALLIDO', RespStr);
+        WriteDiag(Format('ERROR %s-%d (ENVIO_FALLIDO)', [Serie, Numero]));
+      end;
+    except
+      on E: Exception do
+      begin
+        VeriFactu_MarkError(Serie, Numero, 'EXCEPTION', E.Message);
+        WriteDiag(Format('EXCEPTION %s-%d  %s', [Serie, Numero, E.Message]));
+      end;
+    end;
+
+    Result := True;
+  except
+    on E: Exception do
+      WriteDiag('VF_DispatchSpecific exception: ' + E.Message);
+  end;
+end;
+
 
 // ------------------------------------------------------------------
 // Bucle de envío de varias pendientes

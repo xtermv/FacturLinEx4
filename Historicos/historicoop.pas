@@ -195,6 +195,7 @@ Type
 
   Private
     { Private Declarations }
+    procedure dbOperacionesAfterOpen(DataSet: TDataSet);
   Public
     { Public Declarations }
   End;
@@ -245,6 +246,45 @@ Begin
   OcultarBDGrid();
 End;
 
+//-- Mantener compatibilidad al añadir campos nuevos en hisopcc (p.ej. HO20_RECT)
+//   Si el TZQuery tiene campos persistentes antiguos, el nuevo campo no aparece.
+//   Aquí lo creamos en tiempo de ejecución sin alterar la lógica existente.
+procedure TFLHistoop.dbOperacionesAfterOpen(DataSet: TDataSet);
+var
+  F: TStringField;
+  Col: TColumn;
+  i: Integer;
+  HasCol: Boolean;
+begin
+  // 1) Garantiza que el campo existe en el dataset (aunque haya Fields persistentes antiguos)
+  if (dbOperaciones.FindField('HO20_RECT')=nil) and (dbOperaciones.FieldDefs.IndexOf('HO20_RECT')>=0) then
+  begin
+    F:=TStringField.Create(dbOperaciones);
+    F.FieldName:='HO20_RECT';
+    F.Size:=255;
+    F.DataSet:=dbOperaciones;
+  end;
+
+  // 2) Si el grid tiene columnas persistentes, añadimos la columna para visualizarlo.
+  //    OJO: si Columns.Count=0, el grid autogenera columnas y no conviene forzar persistentes aquí.
+  if (DBGrid1<>nil) and (DBGrid1.Columns.Count>0) and (dbOperaciones.FindField('HO20_RECT')<>nil) then
+  begin
+    HasCol:=False;
+    for i:=0 to DBGrid1.Columns.Count-1 do
+      if SameText(DBGrid1.Columns[i].FieldName,'HO20_RECT') then begin HasCol:=True; break; end;
+
+    if not HasCol then
+    begin
+      Col:=DBGrid1.Columns.Add;
+      Col.FieldName:='HO20_RECT';
+      Col.Title.Caption:='RECTIF';
+      Col.Width:=120;
+    end;
+  end;
+end;
+
+
+
 //==================== CERRAR ======================
 procedure TFLHistoop.BitBtn4Click(Sender: TObject);
 begin
@@ -258,12 +298,14 @@ end;
 procedure TFLHistoop.BitBtn5Click(Sender: TObject);
 var
   multiplicador: string;
+  nMultiplicador: Double;
 begin
   multiplicador:='-1';
   // Confirma la grabación de una nueva venta y solicita el multiplicador
   if Application.MessageBox('PROCESO PARA GENERAR NUEVA VENTA'+#13 + '¿DESEA CONTINUAR?',
                             'FacturLinEx 2', MB_ICONQUESTION + MB_YESNO) = idYes then begin
      InputQuery('FacturLinEx 2','Introducir multiplicador (-1 para abono)',multiplicador);
+     nMultiplicador:=StrToFloat(multiplicador);
      fVentas:=TfVentas.Create(Application);    // Creamos el formulario para acceder a su contenido
      fVentas.WindowState:=wsMinimized;
      fVentas.Show;
@@ -275,16 +317,33 @@ begin
           fVentas.Edit1.Text:=dbOperaciones.FieldByName('HO8').AsString; // Asignamos el valor de CODIGO CLIENTE
           fVentas.Edit3.Text:=dbHistodd.FieldByName('HOD6').AsString;  // Asignamos el valor de CODIGO ARTICULO
           fVentas.Edit4.Text:=dbHistodd.FieldByName('HOD7').AsString;  // Asignamos el valor de DESCRIPCION
-          fVentas.Edit5.Text:=FloatToStr(dbHistodd.FieldByName('HOD8').asFloat*StrToFloat(multiplicador));  // Asignamos el valor de CANTIDAD
+          fVentas.Edit5.Text:=FloatToStr(dbHistodd.FieldByName('HOD8').asFloat*nMultiplicador);  // Asignamos el valor de CANTIDAD
           fVentas.Edit6.Text:=dbHistodd.FieldByName('HOD9').AsString;   // Asignamos el valor de PVP
           fVentas.Edit7.Text:=dbHistodd.FieldByName('HOD10').AsString;  // Asignamos el valor de PRECIO SIN IVA
           fVentas.Edit8.Text:=dbHistodd.FieldByName('HOD11').AsString;  // Asignamos el valor de DESCUENTO LINEAL
-          fVentas.Edit9.Text:=FloatToStr(dbHistodd.FieldByName('HOD12').asFloat*StrToFloat(multiplicador));  // CALCULARLO - Asignamos el valor de IMPORTE SIN IVA
+          fVentas.Edit9.Text:=FloatToStr(dbHistodd.FieldByName('HOD12').asFloat*nMultiplicador);  // CALCULARLO - Asignamos el valor de IMPORTE SIN IVA
           fVentas.Edit10.Text:=IntToStr(dbHistodd.FieldByName('HOD13').AsInteger);  // Asignamos el valor de TIPO DE IVA
-          fVentas.Edit11.Text:=FloatToStr(dbHistodd.FieldByName('HOD14').asFloat*StrToFloat(multiplicador)); // CALCULARLO - Asignamos el valor de IMPORTE CON IVA
+          fVentas.Edit11.Text:=FloatToStr(dbHistodd.FieldByName('HOD14').asFloat*nMultiplicador); // CALCULARLO - Asignamos el valor de IMPORTE CON IVA
           fVentas.WindowState:=wsMinimized;
           fVentas.Show;
           fVentas.BitBtn14.Click;  // Simulamos el CLIC para la inserción de linea de venta
+
+          // Rectificativas paso 4:
+          // Si se recupera desde histórico con multiplicador negativo, guardamos el origen
+          // real de la línea en ventasrectif+Tienda+Puesto. No afecta a recuperaciones normales.
+          if nMultiplicador < 0 then
+            fVentas.VF_RegistrarLineaRectifTemporal(
+              dbOperaciones.FieldByName('HO5').AsString,
+              dbOperaciones.FieldByName('HO0').AsDateTime,
+              dbOperaciones.FieldByName('HO1').AsDateTime,
+              dbOperaciones.FieldByName('HO2').AsString,
+              dbOperaciones.FieldByName('HO4').AsString,
+              dbOperaciones.FieldByName('HO3').AsInteger,
+              dbHistodd.FieldByName('HOD5').AsInteger,
+              dbHistodd.FieldByName('HOD8').AsFloat,
+              dbHistodd.FieldByName('HOD8').AsFloat*nMultiplicador,
+              dbHistodd.FieldByName('HOD14').AsFloat,
+              dbHistodd.FieldByName('HOD14').AsFloat*nMultiplicador);
        end;
        dbHistodd.Next;
      end;

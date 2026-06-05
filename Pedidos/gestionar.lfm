@@ -1,28 +1,27 @@
 object FPedido: TFPedido
   Left = 0
-  Height = 990
-  Top = 32
+  Height = 1022
+  Top = 0
   Width = 1920
   ActiveControl = Panel5
   Caption = 'Gestion de pedidos'
-  ClientHeight = 990
+  ClientHeight = 1022
   ClientWidth = 1920
-  DesignTimePPI = 83
   KeyPreview = True
   Position = poDesktopCenter
   ShowHint = True
-  LCLVersion = '4.4.0.0'
+  LCLVersion = '4.2.0.0'
   WindowState = wsMaximized
   OnClose = FormClose
   OnCreate = FormCreate
   OnKeyDown = FormKeyDown
   object Panel5: TPanel
     Left = 0
-    Height = 936
+    Height = 960
     Top = 0
     Width = 1920
     Align = alClient
-    ClientHeight = 936
+    ClientHeight = 960
     ClientWidth = 1920
     ParentFont = False
     TabOrder = 0
@@ -31,149 +30,149 @@ object FPedido: TFPedido
       AnchorSideRight.Side = asrBottom
       AnchorSideBottom.Control = Panel5
       AnchorSideBottom.Side = asrBottom
-      Left = 8
-      Height = 827
+      Left = 9
+      Height = 834
       Hint = 'Boton derecho=Utilidades.'
-      Top = 108
-      Width = 1911
+      Top = 125
+      Width = 1910
       Anchors = [akTop, akLeft, akRight, akBottom]
       Color = clWindow
       Columns = <      
         item
           Alignment = taCenter
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taCenter
           Title.Caption = 'TIEND.'
-          Width = 39
+          Width = 45
           FieldName = 'PC0'
         end      
         item
           Alignment = taCenter
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taCenter
           Title.Caption = 'FECHA'
-          Width = 69
+          Width = 80
           FieldName = 'PC1'
         end      
         item
           Alignment = taCenter
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taCenter
           Title.Caption = 'SER.'
-          Width = 30
+          Width = 35
           FieldName = 'PC3'
         end      
         item
           Alignment = taRightJustify
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taRightJustify
           Title.Caption = 'N.PED.'
-          Width = 43
+          Width = 50
           FieldName = 'PC4'
         end      
         item
           Alignment = taRightJustify
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taRightJustify
           Title.Caption = 'CGO. PRO.'
-          Width = 61
+          Width = 71
           FieldName = 'PC2'
         end      
         item
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Caption = 'NOMBRE'
-          Width = 234
+          Width = 271
           FieldName = 'PC13'
         end      
         item
           Alignment = taRightJustify
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Caption = 'N.LIN.'
-          Width = 35
+          Width = 40
           FieldName = 'PC5'
         end      
         item
-          MinSize = 9
-          MaxSize = 69
+          MinSize = 10
+          MaxSize = 80
           Title.Alignment = taCenter
           Title.Caption = 'N.Articulos'
-          Width = 43
+          Width = 50
           FieldName = 'PC6'
         end      
         item
-          MinSize = 9
-          MaxSize = 69
+          MinSize = 10
+          MaxSize = 80
           Title.Alignment = taCenter
           Title.Caption = 'A.Bonif.'
-          Width = 43
+          Width = 50
           FieldName = 'PC6B'
         end      
         item
           Alignment = taRightJustify
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taRightJustify
           Title.Caption = 'IMP. COSTO'
-          Width = 73
+          Width = 84
           FieldName = 'PC8'
           DisplayFormat = '###,###,##0.000'
         end      
         item
           Alignment = taRightJustify
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taRightJustify
           Title.Caption = 'IMP. PVP.'
-          Width = 73
+          Width = 84
           FieldName = 'PC9'
           DisplayFormat = '###,###,##0.000'
         end      
         item
           Alignment = taCenter
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taCenter
           Title.Caption = 'TR.'
-          Width = 27
+          Width = 31
           FieldName = 'PC10'
         end      
         item
           Alignment = taCenter
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taCenter
           Title.Caption = 'A/F.'
-          Width = 27
+          Width = 31
           FieldName = 'PC28'
         end      
         item
           Alignment = taCenter
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taCenter
           Title.Caption = 'N.DOC.'
-          Width = 52
+          Width = 60
           ValueChecked = 'S'
           ValueUnchecked = 'N'
           FieldName = 'PC29'
         end      
         item
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taCenter
           Title.Caption = 'FECHA D.'
-          Width = 69
+          Width = 80
           FieldName = 'PC30'
         end>
       DataSource = Datasource1
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Options = [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgDisplayMemoText]
       ParentFont = False
@@ -184,10 +183,10 @@ object FPedido: TFPedido
       OnDblClick = BitBtn1Click
     end
     object RadioButton1: TRadioButton
-      Left = 152
-      Height = 21
-      Top = 15
-      Width = 177
+      Left = 176
+      Height = 23
+      Top = 17
+      Width = 199
       Caption = 'Todos ordenados por fechas'
       Checked = True
       ParentFont = False
@@ -196,49 +195,49 @@ object FPedido: TFPedido
       OnClick = RadioButton1Click
     end
     object RadioButton2: TRadioButton
-      Left = 152
-      Height = 21
-      Top = 43
-      Width = 148
+      Left = 176
+      Height = 23
+      Top = 50
+      Width = 168
       Caption = 'Filtrar por proveedores'
       ParentFont = False
       TabOrder = 2
       OnClick = RadioButton2Click
     end
     object RadioButton3: TRadioButton
-      Left = 152
-      Height = 21
-      Top = 71
-      Width = 124
+      Left = 176
+      Height = 23
+      Top = 82
+      Width = 142
       Caption = 'Filtrar entre fechas'
       ParentFont = False
       TabOrder = 3
       OnClick = RadioButton3Click
     end
     object Panel7: TPanel
-      Left = 252
-      Height = 138
-      Top = 401
-      Width = 606
-      ClientHeight = 138
-      ClientWidth = 606
+      Left = 291
+      Height = 160
+      Top = 464
+      Width = 701
+      ClientHeight = 160
+      ClientWidth = 701
       ParentFont = False
       TabOrder = 9
       Visible = False
       object Label20: TLabel
-        Left = 14
-        Height = 17
-        Top = 7
-        Width = 80
+        Left = 16
+        Height = 19
+        Top = 8
+        Width = 92
         Caption = 'Observaciones'
         ParentColor = False
         ParentFont = False
       end
       object BitBtn17: TBitBtn
-        Left = 507
-        Height = 29
-        Top = 104
-        Width = 89
+        Left = 586
+        Height = 34
+        Top = 120
+        Width = 103
         Caption = 'Cerrar'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -310,10 +309,10 @@ object FPedido: TFPedido
         OnClick = BitBtn17Click
       end
       object BitBtn18: TBitBtn
-        Left = 7
-        Height = 29
-        Top = 104
-        Width = 89
+        Left = 8
+        Height = 34
+        Top = 120
+        Width = 103
         Caption = 'Aceptar'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -385,10 +384,10 @@ object FPedido: TFPedido
         OnClick = BitBtn18Click
       end
       object Memo1: TMemo
-        Left = 7
-        Height = 69
-        Top = 28
-        Width = 589
+        Left = 8
+        Height = 80
+        Top = 32
+        Width = 681
         Lines.Strings = (
           ''
         )
@@ -397,10 +396,10 @@ object FPedido: TFPedido
       end
     end
     object RadioGroup3: TRadioGroup
-      Left = 7
-      Height = 105
+      Left = 8
+      Height = 121
       Top = 0
-      Width = 136
+      Width = 157
       AutoFill = True
       ChildSizing.LeftRightSpacing = 6
       ChildSizing.TopBottomSpacing = 6
@@ -410,15 +409,15 @@ object FPedido: TFPedido
       ChildSizing.ShrinkVertical = crsScaleChilds
       ChildSizing.Layout = cclLeftToRightThenTopToBottom
       ChildSizing.ControlsPerLine = 1
-      ClientHeight = 101
-      ClientWidth = 132
+      ClientHeight = 117
+      ClientWidth = 153
       ParentFont = False
       TabOrder = 13
       object RadioButton28: TRadioButton
         Left = 6
-        Height = 18
+        Height = 21
         Top = 6
-        Width = 120
+        Width = 141
         Caption = 'Todos'
         Checked = True
         ParentFont = False
@@ -428,9 +427,9 @@ object FPedido: TFPedido
       end
       object RadioButton29: TRadioButton
         Left = 6
-        Height = 18
-        Top = 24
-        Width = 120
+        Height = 21
+        Top = 27
+        Width = 141
         Caption = 'Pedidos'
         ParentFont = False
         TabOrder = 1
@@ -438,9 +437,9 @@ object FPedido: TFPedido
       end
       object RadioButton30: TRadioButton
         Left = 6
-        Height = 17
-        Top = 42
-        Width = 120
+        Height = 21
+        Top = 48
+        Width = 141
         Caption = 'Notas de entrega'
         ParentFont = False
         TabOrder = 2
@@ -448,9 +447,9 @@ object FPedido: TFPedido
       end
       object RadioButton31: TRadioButton
         Left = 6
-        Height = 18
-        Top = 59
-        Width = 120
+        Height = 21
+        Top = 69
+        Width = 141
         Caption = 'Albaranes'
         ParentFont = False
         TabOrder = 3
@@ -458,9 +457,9 @@ object FPedido: TFPedido
       end
       object RadioButton40: TRadioButton
         Left = 6
-        Height = 18
-        Top = 77
-        Width = 120
+        Height = 21
+        Top = 90
+        Width = 141
         Caption = 'Facturas'
         ParentFont = False
         TabOrder = 4
@@ -468,10 +467,10 @@ object FPedido: TFPedido
       end
     end
     object StaticText5: TStaticText
-      Left = 348
-      Height = 19
-      Top = 7
-      Width = 526
+      Left = 403
+      Height = 22
+      Top = 8
+      Width = 608
       Alignment = taCenter
       BorderStyle = sbsSingle
       Caption = 'TODOS LOS PEDIDOS ORDENADOS POR FECHAS'
@@ -479,29 +478,29 @@ object FPedido: TFPedido
       TabOrder = 14
     end
     object Panel2: TPanel
-      Left = 338
-      Height = 83
-      Top = 7
-      Width = 539
-      ClientHeight = 83
-      ClientWidth = 539
+      Left = 391
+      Height = 96
+      Top = 8
+      Width = 623
+      ClientHeight = 96
+      ClientWidth = 623
       ParentFont = False
       TabOrder = 4
       Visible = False
       object Label1: TLabel
-        Left = 7
-        Height = 17
-        Top = 14
-        Width = 83
+        Left = 8
+        Height = 19
+        Top = 16
+        Width = 97
         Caption = 'Cgo. Proveedor'
         ParentColor = False
         ParentFont = False
       end
       object Edit1: TEdit
-        Left = 96
-        Height = 25
-        Top = 11
-        Width = 70
+        Left = 111
+        Height = 29
+        Top = 13
+        Width = 81
         MaxLength = 11
         ParentFont = False
         TabOrder = 0
@@ -509,11 +508,11 @@ object FPedido: TFPedido
         OnExit = Edit1Exit
       end
       object Edit2: TEdit
-        Left = 172
-        Height = 25
+        Left = 199
+        Height = 29
         Hint = 'Teclea las iniciales a buscar y pulsar Enter.'
-        Top = 11
-        Width = 339
+        Top = 13
+        Width = 392
         CharCase = ecUppercase
         ParentFont = False
         TabStop = False
@@ -521,10 +520,10 @@ object FPedido: TFPedido
         OnKeyPress = Edit2KeyPress
       end
       object BitBtn3: TBitBtn
-        Left = 428
-        Height = 28
-        Top = 48
-        Width = 104
+        Left = 495
+        Height = 32
+        Top = 56
+        Width = 120
         Caption = 'Aplicar Filtro'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -596,11 +595,11 @@ object FPedido: TFPedido
         OnClick = BitBtn3Click
       end
       object BitBtn7: TBitBtn
-        Left = 511
-        Height = 21
+        Left = 591
+        Height = 24
         Hint = 'Buscar clientes por sus iniciales.'
-        Top = 11
-        Width = 21
+        Top = 13
+        Width = 24
         Caption = '...'
         Layout = blGlyphTop
         ParentFont = False
@@ -611,86 +610,86 @@ object FPedido: TFPedido
       end
     end
     object Panel10: TPanel
-      Left = 380
-      Height = 62
-      Top = 28
-      Width = 498
-      ClientHeight = 62
-      ClientWidth = 498
+      Left = 440
+      Height = 72
+      Top = 32
+      Width = 576
+      ClientHeight = 72
+      ClientWidth = 576
       ParentFont = False
       TabOrder = 6
       Visible = False
       object LabelCliente: TLabel
-        Left = 139
-        Height = 18
-        Top = 7
-        Width = 353
+        Left = 161
+        Height = 21
+        Top = 8
+        Width = 408
         AutoSize = False
         ParentColor = False
         ParentFont = False
       end
       object LabelCliente1: TLabel
-        Left = 430
-        Height = 18
-        Top = 32
-        Width = 61
+        Left = 497
+        Height = 21
+        Top = 37
+        Width = 71
         AutoSize = False
         ParentColor = False
         ParentFont = False
       end
       object Label30: TLabel
-        Left = 7
-        Height = 17
-        Top = 7
-        Width = 117
+        Left = 8
+        Height = 19
+        Top = 8
+        Width = 137
         Caption = 'Pedido para el cliente:'
         Layout = tlCenter
         ParentColor = False
         ParentFont = False
       end
       object LabelCliente2: TLabel
-        Left = 62
-        Height = 18
-        Top = 33
-        Width = 104
+        Left = 72
+        Height = 21
+        Top = 38
+        Width = 120
         AutoSize = False
         ParentColor = False
         ParentFont = False
       end
       object Label34: TLabel
-        Left = 7
-        Height = 17
-        Top = 33
-        Width = 46
+        Left = 8
+        Height = 19
+        Top = 38
+        Width = 54
         Caption = 'Telefono'
         Layout = tlCenter
         ParentColor = False
         ParentFont = False
       end
       object Label42: TLabel
-        Left = 173
-        Height = 17
-        Top = 34
-        Width = 83
+        Left = 200
+        Height = 19
+        Top = 39
+        Width = 97
         Caption = 'Imp. Entregado'
         Layout = tlCenter
         ParentColor = False
         ParentFont = False
       end
       object LabelCliente3: TLabel
-        Left = 264
-        Height = 18
-        Top = 34
-        Width = 104
+        Left = 305
+        Height = 21
+        Top = 39
+        Width = 120
         AutoSize = False
         ParentColor = False
         ParentFont = False
       end
       object Label43: TLabel
-        Left = 394
-        Height = 17
-        Top = 33
-        Width = 24
+        Left = 456
+        Height = 19
+        Top = 38
+        Width = 28
         Caption = 'Cgo.'
         Layout = tlCenter
         ParentColor = False
@@ -698,38 +697,38 @@ object FPedido: TFPedido
       end
     end
     object Panel3: TPanel
-      Left = 538
-      Height = 81
-      Top = 7
-      Width = 339
-      ClientHeight = 81
-      ClientWidth = 339
+      Left = 622
+      Height = 94
+      Top = 8
+      Width = 392
+      ClientHeight = 94
+      ClientWidth = 392
       ParentFont = False
       TabOrder = 5
       Visible = False
       object Label2: TLabel
-        Left = 14
-        Height = 17
-        Top = 14
-        Width = 67
+        Left = 16
+        Height = 19
+        Top = 16
+        Width = 80
         Caption = 'Desde Fecha'
         ParentColor = False
         ParentFont = False
       end
       object Label3: TLabel
-        Left = 15
-        Height = 17
-        Top = 51
-        Width = 65
+        Left = 17
+        Height = 19
+        Top = 59
+        Width = 77
         Caption = 'Hasta Fecha'
         ParentColor = False
         ParentFont = False
       end
       object BitBtn4: TBitBtn
-        Left = 227
-        Height = 28
-        Top = 27
-        Width = 106
+        Left = 263
+        Height = 32
+        Top = 31
+        Width = 123
         Caption = 'Aplicar filtro'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -801,13 +800,13 @@ object FPedido: TFPedido
         OnClick = BitBtn4Click
       end
       object DateEdit1: TDateEdit
-        Left = 92
-        Height = 25
-        Top = 12
-        Width = 83
+        Left = 106
+        Height = 29
+        Top = 14
+        Width = 96
         CalendarDisplaySettings = [dsShowHeadings, dsShowDayNames]
         DateOrder = doNone
-        ButtonWidth = 20
+        ButtonWidth = 23
         Glyph.Data = {
           36040000424D3604000000000000360000002800000010000000100000000100
           2000000000000004000064000000640000000000000000000000000000000000
@@ -850,13 +849,13 @@ object FPedido: TFPedido
         TabOrder = 1
       end
       object DateEdit2: TDateEdit
-        Left = 92
-        Height = 25
-        Top = 49
-        Width = 83
+        Left = 106
+        Height = 29
+        Top = 57
+        Width = 96
         CalendarDisplaySettings = [dsShowHeadings, dsShowDayNames]
         DateOrder = doNone
-        ButtonWidth = 20
+        ButtonWidth = 23
         Glyph.Data = {
           36040000424D3604000000000000360000002800000010000000100000000100
           2000000000000004000064000000640000000000000000000000000000000000
@@ -900,57 +899,57 @@ object FPedido: TFPedido
       end
     end
     object Panel9: TPanel
-      Left = 242
-      Height = 205
-      Top = 335
-      Width = 519
-      ClientHeight = 205
-      ClientWidth = 519
+      Left = 280
+      Height = 237
+      Top = 387
+      Width = 600
+      ClientHeight = 237
+      ClientWidth = 600
       ParentColor = False
       ParentFont = False
       TabOrder = 8
       Visible = False
       object Label21: TLabel
-        Left = 11
-        Height = 17
-        Top = 35
-        Width = 92
+        Left = 13
+        Height = 19
+        Top = 40
+        Width = 109
         Caption = 'Desde proveedor'
         ParentColor = False
         ParentFont = False
       end
       object Label22: TLabel
-        Left = 11
-        Height = 17
-        Top = 67
-        Width = 90
+        Left = 13
+        Height = 19
+        Top = 77
+        Width = 106
         Caption = 'Hasta proveedor'
         ParentColor = False
         ParentFont = False
       end
       object Label23: TLabel
-        Left = 11
-        Height = 17
-        Top = 108
-        Width = 65
+        Left = 13
+        Height = 19
+        Top = 125
+        Width = 78
         Caption = 'Desde fecha'
         ParentColor = False
         ParentFont = False
       end
       object Label24: TLabel
-        Left = 252
-        Height = 17
-        Top = 110
-        Width = 63
+        Left = 291
+        Height = 19
+        Top = 127
+        Width = 75
         Caption = 'Hasta fecha'
         ParentColor = False
         ParentFont = False
       end
       object Label25: TLabel
         Left = 1
-        Height = 17
+        Height = 19
         Top = 1
-        Width = 517
+        Width = 598
         Align = alTop
         Alignment = taCenter
         Caption = 'LISTADO DE PEDIDOS'
@@ -959,10 +958,10 @@ object FPedido: TFPedido
         ParentFont = False
       end
       object BitBtn21: TBitBtn
-        Left = 8
-        Height = 29
-        Top = 170
-        Width = 89
+        Left = 9
+        Height = 34
+        Top = 197
+        Width = 103
         Caption = 'Aceptar'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -1034,10 +1033,10 @@ object FPedido: TFPedido
         OnClick = BitBtn21Click
       end
       object BitBtn22: TBitBtn
-        Left = 422
-        Height = 29
-        Top = 170
-        Width = 89
+        Left = 488
+        Height = 34
+        Top = 197
+        Width = 103
         Caption = 'Cancelar'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -1109,10 +1108,10 @@ object FPedido: TFPedido
         OnClick = BitBtn22Click
       end
       object Edit14: TEdit
-        Left = 118
-        Height = 25
-        Top = 35
-        Width = 69
+        Left = 136
+        Height = 29
+        Top = 40
+        Width = 80
         CharCase = ecUppercase
         ParentFont = False
         TabOrder = 0
@@ -1121,20 +1120,20 @@ object FPedido: TFPedido
         OnExit = Edit14Exit
       end
       object Edit15: TEdit
-        Left = 194
-        Height = 25
-        Top = 35
-        Width = 318
+        Left = 224
+        Height = 29
+        Top = 40
+        Width = 368
         CharCase = ecUppercase
         ParentFont = False
         TabStop = False
         TabOrder = 6
       end
       object Edit16: TEdit
-        Left = 118
-        Height = 25
-        Top = 65
-        Width = 68
+        Left = 136
+        Height = 29
+        Top = 75
+        Width = 79
         CharCase = ecUppercase
         ParentFont = False
         TabOrder = 1
@@ -1143,23 +1142,23 @@ object FPedido: TFPedido
         OnExit = Edit16Exit
       end
       object Edit17: TEdit
-        Left = 194
-        Height = 25
-        Top = 65
-        Width = 318
+        Left = 224
+        Height = 29
+        Top = 75
+        Width = 368
         CharCase = ecUppercase
         ParentFont = False
         TabStop = False
         TabOrder = 7
       end
       object DateEdit7: TDateEdit
-        Left = 118
-        Height = 25
-        Top = 108
-        Width = 92
+        Left = 136
+        Height = 29
+        Top = 125
+        Width = 106
         CalendarDisplaySettings = [dsShowHeadings, dsShowDayNames]
         DateOrder = doNone
-        ButtonWidth = 20
+        ButtonWidth = 23
         Glyph.Data = {
           36040000424D3604000000000000360000002800000010000000100000000100
           2000000000000004000064000000640000000000000000000000FFFFFF000000
@@ -1202,13 +1201,13 @@ object FPedido: TFPedido
         TabOrder = 2
       end
       object DateEdit8: TDateEdit
-        Left = 339
-        Height = 25
-        Top = 110
-        Width = 92
+        Left = 392
+        Height = 29
+        Top = 127
+        Width = 106
         CalendarDisplaySettings = [dsShowHeadings, dsShowDayNames]
         DateOrder = doNone
-        ButtonWidth = 20
+        ButtonWidth = 23
         Glyph.Data = {
           36040000424D3604000000000000360000002800000010000000100000000100
           2000000000000004000064000000640000000000000000000000FFFFFF000000
@@ -1252,21 +1251,21 @@ object FPedido: TFPedido
       end
     end
     object Panel15: TPanel
-      Left = 453
-      Height = 152
-      Top = 387
-      Width = 405
-      ClientHeight = 152
-      ClientWidth = 405
+      Left = 524
+      Height = 176
+      Top = 448
+      Width = 468
+      ClientHeight = 176
+      ClientWidth = 468
       ParentFont = False
       TabOrder = 11
       Visible = False
       OnClick = Panel15Click
       object Label62: TLabel
-        Left = 138
-        Height = 20
+        Left = 160
+        Height = 23
         Top = 3
-        Width = 152
+        Width = 176
         AutoSize = False
         Caption = 'DESTINO DE LA TRASMISION'
         Layout = tlCenter
@@ -1274,10 +1273,10 @@ object FPedido: TFPedido
         ParentFont = False
       end
       object Label63: TLabel
-        Left = 14
-        Height = 21
-        Top = 42
-        Width = 98
+        Left = 16
+        Height = 24
+        Top = 49
+        Width = 113
         AutoSize = False
         Caption = 'TRASMITIDO'
         Layout = tlCenter
@@ -1285,10 +1284,10 @@ object FPedido: TFPedido
         ParentFont = False
       end
       object Label64: TLabel
-        Left = 15
-        Height = 21
-        Top = 76
-        Width = 85
+        Left = 17
+        Height = 24
+        Top = 88
+        Width = 98
         AutoSize = False
         Caption = 'TIPO DE TRASM.'
         Layout = tlCenter
@@ -1296,10 +1295,10 @@ object FPedido: TFPedido
         ParentFont = False
       end
       object Label65: TLabel
-        Left = 15
-        Height = 21
-        Top = 111
-        Width = 89
+        Left = 17
+        Height = 24
+        Top = 128
+        Width = 103
         AutoSize = False
         Caption = 'DESTINO TRASM.'
         Layout = tlCenter
@@ -1307,10 +1306,10 @@ object FPedido: TFPedido
         ParentFont = False
       end
       object StaticText1: TStaticText
-        Left = 120
-        Height = 21
-        Top = 42
-        Width = 32
+        Left = 139
+        Height = 24
+        Top = 49
+        Width = 37
         Alignment = taCenter
         BorderStyle = sbsSingle
         Caption = 'N'
@@ -1318,51 +1317,51 @@ object FPedido: TFPedido
         TabOrder = 0
       end
       object StaticText2: TStaticText
-        Left = 120
-        Height = 21
-        Top = 76
-        Width = 32
+        Left = 139
+        Height = 24
+        Top = 88
+        Width = 37
         Alignment = taCenter
         BorderStyle = sbsSingle
         ParentFont = False
         TabOrder = 1
       end
       object StaticText3: TStaticText
-        Left = 120
-        Height = 21
-        Top = 111
-        Width = 276
+        Left = 139
+        Height = 24
+        Top = 128
+        Width = 319
         BorderStyle = sbsSingle
         ParentFont = False
         TabOrder = 2
       end
       object Button1: TButton
-        Left = 380
-        Height = 22
+        Left = 440
+        Height = 25
         Top = 3
-        Width = 23
+        Width = 27
         Caption = 'X'
         ParentFont = False
         TabOrder = 3
         OnClick = Panel15Click
       end
       object StaticText4: TStaticText
-        Left = 159
-        Height = 21
-        Top = 76
-        Width = 104
+        Left = 184
+        Height = 24
+        Top = 88
+        Width = 120
         BorderStyle = sbsSingle
         ParentFont = False
         TabOrder = 4
       end
     end
     object Panel11: TPanel
-      Left = 591
-      Height = 245
-      Top = 295
-      Width = 249
-      ClientHeight = 245
-      ClientWidth = 249
+      Left = 684
+      Height = 283
+      Top = 341
+      Width = 288
+      ClientHeight = 283
+      ClientWidth = 288
       Color = clMoneyGreen
       ParentBackground = False
       ParentColor = False
@@ -1371,9 +1370,9 @@ object FPedido: TFPedido
       Visible = False
       object Label35: TLabel
         Left = 1
-        Height = 17
+        Height = 19
         Top = 1
-        Width = 247
+        Width = 286
         Align = alTop
         Alignment = taCenter
         Caption = 'VENCIMIENTOS'
@@ -1382,82 +1381,82 @@ object FPedido: TFPedido
         ParentFont = False
       end
       object Label36: TLabel
-        Left = 61
-        Height = 17
-        Top = 29
-        Width = 35
+        Left = 71
+        Height = 19
+        Top = 34
+        Width = 41
         Caption = 'FECHA'
         ParentColor = False
         ParentFont = False
       end
       object Label37: TLabel
-        Left = 165
-        Height = 17
-        Top = 28
-        Width = 49
+        Left = 191
+        Height = 19
+        Top = 32
+        Width = 57
         Caption = 'IMPORTE'
         ParentColor = False
         ParentFont = False
       end
       object Label38: TLabel
-        Left = 14
-        Height = 17
-        Top = 53
-        Width = 11
+        Left = 16
+        Height = 19
+        Top = 61
+        Width = 13
         Caption = '1º'
         ParentColor = False
         ParentFont = False
       end
       object Label39: TLabel
-        Left = 14
-        Height = 17
-        Top = 79
-        Width = 11
+        Left = 16
+        Height = 19
+        Top = 91
+        Width = 13
         Caption = '2º'
         ParentColor = False
         ParentFont = False
       end
       object Label40: TLabel
-        Left = 14
-        Height = 17
-        Top = 107
-        Width = 11
+        Left = 16
+        Height = 19
+        Top = 124
+        Width = 13
         Caption = '3º'
         ParentColor = False
         ParentFont = False
       end
       object Label41: TLabel
-        Left = 14
-        Height = 17
-        Top = 135
-        Width = 11
+        Left = 16
+        Height = 19
+        Top = 156
+        Width = 13
         Caption = '4º'
         ParentColor = False
         ParentFont = False
       end
       object Label44: TLabel
-        Left = 97
-        Height = 17
-        Top = 159
-        Width = 34
+        Left = 112
+        Height = 19
+        Top = 184
+        Width = 39
         Caption = 'TOTAL'
         ParentColor = False
         ParentFont = False
       end
       object Label45: TLabel
-        Left = 97
-        Height = 17
-        Top = 180
-        Width = 34
+        Left = 112
+        Height = 19
+        Top = 208
+        Width = 39
         Caption = 'RESTO'
         ParentColor = False
         ParentFont = False
       end
       object Label46: TLabel
-        Left = 145
-        Height = 17
-        Top = 159
-        Width = 90
+        Left = 168
+        Height = 20
+        Top = 184
+        Width = 104
         Alignment = taRightJustify
         AutoSize = False
         Caption = '0.00'
@@ -1465,10 +1464,10 @@ object FPedido: TFPedido
         ParentFont = False
       end
       object Label47: TLabel
-        Left = 145
-        Height = 17
-        Top = 180
-        Width = 90
+        Left = 168
+        Height = 20
+        Top = 208
+        Width = 104
         Alignment = taRightJustify
         AutoSize = False
         Caption = '0.00'
@@ -1476,10 +1475,10 @@ object FPedido: TFPedido
         ParentFont = False
       end
       object BitBtn29: TBitBtn
-        Left = 167
-        Height = 29
-        Top = 208
-        Width = 75
+        Left = 193
+        Height = 34
+        Top = 241
+        Width = 87
         Caption = 'Cerrar'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -1551,40 +1550,40 @@ object FPedido: TFPedido
         OnClick = BitBtn29Click
       end
       object Edit24: TEdit
-        Left = 139
-        Height = 25
-        Top = 49
-        Width = 96
+        Left = 161
+        Height = 29
+        Top = 57
+        Width = 111
         ParentBidiMode = False
         ParentFont = False
         TabOrder = 0
         OnExit = Edit24Exit
       end
       object Edit26: TEdit
-        Left = 139
-        Height = 25
-        Top = 76
-        Width = 96
+        Left = 161
+        Height = 29
+        Top = 88
+        Width = 111
         ParentBidiMode = False
         ParentFont = False
         TabOrder = 1
         OnExit = Edit26Exit
       end
       object Edit28: TEdit
-        Left = 139
-        Height = 25
-        Top = 105
-        Width = 96
+        Left = 161
+        Height = 29
+        Top = 121
+        Width = 111
         ParentBidiMode = False
         ParentFont = False
         TabOrder = 2
         OnExit = Edit28Exit
       end
       object BitBtn30: TBitBtn
-        Left = 7
-        Height = 29
-        Top = 208
-        Width = 77
+        Left = 8
+        Height = 34
+        Top = 241
+        Width = 89
         Caption = 'Aceptar'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -1656,24 +1655,24 @@ object FPedido: TFPedido
         OnClick = BitBtn30Click
       end
       object Edit30: TEdit
-        Left = 139
-        Height = 25
-        Top = 132
-        Width = 96
+        Left = 161
+        Height = 29
+        Top = 153
+        Width = 111
         ParentBidiMode = False
         ParentFont = False
         TabOrder = 3
         OnExit = Edit30Exit
       end
       object DateEdit3: TDateEdit
-        Left = 35
-        Height = 25
-        Top = 48
-        Width = 83
+        Left = 40
+        Height = 29
+        Top = 56
+        Width = 96
         CalendarDisplaySettings = [dsShowHeadings, dsShowDayNames]
         DefaultToday = True
         DateOrder = doNone
-        ButtonWidth = 20
+        ButtonWidth = 23
         Glyph.Data = {
           36040000424D3604000000000000360000002800000010000000100000000100
           2000000000000004000064000000640000000000000000000000000000000000
@@ -1716,14 +1715,14 @@ object FPedido: TFPedido
         TabOrder = 6
       end
       object DateEdit4: TDateEdit
-        Left = 34
-        Height = 25
-        Top = 75
-        Width = 83
+        Left = 39
+        Height = 29
+        Top = 87
+        Width = 96
         CalendarDisplaySettings = [dsShowHeadings, dsShowDayNames]
         DefaultToday = True
         DateOrder = doNone
-        ButtonWidth = 20
+        ButtonWidth = 23
         Glyph.Data = {
           36040000424D3604000000000000360000002800000010000000100000000100
           2000000000000004000064000000640000000000000000000000000000000000
@@ -1766,14 +1765,14 @@ object FPedido: TFPedido
         TabOrder = 7
       end
       object DateEdit5: TDateEdit
-        Left = 34
-        Height = 25
-        Top = 104
-        Width = 83
+        Left = 39
+        Height = 29
+        Top = 120
+        Width = 96
         CalendarDisplaySettings = [dsShowHeadings, dsShowDayNames]
         DefaultToday = True
         DateOrder = doNone
-        ButtonWidth = 20
+        ButtonWidth = 23
         Glyph.Data = {
           36040000424D3604000000000000360000002800000010000000100000000100
           2000000000000004000064000000640000000000000000000000000000000000
@@ -1816,14 +1815,14 @@ object FPedido: TFPedido
         TabOrder = 8
       end
       object DateEdit6: TDateEdit
-        Left = 34
-        Height = 25
-        Top = 131
-        Width = 83
+        Left = 39
+        Height = 29
+        Top = 152
+        Width = 96
         CalendarDisplaySettings = [dsShowHeadings, dsShowDayNames]
         DefaultToday = True
         DateOrder = doNone
-        ButtonWidth = 20
+        ButtonWidth = 23
         Glyph.Data = {
           36040000424D3604000000000000360000002800000010000000100000000100
           2000000000000004000064000000640000000000000000000000000000000000
@@ -1867,20 +1866,20 @@ object FPedido: TFPedido
       end
     end
     object Panel16: TPanel
-      Left = 394
-      Height = 164
-      Top = 375
-      Width = 463
-      ClientHeight = 164
-      ClientWidth = 463
+      Left = 456
+      Height = 190
+      Top = 434
+      Width = 536
+      ClientHeight = 190
+      ClientWidth = 536
       ParentFont = False
       TabOrder = 12
       Visible = False
       object Label66: TLabel
-        Left = 190
-        Height = 20
-        Top = 53
-        Width = 108
+        Left = 220
+        Height = 23
+        Top = 61
+        Width = 125
         AutoSize = False
         Caption = 'Num. Documento'
         Layout = tlCenter
@@ -1888,10 +1887,10 @@ object FPedido: TFPedido
         ParentFont = False
       end
       object Label67: TLabel
-        Left = 166
-        Height = 20
-        Top = 7
-        Width = 152
+        Left = 192
+        Height = 23
+        Top = 8
+        Width = 176
         AutoSize = False
         Caption = 'DATOS DEL PROVEEDOR'
         Layout = tlCenter
@@ -1899,10 +1898,10 @@ object FPedido: TFPedido
         ParentFont = False
       end
       object Label68: TLabel
-        Left = 190
-        Height = 20
-        Top = 86
-        Width = 144
+        Left = 220
+        Height = 23
+        Top = 99
+        Width = 167
         AutoSize = False
         Caption = 'Fecha Ped./Not./Alb./Fact.'
         Layout = tlCenter
@@ -1910,41 +1909,41 @@ object FPedido: TFPedido
         ParentFont = False
       end
       object RadioButton17: TRadioButton
-        Left = 35
-        Height = 21
-        Top = 73
-        Width = 67
+        Left = 40
+        Height = 23
+        Top = 84
+        Width = 77
         Caption = 'Albaran.'
         ParentFont = False
         TabOrder = 0
       end
       object RadioButton18: TRadioButton
-        Left = 35
-        Height = 21
-        Top = 94
-        Width = 63
+        Left = 40
+        Height = 23
+        Top = 109
+        Width = 71
         Caption = 'Factura'
         ParentFont = False
         TabOrder = 3
       end
       object Edit35: TEdit
-        Left = 338
-        Height = 25
-        Top = 53
-        Width = 76
+        Left = 391
+        Height = 29
+        Top = 61
+        Width = 88
         CharCase = ecUppercase
         ParentFont = False
         TabOrder = 4
       end
       object DateEdit11: TDateEdit
-        Left = 338
-        Height = 25
-        Top = 87
-        Width = 83
+        Left = 391
+        Height = 29
+        Top = 101
+        Width = 96
         CalendarDisplaySettings = [dsShowHeadings, dsShowDayNames]
         DefaultToday = True
         DateOrder = doNone
-        ButtonWidth = 20
+        ButtonWidth = 23
         Glyph.Data = {
           36040000424D3604000000000000360000002800000010000000100000000100
           2000000000000004000064000000640000000000000000000000000000000000
@@ -1987,10 +1986,10 @@ object FPedido: TFPedido
         TabOrder = 5
       end
       object BitBtn38: TBitBtn
-        Left = 362
-        Height = 29
-        Top = 131
-        Width = 75
+        Left = 419
+        Height = 34
+        Top = 152
+        Width = 87
         Caption = 'Cerrar'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -2062,10 +2061,10 @@ object FPedido: TFPedido
         OnClick = BitBtn38Click
       end
       object BitBtn39: TBitBtn
-        Left = 14
-        Height = 29
-        Top = 131
-        Width = 77
+        Left = 16
+        Height = 34
+        Top = 152
+        Width = 89
         Caption = 'Aceptar'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -2137,10 +2136,10 @@ object FPedido: TFPedido
         OnClick = BitBtn39Click
       end
       object RadioButton41: TRadioButton
-        Left = 35
-        Height = 21
-        Top = 32
-        Width = 60
+        Left = 40
+        Height = 23
+        Top = 37
+        Width = 67
         Caption = 'Pedido'
         Checked = True
         ParentFont = False
@@ -2148,22 +2147,22 @@ object FPedido: TFPedido
         TabStop = True
       end
       object RadioButton42: TRadioButton
-        Left = 35
-        Height = 21
-        Top = 53
-        Width = 115
+        Left = 40
+        Height = 23
+        Top = 61
+        Width = 133
         Caption = 'Notas de entrega'
         ParentFont = False
         TabOrder = 2
       end
     end
     object Panel8: TPanel
-      Left = 13
-      Height = 321
-      Top = 214
-      Width = 476
-      ClientHeight = 321
-      ClientWidth = 476
+      Left = 15
+      Height = 371
+      Top = 248
+      Width = 551
+      ClientHeight = 371
+      ClientWidth = 551
       Color = clMoneyGreen
       ParentBackground = False
       ParentColor = False
@@ -2172,23 +2171,23 @@ object FPedido: TFPedido
       Visible = False
       object Bevel3: TBevel
         Left = 2
-        Height = 105
-        Top = 175
-        Width = 469
+        Height = 121
+        Top = 202
+        Width = 542
         Style = bsRaised
       end
       object Bevel2: TBevel
         Left = 2
-        Height = 168
-        Top = 4
-        Width = 469
+        Height = 194
+        Top = 5
+        Width = 542
         Style = bsRaised
       end
       object Label26: TLabel
-        Left = 9
-        Height = 20
-        Top = 112
-        Width = 67
+        Left = 10
+        Height = 23
+        Top = 130
+        Width = 77
         AutoSize = False
         Caption = 'N. Pedido'
         Layout = tlCenter
@@ -2196,10 +2195,10 @@ object FPedido: TFPedido
         ParentFont = False
       end
       object Label27: TLabel
-        Left = 175
-        Height = 20
-        Top = 112
-        Width = 92
+        Left = 202
+        Height = 23
+        Top = 130
+        Width = 106
         AutoSize = False
         Caption = 'Fecha Pedido'
         Layout = tlCenter
@@ -2207,10 +2206,10 @@ object FPedido: TFPedido
         ParentFont = False
       end
       object Label28: TLabel
-        Left = 9
-        Height = 20
-        Top = 139
-        Width = 61
+        Left = 10
+        Height = 23
+        Top = 161
+        Width = 71
         AutoSize = False
         Caption = 'Proveedor'
         Layout = tlCenter
@@ -2218,10 +2217,10 @@ object FPedido: TFPedido
         ParentFont = False
       end
       object Label59: TLabel
-        Left = 214
-        Height = 20
-        Top = 208
-        Width = 111
+        Left = 248
+        Height = 23
+        Top = 241
+        Width = 128
         AutoSize = False
         Caption = 'Numéro documento'
         Layout = tlCenter
@@ -2229,10 +2228,10 @@ object FPedido: TFPedido
         ParentFont = False
       end
       object Label60: TLabel
-        Left = 214
-        Height = 20
-        Top = 242
-        Width = 112
+        Left = 248
+        Height = 23
+        Top = 280
+        Width = 130
         AutoSize = False
         Caption = 'Fecha Not./Alb./Fact.'
         Layout = tlCenter
@@ -2240,10 +2239,10 @@ object FPedido: TFPedido
         ParentFont = False
       end
       object Label61: TLabel
-        Left = 173
-        Height = 20
-        Top = 175
-        Width = 131
+        Left = 200
+        Height = 23
+        Top = 202
+        Width = 152
         AutoSize = False
         Caption = 'DATOS DEL PROVEEDOR'
         Layout = tlCenter
@@ -2251,10 +2250,10 @@ object FPedido: TFPedido
         ParentFont = False
       end
       object BitBtn19: TBitBtn
-        Left = 280
-        Height = 29
-        Top = 286
-        Width = 89
+        Left = 324
+        Height = 34
+        Top = 331
+        Width = 103
         Caption = 'Aceptar'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -2326,10 +2325,10 @@ object FPedido: TFPedido
         OnClick = BitBtn19Click
       end
       object BitBtn20: TBitBtn
-        Left = 382
-        Height = 29
-        Top = 286
-        Width = 89
+        Left = 442
+        Height = 34
+        Top = 331
+        Width = 103
         Caption = 'Cancelar'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -2401,20 +2400,20 @@ object FPedido: TFPedido
         OnClick = BitBtn20Click
       end
       object Edit21: TEdit
-        Left = 71
-        Height = 25
-        Top = 112
-        Width = 76
+        Left = 82
+        Height = 29
+        Top = 130
+        Width = 88
         CharCase = ecUppercase
         Enabled = False
         ParentFont = False
         TabOrder = 1
       end
       object Edit23: TEdit
-        Left = 71
-        Height = 25
-        Top = 139
-        Width = 76
+        Left = 82
+        Height = 29
+        Top = 161
+        Width = 88
         CharCase = ecUppercase
         ParentFont = False
         TabOrder = 4
@@ -2422,10 +2421,10 @@ object FPedido: TFPedido
         OnExit = Edit23Exit
       end
       object Edit25: TEdit
-        Left = 154
-        Height = 25
-        Top = 139
-        Width = 290
+        Left = 178
+        Height = 29
+        Top = 161
+        Width = 335
         CharCase = ecUppercase
         ParentFont = False
         TabStop = False
@@ -2433,32 +2432,32 @@ object FPedido: TFPedido
         OnKeyPress = Edit25KeyPress
       end
       object DBGrid3: TDBGrid
-        Left = 7
-        Height = 89
-        Top = 10
-        Width = 435
+        Left = 8
+        Height = 103
+        Top = 12
+        Width = 503
         Color = clWindow
         Columns = <        
           item
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Caption = 'CGO.'
             FieldName = 'SF0'
           end        
           item
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Caption = 'DESCRIPCION'
-            Width = 268
+            Width = 310
             FieldName = 'SF1'
           end        
           item
             Alignment = taRightJustify
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Alignment = taRightJustify
             Title.Caption = 'N. PEDIDO'
-            Width = 73
+            Width = 84
             FieldName = 'SF7'
           end>
         DataSource = Datasource3
@@ -2468,14 +2467,14 @@ object FPedido: TFPedido
         TabOrder = 0
       end
       object DateEdit9: TDateEdit
-        Left = 271
-        Height = 25
-        Top = 111
-        Width = 83
+        Left = 313
+        Height = 29
+        Top = 128
+        Width = 96
         CalendarDisplaySettings = [dsShowHeadings, dsShowDayNames]
         DefaultToday = True
         DateOrder = doNone
-        ButtonWidth = 20
+        ButtonWidth = 23
         Glyph.Data = {
           36040000424D3604000000000000360000002800000010000000100000000100
           2000000000000004000064000000640000000000000000000000000000000000
@@ -2518,23 +2517,23 @@ object FPedido: TFPedido
         TabOrder = 2
       end
       object Edit34: TEdit
-        Left = 330
-        Height = 25
-        Top = 208
-        Width = 76
+        Left = 382
+        Height = 29
+        Top = 241
+        Width = 88
         CharCase = ecUppercase
         ParentFont = False
         TabOrder = 9
       end
       object DateEdit10: TDateEdit
-        Left = 330
-        Height = 25
-        Top = 243
-        Width = 83
+        Left = 382
+        Height = 29
+        Top = 281
+        Width = 96
         CalendarDisplaySettings = [dsShowHeadings, dsShowDayNames]
         DefaultToday = True
         DateOrder = doNone
-        ButtonWidth = 20
+        ButtonWidth = 23
         Glyph.Data = {
           36040000424D3604000000000000360000002800000010000000100000000100
           2000000000000004000064000000640000000000000000000000000000000000
@@ -2577,29 +2576,29 @@ object FPedido: TFPedido
         TabOrder = 10
       end
       object RadioButton15: TRadioButton
-        Left = 38
-        Height = 21
-        Top = 230
-        Width = 67
+        Left = 44
+        Height = 23
+        Top = 266
+        Width = 77
         Caption = 'Albaran.'
         ParentFont = False
         TabOrder = 7
       end
       object RadioButton16: TRadioButton
-        Left = 38
-        Height = 21
-        Top = 252
-        Width = 63
+        Left = 44
+        Height = 23
+        Top = 291
+        Width = 71
         Caption = 'Factura'
         ParentFont = False
         TabOrder = 8
       end
       object BitBtn40: TBitBtn
-        Left = 446
-        Height = 21
+        Left = 516
+        Height = 24
         Hint = 'Buscar clientes por sus iniciales.'
-        Top = 139
-        Width = 21
+        Top = 161
+        Width = 24
         Glyph.Data = {
           C6010000424DC60100000000000036000000280000000A0000000A0000000100
           2000000000009001000064000000640000000000000000000000FFFFFFFFFFFF
@@ -2625,19 +2624,19 @@ object FPedido: TFPedido
         OnClick = BitBtn40Click
       end
       object RadioButton32: TRadioButton
-        Left = 38
-        Height = 21
-        Top = 209
-        Width = 93
+        Left = 44
+        Height = 23
+        Top = 242
+        Width = 108
         Caption = 'Nota entrega'
         ParentFont = False
         TabOrder = 6
       end
       object RadioButton39: TRadioButton
-        Left = 38
-        Height = 21
-        Top = 189
-        Width = 60
+        Left = 44
+        Height = 23
+        Top = 219
+        Width = 67
         Caption = 'Pedido'
         Checked = True
         ParentFont = False
@@ -2648,95 +2647,95 @@ object FPedido: TFPedido
   end
   object Panel4: TPanel
     Left = 0
-    Height = 936
+    Height = 960
     Top = 0
     Width = 1920
     Align = alClient
-    ClientHeight = 936
+    ClientHeight = 960
     ClientWidth = 1920
     ParentFont = False
     TabOrder = 2
     Visible = False
     object Bevel1: TBevel
-      Left = 6
-      Height = 124
-      Top = 8
-      Width = 347
+      Left = 7
+      Height = 143
+      Top = 9
+      Width = 401
       Style = bsRaised
     end
     object Label4: TLabel
-      Left = 15
-      Height = 15
-      Top = 18
-      Width = 333
+      Left = 17
+      Height = 17
+      Top = 21
+      Width = 385
       AutoSize = False
       ParentColor = False
       ParentFont = False
     end
     object Label5: TLabel
-      Left = 15
-      Height = 15
-      Top = 39
-      Width = 333
+      Left = 17
+      Height = 17
+      Top = 45
+      Width = 385
       AutoSize = False
       ParentColor = False
       ParentFont = False
     end
     object Label6: TLabel
-      Left = 15
-      Height = 15
-      Top = 60
-      Width = 56
+      Left = 17
+      Height = 17
+      Top = 69
+      Width = 65
       AutoSize = False
       ParentColor = False
       ParentFont = False
     end
     object Label7: TLabel
-      Left = 85
-      Height = 15
-      Top = 60
-      Width = 264
+      Left = 98
+      Height = 17
+      Top = 69
+      Width = 305
       AutoSize = False
       ParentColor = False
       ParentFont = False
     end
     object Label8: TLabel
-      Left = 15
-      Height = 15
-      Top = 80
-      Width = 333
+      Left = 17
+      Height = 17
+      Top = 93
+      Width = 385
       AutoSize = False
       ParentColor = False
       ParentFont = False
     end
     object Label9: TLabel
-      Left = 15
-      Height = 15
-      Top = 104
-      Width = 146
+      Left = 17
+      Height = 17
+      Top = 120
+      Width = 169
       AutoSize = False
       ParentColor = False
       ParentFont = False
     end
     object Label10: TLabel
-      Left = 195
-      Height = 15
-      Top = 104
-      Width = 153
+      Left = 226
+      Height = 17
+      Top = 120
+      Width = 177
       AutoSize = False
       ParentColor = False
       ParentFont = False
     end
     object LabelTotal: TLabel
-      Left = 658
-      Height = 42
-      Top = 7
-      Width = 195
+      Left = 761
+      Height = 49
+      Top = 8
+      Width = 226
       Alignment = taRightJustify
       AutoSize = False
       Caption = '0.00'
       Font.CharSet = ANSI_CHARSET
-      Font.Height = 21
+      Font.Height = 24
       Font.Name = '-adobe-helvetica-*-*-*-*-*-*-*-*-*-*-iso10646-1'
       Font.Pitch = fpVariable
       Font.Style = [fsBold]
@@ -2745,62 +2744,62 @@ object FPedido: TFPedido
       ParentFont = False
     end
     object Label29: TLabel
-      Left = 367
-      Height = 16
-      Top = 90
-      Width = 68
+      Left = 424
+      Height = 19
+      Top = 104
+      Width = 79
       AutoSize = False
       Caption = 'N. PEDIDO'
-      Font.Height = -12
+      Font.Height = -14
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
       ParentFont = False
     end
     object Label31: TLabel
-      Left = 484
-      Height = 16
-      Top = 90
-      Width = 55
+      Left = 560
+      Height = 19
+      Top = 104
+      Width = 64
       AutoSize = False
-      Font.Height = -12
+      Font.Height = -14
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
       ParentFont = False
     end
     object Label32: TLabel
-      Left = 367
-      Height = 15
-      Top = 118
-      Width = 75
+      Left = 424
+      Height = 17
+      Top = 136
+      Width = 87
       AutoSize = False
       Caption = 'FECHA PED.'
-      Font.Height = -12
+      Font.Height = -14
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
       ParentFont = False
     end
     object Label33: TLabel
-      Left = 450
-      Height = 15
-      Top = 118
-      Width = 94
+      Left = 520
+      Height = 17
+      Top = 136
+      Width = 109
       AutoSize = False
-      Font.Height = -12
+      Font.Height = -14
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
       ParentFont = False
     end
     object Label48: TLabel
-      Left = 450
-      Height = 16
-      Top = 90
-      Width = 28
+      Left = 520
+      Height = 19
+      Top = 104
+      Width = 32
       AutoSize = False
-      Font.Height = -12
+      Font.Height = -14
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
@@ -2812,112 +2811,112 @@ object FPedido: TFPedido
       AnchorSideBottom.Control = Panel4
       AnchorSideBottom.Side = asrBottom
       Left = 3
-      Height = 790
-      Top = 145
+      Height = 791
+      Top = 168
       Width = 1916
       Anchors = [akTop, akLeft, akRight, akBottom]
       Color = clWindow
       Columns = <      
         item
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Caption = 'CODIGO.'
-          Width = 47
+          Width = 68
           FieldName = 'PD6'
         end      
         item
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Caption = 'DESCRIPCION'
-          Width = 65
+          Width = 98
           FieldName = 'PD7'
         end      
         item
           Alignment = taRightJustify
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taRightJustify
           Title.Caption = 'UND.'
-          Width = 32
+          Width = 47
           FieldName = 'PD8'
           DisplayFormat = '0.00'
         end      
         item
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taCenter
           Title.Caption = 'A.Bonif.'
-          Width = 41
+          Width = 60
           FieldName = 'PD8B'
         end      
         item
           Alignment = taRightJustify
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taRightJustify
           Title.Caption = 'COSTO'
-          Width = 39
+          Width = 57
           FieldName = 'PD10'
           DisplayFormat = '###,###,##0.000'
         end      
         item
           Alignment = taRightJustify
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taRightJustify
           Title.Caption = '%MAR.'
-          Width = 38
+          Width = 57
           FieldName = 'PD11'
           DisplayFormat = '0.000'
         end      
         item
           Alignment = taRightJustify
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taRightJustify
           Title.Caption = 'PRECIO'
-          Width = 41
+          Width = 60
           FieldName = 'PD12'
           DisplayFormat = '###,###,##0.000'
         end      
         item
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taRightJustify
           Title.Caption = '%REC'
-          Width = 34
+          Width = 49
           FieldName = 'PD13'
         end      
         item
           Alignment = taRightJustify
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taRightJustify
           Title.Caption = '%IVA'
-          Width = 31
+          Width = 45
           FieldName = 'PD14'
         end      
         item
           Alignment = taRightJustify
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taRightJustify
           Title.Caption = 'P.V.P.'
-          Width = 29
+          Width = 43
           FieldName = 'PD16'
           DisplayFormat = '###,###,##0.000'
         end      
         item
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taRightJustify
           Title.Caption = 'IMPORTE'
-          Width = 47
+          Width = 71
           FieldName = 'PD17'
           DisplayFormat = '###,###,##0.000'
         end>
       DataSource = Datasource2
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Options = [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgAutoSizeColumns, dgDisplayMemoText]
       ParentFont = False
@@ -2930,29 +2929,29 @@ object FPedido: TFPedido
       OnTitleClick = DBGrid2TitleClick
     end
     object Panel14: TPanel
-      Left = 401
-      Height = 277
-      Top = 263
-      Width = 310
-      ClientHeight = 277
-      ClientWidth = 310
+      Left = 464
+      Height = 320
+      Top = 304
+      Width = 359
+      ClientHeight = 320
+      ClientWidth = 359
       ParentFont = False
       TabOrder = 2
       Visible = False
       object Label58: TLabel
-        Left = 120
-        Height = 17
-        Top = 7
-        Width = 63
+        Left = 139
+        Height = 19
+        Top = 8
+        Width = 76
         Caption = 'UTILIDADES'
         ParentColor = False
         ParentFont = False
       end
       object RadioButton9: TRadioButton
-        Left = 13
-        Height = 21
-        Top = 35
-        Width = 227
+        Left = 15
+        Height = 23
+        Top = 40
+        Width = 257
         Caption = 'Multiplicar unidades del pedido por -1'
         Checked = True
         ParentFont = False
@@ -2960,19 +2959,19 @@ object FPedido: TFPedido
         TabStop = True
       end
       object RadioButton10: TRadioButton
-        Left = 13
-        Height = 21
-        Top = 76
-        Width = 202
+        Left = 15
+        Height = 23
+        Top = 88
+        Width = 231
         Caption = 'Poner unidades del pedido a cero'
         ParentFont = False
         TabOrder = 1
       end
       object BitBtn34: TBitBtn
-        Left = 7
-        Height = 29
-        Top = 242
-        Width = 76
+        Left = 8
+        Height = 34
+        Top = 280
+        Width = 88
         Caption = 'Aceptar'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -3044,10 +3043,10 @@ object FPedido: TFPedido
         OnClick = BitBtn34Click
       end
       object BitBtn35: TBitBtn
-        Left = 228
-        Height = 29
-        Top = 242
-        Width = 75
+        Left = 264
+        Height = 34
+        Top = 280
+        Width = 87
         Caption = 'Cerrar'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -3119,28 +3118,28 @@ object FPedido: TFPedido
         OnClick = BitBtn35Click
       end
       object RadioButton11: TRadioButton
-        Left = 13
-        Height = 21
-        Top = 118
-        Width = 268
+        Left = 15
+        Height = 23
+        Top = 136
+        Width = 302
         Caption = 'Actualizar ficha de articulos con estos precios'
         ParentFont = False
         TabOrder = 2
       end
       object RadioButton12: TRadioButton
-        Left = 13
-        Height = 21
-        Top = 159
-        Width = 292
+        Left = 15
+        Height = 23
+        Top = 184
+        Width = 328
         Caption = 'Iniciar el stock de los articulos con estas unidades'
         ParentFont = False
         TabOrder = 3
       end
       object RadioGroup1: TRadioGroup
-        Left = 13
-        Height = 42
-        Top = 187
-        Width = 284
+        Left = 15
+        Height = 49
+        Top = 216
+        Width = 328
         AutoFill = True
         ChildSizing.LeftRightSpacing = 6
         ChildSizing.TopBottomSpacing = 6
@@ -3150,16 +3149,16 @@ object FPedido: TFPedido
         ChildSizing.ShrinkVertical = crsScaleChilds
         ChildSizing.Layout = cclTopToBottomThenLeftToRight
         ChildSizing.ControlsPerLine = 1
-        ClientHeight = 38
-        ClientWidth = 280
+        ClientHeight = 45
+        ClientWidth = 324
         ColumnLayout = clVerticalThenHorizontal
         ParentFont = False
         TabOrder = 4
         object RadioButton13: TRadioButton
           Left = 6
-          Height = 26
+          Height = 33
           Top = 6
-          Width = 74
+          Width = 86
           AutoSize = False
           Caption = 'Todas'
           Checked = True
@@ -3168,20 +3167,20 @@ object FPedido: TFPedido
           TabStop = True
         end
         object RadioButton14: TRadioButton
-          Left = 80
-          Height = 26
+          Left = 92
+          Height = 33
           Top = 6
-          Width = 94
+          Width = 110
           AutoSize = False
           Caption = 'Marcadas'
           ParentFont = False
           TabOrder = 1
         end
         object RadioButton27: TRadioButton
-          Left = 174
-          Height = 26
+          Left = 202
+          Height = 33
           Top = 6
-          Width = 100
+          Width = 116
           AutoSize = False
           Caption = 'Sin marcar'
           ParentFont = False
@@ -3190,21 +3189,21 @@ object FPedido: TFPedido
       end
     end
     object Edit20: TEdit
-      Left = 89
-      Height = 25
-      Top = 463
-      Width = 69
+      Left = 103
+      Height = 29
+      Top = 536
+      Width = 80
       ParentFont = False
       TabOrder = 0
       Text = 'Edit20'
     end
     object Panel6: TPanel
-      Left = 7
-      Height = 304
-      Top = 204
-      Width = 611
-      ClientHeight = 304
-      ClientWidth = 611
+      Left = 8
+      Height = 352
+      Top = 236
+      Width = 707
+      ClientHeight = 352
+      ClientWidth = 707
       Color = 14606299
       ParentBackground = False
       ParentColor = False
@@ -3212,203 +3211,203 @@ object FPedido: TFPedido
       TabOrder = 3
       Visible = False
       object Label11: TLabel
-        Left = 15
-        Height = 16
-        Top = 43
-        Width = 104
+        Left = 17
+        Height = 18
+        Top = 50
+        Width = 117
         Caption = 'CODIGO PRINCIPAL'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
         ParentFont = False
       end
       object Label12: TLabel
-        Left = 15
-        Height = 16
-        Top = 80
-        Width = 73
+        Left = 17
+        Height = 18
+        Top = 93
+        Width = 83
         Caption = 'DESCRIPCION'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
         ParentFont = False
       end
       object Label13: TLabel
-        Left = 27
-        Height = 16
-        Top = 115
-        Width = 31
+        Left = 31
+        Height = 18
+        Top = 133
+        Width = 36
         Caption = 'UNID.'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
         ParentFont = False
       end
       object Label14: TLabel
-        Left = 471
-        Height = 16
-        Top = 114
-        Width = 37
+        Left = 545
+        Height = 18
+        Top = 132
+        Width = 42
         Caption = 'COSTO'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
         ParentFont = False
       end
       object Label15: TLabel
-        Left = 412
-        Height = 16
-        Top = 170
-        Width = 65
+        Left = 477
+        Height = 18
+        Top = 197
+        Width = 74
         Caption = 'COSTO+IMP.'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
         ParentFont = False
       end
       object Label16: TLabel
-        Left = 20
-        Height = 16
-        Top = 170
-        Width = 55
+        Left = 23
+        Height = 18
+        Top = 197
+        Width = 65
         Caption = '%MARGEN'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
         ParentFont = False
       end
       object Label17: TLabel
-        Left = 347
-        Height = 16
-        Top = 169
-        Width = 24
+        Left = 401
+        Height = 18
+        Top = 195
+        Width = 28
         Caption = 'P.V.P.'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
         ParentFont = False
       end
       object Label18: TLabel
-        Left = 234
-        Height = 16
-        Top = 170
-        Width = 26
+        Left = 271
+        Height = 18
+        Top = 197
+        Width = 30
         Caption = '%IVA'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
         ParentFont = False
       end
       object Label19: TLabel
-        Left = 505
-        Height = 16
-        Top = 170
-        Width = 66
+        Left = 584
+        Height = 18
+        Top = 197
+        Width = 77
         Caption = 'TOTAL LINEA'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
         ParentFont = False
       end
       object Label49: TLabel
-        Left = 278
-        Height = 16
-        Top = 169
-        Width = 29
+        Left = 322
+        Height = 18
+        Top = 195
+        Width = 34
         Caption = '%REC'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
         ParentFont = False
       end
       object Label51: TLabel
-        Left = 124
-        Height = 16
-        Top = 114
-        Width = 78
+        Left = 143
+        Height = 18
+        Top = 132
+        Width = 88
         Caption = 'PRECIO TARIFA'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
         ParentFont = False
       end
       object Label52: TLabel
-        Left = 222
-        Height = 16
-        Top = 114
-        Width = 37
+        Left = 257
+        Height = 18
+        Top = 132
+        Width = 42
         Caption = 'DTO. €.'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
         ParentFont = False
       end
       object Label53: TLabel
-        Left = 295
-        Height = 16
-        Top = 114
-        Width = 46
+        Left = 341
+        Height = 18
+        Top = 132
+        Width = 53
         Caption = 'DTO. % 1'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
         ParentFont = False
       end
       object Label54: TLabel
-        Left = 370
-        Height = 16
-        Top = 115
-        Width = 46
+        Left = 428
+        Height = 18
+        Top = 133
+        Width = 53
         Caption = 'DTO. % 2'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
         ParentFont = False
       end
       object Label55: TLabel
-        Left = 170
-        Height = 16
-        Top = 170
-        Width = 40
+        Left = 197
+        Height = 18
+        Top = 197
+        Width = 45
         Caption = 'PRECIO'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
         ParentFont = False
       end
       object Label56: TLabel
-        Left = 15
-        Height = 16
-        Top = 235
-        Width = 43
+        Left = 17
+        Height = 18
+        Top = 272
+        Width = 49
         Caption = 'FAMILIA'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
         ParentFont = False
       end
       object Label71: TLabel
-        Left = 81
-        Height = 16
-        Top = 170
-        Width = 61
+        Left = 94
+        Height = 18
+        Top = 197
+        Width = 69
         Caption = '- Sobre PVP'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
         ParentFont = False
       end
       object Label72: TLabel
         Left = 1
-        Height = 28
+        Height = 32
         Top = 1
-        Width = 609
+        Width = 705
         Align = alTop
         Alignment = taCenter
         AutoSize = False
         Caption = 'ENTRADA DE LINEAS DE PEDIDO '
         Color = clMedGray
-        Font.Height = -14
+        Font.Height = -16
         Font.Name = 'Sans'
         Font.Style = [fsBold]
         ParentColor = False
@@ -3416,21 +3415,21 @@ object FPedido: TFPedido
         Transparent = False
       end
       object Label73: TLabel
-        Left = 312
-        Height = 16
-        Top = 43
-        Width = 80
+        Left = 361
+        Height = 18
+        Top = 50
+        Width = 93
         Caption = 'EAN / AUXILIAR'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
         ParentFont = False
       end
       object BitBtn6: TBitBtn
-        Left = 501
-        Height = 29
-        Top = 264
-        Width = 89
+        Left = 579
+        Height = 34
+        Top = 305
+        Width = 103
         Caption = 'Cerrar'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -3502,13 +3501,13 @@ object FPedido: TFPedido
         OnClick = BitBtn6Click
       end
       object Edit5: TEdit
-        Left = 132
-        Height = 18
-        Top = 42
-        Width = 129
+        Left = 153
+        Height = 21
+        Top = 49
+        Width = 149
         AutoSize = False
         CharCase = ecUppercase
-        Font.Height = -12
+        Font.Height = -14
         Font.Name = 'Sans'
         MaxLength = 13
         ParentFont = False
@@ -3516,10 +3515,10 @@ object FPedido: TFPedido
         OnExit = Edit5Exit
       end
       object Edit7: TEdit
-        Left = 15
-        Height = 25
-        Top = 136
-        Width = 54
+        Left = 17
+        Height = 29
+        Top = 157
+        Width = 62
         ParentBidiMode = False
         ParentFont = False
         TabOrder = 4
@@ -3527,67 +3526,67 @@ object FPedido: TFPedido
         OnExit = Edit7Exit
       end
       object Edit8: TEdit
-        Left = 444
-        Height = 25
-        Top = 136
-        Width = 83
+        Left = 514
+        Height = 29
+        Top = 157
+        Width = 96
         ParentFont = False
         TabOrder = 10
         OnEnter = CargaValorEntrada
         OnExit = Edit8Exit
       end
       object Edit9: TEdit
-        Left = 229
-        Height = 25
-        Top = 193
-        Width = 40
+        Left = 265
+        Height = 29
+        Top = 223
+        Width = 46
         ParentFont = False
         TabOrder = 14
         OnEnter = CargaValorEntrada
         OnExit = Edit9Exit
       end
       object Edit10: TEdit
-        Left = 409
-        Height = 25
-        Top = 193
-        Width = 83
+        Left = 473
+        Height = 29
+        Top = 223
+        Width = 96
         Enabled = False
         ParentFont = False
         TabOrder = 17
       end
       object Edit11: TEdit
-        Left = 15
-        Height = 25
-        Top = 193
-        Width = 68
+        Left = 17
+        Height = 29
+        Top = 223
+        Width = 79
         ParentFont = False
         TabOrder = 11
         OnEnter = CargaValorEntrada
         OnExit = Edit11Exit
       end
       object Edit12: TEdit
-        Left = 320
-        Height = 25
-        Top = 193
-        Width = 85
+        Left = 370
+        Height = 29
+        Top = 223
+        Width = 98
         ParentFont = False
         TabOrder = 16
         OnExit = Edit12Exit
       end
       object Edit13: TEdit
-        Left = 496
-        Height = 25
-        Top = 193
-        Width = 83
+        Left = 574
+        Height = 29
+        Top = 223
+        Width = 96
         ParentFont = False
         TabOrder = 18
         OnEnter = CargaValorEntrada
       end
       object BitBtn8: TBitBtn
-        Left = 376
-        Height = 29
-        Top = 264
-        Width = 89
+        Left = 435
+        Height = 34
+        Top = 305
+        Width = 103
         Caption = 'Aceptar'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -3659,21 +3658,21 @@ object FPedido: TFPedido
         OnClick = BitBtn8Click
       end
       object Edit6: TEdit
-        Left = 111
-        Height = 25
-        Top = 77
-        Width = 466
+        Left = 128
+        Height = 29
+        Top = 89
+        Width = 539
         CharCase = ecUppercase
         ParentFont = False
         TabOrder = 2
         OnKeyPress = Edit6KeyPress
       end
       object BitBtn24: TBitBtn
-        Left = 581
-        Height = 21
+        Left = 672
+        Height = 24
         Hint = 'Buscar clientes por sus iniciales.'
-        Top = 77
-        Width = 21
+        Top = 89
+        Width = 24
         Glyph.Data = {
           C6010000424DC60100000000000036000000280000000A0000000A0000000100
           2000000000009001000064000000640000000000000000000000FFFFFFFFFFFF
@@ -3699,66 +3698,66 @@ object FPedido: TFPedido
         OnClick = BitBtn24Click
       end
       object Edit18: TEdit
-        Left = 276
-        Height = 25
-        Top = 193
-        Width = 40
+        Left = 319
+        Height = 29
+        Top = 223
+        Width = 46
         ParentFont = False
         TabOrder = 15
         OnEnter = CargaValorEntrada
         OnExit = Edit18Exit
       end
       object Edit19: TEdit
-        Left = 127
-        Height = 25
-        Top = 136
-        Width = 83
+        Left = 147
+        Height = 29
+        Top = 157
+        Width = 96
         ParentFont = False
         TabOrder = 6
         OnExit = Edit19Exit
       end
       object Edit22: TEdit
-        Left = 220
-        Height = 25
-        Top = 136
-        Width = 62
+        Left = 254
+        Height = 29
+        Top = 157
+        Width = 72
         ParentFont = False
         TabOrder = 7
         OnExit = Edit22Exit
       end
       object Edit27: TEdit
-        Left = 289
-        Height = 25
-        Top = 136
-        Width = 56
+        Left = 334
+        Height = 29
+        Top = 157
+        Width = 65
         ParentFont = False
         TabOrder = 8
         OnExit = Edit27Exit
       end
       object Edit29: TEdit
-        Left = 367
-        Height = 25
-        Top = 136
-        Width = 56
+        Left = 424
+        Height = 29
+        Top = 157
+        Width = 65
         ParentFont = False
         TabOrder = 9
         OnExit = Edit29Exit
       end
       object Edit31: TEdit
-        Left = 144
-        Height = 25
-        Top = 193
-        Width = 83
+        Left = 167
+        Height = 29
+        Top = 223
+        Width = 96
         ParentFont = False
         TabOrder = 13
         OnEnter = CargaValorEntrada
         OnExit = Edit31Exit
       end
       object Edit32: TEdit
-        Left = 66
-        Height = 25
-        Top = 232
-        Width = 59
+        Left = 76
+        Height = 29
+        Top = 268
+        Width = 68
         CharCase = ecUppercase
         MaxLength = 4
         ParentFont = False
@@ -3767,21 +3766,21 @@ object FPedido: TFPedido
         OnExit = Edit32Exit
       end
       object Edit33: TEdit
-        Left = 131
-        Height = 25
-        Top = 232
-        Width = 446
+        Left = 152
+        Height = 29
+        Top = 268
+        Width = 516
         CharCase = ecUppercase
         ParentFont = False
         TabOrder = 20
         OnKeyPress = Edit33KeyPress
       end
       object BitBtn28: TBitBtn
-        Left = 581
-        Height = 21
+        Left = 672
+        Height = 24
         Hint = 'Buscar clientes por sus iniciales.'
-        Top = 232
-        Width = 21
+        Top = 268
+        Width = 24
         Glyph.Data = {
           C6010000424DC60100000000000036000000280000000A0000000A0000000100
           2000000000009001000064000000640000000000000000000000FFFFFFFFFFFF
@@ -3807,10 +3806,10 @@ object FPedido: TFPedido
         OnClick = BitBtn28Click
       end
       object Edit37: TEdit
-        Left = 84
-        Height = 25
-        Top = 193
-        Width = 56
+        Left = 97
+        Height = 29
+        Top = 223
+        Width = 65
         Enabled = False
         ParentFont = False
         ReadOnly = True
@@ -3818,43 +3817,43 @@ object FPedido: TFPedido
         OnExit = Edit11Exit
       end
       object Edit38: TEdit
-        Left = 414
-        Height = 18
-        Top = 41
-        Width = 128
+        Left = 479
+        Height = 21
+        Top = 47
+        Width = 148
         AutoSize = False
         CharCase = ecUppercase
-        Font.Height = -12
+        Font.Height = -14
         Font.Name = 'Sans'
         MaxLength = 13
         ParentFont = False
         TabOrder = 1
       end
       object cbPrecioEan: TCheckBox
-        Left = 20
-        Height = 21
-        Top = 272
-        Width = 306
+        Left = 23
+        Height = 23
+        Top = 315
+        Width = 350
         Caption = 'Asignar el precio del artículo al EAN / Auxiliar creado.'
         ParentFont = False
         TabOrder = 24
       end
       object Label74: TLabel
-        Left = 81
-        Height = 16
-        Top = 114
-        Width = 36
+        Left = 94
+        Height = 18
+        Top = 132
+        Width = 41
         Caption = 'BONIF.'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
         ParentFont = False
       end
       object Edit39: TEdit
-        Left = 76
-        Height = 25
-        Top = 136
-        Width = 44
+        Left = 88
+        Height = 29
+        Top = 157
+        Width = 51
         ParentBidiMode = False
         ParentFont = False
         TabOrder = 5
@@ -3863,10 +3862,10 @@ object FPedido: TFPedido
       end
     end
     object BitBtnImportar: TBitBtn
-      Left = 754
-      Height = 29
-      Top = 111
-      Width = 89
+      Left = 872
+      Height = 34
+      Top = 128
+      Width = 103
       Caption = 'Importar'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -3938,12 +3937,12 @@ object FPedido: TFPedido
       OnClick = BitBtnImportarClick
     end
     object Panel13: TPanel
-      Left = 374
-      Height = 307
-      Top = 226
-      Width = 392
-      ClientHeight = 307
-      ClientWidth = 392
+      Left = 433
+      Height = 355
+      Top = 261
+      Width = 453
+      ClientHeight = 355
+      ClientWidth = 453
       Color = clMoneyGreen
       ParentBackground = False
       ParentColor = False
@@ -3951,51 +3950,51 @@ object FPedido: TFPedido
       TabOrder = 4
       Visible = False
       object Label57: TLabel
-        Left = 4
-        Height = 15
+        Left = 5
+        Height = 17
         Top = 3
-        Width = 383
+        Width = 443
         Alignment = taCenter
         AutoSize = False
         Caption = 'TIPOS DE INFORMES'
         Color = clMedGray
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
         ParentFont = False
         Transparent = False
       end
       object RadioButton6: TRadioButton
-        Left = 13
-        Height = 21
-        Top = 35
-        Width = 147
+        Left = 15
+        Height = 22
+        Top = 40
+        Width = 166
         Caption = 'Listado con precios PVP'
         Checked = True
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentFont = False
         TabOrder = 0
         TabStop = True
       end
       object RadioButton7: TRadioButton
-        Left = 13
-        Height = 21
-        Top = 76
-        Width = 170
+        Left = 15
+        Height = 22
+        Top = 88
+        Width = 193
         Caption = 'Listado con precios de costo'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentFont = False
         TabOrder = 1
       end
       object BitBtn32: TBitBtn
-        Left = 112
-        Height = 29
-        Top = 272
-        Width = 80
+        Left = 130
+        Height = 34
+        Top = 315
+        Width = 93
         Caption = 'Listado'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -4067,12 +4066,12 @@ object FPedido: TFPedido
         OnClick = BitBtn32Click
       end
       object BitBtn33: TBitBtn
-        Left = 307
-        Height = 29
-        Top = 274
-        Width = 76
+        Left = 355
+        Height = 34
+        Top = 317
+        Width = 88
         Caption = 'Cerrar'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -4144,23 +4143,23 @@ object FPedido: TFPedido
         OnClick = BitBtn33Click
       end
       object RadioButton8: TRadioButton
-        Left = 13
-        Height = 21
-        Top = 114
-        Width = 159
+        Left = 15
+        Height = 22
+        Top = 132
+        Width = 179
         Caption = 'Listado solo con unidades'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentFont = False
         TabOrder = 4
       end
       object BitBtn36: TBitBtn
-        Left = 16
-        Height = 29
-        Top = 272
-        Width = 74
+        Left = 19
+        Height = 34
+        Top = 315
+        Width = 86
         Caption = 'Pdf'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         Glyph.Data = {
           8E050000424D8E05000000000000360000002800000012000000130000000100
@@ -4214,21 +4213,21 @@ object FPedido: TFPedido
         OnClick = BitBtn36Click
       end
       object RadioButton20: TRadioButton
-        Left = 13
-        Height = 21
-        Top = 155
-        Width = 139
+        Left = 15
+        Height = 22
+        Top = 179
+        Width = 157
         Caption = 'Etiquetas para lineales'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentFont = False
         TabOrder = 6
       end
       object RadioGroup2: TRadioGroup
-        Left = 12
-        Height = 33
-        Top = 182
-        Width = 371
+        Left = 14
+        Height = 38
+        Top = 211
+        Width = 429
         AutoFill = True
         ChildSizing.LeftRightSpacing = 6
         ChildSizing.TopBottomSpacing = 6
@@ -4238,104 +4237,104 @@ object FPedido: TFPedido
         ChildSizing.ShrinkVertical = crsScaleChilds
         ChildSizing.Layout = cclTopToBottomThenLeftToRight
         ChildSizing.ControlsPerLine = 1
-        ClientHeight = 29
-        ClientWidth = 367
+        ClientHeight = 34
+        ClientWidth = 425
         ColumnLayout = clVerticalThenHorizontal
         ParentBackground = False
         ParentFont = False
         TabOrder = 7
         object RadioButton21: TRadioButton
           Left = 6
-          Height = 17
+          Height = 22
           Top = 6
-          Width = 113
+          Width = 131
           AutoSize = False
           Caption = 'Todas las lineas'
           Checked = True
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           ParentFont = False
           TabOrder = 0
           TabStop = True
         end
         object RadioButton22: TRadioButton
-          Left = 119
-          Height = 17
+          Left = 137
+          Height = 22
           Top = 6
-          Width = 124
+          Width = 143
           AutoSize = False
           Caption = 'Lineas sin marcar'
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           ParentFont = False
           TabOrder = 1
         end
         object RadioButton26: TRadioButton
-          Left = 243
-          Height = 17
+          Left = 280
+          Height = 22
           Top = 6
-          Width = 118
+          Width = 139
           AutoSize = False
           Caption = 'Lineas marcadas'
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           ParentFont = False
           TabOrder = 2
         end
       end
       object Panel17: TPanel
-        Left = 201
-        Height = 102
-        Top = 62
-        Width = 182
-        ClientHeight = 102
-        ClientWidth = 182
+        Left = 232
+        Height = 118
+        Top = 72
+        Width = 211
+        ClientHeight = 118
+        ClientWidth = 211
         Enabled = False
         ParentBackground = False
         ParentFont = False
         TabOrder = 8
         object RadioButton23: TRadioButton
-          Left = 14
-          Height = 21
-          Top = 14
-          Width = 136
+          Left = 16
+          Height = 22
+          Top = 16
+          Width = 152
           Caption = '1 Etiqueta por codigo'
           Checked = True
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           ParentFont = False
           TabOrder = 0
           TabStop = True
         end
         object RadioButton24: TRadioButton
-          Left = 14
-          Height = 21
-          Top = 42
-          Width = 144
+          Left = 16
+          Height = 22
+          Top = 49
+          Width = 162
           Caption = 'Etiquetas por unidades'
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           ParentFont = False
           TabOrder = 1
         end
         object RadioButton25: TRadioButton
-          Left = 14
-          Height = 21
-          Top = 69
-          Width = 112
+          Left = 16
+          Height = 22
+          Top = 80
+          Width = 126
           Caption = 'Cantidad manual'
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           ParentFont = False
           TabOrder = 2
           OnChange = RadioButton25Change
         end
         object Edit36: TEdit
-          Left = 138
-          Height = 25
-          Top = 69
-          Width = 40
-          Font.Height = -12
+          Left = 160
+          Height = 30
+          Top = 80
+          Width = 46
+          Font.Height = -14
           Font.Name = 'Sans'
           ParentFont = False
           TabOrder = 3
@@ -4344,31 +4343,31 @@ object FPedido: TFPedido
         end
       end
       object RadioButton19: TRadioButton
-        Left = 201
-        Height = 21
-        Top = 35
-        Width = 167
+        Left = 232
+        Height = 22
+        Top = 40
+        Width = 189
         Caption = 'Etiquetas codigos de barras'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentFont = False
         TabOrder = 9
         OnChange = RadioButton19Change
       end
       object EdFicheroPdf: TEdit
-        Left = 41
-        Height = 25
-        Top = 243
-        Width = 342
+        Left = 47
+        Height = 29
+        Top = 281
+        Width = 396
         ParentFont = False
         TabOrder = 10
         OnExit = Edit1Exit
       end
       object lbPdf: TLabel
-        Left = 12
-        Height = 17
-        Top = 225
-        Width = 116
+        Left = 14
+        Height = 19
+        Top = 260
+        Width = 134
         Caption = 'Crear Archivo PDF en '
         ParentColor = False
         ParentFont = False
@@ -4377,19 +4376,19 @@ object FPedido: TFPedido
   end
   object Panel1: TPanel
     Left = 0
-    Height = 54
-    Top = 936
+    Height = 62
+    Top = 960
     Width = 1920
     Align = alBottom
-    ClientHeight = 54
+    ClientHeight = 62
     ClientWidth = 1920
     ParentFont = False
     TabOrder = 1
     object BitBtn43: TBitBtn
-      Left = 914
-      Height = 34
-      Top = 8
-      Width = 83
+      Left = 912
+      Height = 39
+      Top = 9
+      Width = 96
       Anchors = [akTop]
       Caption = 'Entrad.'
       Glyph.Data = {
@@ -4529,11 +4528,11 @@ object FPedido: TFPedido
       OnClick = BitBtn43Click
     end
     object BitBtn16: TBitBtn
-      Left = 1336
-      Height = 34
+      Left = 1334
+      Height = 39
       Hint = 'Observaciones de la factura'
-      Top = 8
-      Width = 83
+      Top = 9
+      Width = 96
       Anchors = [akTop]
       Caption = 'Observ.'
       Glyph.Data = {
@@ -4606,11 +4605,11 @@ object FPedido: TFPedido
       OnClick = BitBtn16Click
     end
     object BitBtn23: TBitBtn
-      Left = 1124
-      Height = 34
+      Left = 1122
+      Height = 39
       Hint = 'Listado de cabeceras de facturas'
-      Top = 8
-      Width = 83
+      Top = 9
+      Width = 96
       Anchors = [akTop]
       Caption = 'Listado'
       Glyph.Data = {
@@ -4683,11 +4682,11 @@ object FPedido: TFPedido
       OnClick = BitBtn23Click
     end
     object BitBtn26: TBitBtn
-      Left = 1547
-      Height = 34
+      Left = 1544
+      Height = 39
       Hint = 'Generar recibos bancarios de las facturas'
-      Top = 8
-      Width = 83
+      Top = 9
+      Width = 96
       Anchors = [akTop]
       Caption = 'Vencim.'
       Glyph.Data = {
@@ -4760,11 +4759,11 @@ object FPedido: TFPedido
       OnClick = BitBtn26Click
     end
     object BitBtn25: TBitBtn
-      Left = 703
-      Height = 34
+      Left = 700
+      Height = 39
       Hint = 'Factura rectificativa de...'
-      Top = 8
-      Width = 83
+      Top = 9
+      Width = 96
       Anchors = [akTop]
       Caption = 'Comunic.'
       Glyph.Data = {
@@ -4838,12 +4837,12 @@ object FPedido: TFPedido
     end
     object BitBtn1: TBitBtn
       AnchorSideLeft.Control = Panel1
-      Left = 13
-      Height = 34
+      Left = 15
+      Height = 39
       Hint = 'Gestionar factura'
-      Top = 8
-      Width = 83
-      BorderSpacing.Left = 12
+      Top = 9
+      Width = 96
+      BorderSpacing.Left = 14
       Caption = 'Gest.'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -4917,13 +4916,13 @@ object FPedido: TFPedido
     object BitBtn2: TBitBtn
       AnchorSideRight.Control = Panel1
       AnchorSideRight.Side = asrBottom
-      Left = 1826
-      Height = 34
+      Left = 1811
+      Height = 39
       Hint = 'Salir de las facturas'
-      Top = 8
-      Width = 83
+      Top = 9
+      Width = 96
       Anchors = [akTop, akRight]
-      BorderSpacing.Right = 10
+      BorderSpacing.Right = 12
       Caption = 'Cerrar'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -4997,13 +4996,13 @@ object FPedido: TFPedido
     object BitBtn5: TBitBtn
       AnchorSideRight.Control = Panel1
       AnchorSideRight.Side = asrBottom
-      Left = 1821
-      Height = 34
+      Left = 1806
+      Height = 39
       Hint = 'Salir del detalle de facturas'
-      Top = 12
-      Width = 83
+      Top = 14
+      Width = 96
       Anchors = [akTop, akRight]
-      BorderSpacing.Right = 15
+      BorderSpacing.Right = 17
       Caption = 'Salir'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -5076,11 +5075,11 @@ object FPedido: TFPedido
       OnClick = BitBtn5Click
     end
     object BitBtn9: TBitBtn
-      Left = 283
-      Height = 34
+      Left = 280
+      Height = 39
       Hint = 'Crear una nueva factura'
-      Top = 8
-      Width = 83
+      Top = 9
+      Width = 96
       Anchors = [akTop]
       Caption = 'Nuevo'
       Glyph.Data = {
@@ -5153,11 +5152,11 @@ object FPedido: TFPedido
       OnClick = BitBtn9Click
     end
     object BitBtn10: TBitBtn
-      Left = 494
-      Height = 34
+      Left = 492
+      Height = 39
       Hint = 'Borrar una factura entera'
-      Top = 8
-      Width = 83
+      Top = 9
+      Width = 96
       Anchors = [akTop]
       Caption = 'Borrar'
       Glyph.Data = {
@@ -5231,12 +5230,12 @@ object FPedido: TFPedido
     end
     object BitBtn12: TBitBtn
       AnchorSideLeft.Control = Panel1
-      Left = 16
-      Height = 34
+      Left = 18
+      Height = 39
       Hint = 'Crear una nueva linea'
-      Top = 12
-      Width = 83
-      BorderSpacing.Left = 15
+      Top = 14
+      Width = 96
+      BorderSpacing.Left = 17
       Caption = 'Crear'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -5309,11 +5308,11 @@ object FPedido: TFPedido
       OnClick = BitBtn12Click
     end
     object BitBtn13: TBitBtn
-      Left = 631
-      Height = 34
+      Left = 628
+      Height = 39
       Hint = 'Modificar una linea'
-      Top = 12
-      Width = 83
+      Top = 14
+      Width = 96
       Anchors = [akTop]
       Caption = 'Modif.'
       Glyph.Data = {
@@ -5387,11 +5386,11 @@ object FPedido: TFPedido
       OnClick = BitBtn13Click
     end
     object BitBtn15: TBitBtn
-      Left = 1488
-      Height = 34
+      Left = 1486
+      Height = 39
       Hint = 'Imprimir la factura'
-      Top = 12
-      Width = 83
+      Top = 14
+      Width = 96
       Anchors = [akTop]
       Caption = 'Imprimir'
       Glyph.Data = {
@@ -5465,11 +5464,11 @@ object FPedido: TFPedido
       OnClick = BitBtn15Click
     end
     object BitBtn37: TBitBtn
-      Left = 915
-      Height = 34
+      Left = 912
+      Height = 39
       Hint = 'Imprimir la factura'
-      Top = 12
-      Width = 83
+      Top = 14
+      Width = 96
       Anchors = [akTop]
       Caption = 'Marcar'
       Glyph.Data = {
@@ -5543,11 +5542,11 @@ object FPedido: TFPedido
       OnClick = BitBtn37Click
     end
     object BitBtn11: TBitBtn
-      Left = 1204
-      Height = 34
+      Left = 1202
+      Height = 39
       Hint = 'Varias utilidades de los pedidos'
-      Top = 12
-      Width = 83
+      Top = 14
+      Width = 96
       Anchors = [akTop]
       Caption = 'Utilidades'
       Glyph.Data = {
@@ -5607,11 +5606,11 @@ object FPedido: TFPedido
       OnClick = BitBtn11Click
     end
     object BitBtn14: TBitBtn
-      Left = 344
-      Height = 34
+      Left = 342
+      Height = 39
       Hint = 'Borrar una linea'
-      Top = 12
-      Width = 83
+      Top = 14
+      Width = 96
       Anchors = [akTop]
       Caption = 'Borrar'
       Glyph.Data = {
@@ -5686,12 +5685,12 @@ object FPedido: TFPedido
     end
   end
   object Panel12: TPanel
-    Left = 315
-    Height = 263
-    Top = 263
-    Width = 463
-    ClientHeight = 263
-    ClientWidth = 463
+    Left = 364
+    Height = 304
+    Top = 304
+    Width = 536
+    ClientHeight = 304
+    ClientWidth = 536
     Color = clMoneyGreen
     ParentBackground = False
     ParentColor = False
@@ -5699,67 +5698,67 @@ object FPedido: TFPedido
     TabOrder = 3
     Visible = False
     object Label50: TLabel
-      Left = 6
-      Height = 18
+      Left = 7
+      Height = 21
       Top = 3
-      Width = 453
+      Width = 524
       Alignment = taCenter
       AutoSize = False
       Caption = 'TRANSMISION DE PEDIDOS'
       Color = clMedGray
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
       Transparent = False
     end
     object Panel18: TPanel
-      Left = 8
-      Height = 151
-      Top = 63
-      Width = 449
+      Left = 9
+      Height = 175
+      Top = 73
+      Width = 519
       Caption = 'Panel18'
-      ClientHeight = 151
-      ClientWidth = 449
+      ClientHeight = 175
+      ClientWidth = 519
       ParentBackground = False
       ParentFont = False
       TabOrder = 4
       object DBGrid5: TDBGrid
         Left = 1
-        Height = 149
+        Height = 173
         Top = 1
-        Width = 447
+        Width = 517
         Align = alClient
         Color = clWindow
         Columns = <        
           item
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Caption = 'CGO.'
-            Width = 35
+            Width = 40
             FieldName = 'P0'
           end        
           item
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Caption = 'DESCRIPCION'
-            Width = 173
+            Width = 200
             FieldName = 'P1'
           end        
           item
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Alignment = taCenter
             Title.Caption = 'FAX'
-            Width = 77
+            Width = 89
             FieldName = 'P8'
           end        
           item
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Alignment = taCenter
             Title.Caption = 'E-Mail'
-            Width = 131
+            Width = 152
             FieldName = 'P34'
           end>
         DataSource = Datasource4
@@ -5770,32 +5769,32 @@ object FPedido: TFPedido
       end
       object DBGrid4: TDBGrid
         Left = 1
-        Height = 149
+        Height = 173
         Top = 1
-        Width = 447
+        Width = 517
         Align = alClient
         Color = clWindow
         Columns = <        
           item
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Caption = 'CGO.'
-            Width = 35
+            Width = 40
             FieldName = 'T0'
           end        
           item
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Caption = 'DESCRIPCION'
-            Width = 259
+            Width = 300
             FieldName = 'T1'
           end        
           item
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Alignment = taCenter
             Title.Caption = 'I.P.'
-            Width = 104
+            Width = 120
             FieldName = 'T13'
           end>
         DataSource = Datasource4
@@ -5806,10 +5805,10 @@ object FPedido: TFPedido
       end
     end
     object BitBtn31: TBitBtn
-      Left = 380
-      Height = 29
-      Top = 221
-      Width = 75
+      Left = 440
+      Height = 34
+      Top = 256
+      Width = 87
       Caption = 'Cerrar'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -5881,11 +5880,11 @@ object FPedido: TFPedido
       OnClick = BitBtn31Click
     end
     object BitBtn27: TBitBtn
-      Left = 9
-      Height = 29
+      Left = 10
+      Height = 34
       Hint = 'Factura rectificativa de...'
-      Top = 221
-      Width = 83
+      Top = 256
+      Width = 96
       Caption = 'Transm.'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -5957,10 +5956,10 @@ object FPedido: TFPedido
       OnClick = BitBtn27Click
     end
     object RadioButton4: TRadioButton
-      Left = 16
-      Height = 21
-      Top = 35
-      Width = 64
+      Left = 19
+      Height = 23
+      Top = 40
+      Width = 72
       Caption = 'Tiendas'
       Checked = True
       ParentFont = False
@@ -5969,57 +5968,57 @@ object FPedido: TFPedido
       OnClick = RadioButton4Click
     end
     object RadioButton5: TRadioButton
-      Left = 339
-      Height = 21
-      Top = 35
-      Width = 91
+      Left = 392
+      Height = 23
+      Top = 40
+      Width = 103
       Caption = 'Proveedores'
       ParentFont = False
       TabOrder = 3
       OnClick = RadioButton5Click
     end
     object Panel19: TPanel
-      Left = 14
-      Height = 222
-      Top = 228
-      Width = 450
-      ClientHeight = 222
-      ClientWidth = 450
+      Left = 16
+      Height = 257
+      Top = 264
+      Width = 520
+      ClientHeight = 257
+      ClientWidth = 520
       ParentBackground = False
       ParentFont = False
       TabOrder = 5
       Visible = False
       object Label69: TLabel
-        Left = 13
-        Height = 20
-        Top = 69
-        Width = 145
+        Left = 15
+        Height = 23
+        Top = 80
+        Width = 168
         AutoSize = False
         Caption = 'FORMA DE TRASMITIR'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         Layout = tlCenter
         ParentColor = False
         ParentFont = False
       end
       object Label70: TLabel
-        Left = 235
-        Height = 20
-        Top = 69
-        Width = 166
+        Left = 272
+        Height = 23
+        Top = 80
+        Width = 192
         AutoSize = False
         Caption = 'LISTADO PARA TRASMITIR'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         Layout = tlCenter
         ParentColor = False
         ParentFont = False
       end
       object RadioGroup4: TRadioGroup
-        Left = 12
-        Height = 89
-        Top = 84
-        Width = 216
+        Left = 14
+        Height = 103
+        Top = 97
+        Width = 250
         AutoFill = True
         ChildSizing.LeftRightSpacing = 6
         ChildSizing.TopBottomSpacing = 6
@@ -6029,19 +6028,19 @@ object FPedido: TFPedido
         ChildSizing.ShrinkVertical = crsScaleChilds
         ChildSizing.Layout = cclLeftToRightThenTopToBottom
         ChildSizing.ControlsPerLine = 1
-        ClientHeight = 85
-        ClientWidth = 212
+        ClientHeight = 99
+        ClientWidth = 246
         ParentBackground = False
         ParentFont = False
         TabOrder = 0
         object RadioButton33: TRadioButton
           Left = 6
-          Height = 24
+          Height = 29
           Top = 6
-          Width = 200
+          Width = 234
           Caption = 'Pedido normal'
           Checked = True
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           ParentFont = False
           TabOrder = 0
@@ -6050,13 +6049,13 @@ object FPedido: TFPedido
         end
         object RadioButton34: TRadioButton
           Left = 6
-          Height = 25
+          Height = 29
           Hint = 'Hay que instalar y configurar efax o alguno parecido'
-          Top = 30
-          Width = 200
+          Top = 35
+          Width = 234
           Caption = 'Trasnmitir por fax'
           Enabled = False
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           ParentFont = False
           TabOrder = 1
@@ -6064,13 +6063,13 @@ object FPedido: TFPedido
         end
         object RadioButton35: TRadioButton
           Left = 6
-          Height = 24
+          Height = 29
           Hint = 'Creo que solo hay que hacer un enlace a evolution a algun cliente de correo, por que con la orden mail del shell no se pueden adjuntar archivos.'
-          Top = 55
-          Width = 200
+          Top = 64
+          Width = 234
           Caption = 'Trasnmitir por correo electrónico'
           Enabled = False
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           ParentFont = False
           TabOrder = 2
@@ -6078,10 +6077,10 @@ object FPedido: TFPedido
         end
       end
       object RadioGroup5: TRadioGroup
-        Left = 235
-        Height = 89
-        Top = 84
-        Width = 208
+        Left = 272
+        Height = 103
+        Top = 97
+        Width = 241
         AutoFill = True
         ChildSizing.LeftRightSpacing = 6
         ChildSizing.TopBottomSpacing = 6
@@ -6091,21 +6090,21 @@ object FPedido: TFPedido
         ChildSizing.ShrinkVertical = crsScaleChilds
         ChildSizing.Layout = cclLeftToRightThenTopToBottom
         ChildSizing.ControlsPerLine = 1
-        ClientHeight = 85
-        ClientWidth = 204
-        Font.Height = -11
+        ClientHeight = 99
+        ClientWidth = 237
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentBackground = False
         ParentFont = False
         TabOrder = 1
         object RadioButton36: TRadioButton
           Left = 6
-          Height = 24
+          Height = 29
           Top = 6
-          Width = 192
+          Width = 225
           Caption = 'Listado con precios PVP'
           Checked = True
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           ParentFont = False
           TabOrder = 0
@@ -6113,35 +6112,35 @@ object FPedido: TFPedido
         end
         object RadioButton37: TRadioButton
           Left = 6
-          Height = 25
-          Top = 30
-          Width = 192
+          Height = 29
+          Top = 35
+          Width = 225
           Caption = 'Listado con precios de costo'
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           ParentFont = False
           TabOrder = 1
         end
         object RadioButton38: TRadioButton
           Left = 6
-          Height = 24
-          Top = 55
-          Width = 192
+          Height = 29
+          Top = 64
+          Width = 225
           Caption = 'Listado solo con unidades'
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           ParentFont = False
           TabOrder = 2
         end
       end
       object BitBtn41: TBitBtn
-        Left = 9
-        Height = 29
+        Left = 10
+        Height = 34
         Hint = 'Factura rectificativa de...'
-        Top = 187
-        Width = 83
+        Top = 216
+        Width = 96
         Caption = 'Transm.'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -6213,12 +6212,12 @@ object FPedido: TFPedido
         OnClick = BitBtn41Click
       end
       object BitBtn42: TBitBtn
-        Left = 366
-        Height = 29
-        Top = 188
-        Width = 75
+        Left = 423
+        Height = 34
+        Top = 217
+        Width = 87
         Caption = 'Salir'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -6290,46 +6289,46 @@ object FPedido: TFPedido
         OnClick = BitBtn42Click
       end
       object StaticText6: TStaticText
-        Left = 12
-        Height = 17
-        Top = 10
-        Width = 63
+        Left = 14
+        Height = 20
+        Top = 12
+        Width = 73
         Alignment = taRightJustify
         BorderStyle = sbsSingle
-        Font.Height = -12
+        Font.Height = -14
         Font.Name = 'Sans'
         ParentFont = False
         TabOrder = 4
       end
       object StaticText7: TStaticText
-        Left = 81
-        Height = 17
-        Top = 10
-        Width = 354
+        Left = 94
+        Height = 20
+        Top = 12
+        Width = 409
         BorderStyle = sbsSingle
-        Font.Height = -12
+        Font.Height = -14
         Font.Name = 'Sans'
         ParentFont = False
         TabOrder = 5
       end
       object StaticText8: TStaticText
-        Left = 12
-        Height = 17
-        Top = 35
-        Width = 118
+        Left = 14
+        Height = 20
+        Top = 40
+        Width = 136
         BorderStyle = sbsSingle
-        Font.Height = -12
+        Font.Height = -14
         Font.Name = 'Sans'
         ParentFont = False
         TabOrder = 6
       end
       object StaticText9: TStaticText
-        Left = 144
-        Height = 17
-        Top = 35
-        Width = 183
+        Left = 167
+        Height = 20
+        Top = 40
+        Width = 212
         BorderStyle = sbsSingle
-        Font.Height = -12
+        Font.Height = -14
         Font.Name = 'Sans'
         ParentFont = False
         TabOrder = 7
@@ -6340,74 +6339,74 @@ object FPedido: TFPedido
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 118
-    Top = 152
+    Left = 136
+    Top = 176
   end
   object Datasource1: TDataSource
     DataSet = dbPedic
     OnDataChange = Datasource1DataChange
-    Left = 145
-    Top = 152
+    Left = 168
+    Top = 176
   end
   object dbProve: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 228
-    Top = 152
+    Left = 264
+    Top = 176
   end
   object dbBusca: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 256
-    Top = 152
+    Left = 296
+    Top = 176
   end
   object dbPedid: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 173
-    Top = 152
+    Left = 200
+    Top = 176
   end
   object Datasource2: TDataSource
     DataSet = dbPedid
-    Left = 201
-    Top = 152
+    Left = 232
+    Top = 176
   end
   object dbTrabajo: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 284
-    Top = 152
+    Left = 328
+    Top = 176
   end
   object dbArti: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 311
-    Top = 152
+    Left = 360
+    Top = 176
   end
   object dbSeries: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 367
-    Top = 152
+    Left = 424
+    Top = 176
   end
   object Datasource3: TDataSource
     DataSet = dbSeries
     OnDataChange = Datasource3DataChange
-    Left = 394
-    Top = 152
+    Left = 456
+    Top = 176
   end
   object dbTiendas: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 339
-    Top = 152
+    Left = 392
+    Top = 176
   end
   object frReport1: TfrReport
     Dataset = frDBDataSet1
@@ -6419,26 +6418,26 @@ object FPedido: TFPedido
     Title = 'Listados'
     OnGetValue = frReport1GetValue
     OnEnterRect = frReport1EnterRect
-    Left = 584
-    Top = 559
+    Left = 675
+    Top = 647
   end
   object frDBDataSet1: TfrDBDataSet
     DataSet = dbBusca
-    Left = 612
-    Top = 559
+    Left = 708
+    Top = 647
   end
   object Datasource4: TDataSource
     DataSet = dbTiendas
-    Left = 422
-    Top = 152
+    Left = 488
+    Top = 176
   end
   object frTNPDFExport1: TfrTNPDFExport
-    Left = 642
-    Top = 559
+    Left = 743
+    Top = 647
   end
   object PopupMenu1: TPopupMenu
-    Left = 21
-    Top = 118
+    Left = 24
+    Top = 136
     object MenuItem1: TMenuItem
       Caption = 'Ver Destino de la trasmision'
       OnClick = MenuItem1Click
@@ -6449,8 +6448,8 @@ object FPedido: TFPedido
     end
   end
   object SaveDialog1: TSaveDialog
-    Left = 823
-    Top = 263
+    Left = 952
+    Top = 304
   end
   object dbConnectR: TZConnection
     ControlsCodePage = cCP_UTF8
@@ -6459,21 +6458,21 @@ object FPedido: TFPedido
     )
     DisableSavepoints = False
     Port = 0
-    Left = 346
-    Top = 512
+    Left = 400
+    Top = 592
   end
   object dbTrabajoR: TZQuery
     AutoCalcFields = False
     Connection = dbConnectR
     Params = <>
-    Left = 374
-    Top = 512
+    Left = 433
+    Top = 592
   end
   object dbEan: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 454
-    Top = 152
+    Left = 525
+    Top = 176
   end
 end

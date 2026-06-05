@@ -49,6 +49,7 @@
 {"hash":74847967,"name":"tflhistoop.dbgrid1.columns[9].title.caption","sourcebytes":[67,65,77,66,73,79],"value":"CAMBIO"},
 {"hash":80390063,"name":"tflhistoop.dbgrid1.columns[10].title.caption","sourcebytes":[69,115,116,97,100,111],"value":"Estado"},
 {"hash":69838195,"name":"tflhistoop.dbgrid1.columns[11].title.caption","sourcebytes":[32,32,32,32,32,32,32,32,79,66,83,69,82,86,65,67,73,79,78,69,83],"value":"        OBSERVACIONES"},
+{"hash":90449060,"name":"tflhistoop.dbgrid1.columns[12].title.caption","sourcebytes":[72,79,50,48,95,82,69,67,84],"value":"HO20_RECT"},
 {"hash":4888513,"name":"tflhistoop.dbgrid2.columns[0].title.caption","sourcebytes":[70,69,67,72,65],"value":"FECHA"},
 {"hash":316513,"name":"tflhistoop.dbgrid2.columns[1].title.caption","sourcebytes":[72,79,82,65],"value":"HORA"},
 {"hash":292321,"name":"tflhistoop.dbgrid2.columns[2].title.caption","sourcebytes":[67,65,74,65],"value":"CAJA"},

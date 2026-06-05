@@ -32,7 +32,7 @@ uses
   ZConnection, ExtCtrls, StdCtrls, DBGrids, Buttons, ZDataset, db,
   LCLType, Grids, LR_Class, LR_DBSet, EditBtn, ComCtrls, LCLIntf,
   ubarcodes, ZClasses, ZAbstractConnection, ZAbstractRODataset, 
-  ZExceptions, ZAbstractDataset; //-- Control de errores de la uniad ZEOS; //-- Esta última libería controla el GetKeyState para saber si pulsé el ctrl
+  ZExceptions, ZAbstractDataset, uPromoEngine; //-- Control de errores de la uniad ZEOS; //-- Esta última libería controla el GetKeyState para saber si pulsé el ctrl
 
 type
 
@@ -385,6 +385,7 @@ type
     procedure DBGrid1DrawColumnCell(Sender: TObject; const Rect: TRect;
       DataCol: Integer; Column: TColumn; State: TGridDrawState);
     procedure DBGrid2CellClick(Column: TColumn);
+    procedure DBGrid2MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
     procedure DBGrid3DblClick(Sender: TObject);
     procedure DBGrid5DblClick(Sender: TObject);
     procedure Edit10Exit(Sender: TObject);
@@ -419,6 +420,7 @@ type
     procedure Edit8KeyPress(Sender: TObject; var Key: char);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCreate(Sender: TObject);
+    procedure VF_FilterNumericKeyPress(Sender: TObject; var Key: char);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure FormShow(Sender: TObject);
     procedure frReport1EnterRect(Memo: TStringList; View: TfrView);
@@ -452,8 +454,10 @@ type
     function LeerAuxiliar: Boolean;
     procedure ActualizaDatos();
     procedure ActualizaHisto();
+    procedure RegistrarTicketAnulado(const Serie: string; const Num: Integer; const TipoOper, Motivo: string);
     procedure VerSerieFacturacion();
     procedure NumeroTicket();
+    procedure LeerNumeroTicketActual();
     procedure NumeroFactura();
     procedure NumeroAlbaran();
     procedure NumeroPedido();
@@ -501,8 +505,43 @@ type
 
   private
     { private declarations }
+    ChkTodosAniosPrePro: TCheckBox;
+    VF_PrevTotalEdit11: Double; // Total línea antes de editar con F7 (para calcular descuento)
+    LblPromoActiva: TLabel;
+    FEdit6ColorNormal: TColor;
+    FEdit6StyleNormal: TFontStyles;
+    FGridPromoLastCodigo: string;
+    FGridPromoLastActivo: Boolean;
+    procedure VF_SetPromoVisual(const APromoActiva: Boolean);
+    function VF_LineaTienePromoEnGrid(const ACodigo: string): Boolean;
+    procedure ChkTodosAniosPreProClick(Sender: TObject);
+    procedure DateEdit2Change(Sender: TObject);
+    procedure RecargaListaPrePro;
+    procedure VF_AnalizaSignosVenta(out HayNegativas, HayPositivas: Boolean);
+    function VF_BloquearOperacionMixtaRectif: Boolean;
+    function VF_SepararMixtaAparcarPositivas: Boolean;
+    function VF_CerrarPositivaMixtaPendiente(const AModoCierre: string): Boolean;
+    procedure VF_LogTotalesMixta(const AFase: string);
+    procedure VF_LogMixta(const AFase, ADetalle: string);
+    function VF_TablaVentasRectif: string;
+    procedure VF_LimpiarVentasRectifTemporal;
+    procedure VF_BorrarLineaRectifTemporal(const ALineaVenta: Integer);
+    function VF_ObtenerRectifTagTemporal(out ARectifTag, AOrigTipo, AOrigSerie: string;
+      out AOrigNumero: Integer): Boolean;
+    function VF_ValidarSaldosRectifTemporal: Boolean;
+    procedure VF_RegistrarRectifDefinitiva(const ARectifTag: string);
+    function VF_PrepararRectifManualTemporal(const AOrigIsFS: Boolean; const AOrigSerie: string;
+      const AOrigNumero: Integer; out ARectifTag: string): Boolean;
+    function VF_PedirMotivoRectif(out AMotivo: string): Boolean;
+    procedure VF_ConfigurarControlesCobro;
+    function VF_NormalizarCamposCobro(const AFijarEntregaSiVacia: Boolean = True): Boolean;
   public
     { public declarations }
+    procedure VF_RegistrarLineaRectifTemporal(const AOrigTipo: string;
+      const AOrigFecha, AOrigHora: TDateTime; const AOrigCaja, AOrigSerie: string;
+      const AOrigNumero, AOrigLinea: Integer; const AQtyOriginal, AQtyARectificar,
+      AImpOriginalConIVA, AImpARectificarConIVA: Double);
+    procedure VF_RegistrarLineasRectifTemporalBulk(const AValuesSQL: string);
   end;
 
   const
@@ -511,13 +550,23 @@ type
     GS = #29;
     ESC = #27;
 
-  procedure ShowFormVentas;
+  
+
+
+procedure ShowFormVentas;
 
 var
   FVentas: TFVentas;
   FechaVenta,HoraVenta: TDateTime;
   Llenando, modificando: Integer;
   SERIEFACT,TICKET,TIPOOPER,DESCRIOPER: String;
+  VF_RectifTagHold: String;
+  VF_RectifMotivoHold: String;
+  VF_MixtaTicketPosPendiente: Integer;
+  VF_MixtaTicketNegativo: Integer;
+  VF_MixtaTotalRectif: Double;
+  VF_MixtaTotalPositiva: Double;
+  VF_MixtaDiferencia: Double;
   NOPERACION: Integer;
   PrintText: TextFile;
   BASE1,BASE2,BASE3,IMPOIVA1,IMPOIVA2,IMPOIVA3,TOTAL1,TOTAL2,TOTAL3: Double;
@@ -540,24 +589,460 @@ var
   //-------------------------------------------------
 
 implementation
-// === [Paso 1] Utilidades de registro y manejo de errores (no intrusivas) ===
+
 uses
   Global, Funciones, creditos, Busquedas, Imprimir, uVeriFactu, uVeriHash, uFLX_Log, uFLX_Sound;
 
+
+// -----------------------------------------------------------------------------
+// VeriFactu / Rectificativas: helpers para HO20_RECT (historico operaciones)
+// -----------------------------------------------------------------------------
+function VF_SQLEscapeDbl(const S: string): string;
+begin
+  // Escapa para literales entre comillas dobles usados en este fichero.
+  Result := StringReplace(S, '\', '\\', [rfReplaceAll]);
+  Result := StringReplace(Result, '"', '\"', [rfReplaceAll]);
+end;
+
+function VF_SQLFloat(const V: Double): string;
+begin
+  // SQL num�rico con punto decimal, independiente de la configuraci�n regional.
+  Result := FloatToStr(V);
+  if DecimalSeparator <> '.' then
+    Result := StringReplace(Result, DecimalSeparator, '.', [rfReplaceAll]);
+end;
+
+function VF_EsModoProduccion: Boolean;
+var
+  M: string;
+begin
+  // Aceptamos variantes por seguridad: PRODUCCION, PRODUCCION con acento, PROD, PRODUCTION.
+  M := UpperCase(Trim(vfMode));
+  Result := (M = 'PRODUCCION') or (Copy(M, 1, 4) = 'PROD');
+end;
+
+function VF_QRImporte(const ATextoImporte: string): string;
+var
+  V: Double;
+begin
+  V := StrToFloatDef(Trim(ATextoImporte), 0);
+  Result := StringReplace(FormatFloat('0.00', V), ',', '.', [rfReplaceAll]);
+end;
+
+function VF_BuildQRTributario(const ASerie: string; const ANumero: Integer; const AFecha: TDateTime; const AImporte: string): string;
+begin
+  // Tickets/facturas simplificadas: informar como FS-serie-numero.
+  // La BBDD conserva A26/B26/etc.; FS- solo identifica la simplificada para Veri*Factu/QR.
+  Result := vfUrl + 'nif=' + NIF +
+            '&numserie=FS-' + ASerie + '-' + IntToStr(ANumero) +
+            '&fecha=' + FormatDateTime('dd-mm-yyyy', AFecha) +
+            '&importe=' + VF_QRImporte(AImporte);
+end;
+
+function VF_NormalizeRectifTag(const S: string): string;
+var
+  R: string;
+begin
+  R := Trim(S);
+  // Quitamos ';' final si existe (para dejarlo como en observaciones de facturas).
+  while (Length(R) > 0) and (R[Length(R)] = ';') do
+    Delete(R, Length(R), 1);
+  Result := Trim(R);
+end;
+
+function VF_AEATTipoFacturaFromRectifTag(const ARectifTag, ADefaultTipoFactura: string): string;
+var
+  U: string;
+begin
+  // FacturLinEx guarda el origen de la rectificativa en la etiqueta VF_RECTIF.
+  // AEAT/Veri*Factu NO debe recibir una rectificativa como F1/F2:
+  //   - Origen factura simplificada (FS / NS / NT) => R5
+  //   - Origen factura completa/normal             => R1
+  // Usamos R1 como tipo general de rectificativa normal por diferencias.
+  Result := Trim(UpperCase(ADefaultTipoFactura));
+
+  U := UpperCase(VF_NormalizeRectifTag(ARectifTag));
+  if Pos('VF_RECTIF:', U) <> 1 then
+    Exit;
+
+  if (Pos('TYPE=FS', U) > 0) or
+     (Pos('ORIG_SERIE=FS-', U) > 0) or
+     (Pos('ORIG_TIPO=NS', U) > 0) or
+     (Pos('ORIG_TIPO=NT', U) > 0) then
+    Result := 'R5'
+  else
+    Result := 'R1';
+end;
+
+procedure TFVentas.VF_FilterNumericKeyPress(Sender: TObject; var Key: char);
+var
+  E: TCustomEdit;
+  S: string;
+begin
+  // Permitir teclas de control (Enter, Backspace, Tab, etc.)
+  if Key < #32 then Exit;
+
+  // Permitir dígitos
+  if (Key >= '0') and (Key <= '9') then Exit;
+
+  E := nil;
+  S := '';
+  if Sender is TCustomEdit then
+  begin
+    E := TCustomEdit(Sender);
+    S := E.Text;
+  end;
+
+  // Permitir separador decimal (coma o punto), pero solo uno.
+  if (Key = ',') or (Key = '.') then
+  begin
+    if (E <> nil) and ((Pos(',', S) > 0) or (Pos('.', S) > 0)) then
+      Key := #0;
+    Exit;
+  end;
+
+  // Permitir signo negativo solo al inicio y solo una vez.
+  // Normalmente el empleado no debe teclearlo en cobro, pero lo dejamos
+  // para no bloquear casos de abonos/rectificativas si algún campo lo necesitara.
+  if Key = '-' then
+  begin
+    if (E <> nil) and (E.SelStart = 0) and (Pos('-', S) = 0) then Exit;
+    Key := #0;
+    Exit;
+  end;
+
+  // Bloquear cualquier otro carácter
+  Key := #0;
+end;
+
+// === [Paso 1] Utilidades de registro y manejo de errores (no intrusivas) ===
+// ============================================================================
+// Control de valores numéricos (anti-desbordes / lector de códigos de barras)
+// ----------------------------------------------------------------------------
+// Problema típico: al pasar un EAN en un campo numérico (unidades / importe / total),
+// el valor se convierte en un número enorme y puede provocar overflows/Inf o
+// cálculos absurdos al totalizar.
+// Estas rutinas validan longitud, formato y rangos antes de usar StrToFloat.
+// Ajusta los máximos si tu operativa necesita valores mayores.
+// ============================================================================
+const
+  VF_MAX_INPUTLEN = 20;          // longitud máxima admitida en campos numéricos (anti-EAN)
+  VF_MAX_QTY      = 100000.0;    // unidades máximas por línea
+  VF_MAX_PRICE    = 1000000.0;   // precio máximo (PVP / precio sin IVA)
+  VF_MAX_AMOUNT   = 1000000000.0;// importe máximo por línea
+  VF_MAX_TOTAL    = 1000000000000.0; // total máximo del ticket (suma)
+
+function VF_NormalizaNumero(const S: string): string;
+var
+  i: Integer;
+begin
+  Result := '';
+  // Quitamos espacios y convertimos separadores a los del sistema
+  for i := 1 to Length(S) do
+    if not (S[i] in [' ', #9]) then
+      Result := Result + S[i];
+
+  // Admitimos tanto ',' como '.' como separador decimal
+  if (DecimalSeparator = ',') then
+    Result := StringReplace(Result, '.', DecimalSeparator, [rfReplaceAll])
+  else
+    Result := StringReplace(Result, ',', DecimalSeparator, [rfReplaceAll]);
+end;
+
+function VF_TryParseFloatBounded(const S, Campo: string; const MaxAbs: Double; out V: Double): Boolean;
+var
+  SS: string;
+begin
+  V := 0;
+  SS := VF_NormalizaNumero(Trim(S));
+
+  // Anti-lector: si alguien pasa un EAN de 13-14 dígitos (o más) en un campo numérico,
+  // lo rechazamos por longitud.
+  if (SS = '') then Exit(False);
+  if Length(SS) > VF_MAX_INPUTLEN then Exit(False);
+
+  Result := TryStrToFloat(SS, V);
+  if not Result then Exit(False);
+
+  if (Abs(V) > MaxAbs) then
+  begin
+    Result := False;
+    Exit;
+  end;
+end;
+
+function VF_SafeMul(const A, B, MaxAbs: Double; out R: Double): Boolean;
+begin
+  // Evita overflow/Inf por multiplicación antes de formatear
+  R := 0;
+  if (A = 0) or (B = 0) then begin R := 0; Exit(True); end;
+  if (Abs(A) > MaxAbs) or (Abs(B) > MaxAbs) then Exit(False);
+  if (Abs(A) > (MaxAbs / Abs(B))) then Exit(False);
+  R := A * B;
+  Result := Abs(R) <= MaxAbs;
+end;
+
+procedure VF_NumError(const Campo, Valor: string);
+begin
+  FLX_Beep(skError);
+  ShowMessage('Valor no válido o demasiado grande en "'+Campo+'": '+Valor);
+end;
+
+
 { TFVentas }
+
+//------------------ Configuración segura de controles de cobro ------------------
+procedure TFVentas.VF_ConfigurarControlesCobro;
+begin
+  // Forma de pago: solo selección de la lista, no escritura manual.
+  Combo2.Style := csDropDownList;
+  if (Combo2.ItemIndex < 0) and (Combo2.Items.Count > 0) then
+    Combo2.ItemIndex := 0;
+
+  // Campos numéricos del panel de cobro/totalizar.
+  Edit12.OnKeyPress := @VF_FilterNumericKeyPress; // Importe
+  Edit13.OnKeyPress := @VF_FilterNumericKeyPress; // Descuento
+  Edit14.OnKeyPress := @VF_FilterNumericKeyPress; // Total
+  Edit15.OnKeyPress := @VF_FilterNumericKeyPress; // Entrega
+  Edit16.OnKeyPress := @VF_FilterNumericKeyPress; // Cambio / crédito
+  Edit42.OnKeyPress := @VF_FilterNumericKeyPress; // Contado / puntos
+
+  // El cambio/crédito lo calcula el programa. Evita que se borre o se escriba a mano.
+  Edit16.ReadOnly := True;
+end;
+
+//------------------ Normalizar y validar importes de cobro ------------------
+function TFVentas.VF_NormalizarCamposCobro(const AFijarEntregaSiVacia: Boolean): Boolean;
+var
+  VImporte, VDto, VTotal, VEntrega, VContado, VCambio: Double;
+
+  function LeerImporte(AEdit: TEdit; const ACampo: string; const AMax: Double; out AValor: Double): Boolean;
+  begin
+    if Trim(AEdit.Text) = '' then
+      AEdit.Text := '0.00';
+
+    Result := VF_TryParseFloatBounded(AEdit.Text, ACampo, AMax, AValor);
+    if not Result then
+    begin
+      VF_NumError(ACampo, AEdit.Text);
+      AEdit.Text := '0.00';
+      AEdit.SetFocus;
+      Exit;
+    end;
+
+    AEdit.Text := FormatFloat('0.00', AValor);
+  end;
+
+begin
+  Result := False;
+
+  // Si por cualquier motivo la forma de pago quedase sin selección válida,
+  // volvemos a la primera opción, que en esta pantalla se inicializa como CONTADO.
+  if (Combo2.ItemIndex < 0) and (Combo2.Items.Count > 0) then
+    Combo2.ItemIndex := 0;
+
+  if Trim(Edit12.Text) = '' then Edit12.Text := '0.00';     // Importe
+  if Trim(Edit13.Text) = '' then Edit13.Text := '0.00';     // Dto.
+  if Trim(Edit14.Text) = '' then Edit14.Text := Edit12.Text; // Total
+  if Trim(Edit15.Text) = '' then                            // Entrega
+  begin
+    if AFijarEntregaSiVacia then
+      Edit15.Text := Edit14.Text
+    else
+      Edit15.Text := '0.00';
+  end;
+  if Trim(Edit42.Text) = '' then Edit42.Text := '0.00';     // Contado / puntos
+  if Trim(Edit16.Text) = '' then Edit16.Text := '0.00';     // Cambio / crédito
+
+  if not LeerImporte(Edit12, 'IMPORTE', VF_MAX_TOTAL, VImporte) then Exit;
+  if not LeerImporte(Edit13, 'DESCUENTO', VF_MAX_TOTAL, VDto) then Exit;
+  if not LeerImporte(Edit14, 'TOTAL', VF_MAX_TOTAL, VTotal) then Exit;
+  if not LeerImporte(Edit15, 'ENTREGA', VF_MAX_TOTAL, VEntrega) then Exit;
+  if not LeerImporte(Edit42, 'ENTREGA CONTADO', VF_MAX_TOTAL, VContado) then Exit;
+
+  VCambio := (VEntrega + VContado) - VTotal;
+  if Abs(VCambio) > VF_MAX_TOTAL then
+  begin
+    VF_NumError('CAMBIO', FloatToStr(VCambio));
+    Edit16.Text := '0.00';
+    Edit16.SetFocus;
+    Exit;
+  end;
+
+  Edit16.Text := FormatFloat('0.00', VCambio);
+
+  if VCambio < 0 then
+  begin
+    Label32.Font.Color := clRed;
+    Label32.Caption := 'CREDITO';
+    Edit16.Font.Color := clRed;
+  end
+  else
+  begin
+    Label32.Font.Color := clWindowText;
+    Label32.Caption := 'CAMBIO';
+    Edit16.Font.Color := clWindowText;
+  end;
+
+  Result := True;
+end;
+
+//------------------ [Pre/Pro] Recargar listado con filtros (cliente/serie/ao) ------------------
+procedure TFVentas.RecargaListaPrePro;
+var
+  Tabla, SerieSel, SqlTxt: string;
+  Dt, FIni, FFin: TDateTime;
+  Y: Integer;
+begin
+  // Tabla segn tipo (presupuesto / proforma)
+  if RadioButton9.Checked then
+    Tabla := 'presuc' + Tienda
+  else
+    Tabla := 'proforc' + Tienda;
+
+  SqlTxt := 'SELECT * FROM ' + Tabla + ', clientes' +
+            ' WHERE PRC0=C0 AND PRC12="SV"';
+
+  // Filtro por cliente (si est marcado)
+  if CheckBox3.Checked then
+    SqlTxt := SqlTxt + ' AND PRC0=' + Edit34.Text;
+
+  // Filtro por serie (Combo6: 3 primeros caracteres)
+  if (Combo6.ItemIndex >= 0) and (Combo6.Items.Count > 0) then
+  begin
+    SerieSel := Trim(Copy(Combo6.Items.Strings[Combo6.ItemIndex], 1, 3));
+    if (SerieSel <> '') and (SerieSel <> '***') then
+      SqlTxt := SqlTxt + ' AND PRC2=' + QuotedStr(SerieSel);
+  end;
+
+  // Filtro por ao (si NO est marcado "Todos los aos")
+  if (ChkTodosAniosPrePro <> nil) and (not ChkTodosAniosPrePro.Checked) then
+  begin
+    Dt := DateEdit2.Date;
+    if Dt <= 0 then Dt := Date;
+    Y := StrToIntDef(FormatDateTime('yyyy', Dt), StrToIntDef(FormatDateTime('yyyy', Date), 2000));
+    if Y <= 0 then Y := StrToIntDef(FormatDateTime('yyyy', Date), 2000);
+    FIni := EncodeDate(Y, 1, 1);
+    FFin := EncodeDate(Y + 1, 1, 1);
+
+    SqlTxt := SqlTxt + ' AND PRC1>=' + QuotedStr(FormatDateTime('yyyy-mm-dd', FIni)) +
+                     ' AND PRC1<'  + QuotedStr(FormatDateTime('yyyy-mm-dd', FFin));
+  end;
+
+  // Orden actual (sin cambiar hbitos)
+  SqlTxt := SqlTxt + ' ORDER BY PRC0 ASC, PRC1 DESC, PRC2 ASC, PRC3 ASC';
+
+  dbPedi.Active := False;
+  dbPedi.SQL.Text := SqlTxt;
+  dbPedi.Active := True;
+end;
+
+//------------------ [Pre/Pro] Checkbox "Todos los aos" ------------------
+procedure TFVentas.ChkTodosAniosPreProClick(Sender: TObject);
+begin
+  RecargaListaPrePro;
+end;
+
+procedure TFVentas.DateEdit2Change(Sender: TObject);
+begin
+  if Panel10.Visible then
+    RecargaListaPrePro;
+end;
+
+
+
+
+
+// ===============================================================
+// === Veri*Factu: Ejecución ASYNC (sin bloquear el hilo de UI)  ===
+// ===============================================================
+//
+//  - Implementación profesional: TThread clásico (compatible objfpc/FPC 3.2.x)
+//  - No toca UI desde el hilo secundario
+//  - Copia parámetros a campos del hilo (seguro)
+//  - Mantiene la llamada original a VeriFactu_QueueFactura sin modificar lógica
+//
+type
+  TVFQueueFacturaThread = class(TThread)
+  private
+    FSerie: string;
+    FNumero: Integer;
+    FFecha: TDateTime;
+    FHora: TDateTime;
+    FTotalConIVA: Double;
+    FTipoFactura: string;
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(const Serie: string; Numero: Integer;
+      Fecha, Hora: TDateTime; TotalConIVA: Double; const TipoFactura: string);
+  end;
+
+constructor TVFQueueFacturaThread.Create(const Serie: string; Numero: Integer;
+  Fecha, Hora: TDateTime; TotalConIVA: Double; const TipoFactura: string);
+begin
+  inherited Create(True); // suspended
+  FreeOnTerminate := True;
+
+  // Copiamos TODO a campos del hilo (seguro)
+  FSerie       := Serie;
+  FNumero      := Numero;
+  FFecha       := Fecha;
+  FHora        := Hora;
+  FTotalConIVA := TotalConIVA;
+  FTipoFactura  := Trim(UpperCase(TipoFactura));
+end;
+
+procedure TVFQueueFacturaThread.Execute;
+begin
+  try
+    // MISMA llamada de siempre, pero fuera del hilo UI.
+    // Importante: copiamos tambien el TipoFactura que estaba activo al cerrar
+    // la venta para que una rectificativa no acabe encolada como F1/F2.
+    if FTipoFactura <> '' then
+      vfTipoFactura := FTipoFactura;
+    VeriFactu_QueueFactura(FSerie, FNumero, FFecha, FHora, FTotalConIVA);
+  except
+    on E: Exception do
+    begin
+      // Nunca ShowMessage aquí (hilo secundario)
+      try
+        FLX_WriteLog('VENTAS', 'VeriFactu_QueueFactura THREAD ERROR: ' + E.Message);
+      except
+        // Evitar crash dentro del thread si el log falla
+      end;
+    end;
+  end;
+end;
+
+procedure VF_QueueFactura_Async(const Serie: string; Numero: Integer;
+  Fecha, Hora: TDateTime; TotalConIVA: Double; const TipoFactura: string);
+var
+  Th: TVFQueueFacturaThread;
+begin
+  Th := TVFQueueFacturaThread.Create(Serie, Numero, Fecha, Hora, TotalConIVA, TipoFactura);
+  Th.Start;
+end;
 
 
 // --- Medición simple de tiempos (para detectar cuellos de botella al totalizar) ---
 // No altera la lógica: solo escribe marcas en el log si uFLX_Log está disponible.
+const
+  VF_PERF_MIN_MS = 300; // ms
+
 function VF_TickMS: QWord; inline;
 begin
   Result := GetTickCount64;
 end;
 
 procedure VF_LogPerf(const Step: string; const T0: QWord);
+var
+  LMs: QWord;
 begin
   try
-    FLX_WriteLog('VENTAS', Step + ' | ' + IntToStr(VF_TickMS - T0) + ' ms');
+    LMs := VF_TickMS - T0;
+    if LMs >= VF_PERF_MIN_MS then
+      FLX_WriteLog('VENTAS', Step + ' | ' + IntToStr(LMs) + ' ms');
   except
     // No bloquear la venta si falla el log
   end;
@@ -584,6 +1069,1007 @@ begin
     CloseFile(F);
   except
     // no levantar excepciones en logging
+  end;
+end;
+
+
+// -----------------------------------------------------------------------------
+// Rectificativas: análisis rápido de signos en dbVentas.
+// No hace SQL ni toca tablas. Solo se usa al FINALIZAR la operación, antes de
+// numerar, para no ralentizar la venta normal.
+// -----------------------------------------------------------------------------
+
+procedure TFVentas.VF_LogMixta(const AFase, ADetalle: string);
+begin
+  try
+    FLX_WriteLog('VENTAS', '[MIXTA] ' + AFase + ' | ticket=' + TICKET +
+      ' puesto=' + Puesto + ' tienda=' + Tienda + ' | ' + ADetalle);
+  except
+  end;
+end;
+
+procedure TFVentas.VF_LogTotalesMixta(const AFase: string);
+begin
+  try
+    VF_LogMixta(AFase,
+      'rectificativa_total=' + FormatFloat('0.00', VF_MixtaTotalRectif) +
+      ' positiva_total=' + FormatFloat('0.00', VF_MixtaTotalPositiva) +
+      ' diferencia=' + FormatFloat('0.00', VF_MixtaDiferencia));
+  except
+  end;
+end;
+
+procedure TFVentas.VF_AnalizaSignosVenta(out HayNegativas, HayPositivas: Boolean);
+var
+  Bmk: TBookmark;
+  TieneBookmark: Boolean;
+  Cantidad: Double;
+begin
+  HayNegativas := False;
+  HayPositivas := False;
+
+  if (dbVentas = nil) or (not dbVentas.Active) or dbVentas.IsEmpty then
+    Exit;
+
+  TieneBookmark := False;
+  Bmk := nil;
+
+  dbVentas.DisableControls;
+  try
+    try
+      Bmk := dbVentas.GetBookmark;
+      TieneBookmark := True;
+    except
+      TieneBookmark := False;
+    end;
+
+    dbVentas.First;
+    while not dbVentas.EOF do
+    begin
+      Cantidad := dbVentas.FieldByName('V5').AsFloat;
+
+      if Cantidad < 0 then
+        HayNegativas := True
+      else if Cantidad > 0 then
+        HayPositivas := True;
+
+      if HayNegativas and HayPositivas then
+        Break;
+
+      dbVentas.Next;
+    end;
+
+    if TieneBookmark and dbVentas.BookmarkValid(Bmk) then
+      dbVentas.GotoBookmark(Bmk);
+  finally
+    if TieneBookmark then
+      dbVentas.FreeBookmark(Bmk);
+    dbVentas.EnableControls;
+  end;
+end;
+
+function TFVentas.VF_BloquearOperacionMixtaRectif: Boolean;
+begin
+  // Compatibilidad: se mantiene por si algún flujo decide bloquear explícitamente.
+  Result := False;
+  FLX_Beep(skError);
+  ShowMessage(
+    'La operación contiene líneas negativas y positivas.' + LineEnding +
+    LineEnding +
+    'No se generará un documento fiscal mixto.'
+  );
+  Result := True;
+end;
+
+function TFVentas.VF_SepararMixtaAparcarPositivas: Boolean;
+var
+  TicketActual, TicketNuevo: Integer;
+  SQLTxt: string;
+begin
+  VF_LogMixta('SEPARAR_START', 'Inicio separación negativas/positivas');
+  // Paso seguro de separación:
+  // - deja en el ticket actual SOLO las líneas negativas para cerrar la rectificativa.
+  // - mueve las líneas positivas a un ticket nuevo abierto para cerrarlo como venta normal.
+  // No genera todavía el segundo documento automáticamente; evita tocar caja/pagos en este paso.
+  Result := False;
+  VF_MixtaTotalRectif := 0;
+  VF_MixtaTotalPositiva := 0;
+  VF_MixtaDiferencia := 0;
+  VF_MixtaTicketNegativo := 0;
+  TicketActual := StrToIntDef(TICKET, 0);
+  if TicketActual <= 0 then
+  begin
+    VF_LogMixta('ERROR', 'No se pudo identificar TicketActual');
+    ShowMessage('No se pudo identificar el ticket actual para separar la operación mixta.');
+    Exit;
+  end;
+
+  try
+    dbTrabajo.Active := False;
+    dbTrabajo.SQL.Text := 'SELECT COALESCE(MAX(V1),0)+1 AS NT FROM ventas' + Tienda + Puesto + ' WHERE V0=0';
+    dbTrabajo.Open;
+    TicketNuevo := dbTrabajo.FieldByName('NT').AsInteger;
+    if TicketNuevo <= TicketActual then
+      TicketNuevo := TicketActual + 1;
+  except
+    on E: Exception do
+    begin
+      VF_LogMixta('ERROR', 'No se pudo calcular ticket positivo | ' + E.Message);
+      ShowMessage('No se pudo calcular un nuevo ticket para las líneas positivas: ' + E.Message);
+      Exit;
+    end;
+  end;
+
+  // Separación automática y silenciosa: no preguntamos ni mostramos cartel bloqueante.
+
+  try
+    VF_LogMixta('SEPARAR_TICKETS', 'ticket_negativo=' + IntToStr(TicketActual) + ' ticket_positivo=' + IntToStr(TicketNuevo));
+    VF_MixtaTicketNegativo := TicketActual;
+    VF_MixtaTicketPosPendiente := TicketNuevo;
+
+    // Totales informativos de la operacin mixta antes de separar.
+    // V11 es el total de lnea con IVA en la tabla temporal de ventas.
+    try
+      dbTrabajo.Active := False;
+      dbTrabajo.SQL.Text := 'SELECT ' +
+        'COALESCE(SUM(CASE WHEN V5<0 THEN V11 ELSE 0 END),0) AS TNEG, ' +
+        'COALESCE(SUM(CASE WHEN V5>0 THEN V11 ELSE 0 END),0) AS TPOS ' +
+        'FROM ventas' + Tienda + Puesto +
+        ' WHERE V0=0 AND V1=' + IntToStr(TicketActual);
+      dbTrabajo.Open;
+      VF_MixtaTotalRectif := dbTrabajo.FieldByName('TNEG').AsFloat;
+      VF_MixtaTotalPositiva := dbTrabajo.FieldByName('TPOS').AsFloat;
+      VF_MixtaDiferencia := VF_MixtaTotalRectif + VF_MixtaTotalPositiva;
+      VF_LogTotalesMixta('TOTALES_PRE_SEPARAR');
+    except
+      on E: Exception do
+        VF_LogMixta('TOTALES_PRE_SEPARAR_ERROR', E.Message);
+    end;
+
+    // Mover positivas al nuevo ticket. No tocamos importes ni lneas; solo V1.
+    dbTrabajo.Active := False;
+    SQLTxt := 'UPDATE ventas' + Tienda + Puesto +
+      ' SET V1=' + IntToStr(TicketNuevo) +
+      ' WHERE V0=0 AND V1=' + IntToStr(TicketActual) + ' AND V5>0';
+    dbTrabajo.SQL.Text := SQLTxt;
+    dbTrabajo.ExecSQL;
+
+    // Si por cualquier edición hubiera una marca temporal de rectificación en una línea positiva,
+    // la eliminamos: la venta positiva NO forma parte de la rectificativa.
+    dbTrabajo.Active := False;
+    SQLTxt := 'DELETE FROM ' + VF_TablaVentasRectif +
+      ' WHERE VR_TICKET=' + IntToStr(TicketActual) +
+      ' AND VR_LINEA_VENTA NOT IN (' +
+      ' SELECT V2 FROM ventas' + Tienda + Puesto +
+      ' WHERE V0=0 AND V1=' + IntToStr(TicketActual) + ')';
+    dbTrabajo.SQL.Text := SQLTxt;
+    dbTrabajo.ExecSQL;
+
+    // Refrescar el ticket actual, que ahora debe contener solo líneas negativas.
+    dbVentas.Active := False;
+    dbVentas.SQL.Text := 'SELECT * FROM ventas' + Tienda + Puesto + ' WHERE V0=0 AND V1=' + IntToStr(TicketActual);
+    dbVentas.Active := True;
+    PintarTotalGeneral();
+    CargaValoresTotalizar();
+
+    try
+      FLX_WriteLog('VENTAS', 'RECTIF MIXTA: positivas movidas del ticket ' +
+        IntToStr(TicketActual) + ' al ticket ' + IntToStr(TicketNuevo));
+      VF_LogMixta('SEPARAR_OK', 'positivas_pendientes_ticket=' + IntToStr(TicketNuevo));
+    except
+    end;
+
+    // Sin mensaje temporizado: evitamos pausa perceptible en Ventas.
+
+    Result := True;
+  except
+    on E: Exception do
+    begin
+      try
+        FLX_WriteLog('VENTAS', 'RECTIF MIXTA: error separando positivas | ' + E.Message);
+        VF_LogMixta('ERROR', 'fase=separando | ' + E.Message);
+      except
+      end;
+      ShowMessage('No se pudo separar la operación mixta: ' + E.Message);
+    end;
+  end;
+end;
+
+
+// -----------------------------------------------------------------------------
+// MIXTA: cargar automáticamente la venta positiva pendiente tras cerrar la
+// rectificativa. IMPORTANTE: no la cierra todavía; solo la deja en pantalla y
+// lista para que el cierre normal del programa calcule IVA/caja/pago sin duplicar.
+// -----------------------------------------------------------------------------
+function TFVentas.VF_CerrarPositivaMixtaPendiente(const AModoCierre: string): Boolean;
+var
+  LTicketPos: Integer;
+  LModo: string;
+begin
+  Result := False;
+  LTicketPos := VF_MixtaTicketPosPendiente;
+  if LTicketPos <= 0 then Exit;
+
+  // Muy importante: ponerlo a 0 ANTES de lanzar el segundo cierre para evitar
+  // reentradas o que se repita la rectificativa si algo falla después.
+  VF_MixtaTicketPosPendiente := 0;
+  LModo := UpperCase(Trim(AModoCierre));
+  VF_LogMixta('POSITIVA_AUTO_START', 'ticket_positivo=' + IntToStr(LTicketPos) + ' modo=' + LModo);
+
+  try
+    TICKET := IntToStr(LTicketPos);
+    dbVentas.Active := False;
+    dbVentas.SQL.Text := 'SELECT * FROM ventas' + Tienda + Puesto +
+                         ' WHERE V0=0 AND V1=' + TICKET;
+    dbVentas.Active := True;
+
+    if dbVentas.RecordCount = 0 then
+    begin
+      VF_LogMixta('POSITIVA_AUTO_ABORT', 'ticket positivo sin lineas');
+      Exit(True); // la rectificativa ya se cerró; no repetir nada
+    end;
+
+    if dbVentas.FieldByName('V12').AsInteger <> 0 then
+      Edit1.Text := dbVentas.FieldByName('V12').AsString
+    else
+      Edit1.Text := ClienteVario;
+
+    Edit1Exit(Edit1);
+    PintarTotalGeneral();
+    CargaValoresTotalizar();
+    RefrescaTicketsAbiertos();
+
+    VF_LogMixta('RECTIFICATIVA_CERRADA', 'la parte negativa ya ha seguido el cierre normal');
+    VF_LogMixta('POSITIVA_AUTO_CARGADA', 'ticket=' + TICKET + ' se cierra ahora con el flujo normal');
+
+    // Reutilizamos los cierres existentes. No grabamos IVA/caja/histórico/VeriFactu a mano.
+    // Así se mantiene la lógica actual de FacturLinEx: forma de pago, caja, estadísticas,
+    // impresión y encolado de Hacienda los hace el mismo cierre normal.
+    if LModo = 'NS' then
+      BitBtn10Click(BitBtn10)
+    else if LModo = 'NT' then
+      BitBtn11Click(BitBtn11)
+    else if LModo = 'FA' then
+      BitBtn19Click(BitBtn19)
+    else
+    begin
+      VF_LogMixta('POSITIVA_AUTO_ERROR', 'modo cierre desconocido=' + LModo + '; queda cargada en pantalla');
+      ShowMessage('La rectificativa se cerró, pero no se pudo cerrar automáticamente la venta positiva porque el modo no es válido: ' + LModo);
+      Exit(True);
+    end;
+
+    VF_LogMixta('POSITIVA_AUTO_END', 'cierre positivo lanzado con modo=' + LModo);
+
+    // Aviso final breve: llegamos aqui cuando la rectificativa ya se cerro y
+    // el cierre normal de la venta positiva tambien ha retornado sin excepcion.
+    // No sustituye ninguna logica fiscal/caja; solo informa al usuario.
+    ShowMessage('La venta mixta ha generado dos documentos: Rectificativa y Venta.' + LineEnding +
+      LineEnding +
+      'Total rectificativa: ' + FormatFloat('0.00', VF_MixtaTotalRectif) + LineEnding +
+      'Total nueva venta: ' + FormatFloat('0.00', VF_MixtaTotalPositiva) + LineEnding +
+      'Diferencia: ' + FormatFloat('0.00', VF_MixtaDiferencia));
+
+    VF_MixtaTicketNegativo := 0;
+    Result := True;
+  except
+    on E: Exception do
+    begin
+      VF_LogMixta('POSITIVA_AUTO_ERROR', E.Message);
+      ShowMessage('La rectificativa se cerró, pero no se pudo finalizar automáticamente la venta positiva.' + LineEnding +
+                  'La venta positiva queda cargada para revisarla y cerrarla manualmente.' + LineEnding +
+                  E.Message);
+      Result := True; // evita abrir ticket nuevo o repetir la rectificativa
+    end;
+  end;
+end;
+
+// -----------------------------------------------------------------------------
+// Rectificativas: tabla temporal por tienda + puesto.
+// Ejemplo: ventasrectif0000A.
+// No se consulta en venta normal; solo se limpia para el ticket activo cuando se borra/finaliza.
+// -----------------------------------------------------------------------------
+function TFVentas.VF_TablaVentasRectif: string;
+begin
+  Result := 'ventasrectif' + Tienda + Puesto;
+end;
+
+procedure TFVentas.VF_LimpiarVentasRectifTemporal;
+begin
+  try
+    dbTrabajo.Active := False;
+    dbTrabajo.SQL.Text := 'DELETE FROM ' + VF_TablaVentasRectif +
+      ' WHERE VR_TICKET=' + IntToStr(StrToIntDef(TICKET, 0));
+    dbTrabajo.ExecSQL;
+  except
+    on E: Exception do
+    begin
+      // No bloqueamos ventas si la tabla aún no existe o hay un problema puntual.
+      // La validación fuerte se hará al grabar la rectificativa.
+      try
+        FLX_WriteLog('VENTAS', 'RECTIF TEMP: no se pudo limpiar ' + VF_TablaVentasRectif + ' | ' + E.Message);
+      except
+      end;
+    end;
+  end;
+end;
+
+
+procedure TFVentas.VF_BorrarLineaRectifTemporal(const ALineaVenta: Integer);
+begin
+  if ALineaVenta <= 0 then Exit;
+  try
+    dbTrabajo.Active := False;
+    dbTrabajo.SQL.Text := 'DELETE FROM ' + VF_TablaVentasRectif +
+      ' WHERE VR_TICKET=' + IntToStr(StrToIntDef(TICKET, 0)) +
+      ' AND VR_LINEA_VENTA=' + IntToStr(ALineaVenta);
+    dbTrabajo.ExecSQL;
+  except
+    on E: Exception do
+      try
+        FLX_WriteLog('VENTAS', 'RECTIF TEMP: no se pudo borrar l�nea ' +
+          IntToStr(ALineaVenta) + ' en ' + VF_TablaVentasRectif + ' | ' + E.Message);
+      except
+      end;
+  end;
+end;
+
+procedure TFVentas.VF_RegistrarLineaRectifTemporal(const AOrigTipo: string;
+  const AOrigFecha, AOrigHora: TDateTime; const AOrigCaja, AOrigSerie: string;
+  const AOrigNumero, AOrigLinea: Integer; const AQtyOriginal, AQtyARectificar,
+  AImpOriginalConIVA, AImpARectificarConIVA: Double);
+var
+  LLineaVenta: Integer;
+begin
+  // Paso 3: guardar el origen de una l�nea recuperada desde hist�rico para rectificar.
+  // Esta rutina NO se llama en ventas normales, solo desde el flujo de recuperaci�n/rectificaci�n.
+  if (dbVentas = nil) or (not dbVentas.Active) or (dbVentas.RecordCount = 0) then Exit;
+
+  LLineaVenta := dbVentas.FieldByName('V2').AsInteger;
+  if LLineaVenta <= 0 then Exit;
+
+  try
+    dbTrabajo.Active := False;
+    dbTrabajo.SQL.Text :=
+      'REPLACE INTO ' + VF_TablaVentasRectif +
+      ' (VR_TICKET, VR_LINEA_VENTA, VR_ORIG_TIPO, VR_ORIG_FECHA, VR_ORIG_HORA, VR_ORIG_CAJA, ' +
+      'VR_ORIG_SERIE, VR_ORIG_NUMERO, VR_ORIG_LINEA, VR_QTY_ORIGINAL, ' +
+      'VR_QTY_A_RECTIFICAR, VR_IMP_ORIGINAL_CON_IVA, VR_IMP_A_RECTIFICAR_CON_IVA) VALUES (' +
+      IntToStr(StrToIntDef(TICKET, 0)) + ',' +
+      IntToStr(LLineaVenta) + ',' +
+      '"' + VF_SQLEscapeDbl(Trim(AOrigTipo)) + '",' +
+      '"' + FormatDateTime('yyyy-mm-dd', AOrigFecha) + '",' +
+      '"' + FormatDateTime('hh:nn:ss', AOrigHora) + '",' +
+      '"' + VF_SQLEscapeDbl(Trim(AOrigCaja)) + '",' +
+      '"' + VF_SQLEscapeDbl(Trim(AOrigSerie)) + '",' +
+      IntToStr(AOrigNumero) + ',' +
+      IntToStr(AOrigLinea) + ',' +
+      VF_SQLFloat(AQtyOriginal) + ',' +
+      VF_SQLFloat(Abs(AQtyARectificar)) + ',' +
+      VF_SQLFloat(AImpOriginalConIVA) + ',' +
+      VF_SQLFloat(Abs(AImpARectificarConIVA)) + ')';
+    dbTrabajo.ExecSQL;
+  except
+    on E: Exception do
+      begin
+        try
+          FLX_WriteLog('VENTAS', 'RECTIF TEMP: no se pudo registrar origen l�nea V2=' +
+            IntToStr(LLineaVenta) + ' en ' + VF_TablaVentasRectif + ' | ' + E.Message);
+        except
+        end;
+        DataModule1.Mensaje('AVISO',
+          'No se pudo registrar el origen de la l�nea rectificativa. Revise la tabla ' +
+          VF_TablaVentasRectif, 3500, clGray);
+      end;
+  end;
+end;
+
+
+
+procedure TFVentas.VF_RegistrarLineasRectifTemporalBulk(const AValuesSQL: string);
+begin
+  // Alta masiva de origen de líneas rectificativas.
+  // Evita un ExecSQL por cada línea al clonar desde histórico con multiplicador -1.
+  if Trim(AValuesSQL) = '' then Exit;
+
+  try
+    dbTrabajo.Active := False;
+    dbTrabajo.SQL.Text :=
+      'REPLACE INTO ' + VF_TablaVentasRectif +
+      ' (VR_TICKET, VR_LINEA_VENTA, VR_ORIG_TIPO, VR_ORIG_FECHA, VR_ORIG_HORA, VR_ORIG_CAJA, ' +
+      'VR_ORIG_SERIE, VR_ORIG_NUMERO, VR_ORIG_LINEA, VR_QTY_ORIGINAL, ' +
+      'VR_QTY_A_RECTIFICAR, VR_IMP_ORIGINAL_CON_IVA, VR_IMP_A_RECTIFICAR_CON_IVA) VALUES ' +
+      AValuesSQL;
+    dbTrabajo.ExecSQL;
+  except
+    on E: Exception do
+    begin
+      try
+        FLX_WriteLog('VENTAS', 'RECTIF TEMP BULK: no se pudo registrar lote en ' +
+          VF_TablaVentasRectif + ' | ' + E.Message);
+      except
+      end;
+      DataModule1.Mensaje('AVISO',
+        'No se pudo registrar el origen de las líneas rectificativas. Revise la tabla ' +
+        VF_TablaVentasRectif, 3500, clGray);
+    end;
+  end;
+end;
+
+function TFVentas.VF_ObtenerRectifTagTemporal(out ARectifTag, AOrigTipo, AOrigSerie: string;
+  out AOrigNumero: Integer): Boolean;
+var
+  NegCount, TempCount: Integer;
+  Bmk: TBookmark;
+  TieneBookmark: Boolean;
+  TipoMin, TipoMax, SerieMin, SerieMax, FechaMin, FechaMax, HoraMin, HoraMax, CajaMin, CajaMax: string;
+  NumMin, NumMax: Integer;
+  LTicketRectif: Integer;
+begin
+  // Recupera automáticamente la referencia de la factura/ticket original cuando
+  // las líneas negativas vienen desde Histórico y fueron registradas en
+  // ventasrectif+Tienda+Puesto. No se usa en venta normal.
+  Result := False;
+  ARectifTag := '';
+  AOrigTipo := '';
+  AOrigSerie := '';
+  AOrigNumero := 0;
+
+  if (dbVentas = nil) or (not dbVentas.Active) or dbVentas.IsEmpty then Exit;
+
+  NegCount := 0;
+  TieneBookmark := False;
+  Bmk := nil;
+  dbVentas.DisableControls;
+  try
+    try
+      Bmk := dbVentas.GetBookmark;
+      TieneBookmark := True;
+    except
+      TieneBookmark := False;
+    end;
+
+    dbVentas.First;
+    while not dbVentas.EOF do
+    begin
+      if dbVentas.FieldByName('V5').AsFloat < 0 then
+        Inc(NegCount);
+      dbVentas.Next;
+    end;
+
+    if TieneBookmark and dbVentas.BookmarkValid(Bmk) then
+      dbVentas.GotoBookmark(Bmk);
+  finally
+    if TieneBookmark then
+      dbVentas.FreeBookmark(Bmk);
+    dbVentas.EnableControls;
+  end;
+
+  if NegCount <= 0 then Exit;
+
+  try
+    LTicketRectif := StrToIntDef(TICKET, 0);
+
+    // En operaciones mixtas, al encadenar el cierre de la positiva el TICKET puede cambiar.
+    // Para registrar la rectificativa usamos siempre el ticket negativo separado.
+    // Si no es mixta, se usa el ticket actual como hasta ahora.
+    if VF_MixtaTicketNegativo > 0 then
+      LTicketRectif := VF_MixtaTicketNegativo;
+
+    dbTrabajo.Active := False;
+    dbTrabajo.SQL.Text :=
+      'SELECT COUNT(*) AS C, ' +
+      'MIN(VR_ORIG_TIPO) AS TMIN, MAX(VR_ORIG_TIPO) AS TMAX, ' +
+      'MIN(VR_ORIG_SERIE) AS SMIN, MAX(VR_ORIG_SERIE) AS SMAX, ' +
+      'MIN(VR_ORIG_NUMERO) AS NMIN, MAX(VR_ORIG_NUMERO) AS NMAX, ' +
+      'MIN(VR_ORIG_FECHA) AS FMIN, MAX(VR_ORIG_FECHA) AS FMAX, ' +
+      'MIN(VR_ORIG_HORA) AS HMIN, MAX(VR_ORIG_HORA) AS HMAX, ' +
+      'MIN(VR_ORIG_CAJA) AS CMIN, MAX(VR_ORIG_CAJA) AS CMAX ' +
+      'FROM ' + VF_TablaVentasRectif +
+      ' WHERE VR_TICKET=' + IntToStr(LTicketRectif);
+    dbTrabajo.Open;
+
+    TempCount := dbTrabajo.FieldByName('C').AsInteger;
+    if TempCount <> NegCount then Exit;
+
+    TipoMin := Trim(UpperCase(dbTrabajo.FieldByName('TMIN').AsString));
+    TipoMax := Trim(UpperCase(dbTrabajo.FieldByName('TMAX').AsString));
+    SerieMin := Trim(UpperCase(dbTrabajo.FieldByName('SMIN').AsString));
+    SerieMax := Trim(UpperCase(dbTrabajo.FieldByName('SMAX').AsString));
+    NumMin := dbTrabajo.FieldByName('NMIN').AsInteger;
+    NumMax := dbTrabajo.FieldByName('NMAX').AsInteger;
+    FechaMin := Trim(dbTrabajo.FieldByName('FMIN').AsString);
+    FechaMax := Trim(dbTrabajo.FieldByName('FMAX').AsString);
+    HoraMin := Trim(dbTrabajo.FieldByName('HMIN').AsString);
+    HoraMax := Trim(dbTrabajo.FieldByName('HMAX').AsString);
+    CajaMin := Trim(dbTrabajo.FieldByName('CMIN').AsString);
+    CajaMax := Trim(dbTrabajo.FieldByName('CMAX').AsString);
+
+    if (TipoMin = '') or (SerieMin = '') or (NumMin <= 0) then Exit;
+    if (TipoMin <> TipoMax) or (SerieMin <> SerieMax) or (NumMin <> NumMax) then Exit;
+    if (FechaMin <> FechaMax) or (HoraMin <> HoraMax) or (CajaMin <> CajaMax) then Exit;
+
+    AOrigTipo := TipoMin;
+    AOrigSerie := SerieMin;
+    AOrigNumero := NumMin;
+
+    if (AOrigTipo = 'NT') or (AOrigTipo = 'NS') then
+      ARectifTag := Format('VF_RECTIF:TYPE=FS;ORIG_SERIE=FS-%s;ORIG_NUM=%d;ORIG_TIPO=%s;ORIG_FECHA=%s;ORIG_HORA=%s;ORIG_CAJA=%s',
+        [AOrigSerie, AOrigNumero, AOrigTipo, FechaMin, HoraMin, CajaMin])
+    else if AOrigTipo = 'FA' then
+      ARectifTag := Format('VF_RECTIF:TYPE=NORMAL;ORIG_SERIE=%s;ORIG_NUM=%d;ORIG_TIPO=%s;ORIG_FECHA=%s;ORIG_HORA=%s;ORIG_CAJA=%s',
+        [AOrigSerie, AOrigNumero, AOrigTipo, FechaMin, HoraMin, CajaMin])
+    else
+      Exit;
+
+    ARectifTag := VF_NormalizeRectifTag(ARectifTag);
+    Result := ARectifTag <> '';
+  except
+    on E: Exception do
+    begin
+      Result := False;
+      try
+        FLX_WriteLog('VENTAS', 'RECTIF TEMP: no se pudo recuperar referencia automática desde ' +
+          VF_TablaVentasRectif + ' | ' + E.Message);
+      except
+      end;
+    end;
+  end;
+end;
+
+
+function TFVentas.VF_ValidarSaldosRectifTemporal: Boolean;
+var
+  SQLTxt: string;
+  LTicketRectif: Integer;
+  QtyOrig, QtyReq, QtyYa, Saldo: Double;
+  InfoLinea: string;
+begin
+  Result := True;
+  try
+    LTicketRectif := StrToIntDef(TICKET, 0);
+    if VF_MixtaTicketNegativo > 0 then
+      LTicketRectif := VF_MixtaTicketNegativo;
+
+    dbTrabajo.Active := False;
+    SQLTxt :=
+      'SELECT t.*, COALESCE((' +
+      ' SELECT SUM(l.RL_QTY_RECTIFICADA) FROM rectiflin' + Tienda + ' l' +
+      ' WHERE l.RL_ORIG_TIPO=t.VR_ORIG_TIPO' +
+      ' AND l.RL_ORIG_FECHA=t.VR_ORIG_FECHA' +
+      ' AND l.RL_ORIG_HORA=t.VR_ORIG_HORA' +
+      ' AND l.RL_ORIG_CAJA=t.VR_ORIG_CAJA' +
+      ' AND l.RL_ORIG_SERIE=t.VR_ORIG_SERIE' +
+      ' AND l.RL_ORIG_NUMERO=t.VR_ORIG_NUMERO' +
+      ' AND l.RL_ORIG_LINEA=t.VR_ORIG_LINEA' +
+      '),0) AS QTY_YA_RECT ' +
+      'FROM ' + VF_TablaVentasRectif + ' t ' +
+      'WHERE t.VR_TICKET=' + IntToStr(LTicketRectif) +
+      ' ORDER BY t.VR_LINEA_VENTA';
+    dbTrabajo.SQL.Text := SQLTxt;
+    dbTrabajo.Open;
+
+    while not dbTrabajo.EOF do
+    begin
+      QtyOrig := Abs(dbTrabajo.FieldByName('VR_QTY_ORIGINAL').AsFloat);
+      QtyReq  := Abs(dbTrabajo.FieldByName('VR_QTY_A_RECTIFICAR').AsFloat);
+      QtyYa   := Abs(dbTrabajo.FieldByName('QTY_YA_RECT').AsFloat);
+      Saldo   := QtyOrig - QtyYa;
+
+      if QtyReq > (Saldo + 0.0001) then
+      begin
+        InfoLinea := 'Serie ' + dbTrabajo.FieldByName('VR_ORIG_SERIE').AsString +
+          ' Nº ' + dbTrabajo.FieldByName('VR_ORIG_NUMERO').AsString +
+          ' Línea ' + dbTrabajo.FieldByName('VR_ORIG_LINEA').AsString;
+        MessageDlg('Control de rectificativas',
+          'No se puede rectificar de nuevo esta línea.' + LineEnding + LineEnding +
+          InfoLinea + LineEnding +
+          'Cantidad original: ' + FormatFloat('0.###', QtyOrig) + LineEnding +
+          'Ya rectificada: ' + FormatFloat('0.###', QtyYa) + LineEnding +
+          'Disponible: ' + FormatFloat('0.###', Saldo) + LineEnding +
+          'Cantidad solicitada: ' + FormatFloat('0.###', QtyReq),
+          mtWarning, [mbOK], 0);
+        Result := False;
+        Exit;
+      end;
+
+      dbTrabajo.Next;
+    end;
+  except
+    on E: Exception do
+    begin
+      Result := False;
+      try
+        FLX_WriteLog('VENTAS', 'RECTIF CTRL: error validando saldos en ' +
+          VF_TablaVentasRectif + ' | ' + E.Message);
+      except
+      end;
+      DataModule1.Mensaje('AVISO',
+        'No se pudo validar el saldo rectificable. No se cerrará la operación para evitar duplicados.',
+        5000, clGray);
+    end;
+  end;
+end;
+
+procedure TFVentas.VF_RegistrarRectifDefinitiva(const ARectifTag: string);
+var
+  SQLTxt: string;
+  RCID: Int64;
+  OTipo, OFecha, OHora, OCaja, OSerie: string;
+  ONum: Integer;
+  LTicketRectif: Integer;
+begin
+  try
+    LTicketRectif := StrToIntDef(TICKET, 0);
+    if VF_MixtaTicketNegativo > 0 then
+      LTicketRectif := VF_MixtaTicketNegativo;
+
+    dbTrabajo.Active := False;
+    dbTrabajo.SQL.Text :=
+      'SELECT COUNT(*) AS C, ' +
+      'MIN(VR_ORIG_TIPO) AS TMIN, MAX(VR_ORIG_TIPO) AS TMAX, ' +
+      'MIN(VR_ORIG_FECHA) AS FMIN, MAX(VR_ORIG_FECHA) AS FMAX, ' +
+      'MIN(VR_ORIG_HORA) AS HMIN, MAX(VR_ORIG_HORA) AS HMAX, ' +
+      'MIN(VR_ORIG_CAJA) AS CMIN, MAX(VR_ORIG_CAJA) AS CMAX, ' +
+      'MIN(VR_ORIG_SERIE) AS SMIN, MAX(VR_ORIG_SERIE) AS SMAX, ' +
+      'MIN(VR_ORIG_NUMERO) AS NMIN, MAX(VR_ORIG_NUMERO) AS NMAX ' +
+      'FROM ' + VF_TablaVentasRectif +
+      ' WHERE VR_TICKET=' + IntToStr(LTicketRectif);
+    dbTrabajo.Open;
+
+    if dbTrabajo.FieldByName('C').AsInteger <= 0 then
+    begin
+      try
+        FLX_WriteLog('VENTAS', 'RECTIF CTRL: no hay lineas temporales para registrar | ticket=' + IntToStr(LTicketRectif));
+      except
+      end;
+      Exit;
+    end;
+
+    if (Trim(dbTrabajo.FieldByName('TMIN').AsString) <> Trim(dbTrabajo.FieldByName('TMAX').AsString)) or
+       (Trim(dbTrabajo.FieldByName('FMIN').AsString) <> Trim(dbTrabajo.FieldByName('FMAX').AsString)) or
+       (Trim(dbTrabajo.FieldByName('HMIN').AsString) <> Trim(dbTrabajo.FieldByName('HMAX').AsString)) or
+       (Trim(dbTrabajo.FieldByName('CMIN').AsString) <> Trim(dbTrabajo.FieldByName('CMAX').AsString)) or
+       (Trim(dbTrabajo.FieldByName('SMIN').AsString) <> Trim(dbTrabajo.FieldByName('SMAX').AsString)) or
+       (dbTrabajo.FieldByName('NMIN').AsInteger <> dbTrabajo.FieldByName('NMAX').AsInteger) then
+    begin
+      DataModule1.Mensaje('AVISO',
+        'No se registró el control definitivo de rectificación porque hay líneas de más de un documento origen.',
+        5000, clGray);
+      Exit;
+    end;
+
+    OTipo := Trim(dbTrabajo.FieldByName('TMIN').AsString);
+    OFecha := Trim(dbTrabajo.FieldByName('FMIN').AsString);
+    OHora := Trim(dbTrabajo.FieldByName('HMIN').AsString);
+    OCaja := Trim(dbTrabajo.FieldByName('CMIN').AsString);
+    OSerie := Trim(dbTrabajo.FieldByName('SMIN').AsString);
+    ONum := dbTrabajo.FieldByName('NMIN').AsInteger;
+
+    dbTrabajo.Active := False;
+    SQLTxt :=
+      'INSERT IGNORE INTO rectifcab' + Tienda +
+      ' (RC_ORIG_TIPO, RC_ORIG_FECHA, RC_ORIG_HORA, RC_ORIG_CAJA, RC_ORIG_SERIE, RC_ORIG_NUMERO,' +
+      ' RC_RECT_TIPO, RC_RECT_FECHA, RC_RECT_HORA, RC_RECT_CAJA, RC_RECT_SERIE, RC_RECT_NUMERO,' +
+      ' RC_USUARIO, RC_MOTIVO, RC_HO20_RECT) VALUES (' +
+      '"' + VF_SQLEscapeDbl(OTipo) + '",' +
+      '"' + VF_SQLEscapeDbl(OFecha) + '",' +
+      '"' + VF_SQLEscapeDbl(OHora) + '",' +
+      '"' + VF_SQLEscapeDbl(OCaja) + '",' +
+      '"' + VF_SQLEscapeDbl(OSerie) + '",' + IntToStr(ONum) + ',' +
+      '"RE",' +
+      '"' + FormatDateTime('yyyy-mm-dd', FechaVenta) + '",' +
+      '"' + FormatDateTime('hh:nn:ss', HoraVenta) + '",' +
+      '"' + VF_SQLEscapeDbl(Puesto) + '",' +
+      '"' + VF_SQLEscapeDbl(SERIEFACT) + '",' + IntToStr(NOPERACION) + ',' +
+      '"' + VF_SQLEscapeDbl(Dispensador) + '",' +
+      '"' + VF_SQLEscapeDbl(Copy(Trim(VF_RectifMotivoHold),1,255)) + '",' +
+      '"' + VF_SQLEscapeDbl(VF_NormalizeRectifTag(ARectifTag)) + '")';
+    dbTrabajo.SQL.Text := SQLTxt;
+    dbTrabajo.ExecSQL;
+
+    dbTrabajo.Active := False;
+    dbTrabajo.SQL.Text :=
+      'SELECT RC_ID FROM rectifcab' + Tienda +
+      ' WHERE RC_RECT_TIPO="RE"' +
+      ' AND RC_RECT_SERIE="' + VF_SQLEscapeDbl(SERIEFACT) + '"' +
+      ' AND RC_RECT_NUMERO=' + IntToStr(NOPERACION) +
+      ' LIMIT 1';
+    dbTrabajo.Open;
+    if dbTrabajo.IsEmpty then Exit;
+    RCID := dbTrabajo.FieldByName('RC_ID').AsLargeInt;
+
+    dbTrabajo.Active := False;
+    SQLTxt :=
+      'INSERT IGNORE INTO rectiflin' + Tienda +
+      ' (RL_CAB_ID, RL_ORIG_TIPO, RL_ORIG_FECHA, RL_ORIG_HORA, RL_ORIG_CAJA, RL_ORIG_SERIE, RL_ORIG_NUMERO, RL_ORIG_LINEA,' +
+      ' RL_RECT_TIPO, RL_RECT_FECHA, RL_RECT_HORA, RL_RECT_CAJA, RL_RECT_SERIE, RL_RECT_NUMERO, RL_RECT_LINEA,' +
+      ' RL_COD_ARTICULO, RL_DESCRIPCION, RL_QTY_ORIGINAL, RL_QTY_RECTIFICADA,' +
+      ' RL_PVP_ORIGINAL_CON_IVA, RL_TOTAL_ORIGINAL_CON_IVA, RL_TOTAL_RECTIFICADO_CON_IVA, RL_IVA, RL_DTO) ' +
+      'SELECT ' + IntToStr(RCID) + ', t.VR_ORIG_TIPO, t.VR_ORIG_FECHA, t.VR_ORIG_HORA, t.VR_ORIG_CAJA, t.VR_ORIG_SERIE, t.VR_ORIG_NUMERO, t.VR_ORIG_LINEA,' +
+      ' "RE", "' + FormatDateTime('yyyy-mm-dd', FechaVenta) + '", "' + FormatDateTime('hh:nn:ss', HoraVenta) + '", "' + VF_SQLEscapeDbl(Puesto) + '", "' + VF_SQLEscapeDbl(SERIEFACT) + '", ' + IntToStr(NOPERACION) + ', IFNULL(v.V2,t.VR_LINEA_VENTA),' +
+      ' LEFT(IFNULL(v.V3,""),30), LEFT(IFNULL(v.V4,""),120), ABS(t.VR_QTY_ORIGINAL), ABS(t.VR_QTY_A_RECTIFICAR),' +
+      ' IFNULL(v.V6,0), ABS(t.VR_IMP_ORIGINAL_CON_IVA), ABS(IFNULL(v.V11,t.VR_IMP_A_RECTIFICAR_CON_IVA)), IFNULL(v.V10,0), IFNULL(v.V8,0)' +
+      ' FROM ' + VF_TablaVentasRectif + ' t' +
+      ' LEFT JOIN ventas' + Tienda + Puesto + ' v ON v.V1=t.VR_TICKET AND v.V2=t.VR_LINEA_VENTA' +
+      ' WHERE t.VR_TICKET=' + IntToStr(LTicketRectif);
+    dbTrabajo.SQL.Text := SQLTxt;
+    dbTrabajo.ExecSQL;
+
+    try
+      dbTrabajo.Active := False;
+      dbTrabajo.SQL.Text :=
+        'SELECT COUNT(*) AS C FROM rectiflin' + Tienda +
+        ' WHERE RL_RECT_TIPO="RE"' +
+        ' AND RL_RECT_SERIE="' + VF_SQLEscapeDbl(SERIEFACT) + '"' +
+        ' AND RL_RECT_NUMERO=' + IntToStr(NOPERACION);
+      dbTrabajo.Open;
+      FLX_WriteLog('VENTAS', 'RECTIF CTRL: registrada rectificativa ' + SERIEFACT + '-' + IntToStr(NOPERACION) +
+        ' en rectifcab/rectiflin | lineas=' + dbTrabajo.FieldByName('C').AsString +
+        ' ticket_origen=' + IntToStr(LTicketRectif));
+    except
+    end;
+  except
+    on E: Exception do
+    begin
+      try
+        FLX_WriteLog('VENTAS', 'RECTIF CTRL: error registrando rectifcab/rectiflin | ' + E.Message);
+      except
+      end;
+      DataModule1.Mensaje('AVISO',
+        'La factura se ha generado, pero no se pudo registrar el control interno de rectificación. Revise rectifcab/rectiflin.',
+        6000, clGray);
+    end;
+  end;
+
+end;
+
+function TFVentas.VF_PedirMotivoRectif(out AMotivo: string): Boolean;
+var
+  S: string;
+begin
+  Result := False;
+  S := Trim(VF_RectifMotivoHold);
+  if S = '' then
+    S := 'Devoluci�n / rectificaci�n de venta';
+
+  if not InputQuery('Factura rectificativa', 'Motivo de la rectificaci�n:', S) then
+    Exit;
+
+  S := Trim(S);
+  if S = '' then
+    S := 'Rectificaci�n de venta';
+
+  AMotivo := Copy(S, 1, 255);
+  Result := True;
+end;
+
+function TFVentas.VF_PrepararRectifManualTemporal(const AOrigIsFS: Boolean; const AOrigSerie: string;
+  const AOrigNumero: Integer; out ARectifTag: string): Boolean;
+var
+  SQLTxt, TipoFiltro, CliFiltro, CodArt, DescArt, OCaja, OSerie, OTipo: string;
+  OFechaStr, OHoraStr, NifActual, ClienteActual: string;
+  OFechaDT, OHoraDT: TDateTime;
+  ONum, OLinea, LTicket, LLineaVenta: Integer;
+  QtyReq, ImpReq, QtyOrig, ImpOrig, QtyYa, QtyTemp, Saldo: Double;
+  Bmk: TBookmark;
+  TieneBookmark: Boolean;
+  LineasOK: Integer;
+begin
+  Result := False;
+  ARectifTag := '';
+
+  if (dbVentas = nil) or (not dbVentas.Active) or dbVentas.IsEmpty then Exit;
+
+  OSerie := Trim(UpperCase(AOrigSerie));
+
+  // IMPORTANTE:
+  // En histórico las facturas simplificadas/tickets NO llevan prefijo FS- en HO4.
+  // Ejemplo real histórico: HO4=A26 / B26 / X26 y HO5=NT o NS.
+  // El prefijo FS- solo se usa para control/VeriFactu, no para buscar en hisopcc/hisopdd.
+  if AOrigIsFS then
+  begin
+    if Copy(OSerie, 1, 3) = 'FS-' then
+      Delete(OSerie, 1, 3);
+  end;
+
+  ONum := AOrigNumero;
+  if (OSerie = '') or (ONum <= 0) then Exit;
+
+  LTicket := StrToIntDef(TICKET, 0);
+  if LTicket <= 0 then
+  begin
+    DataModule1.Mensaje('AVISO', 'No se pudo identificar el ticket actual para controlar la rectificativa.', 4000, clGray);
+    Exit;
+  end;
+
+  if AOrigIsFS then
+    TipoFiltro := 'HO5 IN ("NT","NS")'
+  else
+    TipoFiltro := 'HO5="FA"';
+
+  ClienteActual := Trim(Edit1.Text);
+  NifActual := Trim(Label21.Caption);
+  CliFiltro := '';
+  if ClienteActual <> '' then
+    CliFiltro := CliFiltro + ' AND (HO8=' + ClienteActual;
+  if NifActual <> '' then
+  begin
+    if CliFiltro = '' then
+      CliFiltro := ' AND (HO19="' + VF_SQLEscapeDbl(NifActual) + '"'
+    else
+      CliFiltro := CliFiltro + ' OR HO19="' + VF_SQLEscapeDbl(NifActual) + '"';
+  end;
+  if CliFiltro <> '' then
+    CliFiltro := CliFiltro + ')';
+
+  try
+    // 1) Resolver cabecera original en histórico con serie/número/tipo y, si existe, cliente/NIF.
+    dbTrabajo.Active := False;
+    dbTrabajo.SQL.Text :=
+      'SELECT HO0,HO1,HO2,HO3,HO4,HO5,HO8,HO19 FROM hisopcc' + Tienda +
+      ' WHERE HO4="' + VF_SQLEscapeDbl(OSerie) + '"' +
+      ' AND HO3=' + IntToStr(ONum) +
+      ' AND ' + TipoFiltro + CliFiltro +
+      ' ORDER BY HO0 DESC, HO1 DESC LIMIT 1';
+    dbTrabajo.Open;
+
+    if dbTrabajo.IsEmpty then
+    begin
+      DataModule1.Mensaje('AVISO',
+        'No se encontró en histórico la factura/ticket origen indicado.' + LineEnding +
+        'Serie buscada en histórico: ' + OSerie + '  Número: ' + IntToStr(ONum) + LineEnding +
+        'Recuerde: en histórico los tickets se buscan como A26/B26/X26 y HO5=NT o NS, nunca como FS-A26.',
+        5000, clGray);
+      Exit;
+    end;
+
+    OTipo := Trim(UpperCase(dbTrabajo.FieldByName('HO5').AsString));
+    OFechaDT := dbTrabajo.FieldByName('HO0').AsDateTime;
+    OHoraDT := dbTrabajo.FieldByName('HO1').AsDateTime;
+    OCaja := Trim(dbTrabajo.FieldByName('HO2').AsString);
+    OFechaStr := FormatDateTime('yyyy-mm-dd', OFechaDT);
+    OHoraStr := FormatDateTime('hh:nn:ss', OHoraDT);
+
+    // 2) Limpiar posibles temporales anteriores de este ticket y reconstruirlos desde las líneas negativas actuales.
+    dbTrabajo.Active := False;
+    dbTrabajo.SQL.Text := 'DELETE FROM ' + VF_TablaVentasRectif + ' WHERE VR_TICKET=' + IntToStr(LTicket);
+    dbTrabajo.ExecSQL;
+
+    LineasOK := 0;
+    TieneBookmark := False;
+    Bmk := nil;
+    dbVentas.DisableControls;
+    try
+      try
+        Bmk := dbVentas.GetBookmark;
+        TieneBookmark := True;
+      except
+        TieneBookmark := False;
+      end;
+
+      dbVentas.First;
+      while not dbVentas.EOF do
+      begin
+        if dbVentas.FieldByName('V5').AsFloat < 0 then
+        begin
+          LLineaVenta := dbVentas.FieldByName('V2').AsInteger;
+          CodArt := Trim(dbVentas.FieldByName('V3').AsString);
+          DescArt := Trim(dbVentas.FieldByName('V4').AsString);
+          QtyReq := Abs(dbVentas.FieldByName('V5').AsFloat);
+          ImpReq := Abs(dbVentas.FieldByName('V11').AsFloat);
+
+          dbTrabajo.Active := False;
+          SQLTxt :=
+            'SELECT d.HOD5,d.HOD8,d.HOD14,' +
+            ' COALESCE((SELECT SUM(l.RL_QTY_RECTIFICADA) FROM rectiflin' + Tienda + ' l' +
+            ' WHERE l.RL_ORIG_TIPO="' + VF_SQLEscapeDbl(OTipo) + '"' +
+            ' AND l.RL_ORIG_FECHA="' + OFechaStr + '"' +
+            ' AND l.RL_ORIG_HORA="' + OHoraStr + '"' +
+            ' AND l.RL_ORIG_CAJA="' + VF_SQLEscapeDbl(OCaja) + '"' +
+            ' AND l.RL_ORIG_SERIE="' + VF_SQLEscapeDbl(OSerie) + '"' +
+            ' AND l.RL_ORIG_NUMERO=' + IntToStr(ONum) +
+            ' AND l.RL_ORIG_LINEA=d.HOD5),0) AS QTY_YA,' +
+            ' COALESCE((SELECT SUM(t.VR_QTY_A_RECTIFICAR) FROM ' + VF_TablaVentasRectif + ' t' +
+            ' WHERE t.VR_TICKET=' + IntToStr(LTicket) +
+            ' AND t.VR_ORIG_TIPO="' + VF_SQLEscapeDbl(OTipo) + '"' +
+            ' AND t.VR_ORIG_FECHA="' + OFechaStr + '"' +
+            ' AND t.VR_ORIG_HORA="' + OHoraStr + '"' +
+            ' AND t.VR_ORIG_CAJA="' + VF_SQLEscapeDbl(OCaja) + '"' +
+            ' AND t.VR_ORIG_SERIE="' + VF_SQLEscapeDbl(OSerie) + '"' +
+            ' AND t.VR_ORIG_NUMERO=' + IntToStr(ONum) +
+            ' AND t.VR_ORIG_LINEA=d.HOD5),0) AS QTY_TEMP' +
+            ' FROM hisopdd' + Tienda + ' d' +
+            ' WHERE d.HOD0="' + OFechaStr + '"' +
+            ' AND d.HOD1="' + OHoraStr + '"' +
+            ' AND d.HOD2="' + VF_SQLEscapeDbl(OCaja) + '"' +
+            ' AND d.HOD3=' + IntToStr(ONum) +
+            ' AND d.HOD4="' + VF_SQLEscapeDbl(OSerie) + '"' +
+            ' AND d.HOD6="' + VF_SQLEscapeDbl(CodArt) + '"' +
+            ' ORDER BY d.HOD5';
+          dbTrabajo.SQL.Text := SQLTxt;
+          dbTrabajo.Open;
+
+          OLinea := 0;
+          QtyOrig := 0;
+          ImpOrig := 0;
+          while not dbTrabajo.EOF do
+          begin
+            QtyOrig := Abs(dbTrabajo.FieldByName('HOD8').AsFloat);
+            ImpOrig := Abs(dbTrabajo.FieldByName('HOD14').AsFloat);
+            QtyYa := Abs(dbTrabajo.FieldByName('QTY_YA').AsFloat);
+            QtyTemp := Abs(dbTrabajo.FieldByName('QTY_TEMP').AsFloat);
+            Saldo := QtyOrig - QtyYa - QtyTemp;
+            if QtyReq <= (Saldo + 0.0001) then
+            begin
+              OLinea := dbTrabajo.FieldByName('HOD5').AsInteger;
+              Break;
+            end;
+            dbTrabajo.Next;
+          end;
+
+          if OLinea <= 0 then
+          begin
+            MessageDlg('Control de rectificativas',
+              'No hay saldo suficiente para rectificar el artículo:' + LineEnding + LineEnding +
+              CodArt + ' - ' + DescArt + LineEnding +
+              'Cantidad solicitada: ' + FormatFloat('0.###', QtyReq) + LineEnding +
+              'Factura origen: ' + OSerie + '-' + IntToStr(ONum),
+              mtWarning, [mbOK], 0);
+            Exit;
+          end;
+
+          dbTrabajo.Active := False;
+          dbTrabajo.SQL.Text :=
+            'REPLACE INTO ' + VF_TablaVentasRectif +
+            ' (VR_TICKET, VR_LINEA_VENTA, VR_ORIG_TIPO, VR_ORIG_FECHA, VR_ORIG_HORA, VR_ORIG_CAJA,' +
+            ' VR_ORIG_SERIE, VR_ORIG_NUMERO, VR_ORIG_LINEA, VR_QTY_ORIGINAL, VR_QTY_A_RECTIFICAR,' +
+            ' VR_IMP_ORIGINAL_CON_IVA, VR_IMP_A_RECTIFICAR_CON_IVA) VALUES (' +
+            IntToStr(LTicket) + ',' + IntToStr(LLineaVenta) + ',' +
+            '"' + VF_SQLEscapeDbl(OTipo) + '",' +
+            '"' + OFechaStr + '",' +
+            '"' + OHoraStr + '",' +
+            '"' + VF_SQLEscapeDbl(OCaja) + '",' +
+            '"' + VF_SQLEscapeDbl(OSerie) + '",' + IntToStr(ONum) + ',' + IntToStr(OLinea) + ',' +
+            VF_SQLFloat(QtyOrig) + ',' + VF_SQLFloat(QtyReq) + ',' +
+            VF_SQLFloat(ImpOrig) + ',' + VF_SQLFloat(ImpReq) + ')';
+          dbTrabajo.ExecSQL;
+          Inc(LineasOK);
+        end;
+        dbVentas.Next;
+      end;
+
+      if TieneBookmark and dbVentas.BookmarkValid(Bmk) then
+        dbVentas.GotoBookmark(Bmk);
+    finally
+      if TieneBookmark then
+        dbVentas.FreeBookmark(Bmk);
+      dbVentas.EnableControls;
+    end;
+
+    if LineasOK <= 0 then Exit;
+
+    if (OTipo = 'NT') or (OTipo = 'NS') then
+      ARectifTag := VF_NormalizeRectifTag(Format('VF_RECTIF:TYPE=FS;ORIG_SERIE=FS-%s;ORIG_NUM=%d;ORIG_TIPO=%s;ORIG_FECHA=%s;ORIG_HORA=%s;ORIG_CAJA=%s',
+        [OSerie, ONum, OTipo, OFechaStr, OHoraStr, OCaja]))
+    else
+      ARectifTag := VF_NormalizeRectifTag(Format('VF_RECTIF:TYPE=NORMAL;ORIG_SERIE=%s;ORIG_NUM=%d;ORIG_TIPO=%s;ORIG_FECHA=%s;ORIG_HORA=%s;ORIG_CAJA=%s',
+        [OSerie, ONum, OTipo, OFechaStr, OHoraStr, OCaja]));
+
+    FLX_WriteLog('VENTAS', 'RECTIF MANUAL: origen resuelto y temporal preparado | origen=' + OTipo + ' ' + OSerie + '-' + IntToStr(ONum) + ' lineas=' + IntToStr(LineasOK));
+    Result := True;
+  except
+    on E: Exception do
+    begin
+      try
+        FLX_WriteLog('VENTAS', 'RECTIF MANUAL: error preparando temporal | ' + E.Message);
+      except
+      end;
+      DataModule1.Mensaje('AVISO',
+        'No se pudo preparar el control interno de la rectificativa manual.' + LineEnding +
+        'No se cerrará para evitar duplicados.' + LineEnding + E.Message,
+        7000, clGray);
+      Result := False;
+    end;
   end;
 end;
 
@@ -631,10 +2117,135 @@ begin
       //** ShowOnTop;
     end;
 end;
+
+procedure TFVentas.VF_SetPromoVisual(const APromoActiva: Boolean);
+begin
+  if Assigned(Edit6) then
+  begin
+    if APromoActiva then
+    begin
+      Edit6.Font.Color := clGreen;
+      Edit6.Font.Style := [fsBold];
+    end
+    else
+    begin
+      Edit6.Font.Color := FEdit6ColorNormal;
+      Edit6.Font.Style := FEdit6StyleNormal;
+    end;
+  end;
+
+  if Assigned(LblPromoActiva) then
+    LblPromoActiva.Visible := APromoActiva;
+end;
+
+
+
+function TFVentas.VF_LineaTienePromoEnGrid(const ACodigo: string): Boolean;
+var
+  Q: TZQuery;
+  Codigo, CodigoPrincipal, PromoArt: string;
+begin
+  Result := False;
+  Codigo := Trim(ACodigo);
+  if Codigo = '' then Exit;
+
+  // Muy importante: la línea del ticket puede venir con EA/código auxiliar,
+  // mientras que la promo puede estar guardada con A0 o con otro auxiliar.
+  CodigoPrincipal := ResolveArticuloPrincipal(dbArti.Connection, Tienda, Codigo);
+  if CodigoPrincipal = '' then
+    CodigoPrincipal := Codigo;
+
+  if FGridPromoLastCodigo = CodigoPrincipal then
+    Exit(FGridPromoLastActivo);
+
+  FGridPromoLastCodigo := CodigoPrincipal;
+  FGridPromoLastActivo := False;
+
+  Q := TZQuery.Create(nil);
+  try
+    Q.Connection := dbArti.Connection;
+
+    // 1) Reglas PRO: traemos candidatas activas y validamos por principal,
+    // para soportar promociones dadas de alta con A0 o con EA.
+    try
+      Q.SQL.Text :=
+        'SELECT articulo FROM promo_rules' + Tienda +
+        ' WHERE activo=''S'' ' +
+        '   AND (inicio_dt IS NULL OR inicio_dt<=:fh) ' +
+        '   AND (fin_dt IS NULL OR fin_dt>=:fh)';
+      Q.ParamByName('fh').AsDateTime := Now;
+      Q.Open;
+
+      while not Q.EOF do
+      begin
+        PromoArt := Trim(Q.FieldByName('articulo').AsString);
+        if (PromoArt = '') or
+           (PromoArt = Codigo) or
+           (PromoArt = CodigoPrincipal) or
+           (ResolveArticuloPrincipal(dbArti.Connection, Tienda, PromoArt) = CodigoPrincipal) then
+        begin
+          FGridPromoLastActivo := True;
+          Exit(True);
+        end;
+        Q.Next;
+      end;
+    except
+      // Si falla la tabla nueva, seguimos con legacy
+    end;
+
+    Q.Close;
+
+    // 2) Tabla legacy promoXXXX
+    Q.SQL.Text :=
+      'SELECT P0 FROM promo' + Tienda +
+      ' WHERE (P10 IS NULL OR P10='''' OR P10=''A'') ' +
+      '   AND :d BETWEEN P5 AND P6';
+    Q.ParamByName('d').AsDate := Date;
+    Q.Open;
+
+    while not Q.EOF do
+    begin
+      PromoArt := Trim(Q.FieldByName('P0').AsString);
+      if (PromoArt = Codigo) or
+         (PromoArt = CodigoPrincipal) or
+         (ResolveArticuloPrincipal(dbArti.Connection, Tienda, PromoArt) = CodigoPrincipal) then
+      begin
+        FGridPromoLastActivo := True;
+        Exit(True);
+      end;
+      Q.Next;
+    end;
+
+    Result := False;
+  finally
+    Q.Free;
+  end;
+end;
+
+
 procedure TFVentas.FormCreate(Sender: TObject);
 var
   T1: QWord;
 begin
+// Visual de promociones
+FEdit6ColorNormal := Edit6.Font.Color;
+FEdit6StyleNormal := Edit6.Font.Style;
+
+LblPromoActiva := TLabel.Create(Self);
+LblPromoActiva.Parent := Self;
+LblPromoActiva.Caption := 'ARTÍCULO EN PROMOCIÓN';
+LblPromoActiva.Font.Color := clGreen;
+LblPromoActiva.Font.Style := [fsBold];
+LblPromoActiva.AutoSize := True;
+LblPromoActiva.Visible := False;
+LblPromoActiva.Left := Edit6.Left + Edit6.Width + 12;
+LblPromoActiva.Top := Edit6.Top + 4;
+
+
+  // Controles seguros del panel de cobro/totalizar.
+  VF_ConfigurarControlesCobro;
+  DBGrid2.OnMouseWheel := @DBGrid2MouseWheel;
+
   //--------- Conectar con la bbdd e inicializar datos globales
   //Conectate(dbConnect);   // Utilizamos datamodule1.dbConexión para toda la aplicación.
   //--------- Cargar Tabla de usuarios -------------
@@ -678,11 +2289,15 @@ begin
   T1 := VF_TickMS;
   VerSerieFacturacion();//---- Ver la serie de facturacion por def
   VF_LogPerf('TOTALIZAR: VerSerieFacturacion', T1);
-  VF_LogPerf('TOTALIZAR: VerSerieFacturacion', T1);
-  NumeroTicket();//----------- Cargar número de ticket de la tabla de series
+  LeerNumeroTicketActual();//--- NO consumir SF4 aquí (solo previsualización)
+  VF_LogInfo('QR preview: SF4 actual=' + IntToStr(NOPERACION) + ' (no consumido)');
 
-  txtQR:=vfUrl+'nif='+NIF+'&'+'numserie=FS-'+SERIEFACT+'-'+IntToStr(NOPERACION+1)+'&fecha='+FormatDateTime('dd-mm-yyyy',date);
-  BarcodeQR1.Text:=txtQR+'&importe=0.00';
+  if VF_EsModoProduccion then
+    BarcodeQR1.Text := VF_BuildQRTributario(SERIEFACT, NOPERACION+1, Date, '0.00')
+  else
+    BarcodeQR1.Text := TextoCodigoQR;
+
+  txtQR := BarcodeQR1.Text;
 
 end;
 
@@ -1030,13 +2645,17 @@ end;
 
 //================= BORRAR LINEAS DE VENTA =============
 procedure TFVentas.BitBtn3Click(Sender: TObject);
+var
+  VF_LineaVentaBorrar: Integer;
 begin
   if (dbVentas.RecordCount=0) or (dbVentas.Eof) then exit;
   boxstyle :=  MB_ICONQUESTION + MB_YESNO;
   If Application.MessageBox('CONFIRME EL BORRADO DE LA LINEA','FacturLinEx', boxstyle) = IDNO Then
       Exit;
+  VF_LineaVentaBorrar := dbVentas.FieldByName('V2').AsInteger;
   KeyLogB();
   dbVentas.Delete;
+  VF_BorrarLineaRectifTemporal(VF_LineaVentaBorrar);
   LimpiaEntrada();//----- Limpiar la entrada de datos
   PintarTotalGeneral();//----- Pintar Total general
   RefrescaTicketsAbiertos();//----- Refrescar total tickets abiertos
@@ -1204,11 +2823,26 @@ begin
 end;
 
 procedure TFVentas.Edit5Exit(Sender: TObject);
+var
+  Q: Double;
 begin
-  if not (EsFloat(Edit5.Text)) then begin Edit5.Text:='0';Edit5.SetFocus; exit; end;
+  if Trim(Edit5.Text)='' then Edit5.Text:='0';
+
+  if not VF_TryParseFloatBounded(Edit5.Text, 'Unidades', VF_MAX_QTY, Q) then
+    begin
+      VF_NumError('Unidades', Edit5.Text);
+      Edit5.Text:='0';
+      Edit5.SetFocus;
+      exit;
+    end;
+
+  // En ventas, si no hay unidades se asume 1 (comportamiento histórico)
+  if Q=0 then Edit5.Text:='1';
+
   if HayStock=false then label40.Font.Color:=clRed;//------- No hay unidades suficientes.
 
-  VerImporteEntra(); VerTotalEntra();
+  VerImporteEntra();
+  VerTotalEntra();
 end;
 //----------- Si introduce unidades antes que el codigo y pulsa ENTER (F5)
 procedure TFVentas.Edit5KeyPress(Sender: TObject; var Key: char);
@@ -1225,28 +2859,58 @@ begin
 end;
 
 //================== SALIR DEL PVP ==============
-procedure TFVentas.Edit6Exit(Sender: TObject);
-var
-  PrecioSin: Double;
-begin
-   if not (EsFloat(Edit6.Text)) then begin Edit6.Text:='0';Edit6.SetFocus; exit; end;
-   PrecioSin := (100 * StrToFloat(Edit6.text)) / (100 + StrToFloat(Edit10.Text));
-   Edit7.Text:=FormatFloat('0.000',PrecioSin);
-   Edit7Exit(Self);
- end;
-
-//----------- Si se modifica la linea y pulsa ENTER (F6)
 procedure TFVentas.Edit6KeyPress(Sender: TObject; var Key: char);
 var
   AntEdit5: String;
   AntEdit6: String;
 begin
-  if Key<>#13 then exit;
-  if not (EsFloat(Edit6.Text)) then begin Edit6.Text:='0';Edit6.SetFocus; exit; end;
-  if Edit6.Text='0' then begin Edit3.SetFocus; exit; end;
-  AntEdit5:=Edit5.Text;
-  AntEdit6:=Edit6.Text;
-  Edit3.SetFocus; Edit5.Text:=AntEdit5; Edit6.Text:=AntEdit6;
+  if Key <> #13 then exit;
+
+  // Al pulsar ENTER en Precio, volvemos al campo de Código para seguir introduciendo artículos.
+  // Guardamos/restauramos para evitar efectos colaterales de eventos de foco.
+  Key := #0;
+
+  AntEdit5 := Edit5.Text;
+  AntEdit6 := Edit6.Text;
+
+  Edit6Exit(Sender);     // Validar/recalcular importes si procede
+  Edit3.SetFocus;        // Volver a Código
+
+  Edit5.Text := AntEdit5;
+  Edit6.Text := AntEdit6;
+end;
+
+procedure TFVentas.Edit6Exit(Sender: TObject);
+var
+  PrecioSin, PVP, IVA: Double;
+begin
+  if Trim(Edit6.Text)='' then Edit6.Text:='0';
+  if Trim(Edit10.Text)='' then Edit10.Text:='0';
+
+  if not VF_TryParseFloatBounded(Edit6.Text, 'PVP', VF_MAX_PRICE, PVP) then
+    begin
+      VF_NumError('PVP', Edit6.Text);
+      Edit6.Text:='0';
+      Edit6.SetFocus;
+      exit;
+    end;
+
+  if not VF_TryParseFloatBounded(Edit10.Text, 'IVA %', 1000.0, IVA) then
+    begin
+      VF_NumError('IVA %', Edit10.Text);
+      Edit10.Text:='0';
+      Edit10.SetFocus;
+      exit;
+    end;
+
+  // Precio sin IVA a partir del PVP y el tipo de IVA
+  PrecioSin := (100 * PVP) / (100 + IVA);
+  Edit7.Text := FormatFloat('0.000', PrecioSin);
+
+  Edit6.Text:=FormatFloat('0.000', PVP);
+
+  VerImporteEntra();
+  VerTotalEntra();
 end;
 
 procedure TFVentas.Edit7DblClick(Sender: TObject);
@@ -1274,22 +2938,51 @@ end;
 
 //================== SALIR DEL DESCUENTO ==============
 procedure TFVentas.Edit8Exit(Sender: TObject);
+var
+  Dto: Double;
 begin
-  if not (EsFloat(Edit8.Text)) then begin Edit8.Text:='0';Edit8.SetFocus; exit; end;
+  if Trim(Edit8.Text)='' then Edit8.Text:='0';
 
-//  if Edit8.Text='' then Edit8.Text:='0';
-
+  if not VF_TryParseFloatBounded(Edit8.Text, 'Descuento %', 100.0, Dto) then
+    begin
+      VF_NumError('Descuento %', Edit8.Text);
+      Edit8.Text:='0';
+      Edit8.SetFocus;
+      exit;
+    end;
 
   //---- Calcular importe y total
-  VerImporteEntra(); VerTotalEntra();
+  VerImporteEntra();
+  VerTotalEntra();
 end;
 
 //======================= SALIR DEL IVA ================
 procedure TFVentas.Edit10Exit(Sender: TObject);
+var
+  IVA, PVP, PrecioSin: Double;
 begin
-  if not (EsFloat(Edit10.Text)) then begin Edit10.Text:='0';Edit10.SetFocus; exit; end;
-  Edit7.Text:=FloatToStr(StrToFloat(Edit6.Text)/(1+(StrToFloat(Edit10.Text)/100)));
-  Edit7.Text:=FormatFloat('0.000',StrToFloat(Edit7.Text));
+  if Trim(Edit10.Text)='' then Edit10.Text:='0';
+  if Trim(Edit6.Text)='' then Edit6.Text:='0';
+
+  if not VF_TryParseFloatBounded(Edit10.Text, 'IVA %', 1000.0, IVA) then
+    begin
+      VF_NumError('IVA %', Edit10.Text);
+      Edit10.Text:='0';
+      Edit10.SetFocus;
+      exit;
+    end;
+
+  if not VF_TryParseFloatBounded(Edit6.Text, 'PVP', VF_MAX_PRICE, PVP) then
+    begin
+      VF_NumError('PVP', Edit6.Text);
+      Edit6.Text:='0';
+      Edit6.SetFocus;
+      exit;
+    end;
+
+  // Precio sin IVA a partir del PVP y el IVA
+  PrecioSin := PVP / (1 + (IVA / 100));
+  Edit7.Text:=FormatFloat('0.000', PrecioSin);
 end;
 
 //----------- Si se modifica la linea y pulsa ENTER (F11)
@@ -1301,13 +2994,146 @@ begin
 end;
 
 //================== SALIR DEL TOTAL =================
+
 procedure TFVentas.Edit11Exit(Sender: TObject);
+var
+  TotalLinea, TotalObjetivo, TotalSinDto, Unid, PVP, IVA, DtoCalc: Double;
+  TotalReal, Diff, Base: Double;
+
+  function GetTotalActual: Double;
+  begin
+    if not VF_TryParseFloatBounded(Edit11.Text, 'Total línea', VF_MAX_AMOUNT, Result) then
+      Result := 0;
+  end;
+
+  function TotalForDto(const ADTo: Double): Double;
+  begin
+    Edit8.Text := FormatFloat('0.0000', ADTo);
+    VerImporteEntra();
+    VerTotalEntra();
+    Result := GetTotalActual;
+  end;
+
+var
+  Total0, T, BestT, BestDto, Lo, Hi, Mid: Double;
+  i: Integer;
 begin
-  if not (EsFloat(Edit11.Text)) then begin Edit11.Text:='0';Edit11.SetFocus; exit; end;
-  //---- Calcular importe y el descuento Con esta linea, siempre que tenga iva puesto, calcula el importe y el descuento
-  if (Edit10.Text='0') or (Edit7.Text='0') then exit; // Si no existe IVA o Dto, Salimos para que no de error de calculos
+  if Trim(Edit11.Text)='' then Edit11.Text:='0';
+
+  // Validación fuerte: evita EAN en total/importe
+  if not VF_TryParseFloatBounded(Edit11.Text, 'Total línea', VF_MAX_AMOUNT, TotalObjetivo) then
+    begin
+      VF_NumError('Total línea', Edit11.Text);
+      Edit11.Text:='0';
+      Edit11.SetFocus;
+      exit;
+    end;
+
+  // ====== TOTAL (F7) => calculamos DESCUENTO para que el total quede EXACTO al céntimo ======
+  // Importante: usamos el MISMO camino de cálculo y redondeos que Ventas (VerImporteEntra + VerTotalEntra).
+  if not VF_TryParseFloatBounded(Edit5.Text, 'Unidades', VF_MAX_QTY, Unid) then Unid := 0;
+  if not VF_TryParseFloatBounded(Edit6.Text, 'PVP', VF_MAX_PRICE, PVP) then PVP := 0;
+  if not VF_TryParseFloatBounded(Edit10.Text, 'IVA %', 1000.0, IVA) then IVA := 0;
+
+  if (PVP>0) and (Unid>0) then
+  begin
+    // Caso regalo
+    if TotalObjetivo=0 then
+    begin
+      Edit8.Text := '100.0000';
+      VerImporteEntra();
+      VerTotalEntra();
+      Exit;
+    end;
+
+    // Total sin descuento REAL (con el mismo circuito)
+    Total0 := TotalForDto(0);
+
+    // Si piden un total mayor que el total sin descuento, no hay "descuento negativo".
+    if TotalObjetivo > Total0 then
+    begin
+      ShowMessage('El TOTAL indicado es mayor que el total sin descuento.'+LineEnding+
+                  'No se puede calcular un descuento negativo. Mantengo DESCUENTO=0.');
+      Edit8.Text := '0.0000';
+      // dejamos el total real sin descuento
+      Edit11.Text := FormatFloat('0.00', Total0);
+      VerImporteEntra();
+      VerTotalEntra();
+      Exit;
+    end;
+
+    // 1) Búsqueda binaria para aproximar rápido
+    Lo := 0; Hi := 100;
+    BestDto := 0;
+    BestT := Total0;
+    for i := 1 to 30 do
+    begin
+      Mid := (Lo + Hi) / 2;
+      T := TotalForDto(Mid);
+
+      if Abs(T - TotalObjetivo) < Abs(BestT - TotalObjetivo) then
+      begin
+        BestT := T;
+        BestDto := Mid;
+        if (FormatFloat('0.00', BestT) = FormatFloat('0.00', TotalObjetivo)) then Break;
+      end;
+
+      // Total baja cuando sube el dto (monótono)
+      if T > TotalObjetivo then
+        Lo := Mid
+      else
+        Hi := Mid;
+    end;
+
+    // 2) Refinado local a 4 decimales (0,0001%) alrededor del mejor
+    //    (pocos pasos para no penalizar rendimiento)
+    DtoCalc := BestDto;
+    // Barrido fino +-0,05% en pasos 0,0005%
+    for i := -100 to 100 do
+    begin
+      Mid := BestDto + (i * 0.0005);
+      if Mid < 0 then Continue;
+      if Mid > 100 then Continue;
+      T := TotalForDto(Mid);
+      if Abs(T - TotalObjetivo) < Abs(BestT - TotalObjetivo) then
+      begin
+        BestT := T;
+        DtoCalc := Mid;
+        if (FormatFloat('0.00', BestT) = FormatFloat('0.00', TotalObjetivo)) then Break;
+      end;
+    end;
+
+    // Último refinado +-0,01% en pasos 0,0001% si aún no cuadra
+    if (FormatFloat('0.00', BestT) <> FormatFloat('0.00', TotalObjetivo)) then
+    begin
+      BestDto := DtoCalc;
+      for i := -100 to 100 do
+      begin
+        Mid := BestDto + (i * 0.0001);
+        if Mid < 0 then Continue;
+        if Mid > 100 then Continue;
+        T := TotalForDto(Mid);
+        if Abs(T - TotalObjetivo) < Abs(BestT - TotalObjetivo) then
+        begin
+          BestT := T;
+          DtoCalc := Mid;
+          if (FormatFloat('0.00', BestT) = FormatFloat('0.00', TotalObjetivo)) then Break;
+        end;
+      end;
+    end;
+
+    // Aplicamos el dto final (4 decimales) y dejamos el total recalculado por el circuito.
+    Edit8.Text := FormatFloat('0.0000', DtoCalc);
+    VerImporteEntra();
+    VerTotalEntra();
+    Exit;
+  end;
+
+  // ---- Comportamiento anterior (cuando ya hay IVA y precio sin IVA calculable)
+  if (Edit10.Text='0') or (Edit7.Text='0') then exit; // Si no existe IVA o Precio, Salimos
   VerDtoEntra();
 end;
+
 //----------- Si se modifica la linea y pulsa ENTER (F7)
 procedure TFVentas.Edit11KeyPress(Sender: TObject; var Key: char);
 begin
@@ -1339,6 +3165,7 @@ begin
     edNumeroCopias.Text:=dbClientes.FieldByName('C8').AsString; if edNumeroCopias.Text='0' then edNumeroCopias.Text:='1';
 
   Combo2.ItemIndex:=0; // Inicializamos forma de pago a contado.
+  VF_ConfigurarControlesCobro; // Asegura que la forma de pago no sea editable.
 
   chBoxRegalo.Checked:= false;                                                          //-- Checkbox anulado, si lo quiere, se activa
   if TicketRegalo='S' then ChBoxRegalo.Visible:=True else ChBoxRegalo.Visible:=False;   //-- Si está activada la opción, se muestra el checbox
@@ -1377,6 +3204,15 @@ begin
   Edit15.Text:=StaticText1.Caption;//----- Entrega
   Edit42.Text:='0.00';//------------------ Contado / Puntos
   Edit16.Text:='0.00';//------------------ Cambio
+
+  // Promociones de ticket completo (2ª unidad al 50%, NxM, etc.)
+  try
+    ApplyTicketPromosToTotalEdits(dbArti.Connection, Tienda, dbVentas,
+                                  Edit1.Text, Now,
+                                  Edit12, Edit13, Edit14, Edit15);
+  except
+    // No bloqueamos la venta si una promo de ticket falla
+  end;
 end;
 
 //---------------- Cerrar totalizar -----------------
@@ -1389,6 +3225,8 @@ end;
 //----------------- Tipo de pago -----------------
 procedure TFVentas.Combo2Change(Sender: TObject);
 begin
+  // No llamamos aqu� a VF_ConfigurarControlesCobro porque cambiar Style/ItemIndex
+  // durante el desplegable t�ctil puede cerrarlo autom�ticamente.
   Edit15.Enabled:=True;
   Edit12.Text:=StaticText1.Caption;//----- Importe
   Edit14.Text:=StaticText1.Caption;//----- Total
@@ -1396,6 +3234,15 @@ begin
   Edit16.Text:='0.00';//----- Cambio
   Edit14Exit(Edit14);
   Edit42.Text:='0.00';//---- Entrega CONTADO en TARJETAS+CONTADO
+
+  // Reaplicamos promociones de ticket al cambiar forma de pago
+  try
+    ApplyTicketPromosToTotalEdits(dbArti.Connection, Tienda, dbVentas,
+                                  Edit1.Text, Now,
+                                  Edit12, Edit13, Edit14, Edit15);
+  except
+    // No bloqueamos la venta si una promo de ticket falla
+  end;
   //---------- Posicion original ------------
   Label32.Top:=254; Edit16.Top:=243;
   Label81.Visible:=False; Edit42.Visible:=False;
@@ -1410,9 +3257,9 @@ begin
   //---------- Puntos acumulados ------------
   if Combo2.Text='PUNTOS ACUMULADOS' then
     begin
-      if APuntos<>'S' then begin DataModule1.Mensaje('Información','Los puntos están desactivados', 2000 , clGray); Combo2.Text:='CONTADO'; exit; end;
-      if dbClientes.FieldByName('C49').AsString<>'S' then begin DataModule1.Mensaje('Información','Este cliente no tiene los puntos activados', 2000 , clGray); Combo2.Text:='CONTADO'; exit; end;
-      if dbClientes.FieldByName('C50').AsFloat<=0 then begin DataModule1.Mensaje('Información','Este cliente no tiene los puntos acumulados', 2000 , clGray); Combo2.Text:='CONTADO'; exit; end;
+      if APuntos<>'S' then begin DataModule1.Mensaje('Información','Los puntos están desactivados', 2000 , clGray); Combo2.ItemIndex:=0; exit; end;
+      if dbClientes.FieldByName('C49').AsString<>'S' then begin DataModule1.Mensaje('Información','Este cliente no tiene los puntos activados', 2000 , clGray); Combo2.ItemIndex:=0; exit; end;
+      if dbClientes.FieldByName('C50').AsFloat<=0 then begin DataModule1.Mensaje('Información','Este cliente no tiene los puntos acumulados', 2000 , clGray); Combo2.ItemIndex:=0; exit; end;
       Label32.Top:=312; Edit16.Top:=304;
       Label81.Visible:=True; Edit42.Visible:=True;
       Label81.Caption:='PUNTOS';
@@ -1433,11 +3280,21 @@ end;
 //========================================================
 procedure TFVentas.BitBtn10Click(Sender: TObject);
 var
+  // Rectificativas (FS / Normal): control de líneas negativas
+  VF_EsRectif: Boolean;
+  VF_OrigIsFS: Boolean;
+  VF_OrigSerie, VF_SNum: string;
+  VF_OrigNum: Integer;
+  VF_RectifTag, VF_SerieRect: string;
+  VF_HayNegativas, VF_HayPositivas: Boolean;
+  VF_HistoGrabado: Boolean;
   T0, T1: QWord;
 begin
   T0 := VF_TickMS;
+  VF_HistoGrabado := False;
   VF_LogInfo('TOTALIZAR: BitBtn10Click START');
 
+  if not VF_NormalizarCamposCobro(True) then Exit;
 
 	vfTipoFactura:='F2';  //-- Definimos TipoFactura Veri*Factu como F2 - Factura Simplificada
 
@@ -1453,36 +3310,137 @@ begin
 
   FechaVenta:=Date; HoraVenta:=Time;//---- Fecha y hora para grabar los datos
   VerSerieFacturacion();//---- Ver la serie de facturacion por defecto
+  // -------------------------------------------------
+  // Rectificativas: si hay alguna línea con unidades negativas,
+  // la operación se trata como rectificativa y se pide la factura origen.
+  // IMPORTANTE: esto debe ocurrir ANTES de numerar (NumeroTicket()).
+  // -------------------------------------------------
+  VF_EsRectif := False;
+  VF_RectifTag := '';
+  VF_SerieRect := '';
+  VF_AnalizaSignosVenta(VF_HayNegativas, VF_HayPositivas);
+  if VF_HayNegativas and VF_HayPositivas then
+  begin
+    VF_LogMixta('START', 'operacion_mixta_detectada en cierre NS');
+    if not VF_SepararMixtaAparcarPositivas then
+    begin
+      VF_LogMixta('ABORT', 'no se pudo separar; no se numera ni se graba');
+      Exit;
+    end;
+    VF_AnalizaSignosVenta(VF_HayNegativas, VF_HayPositivas);
+    VF_LogMixta('RECTIFICATIVA_PREPARADA', 'continua cierre solo con negativas');
+  end;
+  VF_EsRectif := VF_HayNegativas;
+
+  if VF_EsRectif then
+  begin
+    VF_LogMixta('VALIDAR_SALDOS_START', 'validando saldo rectificable');
+    if not VF_ValidarSaldosRectifTemporal then
+    begin
+      VF_LogMixta('ABORT', 'saldo no valido; no se numera ni se graba');
+      Exit;
+    end;
+    VF_LogMixta('VALIDAR_SALDOS_OK', 'saldo rectificable correcto');
+  end;
+
+  if VF_EsRectif then
+  begin
+    // Serie rectificativa única RYY (año actual)
+    VF_SerieRect := 'R' + Copy(FormatDateTime('yyyy', Date), 3, 2);
+
+    // Si las líneas vienen de Histórico, la referencia original ya está en
+    // ventasrectif+Tienda+Puesto. En ese caso NO volvemos a pedir datos.
+    if not VF_ObtenerRectifTagTemporal(VF_RectifTag, VF_SNum, VF_OrigSerie, VF_OrigNum) then
+    begin
+      // Preguntar si la factura origen es FS (ticket/simplificada) o Normal
+      // Sí = FS, No = Normal
+      case MessageDlg('Factura rectificativa',
+        'Se han detectado líneas con cantidades negativas.' + LineEnding +
+        '¿La factura que rectificas es una FACTURA SIMPLIFICADA (FS / ticket)?',
+        mtConfirmation, [mbYes, mbNo, mbCancel], 0) of
+        mrYes: VF_OrigIsFS := True;
+        mrNo:  VF_OrigIsFS := False;
+      else
+        Exit; // Cancelar: salir SIN numerar nada
+      end;
+
+      // Pedir siempre SERIE + NÚMERO reales de la factura origen
+      VF_OrigSerie := '';
+      if not InputQuery('Factura a rectificar', 'Serie de la factura a rectificar:', VF_OrigSerie) then Exit;
+      VF_OrigSerie := Trim(UpperCase(VF_OrigSerie));
+      if VF_OrigSerie = '' then
+      begin
+        DataModule1.Mensaje('Información','Debe indicar una serie válida de la factura a rectificar', 2000 , clGray);
+        Exit;
+      end;
+
+      VF_SNum := '';
+      if not InputQuery('Factura a rectificar', 'Número de la factura a rectificar:', VF_SNum) then Exit;
+      VF_SNum := Trim(VF_SNum);
+      if (VF_SNum = '') or (not TryStrToInt(VF_SNum, VF_OrigNum)) or (VF_OrigNum <= 0) then
+      begin
+        DataModule1.Mensaje('Información','Debe indicar un número válido de la factura a rectificar', 2000 , clGray);
+        Exit;
+      end;
+
+      // Rectificativa manual: con serie/número original resolvemos cabecera y líneas
+      // en histórico, preparamos ventasrectif temporal y validamos saldo antes de numerar.
+      if not VF_PrepararRectifManualTemporal(VF_OrigIsFS, VF_OrigSerie, VF_OrigNum, VF_RectifTag) then
+        Exit;
+
+      if not VF_ValidarSaldosRectifTemporal then
+      begin
+        VF_LogMixta('ABORT', 'saldo no valido tras preparar rectificativa manual');
+        Exit;
+      end;
+    end;
+
+    if not VF_PedirMotivoRectif(VF_RectifMotivoHold) then Exit;
+
+    VF_RectifTagHold := VF_RectifTag;
+    vfTipoFactura := VF_AEATTipoFacturaFromRectifTag(VF_RectifTag, vfTipoFactura);
+// Forzamos la serie de la rectificativa ANTES de numerar ticket/FS
+    SERIEFACT := VF_SerieRect;
+  end;
   NumeroTicket();//----------- Ver el numero de ticket que corresponde
-  dbVentas.First; DESCRIOPER:='';
   TIPOOPER:='NS';//----------- Tipo de operacion (Normal Sin ticket)
+  try
+    dbVentas.First; DESCRIOPER:=VF_RectifTag;
   while not dbVentas.EOF do
     begin
       T1 := VF_TickMS;
-  T1 := VF_TickMS;
-  ActualizaDatos();
-  VF_LogPerf('TOTALIZAR: ActualizaDatos', T1);
-  VF_LogPerf('TOTALIZAR: ActualizaDatos', T1);
+      ActualizaDatos();
+      VF_LogPerf('TOTALIZAR: ActualizaDatos', T1);
       T1 := VF_TickMS;
-  T1 := VF_TickMS;
-  ActualizaIva();
-  VF_LogPerf('TOTALIZAR: ActualizaIva', T1);
-  VF_LogPerf('TOTALIZAR: ActualizaIva', T1);
+      ActualizaIva();
+      VF_LogPerf('TOTALIZAR: ActualizaIva', T1);
       dbVentas.Next;
     end;
     
+  if VF_EsRectif then
+  begin
+    VF_LogMixta('RECTIFCTRL_START', 'registrando rectifcab/rectiflin');
+    VF_RegistrarRectifDefinitiva(VF_RectifTag);
+    VF_LogMixta('RECTIFCTRL_END', 'registro rectifcab/rectiflin finalizado o revisado');
+
+    T1 := VF_TickMS;
+    ActualizaHisto(); // Antes de encolar: deja HO20_RECT disponible para Veri*Factu.
+    VF_HistoGrabado := True;
+    VF_LogPerf('TOTALIZAR: ActualizaHisto antes VeriFactu rectif', T1);
+  end;
+
   // =================================================
   // === Veri*Factu: Encolar factura (DB/Archivos) ===
   // =================================================
   try
     T1 := VF_TickMS;
-    T1 := VF_TickMS;
-    VeriFactu_QueueFactura(
+    VF_QueueFactura_Async(
       'FS-' + SERIEFACT,
       NOPERACION,
       Date,
       HoraVenta,
-      StrToFloat(Edit14.Text)
+      StrToFloat(Edit14.Text),
+      vfTipoFactura
     );
     VF_LogPerf('TOTALIZAR: VeriFactu_QueueFactura', T1);
   except
@@ -1494,15 +3452,29 @@ begin
   // =================================================
 
   T1 := VF_TickMS;
-  T1 := VF_TickMS;
-  ActualizaHisto();//--------- Actualizar Hist. Operaciones Cabeceras
-  VF_LogPerf('TOTALIZAR: ActualizaHisto', T1);
+  if not VF_HistoGrabado then
+    ActualizaHisto();//--------- Actualizar Hist. Operaciones Cabeceras
   VF_LogPerf('TOTALIZAR: ActualizaHisto', T1);
 //  if Combo2.Text='TARJETA+CONTADO' then CajaTarjetas();//----- Apuntar tarjetas a las cajas
 //  showmessage(IntToStr(Combo2.ItemIndex));
-  if ( Combo2.ItemIndex < 7 ) and ( Combo2.ItemIndex > 0 ) then CajaTarjetas(); //----- Apuntar tarjetas a las cajas
-  if Combo2.Text='PUNTOS ACUMULADOS' then CajaPuntos();//----- Apuntar puntos a las cajas
-  if (StrToFloat(Edit16.Text)<0) then ApuntaCredito();//-------- Apuntar a credito
+  if ( Combo2.ItemIndex < 7 ) and ( Combo2.ItemIndex > 0 ) then
+  begin
+    T1 := VF_TickMS;
+    CajaTarjetas(); //----- Apuntar tarjetas a las cajas
+    VF_LogPerf('TOTALIZAR: CajaTarjetas', T1);
+  end;
+  if Combo2.Text='PUNTOS ACUMULADOS' then
+  begin
+    T1 := VF_TickMS;
+    CajaPuntos();//----- Apuntar puntos a las cajas
+    VF_LogPerf('TOTALIZAR: CajaPuntos', T1);
+  end;
+  if (StrToFloat(Edit16.Text)<0) then
+  begin
+    T1 := VF_TickMS;
+    ApuntaCredito();//-------- Apuntar a credito
+    VF_LogPerf('TOTALIZAR: ApuntaCredito', T1);
+  end;
   if OperacionRecuperada='P' then
     begin
       T1 := VF_TickMS;
@@ -1522,8 +3494,22 @@ begin
   RefrescaTicketsAbiertos();
   if dbVentas.RecordCount<>0 then CambiarTicket();
   OperacionRecuperada:='N'; Edit3.SetFocus;
+  if VF_CerrarPositivaMixtaPendiente('NS') then Exit;
   BitBtn24Click(BitBtn24);
-  VF_LogPerf('TOTALIZAR: BitBtn10Click END', T0);
+    VF_LogPerf('TOTALIZAR: BitBtn10Click END', T0);
+  except
+    on E: Exception do
+    begin
+      VF_LogInfo('TOTALIZAR: BitBtn10Click EXCEPTION: ' + E.Message);
+      LogErrorToFile('BitBtn10Click EXCEPTION: ' + E.Message);
+      // Intentamos dejar constancia para evitar huecos en numeración
+      if NOPERACION>0 then
+        RegistrarTicketAnulado(SERIEFACT, NOPERACION, TIPOOPER, E.Message)
+      else
+        try FLX_WriteLog('VENTAS', 'FINALIZAR: no se pudo anular (NOPERACION=0). Serie='+SERIEFACT+' Motivo='+E.Message); except end;
+      ShowMessage('Error al finalizar el ticket FS-' + SERIEFACT + '-' + IntToStr(NOPERACION) + ': ' + E.Message);
+    end;
+  end;
 end;
 
 procedure TFVentas.BitBtn9Enter(Sender: TObject);
@@ -1603,18 +3589,139 @@ end;
 //========================================================
 procedure TFVentas.BitBtn11Click(Sender: TObject);
 var
+  // Rectificativas (FS / Normal): control de líneas negativas
+  VF_EsRectif: Boolean;
+  VF_OrigIsFS: Boolean;
+  VF_OrigSerie, VF_SNum: string;
+  VF_OrigNum: Integer;
+  VF_RectifTag, VF_SerieRect: string;
+  VF_HayNegativas, VF_HayPositivas: Boolean;
+  VF_HistoGrabado: Boolean;
   T0, T1: QWord;
 begin
   T0 := VF_TickMS;
+  VF_HistoGrabado := False;
   VF_LogInfo('TOTALIZAR: BitBtn11Click START');
 
+  if not VF_NormalizarCamposCobro(True) then Exit;
+
+  // Seguridad: por si quedara algo de una operación anterior (se limpia en ActualizaHisto)
+  VF_RectifTagHold := '';
+  VF_RectifMotivoHold := '';
 
   vfTipoFactura:='F2';  //-- Definimos TipoFactura Veri*Factu como F2 - Factura Simplificada
 
   if StrToFloat(Edit16.Text)<0 then if not VersiapuntarCredito then exit;//--- Si se apunta a credito o no
   FechaVenta:=Date; HoraVenta:=Time;//---- Fecha y hora para grabar los datos
   VerSerieFacturacion();//---- Ver la serie de facturacion por defecto
+  // -------------------------------------------------
+  // Rectificativas: si hay alguna línea con unidades negativas,
+  // la operación se trata como rectificativa y se pide la factura origen.
+  // IMPORTANTE: esto debe ocurrir ANTES de numerar (NumeroTicket()).
+  // -------------------------------------------------
+  VF_EsRectif := False;
+  VF_RectifTag := '';
+  VF_SerieRect := '';
+  VF_AnalizaSignosVenta(VF_HayNegativas, VF_HayPositivas);
+  if VF_HayNegativas and VF_HayPositivas then
+  begin
+    VF_LogMixta('START', 'operacion_mixta_detectada en cierre NT');
+    if not VF_SepararMixtaAparcarPositivas then
+    begin
+      VF_LogMixta('ABORT', 'no se pudo separar; no se numera ni se graba');
+      Exit;
+    end;
+    VF_AnalizaSignosVenta(VF_HayNegativas, VF_HayPositivas);
+    VF_LogMixta('RECTIFICATIVA_PREPARADA', 'continua cierre solo con negativas');
+  end;
+  VF_EsRectif := VF_HayNegativas;
+
+  if VF_EsRectif then
+  begin
+    VF_LogMixta('VALIDAR_SALDOS_START', 'validando saldo rectificable');
+    if not VF_ValidarSaldosRectifTemporal then
+    begin
+      VF_LogMixta('ABORT', 'saldo no valido; no se numera ni se graba');
+      Exit;
+    end;
+    VF_LogMixta('VALIDAR_SALDOS_OK', 'saldo rectificable correcto');
+  end;
+
+  if VF_EsRectif then
+  begin
+    // Serie rectificativa única RYY (año actual)
+    VF_SerieRect := 'R' + Copy(FormatDateTime('yyyy', Date), 3, 2);
+
+    // Si las líneas vienen de Histórico, la referencia original ya está en
+    // ventasrectif+Tienda+Puesto. En ese caso NO volvemos a pedir datos.
+    if not VF_ObtenerRectifTagTemporal(VF_RectifTag, VF_SNum, VF_OrigSerie, VF_OrigNum) then
+    begin
+      // Preguntar si la factura origen es FS (ticket/simplificada) o Normal
+      // Sí = FS, No = Normal
+      case MessageDlg('Factura rectificativa',
+        'Se han detectado líneas con cantidades negativas.' + LineEnding +
+        '¿La factura que rectificas es una FACTURA SIMPLIFICADA (FS / ticket)?',
+        mtConfirmation, [mbYes, mbNo, mbCancel], 0) of
+        mrYes: VF_OrigIsFS := True;
+        mrNo:  VF_OrigIsFS := False;
+      else
+        Exit; // Cancelar: salir SIN numerar nada
+      end;
+
+      // Pedir siempre SERIE + NÚMERO reales de la factura origen
+      VF_OrigSerie := '';
+      if not InputQuery('Factura a rectificar', 'Serie de la factura a rectificar:', VF_OrigSerie) then Exit;
+      VF_OrigSerie := Trim(UpperCase(VF_OrigSerie));
+      if VF_OrigSerie = '' then
+      begin
+        DataModule1.Mensaje('Información','Debe indicar una serie válida de la factura a rectificar', 2000 , clGray);
+        Exit;
+      end;
+
+      VF_SNum := '';
+      if not InputQuery('Factura a rectificar', 'Número de la factura a rectificar:', VF_SNum) then Exit;
+      VF_SNum := Trim(VF_SNum);
+      if (VF_SNum = '') or (not TryStrToInt(VF_SNum, VF_OrigNum)) or (VF_OrigNum <= 0) then
+      begin
+        DataModule1.Mensaje('Información','Debe indicar un número válido de la factura a rectificar', 2000 , clGray);
+        Exit;
+      end;
+
+      // Rectificativa manual: con serie/número original resolvemos cabecera y líneas
+      // en histórico, preparamos ventasrectif temporal y validamos saldo antes de numerar.
+      if not VF_PrepararRectifManualTemporal(VF_OrigIsFS, VF_OrigSerie, VF_OrigNum, VF_RectifTag) then
+        Exit;
+
+      if not VF_ValidarSaldosRectifTemporal then
+      begin
+        VF_LogMixta('ABORT', 'saldo no valido tras preparar rectificativa manual');
+        Exit;
+      end;
+    end;
+
+    if not VF_PedirMotivoRectif(VF_RectifMotivoHold) then Exit;
+
+    // IMPORTANTE: NO confiar en DESCRIOPER (puede ser modificado por ActualizaDatos/ActualizaIva).
+    // Guardamos el tag en una variable dedicada para que llegue limpio al histórico (HO20_RECT).
+    VF_RectifTagHold := VF_RectifTag;
+    vfTipoFactura := VF_AEATTipoFacturaFromRectifTag(VF_RectifTag, vfTipoFactura);
+
+    // Forzamos la serie de la rectificativa ANTES de numerar ticket/FS
+    SERIEFACT := VF_SerieRect;
+  end;
   NumeroTicket();//----------- Ver el numero de ticket que corresponde
+  TIPOOPER:='NT';//----------- Tipo de operacion (Normal Con ticket)
+
+  // QR definitivo del ticket: NOPERACION ya contiene el numero real consumido.
+  // Importante: se conserva FS- para facturas simplificadas/tickets.
+  if VF_EsModoProduccion then
+    BarcodeQR1.Text := VF_BuildQRTributario(SERIEFACT, NOPERACION, FechaVenta, Edit14.Text)
+  else
+    BarcodeQR1.Text := TextoCodigoQR;
+
+  txtQR := BarcodeQR1.Text;
+
+  try
 
   DirectorioQR:='';
 
@@ -1626,29 +3733,48 @@ begin
 
   BarcodeQR1.SaveToFile(DirectorioQR, TPortableNetworkGraphic);
 
+  T1 := VF_TickMS;
   ImpreTicket(false);//------------ Imprimir Ticket();
 
   if ChBoxRegalo.Checked then ImpreTicket(true); //------------ Imprime ticket regalo.
+  VF_LogPerf('TOTALIZAR: ImpresionTicket', T1);
 
-  dbVentas.First; DESCRIOPER:='';
-  TIPOOPER:='NT';//----------- Tipo de operacion (Normal Con ticket)
+  dbVentas.First; DESCRIOPER:=VF_RectifTag;
   while not dbVentas.EOF do
     begin
+      T1 := VF_TickMS;
       ActualizaDatos();
+      VF_LogPerf('TOTALIZAR: ActualizaDatos', T1);
+      T1 := VF_TickMS;
       ActualizaIva();
+      VF_LogPerf('TOTALIZAR: ActualizaIva', T1);
       dbVentas.Next;
     end;
     
+  if VF_EsRectif then
+  begin
+    VF_LogMixta('RECTIFCTRL_START', 'registrando rectifcab/rectiflin');
+    VF_RegistrarRectifDefinitiva(VF_RectifTag);
+    VF_LogMixta('RECTIFCTRL_END', 'registro rectifcab/rectiflin finalizado o revisado');
+
+    T1 := VF_TickMS;
+    ActualizaHisto(); // Antes de encolar: deja HO20_RECT disponible para Veri*Factu.
+    VF_HistoGrabado := True;
+    VF_LogPerf('TOTALIZAR: ActualizaHisto antes VeriFactu rectif', T1);
+  end;
+
   // =================================================
   // === Veri*Factu: Encolar factura (DB/Archivos) ===
   // =================================================
   try
-    VeriFactu_QueueFactura(
+    T1 := VF_TickMS;
+    VF_QueueFactura_Async(
       'FS-' + SERIEFACT,
       NOPERACION,
       Date,
       HoraVenta,
-      StrToFloat(Edit14.Text)
+      StrToFloat(Edit14.Text),
+      vfTipoFactura
     );
     VF_LogPerf('TOTALIZAR: VeriFactu_QueueFactura', T1);
   except
@@ -1659,10 +3785,28 @@ begin
   end;
   // =================================================
 
-  ActualizaHisto();//--------- Actualizar Hist. Operaciones Cabeceras
-  if ( Combo2.ItemIndex < 7 ) and ( Combo2.ItemIndex > 0 ) then CajaTarjetas(); //----- Apuntar tarjetas a las cajas
-  if Combo2.Text='PUNTOS ACUMULADOS' then CajaPuntos();//----- Apuntar puntos a las cajas
-  if StrToFloat(Edit16.Text)<0 then ApuntaCredito();//--- Apuntar a credito
+  T1 := VF_TickMS;
+  if not VF_HistoGrabado then
+    ActualizaHisto();//--------- Actualizar Hist. Operaciones Cabeceras
+  VF_LogPerf('TOTALIZAR: ActualizaHisto', T1);
+  if ( Combo2.ItemIndex < 7 ) and ( Combo2.ItemIndex > 0 ) then
+  begin
+    T1 := VF_TickMS;
+    CajaTarjetas(); //----- Apuntar tarjetas a las cajas
+    VF_LogPerf('TOTALIZAR: CajaTarjetas', T1);
+  end;
+  if Combo2.Text='PUNTOS ACUMULADOS' then
+  begin
+    T1 := VF_TickMS;
+    CajaPuntos();//----- Apuntar puntos a las cajas
+    VF_LogPerf('TOTALIZAR: CajaPuntos', T1);
+  end;
+  if StrToFloat(Edit16.Text)<0 then
+  begin
+    T1 := VF_TickMS;
+    ApuntaCredito();//--- Apuntar a credito
+    VF_LogPerf('TOTALIZAR: ApuntaCredito', T1);
+  end;
   if OperacionRecuperada='P' then
     begin
       T1 := VF_TickMS;
@@ -1682,8 +3826,21 @@ begin
   RefrescaTicketsAbiertos();
   if dbVentas.RecordCount<>0 then CambiarTicket();
   OperacionRecuperada:='N'; Edit3.SetFocus;
+  if VF_CerrarPositivaMixtaPendiente('NT') then Exit;
   BitBtn24Click(BitBtn24);
-  VF_LogPerf('TOTALIZAR: BitBtn11Click END', T0);
+    VF_LogPerf('TOTALIZAR: BitBtn11Click END', T0);
+  except
+    on E: Exception do
+    begin
+      VF_LogInfo('TOTALIZAR: BitBtn11Click EXCEPTION: ' + E.Message);
+      LogErrorToFile('BitBtn11Click EXCEPTION: ' + E.Message);
+      if NOPERACION>0 then
+        RegistrarTicketAnulado(SERIEFACT, NOPERACION, TIPOOPER, E.Message)
+      else
+        try FLX_WriteLog('VENTAS', 'FINALIZAR: no se pudo anular (NOPERACION=0). Serie='+SERIEFACT+' Motivo='+E.Message); except end;
+      ShowMessage('Error al imprimir/finalizar el ticket FS-' + SERIEFACT + '-' + IntToStr(NOPERACION) + ': ' + E.Message);
+    end;
+  end;
 end;
 
 //========================================================
@@ -1691,6 +3848,8 @@ end;
 //========================================================
 procedure TFVentas.BitBtn12Click(Sender: TObject);
 begin
+  if not VF_NormalizarCamposCobro(True) then Exit;
+
   if Edit1.Text=ClienteVario then begin DataModule1.Mensaje('Información','No puede hacer albarán a clientes varios', 2000 , clGray); exit; end;
   if CgForzAl='S' then
     begin
@@ -1749,8 +3908,11 @@ var
   TxtQ: String;
   TotArti, TotPrecio: Double;
   EstadoImpresion: integer;
+  T1: QWord;
 
 begin
+  if not VF_NormalizarCamposCobro(True) then Exit;
+
   FechaVenta:=Date; HoraVenta:=Time;//---- Fecha y hora para grabar los datos
   SERIEFACT:=dbSeries.FieldByName('SF0').AsString;
   if SERIEFACT='' then begin DataModule1.Mensaje('Información','Se necesita seleccionar SERIE a facturar', 2000 , clGray); Exit; end;
@@ -1849,6 +4011,7 @@ begin
 
   if (cbImprimir.Checked) then
     begin
+      T1 := VF_TickMS;
       EstadoImpresion:=FImpresion.Imprime(dbMuestrad, dbTrabajo, dbClientes, 'ALBARAN', cbImpresionDirecta.Checked, StrToInt(edNumeroCopias.Text));
 
       TxtQ:='';
@@ -1861,12 +4024,15 @@ begin
                                ' AND AC1="'+FormatDateTime('YYYY/MM/DD',StrToDate(Edit22.Text))+'"'+
                                ' AND AC2="'+SERIEFACT+'" AND AC3='+IntToStr(NOPERACION);
 
-      if EstadoImpresion=3 then TxtQ:='UPDATE albac'+Tienda+' SET AC13="S", SET AC14="S" WHERE AC0='+Edit1.Text+                  //Imprimido + email
+      if EstadoImpresion=3 then TxtQ:='UPDATE albac'+Tienda+' SET AC13="S", AC14="S" WHERE AC0='+Edit1.Text+                  //Imprimido + email
                                ' AND AC1="'+FormatDateTime('YYYY/MM/DD',StrToDate(Edit22.Text))+'"'+
                                ' AND AC2="'+SERIEFACT+'" AND AC3='+IntToStr(NOPERACION);
 
+      VF_LogPerf('TOTALIZAR: ImpresionAlbaran', T1);
+
       if (TxtQ<>'') then
         begin
+//--            dbTrabajo.Active:=False;
             dbTrabajo.SQL.Text:= TxtQ;
           try
             dbTrabajo.ExecSQL;
@@ -1884,6 +4050,7 @@ begin
   PintarTotalGeneral(); RefrescaTicketsAbiertos();
   if dbVentas.RecordCount<>0 then CambiarTicket();
   OperacionRecuperada:='N'; Edit3.SetFocus;
+  if VF_CerrarPositivaMixtaPendiente('FA') then Exit;
   BitBtn24Click(BitBtn24);
 
 end;
@@ -1906,6 +4073,7 @@ end;
 //========================================================
 procedure TFVentas.BitBtn13Click(Sender: TObject);
 begin
+  if not VF_NormalizarCamposCobro(True) then Exit;
 
   vfTipoFactura:='F1';  //-- Definimos TipoFactura Veri*Factu como F1 - Factura Completa
 
@@ -1948,12 +4116,138 @@ var
   TxtQ: String;
   TotArti, TotPrecio: Double;
   EstadoImpresion: integer;
+  TieneNegativos, TienePositivos, EsRectif: Boolean;
+  HistoGrabado: Boolean;
+  Resp: Integer;
+  S: String;
+  OrigSerie: String;
+  OrigNum: Integer;
+  RectifLine: String;
+  YY: String;
+  T0, T1: QWord;
 
 begin
+  T0 := VF_TickMS;
+  HistoGrabado := False;
+  VF_LogInfo('TOTALIZAR: BitBtn19Click START');
+
+  if not VF_NormalizarCamposCobro(True) then Exit;
+
   FechaVenta:=Date; HoraVenta:=Time;//---- Fecha y hora para grabar los datos
   SERIEFACT:=dbSeries.FieldByName('SF0').AsString;
   if SERIEFACT='' then begin DataModule1.Mensaje('Información','Seleccionar SERIE de facturación', 2000 , clGray); Exit; end;
   BitBtn20Click(BitBtn20);//--- Ocultar panel series de facturas
+
+  // --- Detectar rectificativa: si hay alguna línea con cantidad negativa (V5<0)
+  TieneNegativos := False;
+  EsRectif := False;
+  RectifLine := '';
+  OrigSerie := '';
+  OrigNum := 0;
+
+  VF_AnalizaSignosVenta(TieneNegativos, TienePositivos);
+  if TieneNegativos and TienePositivos then
+  begin
+    VF_LogMixta('START', 'operacion_mixta_detectada en cierre FA');
+    if not VF_SepararMixtaAparcarPositivas then
+    begin
+      VF_LogMixta('ABORT', 'no se pudo separar; no se numera ni se graba');
+      Exit;
+    end;
+    VF_AnalizaSignosVenta(TieneNegativos, TienePositivos);
+    VF_LogMixta('RECTIFICATIVA_PREPARADA', 'continua cierre solo con negativas');
+  end;
+
+  if TieneNegativos then
+  begin
+    VF_LogMixta('VALIDAR_SALDOS_START', 'validando saldo rectificable');
+    if not VF_ValidarSaldosRectifTemporal then
+    begin
+      VF_LogMixta('ABORT', 'saldo no valido; no se numera ni se graba');
+      Exit;
+    end;
+    VF_LogMixta('VALIDAR_SALDOS_OK', 'saldo rectificable correcto');
+
+    YY := FormatDateTime('YY', Date);
+
+    // Si viene desde Histórico, usar la referencia temporal y no pedir datos.
+    if VF_ObtenerRectifTagTemporal(RectifLine, S, OrigSerie, OrigNum) then
+    begin
+      // RectifLine queda preparado para Memo1/HO20_RECT.
+    end
+    else
+    begin
+      Resp := MessageDlg('Factura rectificativa',
+        'Se han detectado líneas con cantidades negativas.' + LineEnding +
+        'La venta se tratará como FACTURA RECTIFICATIVA.' + LineEnding + LineEnding +
+        '¿La factura a rectificar es una FACTURA SIMPLIFICADA (FS)?' + LineEnding +
+        '(Sí = FS / No = Normal)',
+        mtConfirmation, [mbYes, mbNo, mbCancel], 0);
+
+      if Resp = mrCancel then Exit;
+
+      if Resp = mrYes then
+      begin
+      // FS: se pide la serie real de la factura simplificada (FS) y su número.
+      // Para Hacienda/Veri*Factu guardamos la serie con prefijo "FS-" para distinguir tickets/simplificadas.
+      OrigSerie := dbSeries.FieldByName('SF0').AsString; // valor por defecto (serie activa)
+      if not InputQuery('Factura rectificativa', 'Serie de la factura simplificada (FS) a rectificar (ej: A26):', OrigSerie) then Exit;
+      OrigSerie := Trim(OrigSerie);
+      if OrigSerie = '' then
+      begin
+        DataModule1.Mensaje('Información', 'Serie FS no válida.', 2500, clGray);
+        Exit;
+      end;
+
+      S := '';
+      if not InputQuery('Factura rectificativa', 'Número de la factura simplificada (FS) a rectificar:', S) then Exit;
+      S := Trim(S);
+      if (S = '') or (not TryStrToInt(S, OrigNum)) or (OrigNum <= 0) then
+      begin
+        DataModule1.Mensaje('Información', 'Número de factura FS no válido.', 2500, clGray);
+        Exit;
+      end;
+      if not VF_PrepararRectifManualTemporal(True, OrigSerie, OrigNum, RectifLine) then Exit;
+    end
+    else
+    begin
+      // Normal: se pide serie y número
+      OrigSerie := '';
+      if not InputQuery('Factura rectificativa', 'Serie de la factura a rectificar (ej: A26):', OrigSerie) then Exit;
+      OrigSerie := Trim(OrigSerie);
+      if OrigSerie = '' then
+      begin
+        DataModule1.Mensaje('Información', 'Serie de factura no válida.', 2500, clGray);
+        Exit;
+      end;
+      S := '';
+      if not InputQuery('Factura rectificativa', 'Número de la factura a rectificar:', S) then Exit;
+      S := Trim(S);
+      if (S = '') or (not TryStrToInt(S, OrigNum)) or (OrigNum <= 0) then
+      begin
+        DataModule1.Mensaje('Información', 'Número de factura no válido.', 2500, clGray);
+        Exit;
+      end;
+      if not VF_PrepararRectifManualTemporal(False, OrigSerie, OrigNum, RectifLine) then Exit;
+      end;
+    end;
+
+    RectifLine := VF_NormalizeRectifTag(RectifLine);
+    vfTipoFactura := VF_AEATTipoFacturaFromRectifTag(RectifLine, vfTipoFactura);
+
+    if not VF_ValidarSaldosRectifTemporal then
+    begin
+      VF_LogMixta('ABORT', 'saldo no valido tras preparar rectificativa manual');
+      Exit;
+    end;
+
+    // Serie única para rectificativas: RYY
+    if not VF_PedirMotivoRectif(VF_RectifMotivoHold) then Exit;
+
+    SERIEFACT := 'R' + YY;
+    EsRectif := True;
+  end;
+
   NumeroFactura();
   dbMuestrad.Active:=False;
   dbMuestrad.SQL.Text:='SELECT * FROM factud'+Tienda+' WHERE FD0='+Edit1.Text+
@@ -1964,8 +4258,12 @@ begin
   TIPOOPER:='FA';//----------- Tipo de operacion (Normal Sin ticket)
   while not dbVentas.EOF do
     begin
+      T1 := VF_TickMS;
       ActualizaDatos();
+      VF_LogPerf('TOTALIZAR: ActualizaDatos', T1);
+      T1 := VF_TickMS;
       ActualizaIva();
+      VF_LogPerf('TOTALIZAR: ActualizaIva', T1);
       TotArti:=TotArti+dbVentas.FieldByName('V5').AsFloat;//-- Acumular unidades
       TotPrecio:=TotPrecio+dbVentas.FieldByName('V7').AsFloat;//-- Acumular Precio
       dbMuestrad.Append;
@@ -2014,8 +4312,15 @@ begin
   dbtrabajo.FieldByName('FC8').Value:=TotPrecio;//------------------- Imp. Sin IVA
   dbtrabajo.FieldByName('FC9').Value:=StrToFloat(Edit14.Text);//----- Imp. Con IVA
   dbtrabajo.FieldByName('FC10').Value:='N';//------------------------ Marcada (S/N)
+  // --- Rectificativa: guardar referencia de factura origen (sin tocar BD), en formato parseable
+  if EsRectif and (RectifLine <> '') then
+    if Memo1.Lines.IndexOf(RectifLine) < 0 then
+      Memo1.Lines.Add(RectifLine);
   dbtrabajo.FieldByName('FC19').Value:=Memo1.Lines.Text;//----------- Observaciones
-  dbtrabajo.FieldByName('FC20').Value:='N';//------------------------ Fact. Rectif. (S/N)
+  if EsRectif then
+    dbtrabajo.FieldByName('FC20').Value:='S'
+  else
+    dbtrabajo.FieldByName('FC20').Value:='N';//------------------------ Fact. Rectif. (S/N)
   dbtrabajo.FieldByName('FC24').Value:=Label21.Caption;//------------- CIF
   try
     dbtrabajo.Post;
@@ -2026,29 +4331,72 @@ begin
     end;
   end;
 
+  if EsRectif then
+  begin
+    VF_LogMixta('RECTIFCTRL_START', 'registrando rectifcab/rectiflin');
+    VF_RegistrarRectifDefinitiva(RectifLine);
+    VF_LogMixta('RECTIFCTRL_END', 'registro rectifcab/rectiflin finalizado o revisado');
+
+    T1 := VF_TickMS;
+    ActualizaHisto(); // Antes de encolar: deja HO20_RECT disponible para Veri*Factu.
+    HistoGrabado := True;
+    VF_LogPerf('TOTALIZAR: ActualizaHisto antes VeriFactu rectif', T1);
+  end;
+
   // =================================================
   // === Veri*Factu: Encolar factura (DB/Archivos) ===
   // =================================================
   try
-    VeriFactu_QueueFactura(
+    T1 := VF_TickMS;
+    VF_QueueFactura_Async(
       SERIEFACT,
       NOPERACION,
       StrToDate(Edit22.Text),
       HoraVenta,
-      StrToFloat(Edit14.Text)
+      StrToFloat(Edit14.Text),
+      vfTipoFactura
     );
+    VF_LogPerf('TOTALIZAR: VeriFactu_QueueFactura', T1);
   except
   end;
   // =================================================
 
   //----------------------
-  ActualizaHisto();//--------- Actualizar Hist. Operaciones Cabeceras
+  T1 := VF_TickMS;
+  if not HistoGrabado then
+    ActualizaHisto();//--------- Actualizar Hist. Operaciones Cabeceras
+  VF_LogPerf('TOTALIZAR: ActualizaHisto', T1);
 //  if Combo2.Text='TARJETA+CONTADO' then CajaTarjetas();//----- Apuntar tarjetas a las cajas
-  if ( Combo2.ItemIndex < 7 ) and ( Combo2.ItemIndex > 0 ) then CajaTarjetas(); //----- Apuntar tarjetas a las cajas
-  if Combo2.Text='PUNTOS ACUMULADOS' then CajaPuntos();//----- Apuntar puntos a las cajas
-  if StrToFloat(Edit16.Text)<0 then ApuntaCredito();//--- Apuntar a credito
-  if OperacionRecuperada='P' then Actualizapedido();//--- Actualizar pedido
-  if OperacionRecuperada='PRE' then Actualizaprepro();//- Actualizar presup./profoema
+  if ( Combo2.ItemIndex < 7 ) and ( Combo2.ItemIndex > 0 ) then
+  begin
+    T1 := VF_TickMS;
+    CajaTarjetas(); //----- Apuntar tarjetas a las cajas
+    VF_LogPerf('TOTALIZAR: CajaTarjetas', T1);
+  end;
+  if Combo2.Text='PUNTOS ACUMULADOS' then
+  begin
+    T1 := VF_TickMS;
+    CajaPuntos();//----- Apuntar puntos a las cajas
+    VF_LogPerf('TOTALIZAR: CajaPuntos', T1);
+  end;
+  if StrToFloat(Edit16.Text)<0 then
+  begin
+    T1 := VF_TickMS;
+    ApuntaCredito();//--- Apuntar a credito
+    VF_LogPerf('TOTALIZAR: ApuntaCredito', T1);
+  end;
+  if OperacionRecuperada='P' then
+  begin
+    T1 := VF_TickMS;
+    Actualizapedido();//--- Actualizar pedido
+    VF_LogPerf('TOTALIZAR: Actualizapedido', T1);
+  end;
+  if OperacionRecuperada='PRE' then
+  begin
+    T1 := VF_TickMS;
+    Actualizaprepro();//- Actualizar presup./profoema
+    VF_LogPerf('TOTALIZAR: Actualizaprepro', T1);
+  end;
 
    // Recargamos las consultas para imprimir.
   dbTrabajo.Active:=False;
@@ -2064,6 +4412,7 @@ begin
 
    if (cbImprimir.Checked) then
     begin
+      T1 := VF_TickMS;
       EstadoImpresion:=FImpresion.Imprime(dbMuestrad, dbTrabajo, dbClientes, 'FACTURA', cbImpresionDirecta.Checked, StrToInt(edNumeroCopias.Text));
 
       TxtQ:='';
@@ -2076,7 +4425,7 @@ begin
                                ' AND FC1="'+FormatDateTime('YYYY/MM/DD',StrToDate(Edit22.Text))+'"'+
                                ' AND FC2="'+SERIEFACT+'" AND FC3='+IntToStr(NOPERACION);
 
-      if EstadoImpresion=3 then TxtQ:='UPDATE factuc'+Tienda+' SET FC25="S", SET FC26="S" WHERE FC0='+Edit1.Text+                  //Imprimido + email
+      if EstadoImpresion=3 then TxtQ:='UPDATE factuc'+Tienda+' SET FC25="S", FC26="S" WHERE FC0='+Edit1.Text+                  //Imprimido + email
                                ' AND FC1="'+FormatDateTime('YYYY/MM/DD',StrToDate(Edit22.Text))+'"'+
                                ' AND FC2="'+SERIEFACT+'" AND FC3='+IntToStr(NOPERACION);
 
@@ -2117,6 +4466,7 @@ begin
   if dbVentas.RecordCount<>0 then CambiarTicket();
   OperacionRecuperada:='N'; Edit3.SetFocus;
   BitBtn24Click(BitBtn24);
+  VF_LogPerf('TOTALIZAR: BitBtn19Click END', T0);
 end;
 
 //=================== SACAR EL ULT N. DE LINEA =====================
@@ -2360,6 +4710,7 @@ begin
     end;
   end;
 
+  // Evitamos arrastre a la siguiente operación
 end;
 
 
@@ -2367,6 +4718,10 @@ procedure TFVentas.ActualizaDatos();
 var
   Codigo, TxtQ, Departa: String;
   Cantidad, Costo, Precio: String;
+  HC_Attempt: Integer;
+  HC_OK: Boolean;
+  HoraVentaTry: TDateTime;
+  MsgDup: string;
 begin
   Codigo:=dbVentas.FieldByName('V3').AsString;//-------- Cgo Articulo
   Cantidad:=dbVentas.FieldByName('V5').AsString;//------ Unidades
@@ -2475,23 +4830,75 @@ begin
     end;
   end;
   //------------------- Historico de compras de clientes
-  TxtQ:='INSERT INTO histoclie (HC0,HC1,HC2,HC3,HC4,HC5,HC6,HC7,HC8,HC9) VALUES ("'+
-        Edit1.Text+'","'+FormatDateTime('YYYY/MM/DD',FechaVenta)+'","'+
-        FormatDateTime('HH:MM:SS',HoraVenta)+'",'+dbVentas.FieldByName('V2').AsString+
-        ',"'+Codigo+'","'+dbVentas.FieldByName('V4').AsString+
-        '",'+Cantidad+','+dbVentas.FieldByName('V11').AsString+',"VN",'+
-        dbVentas.FieldByName('V1').AsString+')';
-  dbTrabajo.SQL.Text:=TxtQ;
-  try
-    dbTrabajo.ExecSQL;
-  except
-   // Capturamos el error específico de la capa de datos
-    on EDB: EZSQLException do
-    begin
-      // El mensaje de EDB contendrá el mensaje de error de MariaDB
-      ShowMessage('Error de Base de Datos Inesperado al Insertar Historial de Clientes : ' + EDB.Message);
-      // La aplicación sigue desde aquí.
+  // NOTA (robustez): en casos raros dos TPVs pueden finalizar una venta en el mismo segundo
+  // y provocar "Duplicate key" en histoclie si la clave única usa (Cliente+Fecha+Hora).
+  // Solución mínima (Opción 3): reintentar el INSERT ajustando la hora +1 segundo.
+  HC_OK := False;
+  HoraVentaTry := HoraVenta;
+
+  for HC_Attempt := 0 to 2 do
+  begin
+    TxtQ:='INSERT INTO histoclie (HC0,HC1,HC2,HC3,HC4,HC5,HC6,HC7,HC8,HC9) VALUES ("'+
+          Edit1.Text+'","'+FormatDateTime('YYYY/MM/DD',FechaVenta)+'","'+
+          FormatDateTime('HH:MM:SS',HoraVentaTry)+'",'+dbVentas.FieldByName('V2').AsString+
+          ',"'+Codigo+'","'+dbVentas.FieldByName('V4').AsString+
+          '",'+Cantidad+','+dbVentas.FieldByName('V11').AsString+',"VN",'+
+          dbVentas.FieldByName('V1').AsString+')';
+    dbTrabajo.SQL.Text:=TxtQ;
+
+    try
+      dbTrabajo.ExecSQL;
+      HC_OK := True;
+      Break;
+    except
+      on EDB: EZSQLException do
+      begin
+        // Detectar duplicidad (MariaDB 1062) sin depender de la versión del driver
+        MsgDup := UpperCase(EDB.Message);
+        if (Pos('DUPLICATE', MsgDup) > 0) or (Pos('1062', MsgDup) > 0) then
+        begin
+          FLX_WriteLog('VENTAS',
+            'histoclie duplicado (reintento ' + IntToStr(HC_Attempt+1) + '/3). '+
+            'Cliente=' + Edit1.Text +
+            ' Fecha=' + FormatDateTime('YYYY/MM/DD', FechaVenta) +
+            ' Hora=' + FormatDateTime('HH:MM:SS', HoraVentaTry) +
+            ' Puesto=' + Puesto +
+            ' Oper=' + IntToStr(NOperacion) +
+            ' Art=' + Codigo +
+            ' Err=' + EDB.Message);
+
+          // Reintentar: sumar 1 segundo a la hora (no tocamos FechaVenta)
+          HoraVentaTry := HoraVentaTry + EncodeTime(0,0,1,0); // +1s
+          Continue;
+        end;
+
+        // Cualquier otro error: lo mostramos y salimos
+        FLX_WriteLog('VENTAS',
+          'Error BBDD al insertar histoclie (NO duplicado): ' + EDB.Message +
+          ' Cliente=' + Edit1.Text +
+          ' Fecha=' + FormatDateTime('YYYY/MM/DD', FechaVenta) +
+          ' Hora=' + FormatDateTime('HH:MM:SS', HoraVentaTry) +
+          ' Puesto=' + Puesto +
+          ' Oper=' + IntToStr(NOperacion) +
+          ' Art=' + Codigo);
+
+        ShowMessage('Error de Base de Datos Inesperado al Insertar Historial de Clientes : ' + EDB.Message);
+        Break;
+      end;
     end;
+  end;
+
+  if (not HC_OK) then
+  begin
+    // Si no se ha podido insertar tras 3 intentos por duplicidad, lo dejamos reflejado
+    FLX_WriteLog('VENTAS',
+      'histoclie NO insertado tras reintentos. Cliente=' + Edit1.Text +
+      ' Fecha=' + FormatDateTime('YYYY/MM/DD', FechaVenta) +
+      ' HoraOriginal=' + FormatDateTime('HH:MM:SS', HoraVenta) +
+      ' Puesto=' + Puesto +
+      ' Oper=' + IntToStr(NOperacion) +
+      ' Art=' + Codigo);
+    // No forzamos ShowMessage aquí para no interrumpir la venta si fue solo un choque temporal
   end;
   //------------------- Tiendas
   TxtQ:='UPDATE tiendas SET T9="'+FormatDateTime('YYYY/MM/DD',Date)+'" WHERE T0='+NTienda;
@@ -2839,14 +5246,58 @@ end;
 procedure TFVentas.ActualizaHisto();
 var
   TxtQ, IMPO1, IMPO2: String;
+  RectSQL: String;
+  RectTag: String;
+
+  function VF_ExtractRectifFromMemo(const MemoText: string): string;
+  var
+    SL: TStringList;
+    i: Integer;
+    L: string;
+  begin
+    Result := '';
+    if Trim(MemoText) = '' then Exit;
+    SL := TStringList.Create;
+    try
+      SL.Text := MemoText;
+      for i := 0 to SL.Count - 1 do
+      begin
+        L := Trim(SL[i]);
+        if Pos('VF_RECTIF:', L) = 1 then
+        begin
+          Result := L;
+          Exit;
+        end;
+      end;
+    finally
+      SL.Free;
+    end;
+  end;
 begin
   //-------------------------------------------------
+  // HO20_RECT: guardamos la etiqueta estructurada si existe referencia rectificativa.
+  //  - En FS la llevamos en DESCRIOPER.
+  //  - En factura normal se guarda en observaciones (Memo1/FC19), así que la extraemos de Memo1.
+  RectTag := '';
+  // Preferimos la etiqueta dedicada (no se pisa por ActualizaDatos/ActualizaIva)
+  if Pos('VF_RECTIF:', Trim(VF_RectifTagHold)) = 1 then
+    RectTag := Trim(VF_RectifTagHold)
+  else if Pos('VF_RECTIF:', Trim(DESCRIOPER)) = 1 then
+    RectTag := Trim(DESCRIOPER)
+  else
+    RectTag := VF_ExtractRectifFromMemo(Memo1.Lines.Text);
+
+  if Pos('VF_RECTIF:', Trim(RectTag)) = 1 then
+    RectSQL := '"' + VF_SQLEscapeDbl(VF_NormalizeRectifTag(RectTag)) + '"'
+  else
+    RectSQL := 'NULL';
+
   TxtQ:='INSERT INTO hisopcc'+Tienda+' (HO0,HO1,HO2,HO3,HO4,HO5,HO6,HO7,HO8,HO9,HO10,HO11'+
-        ',HO12,HO13,HO14,HO15,HO19) VALUES ("'+FormatDateTime('YYYY/MM/DD',FechaVenta)+'",'+
+        ',HO12,HO13,HO14,HO15,HO19,HO20_RECT) VALUES ("'+FormatDateTime('YYYY/MM/DD',FechaVenta)+'",'+
         '"'+FormatDateTime('HH:MM:SS',HoraVenta)+'","'+Puesto+'",'+IntToStr(NOPERACION)+',"'+SERIEFACT+'"'+
         ',"'+TIPOOPER+'","'+Copy(Combo2.Text,1,10)+'",'+Dispensador+','+Edit1.Text+','+
         Edit12.Text+','+Edit13.Text+','+Edit14.Text+','+
-        Edit15.Text+','+Edit16.Text+','+Edit42.Text+',"N","'+Label21.Caption+'")';
+        Edit15.Text+','+Edit16.Text+','+Edit42.Text+',"N","'+Label21.Caption+'",'+RectSQL+')';
   dbTrabajo.SQL.Text:=TxtQ;
   try
     dbTrabajo.ExecSQL;
@@ -2858,6 +5309,43 @@ begin
       ShowMessage('Error de Base de Datos Inesperado Cabeceras de Historicos : ' + EDB.Message);
       // La aplicación sigue desde aquí.
     end;
+  end;
+
+  // Limpiamos para evitar arrastres a la siguiente operación
+  VF_RectifTagHold := '';
+  VF_RectifMotivoHold := '';
+
+end;
+
+
+//================= REGISTRAR TICKET ANULADO (EVITAR HUECOS) ===========================
+procedure TFVentas.RegistrarTicketAnulado(const Serie: string; const Num: Integer;
+  const TipoOper, Motivo: string);
+var
+  TxtQ, SObs: string;
+begin
+  try
+    SObs := Trim(Motivo);
+    if Length(SObs) > 120 then
+      SObs := Copy(SObs, 1, 120);
+
+    // Dejamos importes a 0 y marcamos HO15='A' (anulado).
+    // Usamos HO6 para indicar ANULADO y adjuntamos motivo corto en HO19 junto al usuario.
+    TxtQ := 'INSERT INTO hisopcc' + Tienda +
+            ' (HO0,HO1,HO2,HO3,HO4,HO5,HO6,HO7,HO8,HO9,HO10,HO11,HO12,HO13,HO14,HO15,HO19) VALUES (' +
+            '"' + FormatDateTime('YYYY/MM/DD', Date) + '",' +
+            '"' + FormatDateTime('HH:MM:SS', Time) + '",' +
+            '"' + Puesto + '",' + IntToStr(Num) + ',' +
+            '"' + Serie + '",' +
+            '"' + TipoOper + '",' +
+            '"ANULADO",' + Dispensador + ',' + Edit1.Text + ',' +
+            '0,0,0,0,0,0,"A",' +
+            '"' + Label21.Caption + ' ' + SObs + '")';
+
+    dbTrabajo.SQL.Text := TxtQ;
+    dbTrabajo.ExecSQL;
+  except
+    // No volvemos a propagar: esto es "mejor esfuerzo" para evitar huecos.
   end;
 end;
 
@@ -2942,7 +5430,8 @@ begin
   dbCajas.FieldByName('CA3').AsString := '9999'; //--------- Familia
   //----- Importe credito ----------
   if TIPOOPER='AL' then dbCajas.FieldByName('CA11').Value := dbCajas.FieldByName('CA11').AsFloat+1;
-  dbCajas.FieldByName('CA20').Value := dbCajas.FieldByName('CA20').AsFloat + StrToFloat(Debe);// --- Imp. creditos
+  //-- Cambio para evitar error de negativos albaranes StrToFloat(Debe)
+  dbCajas.FieldByName('CA20').Value := dbCajas.FieldByName('CA20').AsFloat + (StrToFloatDef(Debe,0) - StrToFloatDef(Haber,0));// --- Imp. creditos
   try
     dbCajas.Post;
   except
@@ -3214,10 +5703,46 @@ begin
       // La aplicación sigue desde aquí.
     end;
   end;
+  // Rectificativas: limpiar también la tabla temporal asociada al puesto actual.
+  // Es una operación ligera y aislada por Puesto (ventasrectif+Tienda+Puesto).
+  VF_LimpiarVentasRectifTemporal;
+
   dbVentas.Refresh;
   PintarTotalGeneral();
-  RefrescaTicketsAbiertos();
-  BitBtn24Click(BitBtn24);
+
+  if (lDirecto <> False) then
+  begin
+    // Borrado manual de venta completa: no saltar a la última venta aparcada.
+    // Dejamos una venta nueva vacía calculando el siguiente número disponible.
+    dbTrabajo.Active:=False;
+    dbTrabajo.SQL.Text:='SELECT DISTINCT(V1) FROM ventas'+Tienda+Puesto+
+                        ' WHERE V0=0 ORDER BY V1 DESC LIMIT 1';
+    dbTrabajo.Active:=True;
+    if dbTrabajo.RecordCount=0 then
+      TICKET:='1'
+    else
+      TICKET:=IntToStr(dbTrabajo.Fields[0].AsInteger+1);
+
+    dbVentas.Active:=False;
+    dbVentas.SQL.Text:='SELECT * FROM ventas'+Tienda+Puesto+' WHERE V0=0 AND V1='+TICKET;
+    dbVentas.Active:=True;
+
+    Edit1.Text:=ClienteVario;
+    Edit1Exit(Edit1);
+    Llenando:=1;
+    try
+      dbTickets.Refresh;
+    finally
+      Llenando:=0;
+    end;
+    PintarTotalGeneral();
+    Edit3.SetFocus;
+  end
+  else
+  begin
+    RefrescaTicketsAbiertos();
+    BitBtn24Click(BitBtn24);
+  end;
 end;
 
 procedure TFVentas.BitBtn16Click(Sender: TObject);
@@ -3231,95 +5756,173 @@ end;
 
 //=================== SALIR DEL IMPORTE TOTAL =====================
 procedure TFVentas.Edit12Exit(Sender: TObject);
+var
+  VImporte, VDto, VTotal: Double;
 begin
-  if (Edit12.Text='') then begin Edit12.Text:='0.00'; exit; end;
-  if (Edit13.Text='') or (Edit13.Text='0.00') then
-    begin Edit14.Text:=Edit12.Text; Edit15.Text:=Edit12.Text; Exit; end;
-  Edit13.Text:=FormatFloat('0.00',StrToFloat(Edit13.Text));
-  Edit14.Text := FormatFloat('0.00',(StrToFloat(Edit12.Text) - (StrToFloat(Edit12.Text) * StrToFloat(Edit13.Text)) / 100 ));
-  Edit15.Text:=Edit14.Text;
+  if Trim(Edit12.Text) = '' then Edit12.Text := '0.00';
+  if Trim(Edit13.Text) = '' then Edit13.Text := '0.00';
+
+  if not VF_TryParseFloatBounded(Edit12.Text, 'IMPORTE', VF_MAX_TOTAL, VImporte) then
+  begin
+    VF_NumError('IMPORTE', Edit12.Text);
+    Edit12.Text := '0.00';
+    Edit12.SetFocus;
+    Exit;
+  end;
+
+  if not VF_TryParseFloatBounded(Edit13.Text, 'DESCUENTO', VF_MAX_TOTAL, VDto) then
+  begin
+    VF_NumError('DESCUENTO', Edit13.Text);
+    Edit13.Text := '0.00';
+    Edit13.SetFocus;
+    Exit;
+  end;
+
+  if VDto = 0 then
+    VTotal := VImporte
+  else
+    VTotal := VImporte - ((VImporte * VDto) / 100);
+
+  Edit12.Text := FormatFloat('0.00', VImporte);
+  Edit13.Text := FormatFloat('0.00', VDto);
+  Edit14.Text := FormatFloat('0.00', VTotal);
+  Edit15.Text := Edit14.Text;
+  VF_NormalizarCamposCobro(True);
 end;
 
 //================= SALIR DEL DESCUENTO TOTAL =========================
+
 procedure TFVentas.Edit13Exit(Sender: TObject);
+var
+  VImporte, VDto, VTotal: Double;
 begin
-  if (Edit12.Text='') then begin Edit12.Text:='0.00'; exit; end;
-  if (Edit13.Text='') or (Edit13.Text='0.00') then
-    begin Edit14.Text:=Edit12.Text; Edit15.Text:=Edit12.Text; Exit; end;
-  Edit13.Text:=FormatFloat('0.00',StrToFloat(Edit13.Text));
-  Edit14.Text := FormatFloat('0.00',(StrToFloat(Edit12.Text) - (StrToFloat(Edit12.Text) * StrToFloat(Edit13.Text)) / 100 ));
-  Edit15.Text:=Edit14.Text;
+  if Trim(Edit12.Text) = '' then Edit12.Text := '0.00';
+  if Trim(Edit13.Text) = '' then Edit13.Text := '0.00';
+
+  if not VF_TryParseFloatBounded(Edit12.Text, 'IMPORTE', VF_MAX_TOTAL, VImporte) then
+  begin
+    VF_NumError('IMPORTE', Edit12.Text);
+    Edit12.Text := '0.00';
+    Edit12.SetFocus;
+    Exit;
+  end;
+
+  if not VF_TryParseFloatBounded(Edit13.Text, 'DESCUENTO', VF_MAX_TOTAL, VDto) then
+  begin
+    VF_NumError('DESCUENTO', Edit13.Text);
+    Edit13.Text := '0.00';
+    Edit13.SetFocus;
+    Exit;
+  end;
+
+  if VDto = 0 then
+    VTotal := VImporte
+  else
+    VTotal := VImporte - ((VImporte * VDto) / 100);
+
+  Edit12.Text := FormatFloat('0.00', VImporte);
+  Edit13.Text := FormatFloat('0.00', VDto);
+  Edit14.Text := FormatFloat('0.00', VTotal);
+  Edit15.Text := Edit14.Text;
+  VF_NormalizarCamposCobro(True);
 end;
 
 //=================== SALIR DEL IMPORTE TOTAL + DTO =====================
+
 procedure TFVentas.Edit14Exit(Sender: TObject);
 var
-  Pvp, Margen: Double;
+  Pvp, Margen, VTotal: Double;
 begin
-  if (Edit14.Text='') or (Edit14.Text='0') then If (Edit12.Text='') or (Edit12.Text='0') then exit;
-  //---------- Calcular %dto sobre el pvp
-  if (Edit12.Text <> '') and (Edit12.Text <> '0') then
-    begin
-      Pvp := StrToFloat(StaticText1.Caption);
-      Margen := ((Pvp-StrToFloat(Edit14.Text)) * 100 / Pvp);
-      if Pvp=0 then DataModule1.Mensaje('Información','El importe a pagar es cero', 1500 , clGray)
-               else Edit13.Text := FormatFloat('0.00',Margen);
-    end;
-  Edit15.Text:=Edit14.Text;
+  if Trim(Edit14.Text) = '' then
+  begin
+    if Trim(Edit12.Text) <> '' then
+      Edit14.Text := Edit12.Text
+    else
+      Edit14.Text := '0.00';
+  end;
+
+  if not VF_TryParseFloatBounded(Edit14.Text, 'TOTAL', VF_MAX_TOTAL, VTotal) then
+  begin
+    VF_NumError('TOTAL', Edit14.Text);
+    Edit14.Text := '0.00';
+    Edit14.SetFocus;
+    Exit;
+  end;
+
+  if not VF_TryParseFloatBounded(StaticText1.Caption, 'IMPORTE ORIGINAL', VF_MAX_TOTAL, Pvp) then
+    Pvp := 0;
+
+  if Pvp = 0 then
+    DataModule1.Mensaje('Información','El importe a pagar es cero', 1500 , clGray)
+  else
+  begin
+    Margen := ((Pvp - VTotal) * 100 / Pvp);
+    Edit13.Text := FormatFloat('0.00', Margen);
+  end;
+
+  Edit14.Text := FormatFloat('0.00', VTotal);
+  Edit15.Text := Edit14.Text;
+  VF_NormalizarCamposCobro(True);
 end;
 
 //================= SALIR DEL IMPORTE QUE ENTREGA ==================
+//================= SALIR DEL IMPORTE QUE ENTREGA ==================
+
 procedure TFVentas.Edit15Exit(Sender: TObject);
 begin
-  if Edit14.Text='' then Edit14.Text:='0';
-  if Edit15.Text='' then Edit15.Text:='0';
-
-  if ((StrToFloat(Edit14.Text)=0) and (StrToFloat(Edit12.Text)>0)) then exit;
-
-  Edit16.Text:=FormatFloat('0.00',StrToFloat(Edit15.Text)+StrToFloat(Edit42.Text)-StrToFloat(Edit14.Text));
-  if StrToFloat(Edit16.Text)<0 then
-    begin
-      Label32.Font.Color:=clRed;
-      Label32.Caption:='CREDITO';
-      Edit16.Font.Color:=clRed;
-    end
-  else
-    begin
-      Label32.Font.Color:=clWindowText;
-      Label32.Caption:='CAMBIO';
-      Edit16.Font.Color:=clWindowText;
-    end;
+  // Si el empleado borra la entrega y sale del campo, volvemos al total.
+  // Así evitamos créditos accidentales o errores por campo vacío.
+  VF_NormalizarCamposCobro(True);
 end;
 
 //================ ENTREGA CONTADO ================
+//================ ENTREGA CONTADO ================
+
 procedure TFVentas.Edit42Exit(Sender: TObject);
 begin
-  if Edit14.Text='' then Edit14.Text:='0';
-  if Edit15.Text='' then Edit15.Text:='0';
-  if Edit42.Text='' then Edit42.Text:='0';
+  // Entrega contado / puntos: si queda vacío, se considera 0.00.
+  if Trim(Edit42.Text) = '' then
+    Edit42.Text := '0.00';
 
-  if ((StrToFloat(Edit14.Text)=0) and (StrToFloat(Edit12.Text)>0)) then exit;
-
-  Edit16.Text:=FormatFloat('0.00',(StrToFloat(Edit15.Text)+StrToFloat(Edit42.Text))-StrToFloat(Edit14.Text));
-  if StrToFloat(Edit16.Text)<0 then
-    begin
-      Label32.Font.Color:=clRed;
-      Label32.Caption:='CREDITO';
-      Edit16.Font.Color:=clRed;
-    end
-  else
-    begin
-      Label32.Font.Color:=clWindowText;
-      Label32.Caption:='CAMBIO';
-      Edit16.Font.Color:=clWindowText;
-    end;
+  VF_NormalizarCamposCobro(True);
 end;
 
 //============ PINTAR ENTRADA DE DATOS ===========
+
 procedure TFVentas.PintaEntrada();
+var
+  PrecioFicha: Double;
+  PrecioPropuesto: Double;
 begin
   Edit3.Text:=dbArti.FieldByName('A0').AsString;//----------------- Codigo
   Edit4.Text:=dbArti.FieldByName('A1').AsString;//----------------- Descripcion
+
+  // --- Aviso si el precio propuesto es inferior al PVP de ficha ---
+  // Comportamiento: si Edit6 viene distinto de 0, se respeta como "precio propuesto".
+  // Si además es menor que el PVP de la ficha (A2), avisamos antes de aceptar y damos opción a corregirlo.
+  try
+    PrecioFicha := 0;
+    PrecioPropuesto := 0;
+    if (Trim(Edit6.Text) <> '') and (VF_NormalizaNumero(Edit6.Text) <> '0') then
+    begin
+      if VF_TryParseFloatBounded(dbArti.FieldByName('A2').AsString, 'PVP ficha', VF_MAX_PRICE, PrecioFicha) and
+         VF_TryParseFloatBounded(Edit6.Text, 'Precio propuesto', VF_MAX_PRICE, PrecioPropuesto) then
+      begin
+        if (PrecioPropuesto < PrecioFicha) then
+        begin
+          if MessageDlg('Aviso',
+            'El precio introducido (' + FormatFloat('0.00', PrecioPropuesto) +
+            ') es inferior al PVP de ficha (' + FormatFloat('0.00', PrecioFicha) + ').' + LineEnding +
+            '¿Desea mantener el precio introducido?',
+            mtWarning, [mbYes, mbNo], 0) = mrNo then
+            Edit6.Text := dbArti.FieldByName('A2').AsString;
+        end;
+      end;
+    end;
+  except
+    // Si algo falla en el aviso, no bloqueamos la venta.
+  end;
+
   if (Edit5.Text='') or (Edit5.Text='0') then Edit5.Text:='1';//--- Unidades
   if (Edit6.Text='') or (Edit6.Text='0') then Edit6.Text:=dbArti.FieldByName('A2').AsString;//------------ P.V.P.
   if (Edit7.Text='') or (Edit7.Text='0') then Edit7.Text:=dbArti.FieldByName('A21').AsString;//----------- Precio
@@ -3418,21 +6021,53 @@ end;
 
 //===================== CALCULAR IMPORTE DE LA LINEA ==============
 procedure TFVentas.VerImporteEntra();
+var
+  Unid, PrecioSin, Dto, Importe: Double;
 begin
- if StrToFloat(Edit8.Text)<>0 then
-  begin
-    //-------------- Si hay Dto. lo aplico
-    Edit9.Text := FloatToStr(StrToFloat(Edit5.Text) * StrToFloat(Edit7.Text));
-    Edit9.Text := FloatToStr(StrToFloat(Edit9.Text)*(1-StrToFloat(Edit8.Text)/100));
-    Edit9.Text := FormatFloat('0.00',StrToFloat(Edit9.Text));
+  if (Trim(Edit5.Text)='') then Edit5.Text:='0';
+  if (Trim(Edit7.Text)='') then Edit7.Text:='0';
+  if (Trim(Edit8.Text)='') then Edit8.Text:='0';
 
-  end
- else
-  begin
-    //-------------- Si no hay Dto. unidades * Precio
-    Edit9.Text := FloatToStr(StrToFloat(Edit5.Text) * StrToFloat(Edit7.Text));
-    Edit9.Text := FormatFloat('0.00',StrToFloat(Edit9.Text));
-  end;
+  if not VF_TryParseFloatBounded(Edit5.Text, 'Unidades', VF_MAX_QTY, Unid) then
+    begin
+      VF_NumError('Unidades', Edit5.Text);
+      Edit9.Text:='0.00';
+      exit;
+    end;
+
+  if not VF_TryParseFloatBounded(Edit7.Text, 'Precio (sin IVA)', VF_MAX_PRICE, PrecioSin) then
+    begin
+      VF_NumError('Precio (sin IVA)', Edit7.Text);
+      Edit9.Text:='0.00';
+      exit;
+    end;
+
+  if not VF_TryParseFloatBounded(Edit8.Text, 'Descuento %', 100.0, Dto) then
+    begin
+      VF_NumError('Descuento %', Edit8.Text);
+      Edit8.Text:='0';
+      Dto := 0;
+    end;
+
+  if not VF_SafeMul(Unid, PrecioSin, VF_MAX_AMOUNT, Importe) then
+    begin
+      VF_NumError('Importe línea', Edit5.Text+' x '+Edit7.Text);
+      Edit9.Text:='0.00';
+      exit;
+    end;
+
+  if Dto<>0 then
+    begin
+      Importe := Importe * (1 - (Dto/100));
+      if Abs(Importe) > VF_MAX_AMOUNT then
+        begin
+          VF_NumError('Importe línea', 'Exceso por descuento');
+          Edit9.Text:='0.00';
+          exit;
+        end;
+    end;
+
+  Edit9.Text := FormatFloat('0.00', Importe);
 end;
 
 //===================== CALCULAR DESCUENTO DE LA LINEA ==============
@@ -3461,19 +6096,75 @@ end;
 
 //===================== CALCULAR TOTAL DE LA LINEA ==============
 procedure TFVentas.VerTotalEntra();
- var
-  PrecioConIva: double;
+var
+  Unid, PVP, IVA, Dto, ImporteSinIva, TotalConIva: Double;
 begin
-  //------------- Si no hay dto, se calcula unid. * pvp y listo
-  if (Edit8.Text='') or (StrToFloat(Edit8.Text)=0) then
+  if (Trim(Edit5.Text)='') then Edit5.Text:='0';
+  if (Trim(Edit6.Text)='') then Edit6.Text:='0';
+  if (Trim(Edit8.Text)='') then Edit8.Text:='0';
+  if (Trim(Edit9.Text)='') then Edit9.Text:='0';
+  if (Trim(Edit10.Text)='') then Edit10.Text:='0';
+
+  if not VF_TryParseFloatBounded(Edit5.Text, 'Unidades', VF_MAX_QTY, Unid) then
     begin
-        Edit11.Text:=FormatFloat('0.00',StrToFloat(Edit5.Text)*StrToFloat(Edit6.Text));
-        Exit;
+      VF_NumError('Unidades', Edit5.Text);
+      Edit11.Text:='0.00';
+      exit;
     end;
-  Edit11.Text:=Edit9.Text;
-  if (Edit10.Text='') or (StrToFloat(Edit10.Text)=0) then exit; //---- si el iva es 0 salir
-  PrecioConIva:=StrToFloat(Edit9.Text) * (1+(StrToFloat(Edit10.Text) / 100)); //--- Sumar el IVA
-  Edit11.Text:=FormatFloat('0.00',PrecioConIva);
+
+  if not VF_TryParseFloatBounded(Edit6.Text, 'PVP', VF_MAX_PRICE, PVP) then
+    begin
+      VF_NumError('PVP', Edit6.Text);
+      Edit11.Text:='0.00';
+      exit;
+    end;
+
+  if not VF_TryParseFloatBounded(Edit8.Text, 'Descuento %', 100.0, Dto) then
+    begin
+      VF_NumError('Descuento %', Edit8.Text);
+      Edit8.Text:='0';
+      Dto := 0;
+    end;
+
+  if not VF_TryParseFloatBounded(Edit10.Text, 'IVA %', 1000.0, IVA) then
+    begin
+      VF_NumError('IVA %', Edit10.Text);
+      IVA := 0;
+    end;
+
+  // Sin descuento: total = unidades * PVP
+  if (Dto=0) then
+    begin
+      if not VF_SafeMul(Unid, PVP, VF_MAX_AMOUNT, TotalConIva) then
+        begin
+          VF_NumError('Total línea', Edit5.Text+' x '+Edit6.Text);
+          Edit11.Text:='0.00';
+          exit;
+        end;
+      Edit11.Text := FormatFloat('0.00', TotalConIva);
+      Exit;
+    end;
+
+  // Con descuento: partimos del importe sin IVA (Edit9) y le sumamos IVA
+  if not VF_TryParseFloatBounded(Edit9.Text, 'Importe (sin IVA)', VF_MAX_AMOUNT, ImporteSinIva) then
+    begin
+      VF_NumError('Importe (sin IVA)', Edit9.Text);
+      Edit11.Text:='0.00';
+      exit;
+    end;
+
+  TotalConIva := ImporteSinIva;
+  if IVA<>0 then
+    TotalConIva := ImporteSinIva * (1 + (IVA/100));
+
+  if Abs(TotalConIva) > VF_MAX_AMOUNT then
+    begin
+      VF_NumError('Total línea', 'Exceso al aplicar IVA');
+      Edit11.Text:='0.00';
+      exit;
+    end;
+
+  Edit11.Text := FormatFloat('0.00', TotalConIva);
 end;
 
 //============= LOCALIZAR ARTICULOS POR CODIGO =====================
@@ -3484,8 +6175,31 @@ begin
   dbArti.SQL.Text:='SELECT * FROM artitien'+Tienda+' WHERE A0="'+Edit3.Text+'"';
   dbArti.Active:=True;
   if dbArti.RecordCount<>0 then
-    begin LeerArticulo:=True; PintaEntrada(); end
-  else LeerArticulo:=False;
+    begin
+      LeerArticulo:=True;
+      PintaEntrada();
+
+      try
+        VF_SetPromoVisual(
+          ApplyPromoToEdits(dbArti.Connection, Tienda,
+                            dbArti.FieldByName('A0').AsString,
+                            '',
+                            0,
+                            Now,
+                            Edit6, Edit7, Edit10)
+        );
+      except
+        on E: Exception do
+          VF_SetPromoVisual(False);
+      end;
+
+      Edit6Exit(Self);
+    end
+  else
+    begin
+      LeerArticulo:=False;
+      VF_SetPromoVisual(False);
+    end;
 end;
 //============= LOCALIZAR ARTICULOS POR CGO AUXILIAR =====================
 function TFVentas.LeerAuxiliar: Boolean;
@@ -3494,11 +6208,11 @@ begin
   dbTrabajo.Active:=False;
   dbTrabajo.SQL.Text:='SELECT * FROM eans WHERE EAN0="'+Edit3.Text+'"';
   dbTrabajo.Active:=True;
-  if dbTrabajo.RecordCount=0 then exit;
+  if dbTrabajo.RecordCount=0 then begin VF_SetPromoVisual(False); exit; end;
   dbArti.Active:=False;
   dbArti.SQL.Text:='SELECT * FROM artitien'+Tienda+' WHERE A0="'+dbTrabajo.FieldByName('EAN1').AsString+'"';
   dbArti.Active:=True;
-  if dbArti.RecordCount=0 then exit;
+  if dbArti.RecordCount=0 then begin VF_SetPromoVisual(False); exit; end;
   PintaEntrada();//----- Pintar los datos del articulo.
   Edit3.Text:=dbTrabajo.FieldByName('EAN0').AsString;//----- código
   Edit4.Text:=dbTrabajo.FieldByName('EAN2').AsString;//----- Descripcion
@@ -3507,8 +6221,22 @@ begin
   { TODO : ventas falta poner el importe del auxiliar o la cantidad por el importe unitario?
  }
   if (dbTrabajo.FieldByName('EAN4').AsString<>'0') then Edit6.Text:=dbTrabajo.FieldByName('EAN4').AsString;//----- Precio Unitario Ean
-  Edit6Exit(self);    // Actualizamos precios.
 
+  try
+    VF_SetPromoVisual(
+      ApplyPromoToEdits(dbArti.Connection, Tienda,
+                        dbTrabajo.FieldByName('EAN1').AsString,
+                        '',
+                        0,
+                        Now,
+                        Edit6, Edit7, Edit10)
+    );
+  except
+    on E: Exception do
+      VF_SetPromoVisual(False);
+  end;
+
+  Edit6Exit(self);    // Actualizamos precios.
   LeerAuxiliar:=True;
 end;
 
@@ -3586,9 +6314,14 @@ begin
   else StaticText1.Caption:=FormatFloat('0.00',dbTrabajo.Fields[0].AsFloat);
   dbTrabajo.Active:=False;
 
-  //Actualizamos QR de veri*factu
+  // Actualizamos QR de Veri*Factu. En produccion se usa el QR tributario;
+  // fuera de produccion se respeta el texto/web de pruebas configurado.
+  if VF_EsModoProduccion then
+    BarcodeQR1.Text := VF_BuildQRTributario(SERIEFACT, NOPERACION+1, Date, StaticText1.Caption)
+  else
+    BarcodeQR1.Text := TextoCodigoQR;
 
-   BarcodeQR1.Text:=txtQR+'&importe='+StaticText1.Caption;
+  txtQR := BarcodeQR1.Text;
 
 end;
 
@@ -3621,21 +6354,32 @@ var
   G: TDBGrid;
   DS: TDataSet;
   S: string;
+  EsPromo: Boolean;
 begin
   G := TDBGrid(Sender);
   DS := nil;
   if (G.DataSource <> nil) then
     DS := G.DataSource.DataSet;
 
-  // 1) Colores base (primero)
+  EsPromo := False;
+  if (DS <> nil) and (not DS.IsEmpty) then
+    EsPromo := VF_LineaTienePromoEnGrid(DS.FieldByName('V3').AsString);
+
+  // 1) Colores base
   if (gdSelected in State) then
   begin
-    G.Canvas.Brush.Color := clInfoBK;
+    if EsPromo then
+      G.Canvas.Brush.Color := $00C8F0C8   // verde suave más visible al seleccionar
+    else
+      G.Canvas.Brush.Color := clInfoBK;
     G.Canvas.Font.Color := clBlack;
   end
   else
   begin
-    G.Canvas.Brush.Color := clWhite;
+    if EsPromo then
+      G.Canvas.Brush.Color := $00D8FFD8   // verde suave y legible
+    else
+      G.Canvas.Brush.Color := clWhite;
     G.Canvas.Font.Color := clBlack;
   end;
 
@@ -3655,10 +6399,10 @@ begin
     else
       S := '';
     G.Canvas.TextOut(Rect.Left + 2, Rect.Top + 2, S);
-    Exit; // IMPORTANTÍSIMO: no pintes por defecto encima
+    Exit;
   end;
 
-  // 5) Resto de columnas: dibujo estándar (una sola vez)
+  // 5) Resto de columnas: dibujo estándar
   G.DefaultDrawColumnCell(Rect, DataCol, Column, State);
 end;
 
@@ -3681,26 +6425,73 @@ end;
 
 //================= N. DE TICKET ===========================
 procedure TFVentas.NumeroTicket();
+var
+  Msg: string;
 begin
-  if SERIEFACT='' then begin SERIEFACT:='';NOPERACION:=0; Exit; end;
+  // Opción A: si la serie no existe, BLOQUEAR (no finalizar) y dejar constancia en log.
+  // Importante: inicializar a 0 para evitar reutilizar el valor anterior si falla algo.
+  if SERIEFACT='' then begin SERIEFACT:=''; NOPERACION:=0; Exit; end;
+  NOPERACION := 0;
+
   dbSeries.Active:=False;
   dbSeries.SQL.Text:='UPDATE seriesfactu SET SF4=SF4+1 WHERE SF0="'+SERIEFACT+'"';
   try
     dbSeries.ExecSQL;
+
+    // Si no hay filas afectadas, la serie no existe (no debemos continuar).
+    if (dbSeries.RowsAffected=0) then
+    begin
+      Msg := 'La serie "'+SERIEFACT+'" no existe en seriesfactu. Debe crearla antes de usarla.';
+      try FLX_WriteLog('VENTAS', 'NumeroTicket: ' + Msg); except end;
+      ShowMessage(Msg);
+      raise Exception.Create(Msg);
+    end;
   except
-   // Capturamos el error específico de la capa de datos
     on EDB: EZSQLException do
     begin
-      // El mensaje de EDB contendrá el mensaje de error de MariaDB
-      ShowMessage('Error de Base de Datos Inesperado Actualizando Series FraS : ' + EDB.Message);
-      // La aplicación sigue desde aquí.
+      Msg := 'Error de Base de Datos Actualizando Series (SF4) para "'+SERIEFACT+'": ' + EDB.Message;
+      try FLX_WriteLog('VENTAS', 'NumeroTicket: ' + Msg); except end;
+      ShowMessage(Msg);
+      raise;
+    end;
+    on E: Exception do
+    begin
+      Msg := 'Error inesperado en NumeroTicket para "'+SERIEFACT+'": ' + E.Message;
+      try FLX_WriteLog('VENTAS', 'NumeroTicket: ' + Msg); except end;
+      ShowMessage(Msg);
+      raise;
     end;
   end;
+
+  // Leer el número ya incrementado (SF4)
+  dbSeries.Active:=False;
+  dbSeries.SQL.Text:='SELECT * FROM seriesfactu WHERE SF0="'+SERIEFACT+'"';
+  dbSeries.Active:=True;
+
+  if dbSeries.Recordcount<>1 then
+  begin
+    dbSeries.Active:=False;
+    Msg := 'No se pudo leer la numeración de la serie "'+SERIEFACT+'" en seriesfactu (SF0).';
+    try FLX_WriteLog('VENTAS', 'NumeroTicket: ' + Msg); except end;
+    ShowMessage(Msg);
+    raise Exception.Create(Msg);
+  end;
+
+  NOPERACION:=dbSeries.Fields[4].AsInteger; // SF4 = último ticket emitido
+  dbSeries.Active:=False;
+end;
+
+
+procedure TFVentas.LeerNumeroTicketActual();
+begin
+  // OJO: esto NO incrementa el contador. Solo lee el último ticket emitido (SF4)
+  // para previsualizaciones (QR en pantalla, etc.). El número se consume solo al finalizar la venta.
+  if SERIEFACT='' then begin SERIEFACT:=''; NOPERACION:=0; Exit; end;
   dbSeries.Active:=False;
   dbSeries.SQL.Text:='SELECT * FROM seriesfactu WHERE SF0="'+SERIEFACT+'"';
   dbSeries.Active:=True;
   if dbSeries.Recordcount=0 then exit;
-  NOPERACION:=dbSeries.Fields[4].AsInteger;
+  NOPERACION:=dbSeries.Fields[4].AsInteger; // SF4 = último ticket emitido
   dbSeries.Active:=False;
 end;
 
@@ -3897,8 +6688,21 @@ begin
 end;
 //---------------- CAMBIAR ENTRE TICKETS ABIERTOS ----------------------
 procedure TFVentas.CambiarTicket();
+var
+  LT: String;
 begin
-  TICKET:=dbTickets.Fields[0].AsString;
+  // Evitar SQL inválido si el refresco de tickets deja el dataset sin registro
+  // durante un instante, o si no quedan ventas aparcadas tras borrar la venta.
+  LT := '';
+  if (dbTickets.Active) and (dbTickets.RecordCount<>0) and
+     (not dbTickets.BOF) and (not dbTickets.EOF) and
+     (not dbTickets.Fields[0].IsNull) then
+    LT := Trim(dbTickets.Fields[0].AsString);
+
+  if Trim(LT) = '' then
+    LT := '1';
+
+  TICKET:=LT;
   //--------- Tabla de ventas
   dbVentas.Active:=False;
   dbVentas.SQL.Text:='SELECT * FROM ventas'+Tienda+Puesto+' WHERE V0=0 AND V1='+TICKET;
@@ -3910,9 +6714,44 @@ begin
         Edit1.Text:=dbVentas.FieldByName('V12').AsString
       else
         Edit1.Text:=ClienteVario;
-    end;
+    end
+  else
+    Edit1.Text:=ClienteVario;
+
   Edit1Exit(Edit1); PintarTotalGeneral(); Edit3.SetFocus;
 end;
+//----------------- RUEDA RATON EN TICKETS APARCADOS -------------
+procedure TFVentas.DBGrid2MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+begin
+  Handled := True;
+  if (dbTickets = nil) or (not dbTickets.Active) or (dbTickets.RecordCount = 0) then Exit;
+
+  // Normalizar posicion si el dataset hubiera quedado en BOF/EOF por algun refresco.
+  if dbTickets.EOF then
+    dbTickets.Last;
+  if dbTickets.BOF then
+    dbTickets.First;
+
+  if WheelDelta < 0 then
+  begin
+    // Si estamos en la ultima venta aparcada, no dejar que el dataset
+    // quede en EOF, porque CambiarTicket acabaria usando TICKET='1'.
+    dbTickets.Next;
+    if dbTickets.EOF then
+      dbTickets.Last;
+  end
+  else
+  begin
+    // Si estamos en la primera venta aparcada, no dejar que el dataset
+    // quede en BOF. Asi no salta a otra venta ni a ticket nuevo.
+    dbTickets.Prior;
+    if dbTickets.BOF then
+      dbTickets.First;
+  end;
+
+  CambiarTicket();
+end;
+
 //----------------- SI SALE DEl TICKET NUEVO SIN LINEAS ---------
 procedure TFVentas.DBGrid2CellClick(Column: TColumn);
 begin
@@ -3923,10 +6762,23 @@ end;
 procedure TFVentas.RefrescaTicketsAbiertos();
 begin
   Llenando:=1;
-  dbTickets.Refresh;
-  if dbTickets.RecordCount=0 then begin TICKET:='1'; exit; end;
-  if not dbTickets.Locate('TI0',TICKET,[]) then CambiarTicket();
-  Llenando:=0;
+  try
+    dbTickets.Refresh;
+    if dbTickets.RecordCount=0 then
+      begin
+        TICKET:='1';
+        dbVentas.Active:=False;
+        dbVentas.SQL.Text:='SELECT * FROM ventas'+Tienda+Puesto+' WHERE V0=0 AND V1='+TICKET;
+        dbVentas.Active:=True;
+        Edit1.Text:=ClienteVario;
+        Edit1Exit(Edit1);
+        PintarTotalGeneral();
+        Exit;
+      end;
+    if not dbTickets.Locate('TI0',TICKET,[]) then CambiarTicket();
+  finally
+    Llenando:=0;
+  end;
 end;
 //-------------------- APARCAR TICKET -----------------------
 procedure TFVentas.BitBtn24Click(Sender: TObject);
@@ -3967,7 +6819,7 @@ begin
      iiva2:=0;
      iiva3:=0;
 
-   if UpperCase(vfMode) = 'PRODUCCION' then
+   if VF_EsModoProduccion then
      begin
       LeyendaCabeceraQR := ' QR Tributario : ';
       LeyendaPieQR := ' VERI*FACTU ';
@@ -4081,7 +6933,7 @@ var
 
 begin
 
-   if UpperCase(vfMode) = 'PRODUCCION' then
+   if VF_EsModoProduccion then
         LeyendaTextoQR := BarcodeQR1.Text
    else
         LeyendaTextoQR := TextoCodigoQR;
@@ -4112,16 +6964,24 @@ begin
    // Saltos de línea para asegurar el corte o avance
    //S += #10;
 
-   Ticketera := FileCreate(ImpresoraTicket);
+   // Usar la misma salida configurada para el ticket, no /dev/usb/lp0 fijo.
+   Ticketera := FileCreate(DevTicket);
    if Ticketera = feInvalidHandle then
-    raise Exception.Create('No se puede abrir la impresora en: ' + ImpresoraTicket);
+    raise Exception.Create('No se puede abrir la impresora de ticket para QR en: ' + DevTicket);
 
-   FileWrite(Ticketera, Pointer(S)^, Length(S));
-   FileClose(Ticketera);
+   try
+     FileWrite(Ticketera, Pointer(S)^, Length(S));
+   finally
+     FileClose(Ticketera);
+   end;
 
   except
     on E: Exception do
-      WriteLn('Error: ', E.Message);
+    begin
+      try FLX_WriteLog('VENTAS', 'QR Ticket: ' + E.Message); except end;
+      try LogErrorToFile('QR Ticket: ' + E.Message); except end;
+      // No bloqueamos la venta por fallo del QR, pero queda registrado en log.
+    end;
   end;
 
 
@@ -4163,17 +7023,10 @@ begin
      raise;
   end;
 
-  //..Inserción de Prueba de Jose para QR
-  try
-    PrintQR(vfUrl+'nif='+NIF+'&'+'numserie='+'Serie FS-'+SERIEFACT+'-'+DataModule1.LFill(FormatFloat('#######',NOPERACION),7,' ')
-                               +'&fecha='+FormatDateTime('dd-mm-yyyy',FechaVenta)
-                               +'&importe='+DataModule1.LFill( FormatFloat('0.00',StrToFloat(Edit14.Text)),10,' '));
-    WriteLn('QR enviado correctamente.');
-  except
-    on E: Exception do
-      WriteLn('Error: ', E.Message);
-  end;
-  //..Inserción de Prueba de Jose para QR
+  // QR Veri*Factu: se imprime al inicio del ticket mediante ImprimeQRTicket().
+  // Desactivamos esta prueba antigua para evitar un segundo QR y una URL no valida
+  // con 'Serie FS-...' y espacios dentro de numserie. El prefijo correcto FS- se
+  // conserva en VF_BuildQRTributario().
 
 
   Writeln(PrintText, 'F A C T U R A   S I M P L I F I C A D A');
@@ -4946,6 +7799,7 @@ begin
   dbSeries.Active:=True;
   if dbSeries.RecordCount=0 then begin DataModule1.Mensaje('Información','Debe crear SERIE de facturación', 2000 , clGray); exit; end;
   dbSeries.First; Combo6.Items.Clear;
+  Combo6.Items.Add('*** - TODAS');
   while not dbSeries.EOF do
     begin
      Combo6.Items.Add(Space(3-length(dbSeries.FieldByName('SF0').AsString))+ dbSeries.FieldByName('SF0').AsString+' - '+
@@ -4955,20 +7809,42 @@ begin
   dbSeries.Locate('SF0', dbTiendas.Fields[11].AsString, [loCaseInsensitive]);
   Combo6.ItemIndex:= Combo6.Items.IndexOf(Space(3-length(dbSeries.FieldByName('SF0').AsString))+ dbSeries.FieldByName('SF0').AsString+' - '+
                         dbSeries.FieldByName('SF1').AsString);
+  
+  if Combo6.ItemIndex<0 then Combo6.ItemIndex:=0;
   Edit35.Text:=IntToStr(dbSeries.FieldByName('SF6').AsInteger+1);
   dbTiendas.Active:=False;
   //-------------------------- Presupuestos sin servir
+{
   dbPedi.Active:=False;
   dbPedi.SQL.Text:='SELECT * FROM presuc'+Tienda+', clientes'+
                    ' WHERE PRC0=C0 AND PRC12="SV"'+
                    ' ORDER BY PRC0 ASC, PRC1 DESC, PRC2 ASC, PRC3 ASC';
   dbPedi.Active:=True;
+}
+  //-------------------------- Presupuestos / Proformas (listado con filtros)
   DateEdit2.Date:=Date;
+  if ChkTodosAniosPrePro=nil then
+    begin
+      ChkTodosAniosPrePro := TCheckBox.Create(Self);
+      ChkTodosAniosPrePro.Parent := Panel10;
+      ChkTodosAniosPrePro.Caption := 'Todos los años';
+      ChkTodosAniosPrePro.AutoSize := True;
+      ChkTodosAniosPrePro.Constraints.MinWidth := 140;
+      ChkTodosAniosPrePro.Checked := False;
+      ChkTodosAniosPrePro.Left := DateEdit2.Left;
+      ChkTodosAniosPrePro.Top := DateEdit2.Top + DateEdit2.Height + 4;
+      ChkTodosAniosPrePro.OnClick := @ChkTodosAniosPreProClick;
+      // refresco automático al cambiar el año
+      DateEdit2.OnChange := @DateEdit2Change;
+    end;
+  RecargaListaPrePro;
 end;
 
 //----------------- Cambiar N.Pre/Pro al moverse por el combo -------------
 procedure TFVentas.Combo6Change(Sender: TObject);
 begin
+  if Panel10.Visible then
+    RecargaListaPrePro;
   if dbSeries.Locate('SF0',trim(copy(Combo6.Items.Strings[Combo6.ItemIndex],1,3)),[]) then
     if Radiobutton9.Checked=True then
       Edit26.Text:=IntToStr(dbSeries.FieldByName('SF6').AsInteger+1);//--- N.Presp.
@@ -4993,7 +7869,9 @@ begin
      Edit33.Text:=dbClientes.FieldByName('C1').AsString;//----- Nombre del cliente.
      Edit36.Text:=dbClientes.FieldByName('C3').AsString;//----- Dirección cliente
      Edit30.Text:=dbClientes.FieldByName('C6').AsString;//----- Telefono del cliente.
-    end;
+      if Panel10.Visible then
+    RecargaListaPrePro;
+end;
 end;
 
 //--------------------------------------------------------
@@ -5009,11 +7887,14 @@ begin
   BitBtn37.Caption:='Añadir al presup.';
   BitBtn38.Caption:='Recuperar presup.';
   //-------------------------- Presupuestos sin servir
+{
   dbPedi.Active:=False;
   dbPedi.SQL.Text:='SELECT * FROM presuc'+Tienda+', clientes'+
                    ' WHERE PRC0=C0 AND PRC12="SV"'+
                    ' ORDER BY PRC0 ASC, PRC1 DESC, PRC2 ASC, PRC3 ASC';
   dbPedi.Active:=True;
+}
+  RecargaListaPrePro;
   //----------------- N. presupuesto
   if dbSeries.Locate('SF0',trim(copy(Combo6.Items.Strings[Combo6.ItemIndex],1,3)),[]) then
       Edit26.Text:=IntToStr(dbSeries.FieldByName('SF6').AsInteger+1);//--- N.Presp.
@@ -5029,11 +7910,14 @@ begin
   BitBtn37.Caption:='Añadir a la profor.';
   BitBtn38.Caption:='Recuperar profor.';
   //-------------------------- Proformas sin servir
+{
   dbPedi.Active:=False;
   dbPedi.SQL.Text:='SELECT * FROM proforc'+Tienda+', clientes'+
                    ' WHERE PRC0=C0 AND PRC12="SV"'+
                    ' ORDER BY PRC0 ASC, PRC1 DESC, PRC2 ASC, PRC3 ASC';
   dbPedi.Active:=True;
+}
+  RecargaListaPrePro;
   //----------------- N. proforma
   if dbSeries.Locate('SF0',trim(copy(Combo6.Items.Strings[Combo6.ItemIndex],1,3)),[]) then
       Edit26.Text:=IntToStr(dbSeries.FieldByName('SF8').AsInteger+1);//--- N.Porfor.
@@ -5651,9 +8535,12 @@ begin
 
   if key=VK_F6 then begin Edit6.SetFocus; exit; end;//----- Ir al precio
 
-  if key=VK_F7 then begin Edit11.SetFocus; exit; end;//----- Ir al TOTAL por tema VALES
+  if key=VK_F7 then begin
+    // Guardamos el total actual antes de editar (para calcular el descuento desde TOTAL)
+    VF_PrevTotalEdit11 := StrToFloatDef(VF_NormalizaNumero(Edit11.Text), 0);
+    Edit11.SetFocus; exit; end;//----- Ir al TOTAL por tema VALES
 
-  if key=VK_F11 then begin Edit8.SetFocus; exit; end;//----- Ir al DESCUENTO
+  if (key=VK_F11) and (Panel4.Visible=False) then begin Edit8.SetFocus; exit; end;//----- Ir al DESCUENTO
 
   //------------ Totalizar Operacion / Sin ticket ------------------
   if key=VK_F8 then
@@ -5669,7 +8556,8 @@ begin
     begin
       if BitBtn9.Enabled=true and Panel4.Visible=True then
         begin
-           if PedirSiempreUsuario='S' then Panel12.Visible:=True;
+           //-- Linea anulada por Jose para evitar que vuelva un paso atrás tras cancelar la operación
+           //-- if PedirSiempreUsuario='S' then Panel12.Visible:=True;
            if BitBtn11.Enabled=True then begin BitBtn11Click(BitBtn11); key:=0; exit; end;
         end;
 
@@ -5683,7 +8571,7 @@ begin
   if key=VK_F12 then begin key:=0; cbUsuario.SetFocus; cbUsuario.DroppedDown:=true; end;
 
   //-------------- ESC para salir de ventas -------------------
-   if (key=VK_ESCAPE) and (Panel4.Visible=False) then begin BitBtn7Click(BitBtn7); key:=0; exit; end;   // Salir de ventas.
+   if (key=VK_ESCAPE) and (Panel4.Visible=False) and (PanelBuscaArticulos.Visible=False) then begin BitBtn7Click(BitBtn7); key:=0; exit; end;   // Salir de ventas.
 
 
   //-------------- Control en totalizar de la impresion directa / email -----------------
@@ -5746,4 +8634,3 @@ initialization
   {$I ventas.lrs}
 
 end.
-

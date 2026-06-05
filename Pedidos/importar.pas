@@ -230,6 +230,7 @@ type
     procedure TodoEnblanco1();
     procedure TodoEnblanco2();
     procedure Formatear();
+    procedure FormatearExcel(const AFichero: string);
     procedure DistribuirLineasPedido(var ArrayDeLineasPedidoAux: array of RLineaPedido);
     procedure BuscarCoincidencias(var Linea: RLineaPedido);
     procedure CompletaLineaPedidoConBD(var Linea: RLineaPedido);
@@ -239,6 +240,8 @@ type
     procedure IniciaImportar(var dbPedid: TzQuery; dbPedic: TzQuery);
     procedure InsertarLinea(Linea: RLineaPedido; VerUltimaLinea: integer );
     procedure SumaPendientes(CodiPen, UniPen: String);
+    function SeleccionarArticuloExistentePorDescripcion(const TextoBusqueda: string; out ACodigo, ANombre: string): Boolean;
+    function PrepararArticuloExistenteParaEan(var Linea: RLineaPedido): Boolean;
     procedure NuevoEan(const nuevoEan: string; var linea: RLineaPedido);
 
   private
@@ -272,7 +275,962 @@ implementation
 { TfImportar }
 
 uses
-   Global, Funciones, Articulos;
+   Global, Funciones, Articulos, StrUtils, Zipper, DOM, XMLRead;
+
+
+type
+  TXLSXRow = array of string;
+  TXLSXTable = array of TXLSXRow;
+  TXLSXSharedStrings = array of string;
+
+var
+  // Se usa sólo como ayuda visual al preguntar IVA para artículos nuevos
+  // cuando el fichero no trae IVA válido. No cambia la lógica de artículos existentes.
+  FLX_UltimoIvaAltaNuevo: Double = 21.0;
+
+function FLX_EsFicheroExcel(const AFichero: string): Boolean;
+var
+  Ext: string;
+begin
+  Ext := LowerCase(ExtractFileExt(AFichero));
+  Result := (Ext = '.xls') or (Ext = '.xlsx');
+end;
+
+function FLX_EsFicheroXLSX(const AFichero: string): Boolean;
+begin
+  Result := LowerCase(ExtractFileExt(AFichero)) = '.xlsx';
+end;
+
+function FLX_NormalizaRutaXLSX(const S: string): string;
+begin
+  Result := StringReplace(S, '\\', '/', [rfReplaceAll]);
+  while Pos('//', Result) > 0 do
+    Result := StringReplace(Result, '//', '/', [rfReplaceAll]);
+end;
+
+function FLX_Atributo(const Nodo: TDOMNode; const Nombre: string): string;
+var
+  I: Integer;
+  Attr: TDOMNode;
+  Nom: string;
+begin
+  Result := '';
+  if (Nodo = nil) or (Nodo.Attributes = nil) then Exit;
+
+  for I := 0 to Nodo.Attributes.Length - 1 do
+  begin
+    Attr := Nodo.Attributes.Item[I];
+    Nom := Attr.NodeName;
+    if SameText(Nom, Nombre) or SameText(Copy(Nom, Pos(':', Nom) + 1, MaxInt), Nombre) then
+    begin
+      Result := Attr.NodeValue;
+      Exit;
+    end;
+  end;
+end;
+
+function FLX_NombreNodoSimple(const Nodo: TDOMNode): string;
+var
+  P: Integer;
+begin
+  Result := '';
+  if Nodo = nil then Exit;
+  Result := Nodo.NodeName;
+  P := Pos(':', Result);
+  if P > 0 then
+    Result := Copy(Result, P + 1, MaxInt);
+end;
+
+function FLX_NodoEs(const Nodo: TDOMNode; const Nombre: string): Boolean;
+begin
+  Result := SameText(FLX_NombreNodoSimple(Nodo), Nombre);
+end;
+
+function FLX_HijoPorNombre(const Nodo: TDOMNode; const Nombre: string): TDOMNode;
+var
+  Hijo: TDOMNode;
+begin
+  Result := nil;
+  if Nodo = nil then Exit;
+
+  Hijo := Nodo.FirstChild;
+  while Hijo <> nil do
+  begin
+    if FLX_NodoEs(Hijo, Nombre) then
+    begin
+      Result := Hijo;
+      Exit;
+    end;
+    Hijo := Hijo.NextSibling;
+  end;
+end;
+
+function FLX_TextoRecursivo(const Nodo: TDOMNode): string;
+var
+  Hijo: TDOMNode;
+begin
+  Result := '';
+  if Nodo = nil then Exit;
+
+  if (Nodo.NodeType = TEXT_NODE) or (Nodo.NodeType = CDATA_SECTION_NODE) then
+    Result := Nodo.NodeValue;
+
+  Hijo := Nodo.FirstChild;
+  while Hijo <> nil do
+  begin
+    Result := Result + FLX_TextoRecursivo(Hijo);
+    Hijo := Hijo.NextSibling;
+  end;
+end;
+
+function FLX_TextoHijo(const Nodo: TDOMNode; const Nombre: string): string;
+var
+  Hijo: TDOMNode;
+begin
+  Result := '';
+  Hijo := FLX_HijoPorNombre(Nodo, Nombre);
+  if Hijo <> nil then
+    Result := FLX_TextoRecursivo(Hijo);
+end;
+
+function FLX_QuitarCerosIzquierdaSeguro(const S: string): string;
+begin
+  Result := Trim(S);
+  while (Length(Result) > 1) and (Result[1] = '0') do
+    Delete(Result, 1, 1);
+end;
+
+function FLX_NormalizaCabeceraExcel(const S: string): string;
+begin
+  Result := LowerCase(Trim(S));
+  Result := StringReplace(Result, 'á', 'a', [rfReplaceAll]);
+  Result := StringReplace(Result, 'é', 'e', [rfReplaceAll]);
+  Result := StringReplace(Result, 'í', 'i', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ó', 'o', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ú', 'u', [rfReplaceAll]);
+  Result := StringReplace(Result, 'à', 'a', [rfReplaceAll]);
+  Result := StringReplace(Result, 'è', 'e', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ì', 'i', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ò', 'o', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ù', 'u', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ü', 'u', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ñ', 'n', [rfReplaceAll]);
+  Result := StringReplace(Result, '.', '', [rfReplaceAll]);
+  Result := StringReplace(Result, '-', '', [rfReplaceAll]);
+  Result := StringReplace(Result, '_', '', [rfReplaceAll]);
+  Result := StringReplace(Result, ' ', '', [rfReplaceAll]);
+end;
+
+function FLX_NormalizaDescripcionImportada(const S: string): string;
+var
+  I: Integer;
+  T: string;
+begin
+  Result := Trim(S);
+
+  // Espacios raros/tabuladores a espacio normal.
+  Result := StringReplace(Result, #9, ' ', [rfReplaceAll]);
+  Result := StringReplace(Result, #160, ' ', [rfReplaceAll]);
+
+  // Quitamos acentos y diéresis para evitar problemas en búsquedas/SQL/impresión.
+  Result := StringReplace(Result, 'Á', 'A', [rfReplaceAll]);
+  Result := StringReplace(Result, 'É', 'E', [rfReplaceAll]);
+  Result := StringReplace(Result, 'Í', 'I', [rfReplaceAll]);
+  Result := StringReplace(Result, 'Ó', 'O', [rfReplaceAll]);
+  Result := StringReplace(Result, 'Ú', 'U', [rfReplaceAll]);
+  Result := StringReplace(Result, 'À', 'A', [rfReplaceAll]);
+  Result := StringReplace(Result, 'È', 'E', [rfReplaceAll]);
+  Result := StringReplace(Result, 'Ì', 'I', [rfReplaceAll]);
+  Result := StringReplace(Result, 'Ò', 'O', [rfReplaceAll]);
+  Result := StringReplace(Result, 'Ù', 'U', [rfReplaceAll]);
+  Result := StringReplace(Result, 'Ä', 'A', [rfReplaceAll]);
+  Result := StringReplace(Result, 'Ë', 'E', [rfReplaceAll]);
+  Result := StringReplace(Result, 'Ï', 'I', [rfReplaceAll]);
+  Result := StringReplace(Result, 'Ö', 'O', [rfReplaceAll]);
+  Result := StringReplace(Result, 'Ü', 'U', [rfReplaceAll]);
+
+  Result := StringReplace(Result, 'á', 'a', [rfReplaceAll]);
+  Result := StringReplace(Result, 'é', 'e', [rfReplaceAll]);
+  Result := StringReplace(Result, 'í', 'i', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ó', 'o', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ú', 'u', [rfReplaceAll]);
+  Result := StringReplace(Result, 'à', 'a', [rfReplaceAll]);
+  Result := StringReplace(Result, 'è', 'e', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ì', 'i', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ò', 'o', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ù', 'u', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ä', 'a', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ë', 'e', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ï', 'i', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ö', 'o', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ü', 'u', [rfReplaceAll]);
+
+  // Ñ/ñ a N/n.
+  Result := StringReplace(Result, 'Ñ', 'N', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ñ', 'n', [rfReplaceAll]);
+
+  // Comillas simples/dobles rectas y tipográficas: se eliminan.
+  Result := StringReplace(Result, '''', '', [rfReplaceAll]);
+  Result := StringReplace(Result, '"', '', [rfReplaceAll]);
+  Result := StringReplace(Result, '´', '', [rfReplaceAll]);
+  Result := StringReplace(Result, '`', '', [rfReplaceAll]);
+  Result := StringReplace(Result, '’', '', [rfReplaceAll]);
+  Result := StringReplace(Result, '‘', '', [rfReplaceAll]);
+  Result := StringReplace(Result, '“', '', [rfReplaceAll]);
+  Result := StringReplace(Result, '”', '', [rfReplaceAll]);
+
+  // Por si algún proveedor/fichero llega con UTF-8 mal interpretado.
+  Result := StringReplace(Result, 'ÃÁ', 'A', [rfReplaceAll]);
+  Result := StringReplace(Result, 'Ã‰', 'E', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ÃÍ', 'I', [rfReplaceAll]);
+  Result := StringReplace(Result, 'Ã“', 'O', [rfReplaceAll]);
+  Result := StringReplace(Result, 'Ãš', 'U', [rfReplaceAll]);
+  Result := StringReplace(Result, 'Ã¡', 'a', [rfReplaceAll]);
+  Result := StringReplace(Result, 'Ã©', 'e', [rfReplaceAll]);
+  Result := StringReplace(Result, 'Ã­', 'i', [rfReplaceAll]);
+  Result := StringReplace(Result, 'Ã³', 'o', [rfReplaceAll]);
+  Result := StringReplace(Result, 'Ãº', 'u', [rfReplaceAll]);
+  Result := StringReplace(Result, 'Ã¼', 'u', [rfReplaceAll]);
+  Result := StringReplace(Result, 'Ãœ', 'U', [rfReplaceAll]);
+  Result := StringReplace(Result, 'Ã‘', 'N', [rfReplaceAll]);
+  Result := StringReplace(Result, 'Ã±', 'n', [rfReplaceAll]);
+
+  // Bytes sueltos de TXT antiguos en codificación DOS/OEM CP437/CP850.
+  // El caso visto en producción es ¥ = Ñ, que MySQL rechaza en utf8mb4.
+  Result := StringReplace(Result, Chr(165), 'N', [rfReplaceAll]); // Ñ OEM / CP850
+  Result := StringReplace(Result, Chr(164), 'n', [rfReplaceAll]); // ñ OEM / CP850
+  Result := StringReplace(Result, Chr(181), 'A', [rfReplaceAll]); // Á OEM / CP850
+  Result := StringReplace(Result, Chr(144), 'E', [rfReplaceAll]); // É OEM / CP850
+  Result := StringReplace(Result, Chr(214), 'I', [rfReplaceAll]); // Í OEM / CP850
+  Result := StringReplace(Result, Chr(224), 'O', [rfReplaceAll]); // Ó OEM / CP850
+  Result := StringReplace(Result, Chr(233), 'U', [rfReplaceAll]); // Ú OEM / CP850
+  Result := StringReplace(Result, Chr(130), 'e', [rfReplaceAll]); // é OEM / CP850
+  Result := StringReplace(Result, Chr(161), 'i', [rfReplaceAll]); // í OEM / CP850
+  Result := StringReplace(Result, Chr(162), 'o', [rfReplaceAll]); // ó OEM / CP850
+  Result := StringReplace(Result, Chr(163), 'u', [rfReplaceAll]); // ú OEM / CP850
+  Result := StringReplace(Result, Chr(129), 'u', [rfReplaceAll]); // ü OEM / CP850
+  Result := StringReplace(Result, Chr(154), 'U', [rfReplaceAll]); // Ü OEM / CP850
+  Result := StringReplace(Result, Chr(128), 'C', [rfReplaceAll]); // Ç OEM / CP850
+  Result := StringReplace(Result, Chr(135), 'c', [rfReplaceAll]); // ç OEM / CP850
+
+  // Limpieza final de seguridad para que ninguna descripción importada guarde
+  // bytes no ASCII en artitien/eans. Evita errores tipo Incorrect string value.
+  T := '';
+  for I := 1 to Length(Result) do
+  begin
+    if (Ord(Result[I]) >= 32) and (Ord(Result[I]) <= 126) then
+      T := T + Result[I]
+    else if (Result[I] = #9) or (Result[I] = #10) or (Result[I] = #13) then
+      T := T + ' ';
+  end;
+  Result := Trim(T);
+
+  while Pos('  ', Result) > 0 do
+    Result := StringReplace(Result, '  ', ' ', [rfReplaceAll]);
+end;
+
+function FLX_NormalizaTextoExcel(const S: string): string;
+begin
+  Result := FLX_NormalizaDescripcionImportada(S);
+end;
+
+function FLX_NormalizaDescripcionTXTImportada(const S: string): string;
+begin
+  Result := Trim(S);
+
+  // Algunos TXT/CSV de proveedor llegan en ANSI/ISO-8859-1/Windows-1252.
+  // Si ReadLn los carga como bytes sin convertir a UTF-8, los literales UTF-8
+  // de FLX_NormalizaDescripcionImportada no siempre los alcanzan.
+  // Por eso limpiamos también por código de byte antes de la normalización común.
+  Result := StringReplace(Result, Chr(193), 'A', [rfReplaceAll]); // Á ANSI
+  Result := StringReplace(Result, Chr(201), 'E', [rfReplaceAll]); // É ANSI
+  Result := StringReplace(Result, Chr(205), 'I', [rfReplaceAll]); // Í ANSI
+  Result := StringReplace(Result, Chr(211), 'O', [rfReplaceAll]); // Ó ANSI
+  Result := StringReplace(Result, Chr(218), 'U', [rfReplaceAll]); // Ú ANSI
+  Result := StringReplace(Result, Chr(192), 'A', [rfReplaceAll]); // À ANSI
+  Result := StringReplace(Result, Chr(200), 'E', [rfReplaceAll]); // È ANSI
+  Result := StringReplace(Result, Chr(204), 'I', [rfReplaceAll]); // Ì ANSI
+  Result := StringReplace(Result, Chr(210), 'O', [rfReplaceAll]); // Ò ANSI
+  Result := StringReplace(Result, Chr(217), 'U', [rfReplaceAll]); // Ù ANSI
+  Result := StringReplace(Result, Chr(196), 'A', [rfReplaceAll]); // Ä ANSI
+  Result := StringReplace(Result, Chr(203), 'E', [rfReplaceAll]); // Ë ANSI
+  Result := StringReplace(Result, Chr(207), 'I', [rfReplaceAll]); // Ï ANSI
+  Result := StringReplace(Result, Chr(214), 'O', [rfReplaceAll]); // Ö ANSI
+  Result := StringReplace(Result, Chr(220), 'U', [rfReplaceAll]); // Ü ANSI
+
+  Result := StringReplace(Result, Chr(225), 'a', [rfReplaceAll]); // á ANSI
+  Result := StringReplace(Result, Chr(233), 'e', [rfReplaceAll]); // é ANSI
+  Result := StringReplace(Result, Chr(237), 'i', [rfReplaceAll]); // í ANSI
+  Result := StringReplace(Result, Chr(243), 'o', [rfReplaceAll]); // ó ANSI
+  Result := StringReplace(Result, Chr(250), 'u', [rfReplaceAll]); // ú ANSI
+  Result := StringReplace(Result, Chr(224), 'a', [rfReplaceAll]); // à ANSI
+  Result := StringReplace(Result, Chr(232), 'e', [rfReplaceAll]); // è ANSI
+  Result := StringReplace(Result, Chr(236), 'i', [rfReplaceAll]); // ì ANSI
+  Result := StringReplace(Result, Chr(242), 'o', [rfReplaceAll]); // ò ANSI
+  Result := StringReplace(Result, Chr(249), 'u', [rfReplaceAll]); // ù ANSI
+  Result := StringReplace(Result, Chr(228), 'a', [rfReplaceAll]); // ä ANSI
+  Result := StringReplace(Result, Chr(235), 'e', [rfReplaceAll]); // ë ANSI
+  Result := StringReplace(Result, Chr(239), 'i', [rfReplaceAll]); // ï ANSI
+  Result := StringReplace(Result, Chr(246), 'o', [rfReplaceAll]); // ö ANSI
+  Result := StringReplace(Result, Chr(252), 'u', [rfReplaceAll]); // ü ANSI
+
+  Result := StringReplace(Result, Chr(209), 'N', [rfReplaceAll]); // Ñ ANSI
+  Result := StringReplace(Result, Chr(241), 'n', [rfReplaceAll]); // ñ ANSI
+
+  // TXT en codificación DOS/OEM CP437/CP850: muy habitual en ficheros antiguos.
+  // En esa codificación Ñ = #165 y ñ = #164, justo el ¥ que ha fallado.
+  Result := StringReplace(Result, Chr(165), 'N', [rfReplaceAll]); // Ñ OEM / CP850
+  Result := StringReplace(Result, Chr(164), 'n', [rfReplaceAll]); // ñ OEM / CP850
+  Result := StringReplace(Result, Chr(181), 'A', [rfReplaceAll]); // Á OEM / CP850
+  Result := StringReplace(Result, Chr(144), 'E', [rfReplaceAll]); // É OEM / CP850
+  Result := StringReplace(Result, Chr(214), 'I', [rfReplaceAll]); // Í OEM / CP850
+  Result := StringReplace(Result, Chr(224), 'O', [rfReplaceAll]); // Ó OEM / CP850
+  Result := StringReplace(Result, Chr(233), 'U', [rfReplaceAll]); // Ú OEM / CP850
+  Result := StringReplace(Result, Chr(160), 'a', [rfReplaceAll]); // á OEM / CP850
+  Result := StringReplace(Result, Chr(130), 'e', [rfReplaceAll]); // é OEM / CP850
+  Result := StringReplace(Result, Chr(161), 'i', [rfReplaceAll]); // í OEM / CP850
+  Result := StringReplace(Result, Chr(162), 'o', [rfReplaceAll]); // ó OEM / CP850
+  Result := StringReplace(Result, Chr(163), 'u', [rfReplaceAll]); // ú OEM / CP850
+  Result := StringReplace(Result, Chr(129), 'u', [rfReplaceAll]); // ü OEM / CP850
+  Result := StringReplace(Result, Chr(154), 'U', [rfReplaceAll]); // Ü OEM / CP850
+
+  Result := StringReplace(Result, Chr(199), 'C', [rfReplaceAll]); // Ç ANSI
+  Result := StringReplace(Result, Chr(231), 'c', [rfReplaceAll]); // ç ANSI
+
+  // Comillas ANSI/Windows-1252 que suelen romper SQL o comparaciones.
+  Result := StringReplace(Result, Chr(34), '', [rfReplaceAll]);  // "
+  Result := StringReplace(Result, Chr(39), '', [rfReplaceAll]);  // '
+  Result := StringReplace(Result, Chr(96), '', [rfReplaceAll]);  // `
+  Result := StringReplace(Result, Chr(180), '', [rfReplaceAll]); // ´
+  Result := StringReplace(Result, Chr(145), '', [rfReplaceAll]); // ‘ CP1252
+  Result := StringReplace(Result, Chr(146), '', [rfReplaceAll]); // ’ CP1252
+  Result := StringReplace(Result, Chr(147), '', [rfReplaceAll]); // “ CP1252
+  Result := StringReplace(Result, Chr(148), '', [rfReplaceAll]); // ” CP1252
+
+  Result := FLX_NormalizaDescripcionImportada(Result);
+end;
+
+function FLX_NormalizaCodigoExcel(const S: string; const AQuitarCerosIzquierda: Boolean): string;
+var
+  P: Integer;
+  Decs: string;
+begin
+  Result := Trim(S);
+  Result := StringReplace(Result, ' ', '', [rfReplaceAll]);
+  Result := StringReplace(Result, #160, '', [rfReplaceAll]);
+
+  // En Excel algunos códigos pueden salir como 1234.0000.
+  // Sólo quitamos la parte decimal si son todo ceros.
+  P := LastDelimiter('.,', Result);
+  if P > 0 then
+  begin
+    Decs := Copy(Result, P + 1, MaxInt);
+    if (Decs <> '') and (StringReplace(Decs, '0', '', [rfReplaceAll]) = '') then
+      Delete(Result, P, MaxInt);
+  end;
+
+  if AQuitarCerosIzquierda then
+    Result := FLX_QuitarCerosIzquierdaSeguro(Result);
+end;
+
+
+function FLX_SoloDigitos(const S: string): string;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 1 to Length(S) do
+    if S[I] in ['0'..'9'] then
+      Result := Result + S[I];
+end;
+
+function FLX_NormalizaEANImportado(const S, ACodigo, ADescripcion: string): string;
+var
+  Aux: string;
+  R: Integer;
+begin
+  Result := Trim(S);
+  Result := StringReplace(Result, ' ', '', [rfReplaceAll]);
+  Result := StringReplace(Result, #160, '', [rfReplaceAll]);
+  if Result = '' then Exit;
+
+  // El EAN debe trabajarse como cadena de dígitos. Algunos Excel/TXT pueden traer
+  // espacios, separadores o el valor con formato raro; dejamos sólo números.
+  Aux := FLX_SoloDigitos(Result);
+  if Aux = '' then
+  begin
+    Result := '';
+    Exit;
+  end;
+
+  // Caso detectado en proveedor: EAN de 14 dígitos que realmente es 1 + EAN13.
+  // Si tras el primer dígito viene 84, eliminamos automáticamente el primer dígito.
+  while Length(Aux) > 13 do
+  begin
+    if Copy(Aux, 2, 2) = '84' then
+    begin
+      Delete(Aux, 1, 1);
+      Continue;
+    end;
+
+    R := MessageDlg(
+      'El fichero trae un EAN con más de 13 dígitos:' + LineEnding + LineEnding +
+      'EAN leído: ' + Aux + LineEnding +
+      'Código: ' + ACodigo + LineEnding +
+      'Descripción: ' + ADescripcion + LineEnding + LineEnding +
+      'FacturLinEx trabaja con EAN13.' + LineEnding + LineEnding +
+      'Pulse SÍ para eliminar el PRIMER dígito.' + LineEnding +
+      'Pulse NO para eliminar el ÚLTIMO dígito.' + LineEnding +
+      'Pulse CANCELAR para dejar este EAN vacío y revisarlo manualmente.',
+      mtConfirmation, [mbYes, mbNo, mbCancel], 0);
+
+    if R = mrYes then
+      Delete(Aux, 1, 1)
+    else if R = mrNo then
+      Delete(Aux, Length(Aux), 1)
+    else
+    begin
+      Result := '';
+      Exit;
+    end;
+  end;
+
+  Result := Aux;
+end;
+
+function FLX_NormalizaNumeroExcel(const S: string): string;
+var
+  Sep: Char;
+  PComa, PPunto: Integer;
+begin
+  Result := Trim(S);
+  Result := StringReplace(Result, ' ', '', [rfReplaceAll]);
+  Result := StringReplace(Result, #160, '', [rfReplaceAll]);
+  if Result = '' then Exit;
+
+  Sep := DefaultFormatSettings.DecimalSeparator;
+  PComa := LastDelimiter(',', Result);
+  PPunto := LastDelimiter('.', Result);
+
+  if (PComa > 0) and (PPunto > 0) then
+  begin
+    // Si vienen ambos, consideramos decimal el separador de más a la derecha.
+    if PComa > PPunto then
+    begin
+      Result := StringReplace(Result, '.', '', [rfReplaceAll]);
+      Result := StringReplace(Result, ',', Sep, [rfReplaceAll]);
+    end
+    else
+    begin
+      Result := StringReplace(Result, ',', '', [rfReplaceAll]);
+      Result := StringReplace(Result, '.', Sep, [rfReplaceAll]);
+    end;
+  end
+  else if PComa > 0 then
+    Result := StringReplace(Result, ',', Sep, [rfReplaceAll])
+  else if PPunto > 0 then
+    Result := StringReplace(Result, '.', Sep, [rfReplaceAll]);
+end;
+
+function FLX_StrToFloatDefSeguro(const S: string; const Defecto: Double): Double;
+var
+  Aux: string;
+begin
+  Aux := FLX_NormalizaNumeroExcel(S);
+  if Aux = '' then
+  begin
+    Result := Defecto;
+    Exit;
+  end;
+
+  if not TryStrToFloat(Aux, Result) then
+    Result := Defecto;
+end;
+
+
+function FLX_CosteImportadoGestionable(const SCosto: string): Boolean;
+begin
+  // Si el proveedor envía coste vacío, nulo o 0, lo tratamos como obsequio.
+  // No debe mostrarse en el importador, ni pasar a pendientes/procesados,
+  // ni intentar darse de alta como artículo nuevo.
+  Result := FLX_StrToFloatDefSeguro(SCosto, 0) > 0;
+end;
+
+function FLX_DescripcionEsCajaMixta(const S: string): Boolean;
+var
+  T, TCompacto: string;
+begin
+  T := UpperCase(FLX_NormalizaDescripcionImportada(S));
+  T := StringReplace(T, '.', ' ', [rfReplaceAll]);
+  T := StringReplace(T, ',', ' ', [rfReplaceAll]);
+  T := StringReplace(T, '/', ' ', [rfReplaceAll]);
+  T := StringReplace(T, '\', ' ', [rfReplaceAll]);
+  T := StringReplace(T, '-', ' ', [rfReplaceAll]);
+  T := StringReplace(T, '_', ' ', [rfReplaceAll]);
+  while Pos('  ', T) > 0 do
+    T := StringReplace(T, '  ', ' ', [rfReplaceAll]);
+  T := Trim(T);
+
+  TCompacto := StringReplace(T, ' ', '', [rfReplaceAll]);
+
+  // C.MIXTA / C MIXTA / CMIXTA, CAJA MIXTA, LOTE MIXTO, PACK MIXTO, SURTIDO MIXTO...
+  // Estas líneas no representan un artículo único, sino varios artículos independientes.
+  Result :=
+    (Pos('CMIXT', TCompacto) > 0) or
+    ((Pos('MIXT', T) > 0) and
+     ((Pos('CAJA', T) > 0) or
+      (Pos('LOTE', T) > 0) or
+      (Pos('PACK', T) > 0) or
+      (Pos('SURTID', T) > 0)));
+end;
+
+procedure FLX_AnadirLineaMixta(ALista: TStringList; const AOrigen: string;
+  const ANumLinea: Integer; const Linea: RLineaPedido);
+begin
+  if ALista = nil then Exit;
+
+  ALista.Add(
+    'Origen: ' + AOrigen +
+    ' | Línea: ' + IntToStr(ANumLinea) +
+    ' | Código: ' + Trim(Linea.Codigo) +
+    ' | EAN: ' + Trim(Linea.CodigoEAN) +
+    ' | Uds: ' + Trim(Linea.Unidades) +
+    ' | Coste: ' + Trim(Linea.Costo) +
+    ' | Descripción: ' + Trim(Linea.Descripcion)
+  );
+end;
+
+function FLX_GuardarListadoLineasMixtas(const AFicheroOrigen: string;
+  ALineas: TStringList): string;
+var
+  Ruta, Nombre: string;
+begin
+  Result := '';
+  if (ALineas = nil) or (ALineas.Count = 0) then Exit;
+
+  Nombre := 'lineas_mixtas_importacion_' + FormatDateTime('yyyymmdd_hhnnss', Now) + '.txt';
+  Ruta := IncludeTrailingPathDelimiter(ExtractFilePath(AFicheroOrigen)) + Nombre;
+  try
+    ALineas.SaveToFile(Ruta);
+    Result := Ruta;
+  except
+    Ruta := IncludeTrailingPathDelimiter(GetTempDir(False)) + Nombre;
+    try
+      ALineas.SaveToFile(Ruta);
+      Result := Ruta;
+    except
+      Result := '';
+    end;
+  end;
+end;
+
+procedure FLX_AvisarLineasOmitidas(const ATitulo, AFicheroOrigen: string;
+  const AOmitidasCosteCero, AOmitidasMixtas: Integer; ALineasMixtas: TStringList);
+var
+  Msg, RutaListado: string;
+begin
+  if (AOmitidasCosteCero <= 0) and (AOmitidasMixtas <= 0) then Exit;
+
+  Msg := ATitulo + LineEnding + LineEnding;
+
+  if AOmitidasCosteCero > 0 then
+    Msg := Msg + 'Líneas omitidas por coste 0/vacío, tratadas como obsequio: ' +
+           IntToStr(AOmitidasCosteCero) + LineEnding;
+
+  if AOmitidasMixtas > 0 then
+  begin
+    RutaListado := FLX_GuardarListadoLineasMixtas(AFicheroOrigen, ALineasMixtas);
+    Msg := Msg + 'Líneas omitidas por CAJA/LOTE/PACK MIXTO: ' +
+           IntToStr(AOmitidasMixtas) + LineEnding;
+    Msg := Msg + 'No se darán de alta ni se añadirán al pedido porque no representan un artículo único.' +
+           LineEnding;
+
+    if RutaListado <> '' then
+      Msg := Msg + 'Se ha creado un listado para introducir su contenido a mano:' +
+             LineEnding + RutaListado + LineEnding
+    else
+      Msg := Msg + 'No se ha podido crear el listado de líneas mixtas.' + LineEnding;
+  end;
+
+  ShowMessage(Msg);
+end;
+
+function FLX_SQLTexto(const S: string): string;
+begin
+  Result := Trim(S);
+  Result := StringReplace(Result, '\', '\\', [rfReplaceAll]);
+  Result := StringReplace(Result, '"', '\"', [rfReplaceAll]);
+end;
+
+function FLX_TextoValidoEAN(const S: string): Boolean;
+var
+  Aux: string;
+begin
+  Aux := Trim(S);
+  Result := (Aux <> '') and (Aux <> '0000000000000');
+end;
+
+function FLX_PedirIVAArticuloNuevo(const ACodigo, ANombre: string; var AIva: Double): Boolean;
+var
+  S: string;
+  Prompt: string;
+begin
+  Result := False;
+  AIva := 0;
+  S := FloatToStr(FLX_UltimoIvaAltaNuevo);
+
+  Prompt :=
+    'El fichero no trae IVA válido para este artículo nuevo:' + LineEnding + LineEnding +
+    'Código: ' + ACodigo + LineEnding +
+    'Descripción: ' + ANombre + LineEnding + LineEnding +
+    'Indique el IVA para esta línea (21, 10, 4, etc.):';
+
+  repeat
+    if not InputQuery('IVA artículo nuevo', Prompt, S) then
+    begin
+      ShowMessage('Alta de artículo cancelada. No se ha indicado IVA para esta línea.');
+      Exit;
+    end;
+
+    AIva := FLX_StrToFloatDefSeguro(S, -1);
+    if AIva > 0 then
+    begin
+      FLX_UltimoIvaAltaNuevo := AIva;
+      Result := True;
+      Exit;
+    end;
+
+    ShowMessage('IVA no válido. Indique un valor como 21, 10 o 4.');
+    S := FloatToStr(FLX_UltimoIvaAltaNuevo);
+  until False;
+end;
+
+
+function FLX_PedirCostoArticuloNuevo(const ACodigo, ANombre: string; var ACosto: Double): Boolean;
+var
+  S: string;
+  Prompt: string;
+begin
+  Result := False;
+  if ACosto > 0 then
+    S := FloatToStr(ACosto)
+  else
+    S := '';
+
+  Prompt :=
+    'El fichero no trae coste válido para este artículo nuevo:' + LineEnding + LineEnding +
+    'Código: ' + ACodigo + LineEnding +
+    'Descripción: ' + ANombre + LineEnding + LineEnding +
+    'Indique el coste sin IVA para esta línea:';
+
+  repeat
+    if not InputQuery('Coste artículo nuevo', Prompt, S) then Exit;
+
+    ACosto := FLX_StrToFloatDefSeguro(S, -1);
+    if ACosto > 0 then
+    begin
+      Result := True;
+      Exit;
+    end;
+
+    ShowMessage('Coste no válido. Indique un importe mayor que 0.');
+    S := '';
+  until False;
+end;
+
+function FLX_ColumnaDesdeReferenciaCelda(const Ref: string): Integer;
+var
+  I: Integer;
+  C: Char;
+begin
+  Result := 0;
+  for I := 1 to Length(Ref) do
+  begin
+    C := UpCase(Ref[I]);
+    if not (C in ['A'..'Z']) then Break;
+    Result := (Result * 26) + (Ord(C) - Ord('A') + 1);
+  end;
+  Dec(Result); // 0-based
+  if Result < 0 then Result := 0;
+end;
+
+function FLX_FilaDesdeReferenciaCelda(const Ref: string): Integer;
+var
+  I: Integer;
+  Num: string;
+begin
+  Num := '';
+  for I := 1 to Length(Ref) do
+    if Ref[I] in ['0'..'9'] then
+      Num := Num + Ref[I];
+
+  if Num = '' then
+    Result := -1
+  else
+    Result := StrToIntDef(Num, 0) - 1;
+end;
+
+function FLX_DirTemporalXLSX: string;
+var
+  Base: string;
+begin
+  Base := GetEnvironmentVariable('TMPDIR');
+  if Base = '' then Base := '/tmp';
+  Result := IncludeTrailingPathDelimiter(Base) +
+            'flx_xlsx_' + FormatDateTime('yyyymmddhhnnsszzz', Now) + '_' + IntToStr(Random(1000000));
+  ForceDirectories(Result);
+end;
+
+procedure FLX_DescomprimirXLSX(const AFichero, ADir: string);
+var
+  UnZipper: TUnZipper;
+begin
+  UnZipper := TUnZipper.Create;
+  try
+    UnZipper.FileName := AFichero;
+    UnZipper.OutputPath := IncludeTrailingPathDelimiter(ADir);
+    UnZipper.UnZipAllFiles;
+  finally
+    UnZipper.Free;
+  end;
+end;
+
+function FLX_PrimeraHojaXLSX(const ADir: string): string;
+var
+  Doc, Rels: TXMLDocument;
+  Sheets, Sheet, Rel: TDOMNode;
+  RelId, Target, Id: string;
+  WorkbookFile, RelsFile: string;
+begin
+  Result := 'xl/worksheets/sheet1.xml';
+  WorkbookFile := IncludeTrailingPathDelimiter(ADir) + 'xl/workbook.xml';
+  RelsFile := IncludeTrailingPathDelimiter(ADir) + 'xl/_rels/workbook.xml.rels';
+
+  if (not FileExists(WorkbookFile)) or (not FileExists(RelsFile)) then Exit;
+
+  Doc := nil;
+  Rels := nil;
+  try
+    ReadXMLFile(Doc, WorkbookFile);
+    Sheets := FLX_HijoPorNombre(Doc.DocumentElement, 'sheets');
+    if Sheets = nil then Exit;
+
+    Sheet := Sheets.FirstChild;
+    while (Sheet <> nil) and (not FLX_NodoEs(Sheet, 'sheet')) do
+      Sheet := Sheet.NextSibling;
+    if Sheet = nil then Exit;
+
+    RelId := FLX_Atributo(Sheet, 'id');
+    if RelId = '' then Exit;
+
+    ReadXMLFile(Rels, RelsFile);
+    Rel := Rels.DocumentElement.FirstChild;
+    while Rel <> nil do
+    begin
+      if FLX_NodoEs(Rel, 'Relationship') then
+      begin
+        Id := FLX_Atributo(Rel, 'Id');
+        if Id = RelId then
+        begin
+          Target := FLX_Atributo(Rel, 'Target');
+          if Target <> '' then
+          begin
+            if Pos('/', Target) = 1 then
+              Result := Copy(Target, 2, MaxInt)
+            else if Pos('xl/', Target) = 1 then
+              Result := Target
+            else
+              Result := 'xl/' + Target;
+            Result := FLX_NormalizaRutaXLSX(Result);
+            Exit;
+          end;
+        end;
+      end;
+      Rel := Rel.NextSibling;
+    end;
+  finally
+    if Rels <> nil then Rels.Free;
+    if Doc <> nil then Doc.Free;
+  end;
+end;
+
+procedure FLX_CargarSharedStrings(const ADir: string; var AShared: TXLSXSharedStrings);
+var
+  Doc: TXMLDocument;
+  NodoSI: TDOMNode;
+  Fichero: string;
+  N: Integer;
+begin
+  SetLength(AShared, 0);
+  Fichero := IncludeTrailingPathDelimiter(ADir) + 'xl/sharedStrings.xml';
+  if not FileExists(Fichero) then Exit;
+
+  Doc := nil;
+  try
+    ReadXMLFile(Doc, Fichero);
+    NodoSI := Doc.DocumentElement.FirstChild;
+    while NodoSI <> nil do
+    begin
+      if FLX_NodoEs(NodoSI, 'si') then
+      begin
+        N := Length(AShared);
+        SetLength(AShared, N + 1);
+        AShared[N] := FLX_TextoRecursivo(NodoSI);
+      end;
+      NodoSI := NodoSI.NextSibling;
+    end;
+  finally
+    if Doc <> nil then Doc.Free;
+  end;
+end;
+
+function FLX_ValorCeldaXLSX(const Celda: TDOMNode; const AShared: TXLSXSharedStrings): string;
+var
+  Tipo, V: string;
+  Idx: Integer;
+  NodoIS: TDOMNode;
+begin
+  Result := '';
+  if Celda = nil then Exit;
+
+  Tipo := LowerCase(FLX_Atributo(Celda, 't'));
+
+  if Tipo = 's' then
+  begin
+    V := Trim(FLX_TextoHijo(Celda, 'v'));
+    Idx := StrToIntDef(V, -1);
+    if (Idx >= 0) and (Idx < Length(AShared)) then
+      Result := AShared[Idx];
+    Exit;
+  end;
+
+  if Tipo = 'inlinestr' then
+  begin
+    NodoIS := FLX_HijoPorNombre(Celda, 'is');
+    Result := FLX_TextoRecursivo(NodoIS);
+    Exit;
+  end;
+
+  // Números, fórmulas con valor cacheado, texto simple y booleanos.
+  Result := FLX_TextoHijo(Celda, 'v');
+end;
+
+procedure FLX_CargarHojaXLSX(const ADir, AHojaRelativa: string;
+  const AShared: TXLSXSharedStrings; var ATabla: TXLSXTable);
+var
+  Doc: TXMLDocument;
+  SheetData, RowNode, CellNode: TDOMNode;
+  Fichero, Ref: string;
+  RowIdx, ColIdx, UltCol: Integer;
+  Valor: string;
+begin
+  SetLength(ATabla, 0);
+  Fichero := IncludeTrailingPathDelimiter(ADir) + StringReplace(AHojaRelativa, '/', PathDelim, [rfReplaceAll]);
+  if not FileExists(Fichero) then
+    raise Exception.Create('No se encuentra la hoja interna del XLSX: ' + AHojaRelativa);
+
+  Doc := nil;
+  try
+    ReadXMLFile(Doc, Fichero);
+    SheetData := FLX_HijoPorNombre(Doc.DocumentElement, 'sheetData');
+    if SheetData = nil then Exit;
+
+    RowNode := SheetData.FirstChild;
+    while RowNode <> nil do
+    begin
+      if FLX_NodoEs(RowNode, 'row') then
+      begin
+        RowIdx := StrToIntDef(FLX_Atributo(RowNode, 'r'), 0) - 1;
+        if RowIdx < 0 then RowIdx := Length(ATabla);
+        if Length(ATabla) <= RowIdx then
+          SetLength(ATabla, RowIdx + 1);
+
+        UltCol := -1;
+        CellNode := RowNode.FirstChild;
+        while CellNode <> nil do
+        begin
+          if FLX_NodoEs(CellNode, 'c') then
+          begin
+            Ref := FLX_Atributo(CellNode, 'r');
+            if Ref <> '' then
+              ColIdx := FLX_ColumnaDesdeReferenciaCelda(Ref)
+            else
+              ColIdx := UltCol + 1;
+            UltCol := ColIdx;
+
+            if Length(ATabla[RowIdx]) <= ColIdx then
+              SetLength(ATabla[RowIdx], ColIdx + 1);
+
+            Valor := FLX_ValorCeldaXLSX(CellNode, AShared);
+            ATabla[RowIdx][ColIdx] := Valor;
+          end;
+          CellNode := CellNode.NextSibling;
+        end;
+      end;
+      RowNode := RowNode.NextSibling;
+    end;
+  finally
+    if Doc <> nil then Doc.Free;
+  end;
+end;
+
+function FLX_CeldaTabla(const ATabla: TXLSXTable; const Fila, Col: Integer): string;
+begin
+  Result := '';
+  if (Fila < 0) or (Fila >= Length(ATabla)) then Exit;
+  if (Col < 0) or (Col >= Length(ATabla[Fila])) then Exit;
+  Result := ATabla[Fila][Col];
+end;
+
+function FLX_UltimaColumnaFila(const AFila: TXLSXRow): Integer;
+begin
+  Result := Length(AFila) - 1;
+end;
+
+function FLX_BuscarColumnaExcelEnFila(const AFila: TXLSXRow; const ANombres: array of string): Integer;
+var
+  C, I: Integer;
+  Cab, Nom: string;
+begin
+  Result := -1;
+  for C := 0 to FLX_UltimaColumnaFila(AFila) do
+  begin
+    Cab := FLX_NormalizaCabeceraExcel(AFila[C]);
+    for I := Low(ANombres) to High(ANombres) do
+    begin
+      Nom := FLX_NormalizaCabeceraExcel(ANombres[I]);
+      if Cab = Nom then
+      begin
+        Result := C;
+        Exit;
+      end;
+    end;
+  end;
+end;
+
+function FLX_BuscarFilaCabeceraExcel(const ATabla: TXLSXTable): Integer;
+var
+  R, MaxFila: Integer;
+  ColCod, ColDes, ColUni: Integer;
+begin
+  Result := -1;
+  MaxFila := Length(ATabla) - 1;
+  if MaxFila > 20 then MaxFila := 20;
+
+  for R := 0 to MaxFila do
+  begin
+    ColCod := FLX_BuscarColumnaExcelEnFila(ATabla[R], ['Artículo', 'Articulo', 'Código', 'Codigo', 'Referencia']);
+    ColDes := FLX_BuscarColumnaExcelEnFila(ATabla[R], ['Descripción', 'Descripcion', 'Nombre', 'Artículo descripción', 'Articulo descripcion']);
+    ColUni := FLX_BuscarColumnaExcelEnFila(ATabla[R], ['Uds', 'Unidades', 'Cantidad', 'Cant']);
+
+    if (ColCod >= 0) and (ColDes >= 0) and (ColUni >= 0) then
+    begin
+      Result := R;
+      Exit;
+    end;
+  end;
+end;
+
 procedure TfImportar.WriteLinea(const Linea: RLineaPedido);
 begin
     Write('Cod->');Write(linea.Codigo);
@@ -322,122 +1280,107 @@ end;
 // de la línea de pedido, el resultado se almacena en el propio registro
 procedure TfImportar.BuscarCoincidencias(var Linea: RLineaPedido);
 var
-  tean: string;
+  CodDesdeEan: string;
 begin
-  //ColorLineas:=clRed;
-  Linea.CoinCod:=0;Linea.CoinDes:=0;Linea.CoinEan:=0; tean:='';
+  // Vector de coincidencias:
+  // 0 = ausente en fichero
+  // 1 = existe en artitien
+  // 2 = existe en eans
+  // 3 = viene en fichero pero no existe en BD
+  // 4 = EAN 0000000000000
+  // 5 = conflicto real entre código/EAN
+  //
+  // IMPORTANTE:
+  // Antes se modificaba Linea.Codigo cuando el código interno existía pero el EAN
+  // del proveedor era desconocido. Si el EAN no estaba en eans, CodDesdeEan quedaba
+  // vacío y la línea acababa pareciendo "artículo nuevo", aunque el código ya existía.
+  // Ahora BuscarCoincidencias solo clasifica; no machaca el código importado salvo
+  // cuando el propio dato del código está localizado como auxiliar en eans.
+  Linea.CoinCod:=0;
+  Linea.CoinDes:=0;
+  Linea.CoinEan:=0;
+  CodDesdeEan:='';
 
+  // --- EAN importado ---
+  if Trim(Linea.CodigoEAN)<>'' then
+  begin
+    if Trim(Linea.CodigoEAN)='0000000000000' then
+      Linea.CoinEan:=4
+    else
+    begin
+      Linea.CoinEan:=3;
 
-     if (Linea.CodigoEAN<>'') then
-       begin
-        // Si no lo encuentra en ninguna de las dos tablas el valor del vector es 3
-        linea.CoinEan:=3;
-         dbEans.Active:=False;
-         dbEans.SQL.Text:='SELECT * FROM eans WHERE EAN0="'+Linea.CodigoEAN+'"';
-         dbEans.Active:=True;
-         if dbEans.RecordCount<>0 then
-           begin
-                //ColorLineas:= clBlack;
-                tean:=dbEans.FieldByName('EAN1').AsString;
-                linea.CoinEan:=2;
-                //WriteLn('EAN encontrado en EANS con la consulta:');
-          end
-         else
-           begin
-             dbArti.Active:=False;
-             dbArti.SQL.Text:='SELECT * FROM artitien'+Tienda+' WHERE A0="'+linea.CodigoEAN+'"';
-             dbArti.Active:=True;
-             if dbArti.RecordCount<>0 then
-               begin
-                    linea.CoinEan:=1;
-                    //ColorLineas:= clBlack;
-                    // linea.CoinEan:=1;
-               end;
-           end;
-        //WriteLn(dbEans.SQL.Text);
-       end;
-
-
-
-  if (Linea.Codigo<>'') then
-     begin
-      // Si no lo encuentra en ninguna de las dos tablas el valor del vector es 3
-      Linea.CoinCod:=3;
-      dbArti.Active:=False;
-      dbArti.SQL.Text:='SELECT * FROM artitien'+Tienda+' WHERE A0="'+Linea.Codigo+'"';
-      dbArti.Active:=True;
-      if dbArti.RecordCount<>0 then
-        begin
-          if (Linea.CoinEan=2) and (Linea.Codigo=tean) then
-            begin
-              Linea.CoinCod:=1;
-            end
-          else
-            begin
-             if Linea.CodigoEAN='0000000000000' then
-               begin
-                 Linea.CoinEan:=4;
-                 Linea.CoinCod:=1;
-               end
-             else
-               begin
-                 showmessage('El codigo '+Linea.Codigo+' ya existe, pero NO se corresponde con el EAN, el correcto es : '+tean);
-                 Linea.CoinCod:=5;
-                 Linea.Codigo:=tean;
-                 Linea.CoinCod:=1;
-               end;
-//**              ColorLineas:=clYellow;
-            end;
-         //ColorLineas:= clBlack;
-         //-- Linea.CoinCod:=1; *****ANTIGUA LINEA DE TRABAJO, ANTES DE IMPLEMENTAR EL 5
-        end
+      dbEans.Active:=False;
+      dbEans.SQL.Text:='SELECT * FROM eans WHERE EAN0="'+FLX_SQLTexto(Linea.CodigoEAN)+'" LIMIT 1';
+      dbEans.Active:=True;
+      if dbEans.RecordCount<>0 then
+      begin
+        Linea.CoinEan:=2;
+        CodDesdeEan:=dbEans.FieldByName('EAN1').AsString;
+      end
       else
-          begin
-          dbEans.Active:=False;
-          dbEans.SQL.Text:='SELECT * FROM eans WHERE EAN0="'+Linea.Codigo+'"';
-          dbEans.Active:=True;
-          if dbEans.RecordCount<>0 then
-             begin
-               if dbEans.RecordCount<>0 then Linea.CoinCod:=2 else ShowMessage('Revisar el codigo '+Linea.Codigo+' Cotejar con  '+tean);
-             //ColorLineas:= clBlack;
-             //-- Linea.CoinCod:=2;   ********* ANTIGUA LINEA DE TRABAJO ANTES DE IMPLEMENTAR EL 5
-             //WriteLn('Codigo encontrado en EANS con la consulta:');
-             end;
-           end;
-      //if (dbArti.RecordCount<>0) then WriteLn('codigo encontrado en artitien con la consulta:');
-      //WriteLn(dbArti.SQL.Text);
+      begin
+        dbArti.Active:=False;
+        dbArti.SQL.Text:='SELECT * FROM artitien'+Tienda+
+                         ' WHERE A0="'+FLX_SQLTexto(Linea.CodigoEAN)+'" LIMIT 1';
+        dbArti.Active:=True;
+        if dbArti.RecordCount<>0 then
+          Linea.CoinEan:=1;
       end;
+    end;
+  end;
 
-      //WriteLn(dbEans.SQL.Text);
-      //-- SI EL CÓDIGO EAN ES 0 LO INDICA PARA PODER ACEPTAR LA LINEA
-      if Linea.CodigoEAN='0000000000000' then Linea.CoinEan:=4;
+  // --- Código importado ---
+  if Trim(Linea.Codigo)<>'' then
+  begin
+    Linea.CoinCod:=3;
 
-  if (Linea.Descripcion <> '') then
-     begin
-      // Si no lo encuentra en ninguna de las dos tablas el valor del vector es 3
-      Linea.CoinDes:=3;
-      dbArti.Active:=False;
-      dbArti.SQL.Text:='SELECT * FROM artitien'+Tienda+' WHERE A1="'+Linea.Descripcion+'"';
-      dbArti.Active:=True;
-      if (dbArti.RecordCount<>0) then
-        begin
-         //ColorLineas:=clGreen;
-         Linea.CoinDes:=1;//nombre encontrado en artitien
-         //WriteLn('Nombre encontrado en artitien con la consulta:');
-        end
-      else
-        begin
-        dbEans.Active:=False;
-        dbEans.SQL.Text:='SELECT * FROM eans WHERE EAN2="'+Linea.Descripcion+'"';
-        dbEans.Active:=True;
-        if (dbEans.RecordCount<>0) then
-          begin
-           //ColorLineas:=clYellow;
-           Linea.CoinDes:=2;//nombre encontrado en eans
-           //WriteLn('Nombre encontrado en EANs con la consulta:');
-          end;
-        end;
-     end;
+    dbArti.Active:=False;
+    dbArti.SQL.Text:='SELECT * FROM artitien'+Tienda+
+                     ' WHERE A0="'+FLX_SQLTexto(Linea.Codigo)+'" LIMIT 1';
+    dbArti.Active:=True;
+    if dbArti.RecordCount<>0 then
+    begin
+      Linea.CoinCod:=1;
+
+      // Si el EAN ya existe pero apunta a otro código interno, marcamos conflicto real.
+      // No sustituimos Linea.Codigo por un valor vacío ni por el otro código, porque eso
+      // impide luego añadir el EAN al artículo correcto o aceptar la ficha manualmente.
+      // Si el EAN apunta a otro código, no marcamos el código como nuevo.
+      // Conservamos CoinCod=1 para que la pantalla lo trate como artículo existente
+      // y el usuario pueda revisar/decidir sin que aparezca como alta nueva.
+      // La existencia del EAN se conserva en CoinEan=2.
+    end
+    else
+    begin
+      dbEans.Active:=False;
+      dbEans.SQL.Text:='SELECT * FROM eans WHERE EAN0="'+FLX_SQLTexto(Linea.Codigo)+'" LIMIT 1';
+      dbEans.Active:=True;
+      if dbEans.RecordCount<>0 then
+        Linea.CoinCod:=2;
+    end;
+  end;
+
+  // --- Descripción importada ---
+  if Trim(Linea.Descripcion)<>'' then
+  begin
+    Linea.CoinDes:=3;
+
+    dbArti.Active:=False;
+    dbArti.SQL.Text:='SELECT * FROM artitien'+Tienda+
+                     ' WHERE TRIM(A1)="'+FLX_SQLTexto(Linea.Descripcion)+'" LIMIT 1';
+    dbArti.Active:=True;
+    if dbArti.RecordCount<>0 then
+      Linea.CoinDes:=1
+    else
+    begin
+      dbEans.Active:=False;
+      dbEans.SQL.Text:='SELECT * FROM eans WHERE TRIM(EAN2)="'+FLX_SQLTexto(Linea.Descripcion)+'" LIMIT 1';
+      dbEans.Active:=True;
+      if dbEans.RecordCount<>0 then
+        Linea.CoinDes:=2;
+    end;
+  end;
 end;
 
 procedure TfImportar.tsPendientesEnter(Sender: TObject);
@@ -537,6 +1480,176 @@ begin
 
 end;
 
+
+//=============== FORMATEAR EXCEL / XLSX ======================
+//Lee directamente ficheros XLSX del proveedor y rellena el mismo
+//ArrayDeLineasPedido que usa el importador de TXT/CSV.
+//IMPORTANTE: Linea.PVP se deja vacío a propósito para mantener la lógica actual:
+//el PVP se tomará de la ficha del artículo en InsertarLinea().
+procedure TfImportar.FormatearExcel(const AFichero: string);
+var
+  TempDir, HojaRelativa: string;
+  Shared: TXLSXSharedStrings;
+  Tabla: TXLSXTable;
+  FilaCabecera, R: Integer;
+  ColCodigo, ColEAN, ColDescripcion, ColUnidades, ColCosto, ColIVA: Integer;
+  Cont, OmitidasCosteCero, OmitidasMixtas: Integer;
+  Linea: RLineaPedido;
+  LineasMixtas: TStringList;
+begin
+  SetLength(ArrayDeLineasPedido, 0);
+  SetLength(ArrayDeLineasPedidoPen, 0);
+  SetLength(ArrayDeLineasPedidoPro, 0);
+
+  sgDatos.RowCount := 1;
+  dbgPendientes.RowCount := 1;
+  dbgProcesados.RowCount := 1;
+
+  if not FLX_EsFicheroXLSX(AFichero) then
+  begin
+    ShowMessage('Sin instalar librerías externas, esta versión sólo puede leer ficheros .XLSX.' + #13 +
+                'El formato .XLS antiguo es binario y necesita conversión o librería específica.');
+    Exit;
+  end;
+
+  if not FileExists(AFichero) then
+  begin
+    ShowMessage('No existe el fichero Excel seleccionado.');
+    Exit;
+  end;
+
+  LineasMixtas := TStringList.Create;
+
+  TempDir := '';
+  Randomize;
+  try
+    try
+      TempDir := FLX_DirTemporalXLSX;
+      FLX_DescomprimirXLSX(AFichero, TempDir);
+      FLX_CargarSharedStrings(TempDir, Shared);
+      HojaRelativa := FLX_PrimeraHojaXLSX(TempDir);
+      FLX_CargarHojaXLSX(TempDir, HojaRelativa, Shared, Tabla);
+    except
+      on E: Exception do
+      begin
+        ShowMessage('No se ha podido leer el fichero XLSX:' + #13 + AFichero + #13 + #13 + E.Message);
+        Exit;
+      end;
+    end;
+
+    FilaCabecera := FLX_BuscarFilaCabeceraExcel(Tabla);
+    if FilaCabecera < 0 then
+    begin
+      ShowMessage('No se han encontrado las cabeceras esperadas en el XLSX.' + #13 +
+                  'Se necesitan, como mínimo: Artículo, Descripción y Uds.');
+      Exit;
+    end;
+
+    ColCodigo      := FLX_BuscarColumnaExcelEnFila(Tabla[FilaCabecera], ['Artículo', 'Articulo', 'Código', 'Codigo', 'Referencia']);
+    ColDescripcion := FLX_BuscarColumnaExcelEnFila(Tabla[FilaCabecera], ['Descripción', 'Descripcion', 'Nombre', 'Artículo descripción', 'Articulo descripcion']);
+    ColUnidades    := FLX_BuscarColumnaExcelEnFila(Tabla[FilaCabecera], ['Uds', 'Unidades', 'Cantidad', 'Cant']);
+    ColCosto       := FLX_BuscarColumnaExcelEnFila(Tabla[FilaCabecera], ['Precio Neto', 'Precio neto', 'Coste', 'Costo', 'Precio coste', 'Precio costo']);
+    ColEAN         := FLX_BuscarColumnaExcelEnFila(Tabla[FilaCabecera], ['Ean', 'EAN', 'Código EAN', 'Codigo EAN', 'Código de barras', 'Codigo de barras']);
+    ColIVA         := FLX_BuscarColumnaExcelEnFila(Tabla[FilaCabecera], ['Iva', 'IVA', '% IVA', 'Tipo IVA']);
+
+    if (ColCodigo < 0) or (ColDescripcion < 0) or (ColUnidades < 0) then
+    begin
+      ShowMessage('Faltan columnas obligatorias en el XLSX.' + #13 +
+                  'Columnas obligatorias: Artículo, Descripción y Uds.');
+      Exit;
+    end;
+
+    Cont := 1;
+    OmitidasCosteCero := 0;
+    OmitidasMixtas := 0;
+    AnchuraColumnaEan := 0;
+    AnchuraColumnaDes := 0;
+    AnchuraColumnaCod := 0;
+
+    for R := FilaCabecera + 1 to Length(Tabla) - 1 do
+    begin
+      Linea.CoinCod := 0;
+      Linea.CoinEan := 0;
+      Linea.CoinDes := 0;
+      Linea.Codigo := '';
+      Linea.CodigoEAN := '';
+      Linea.Descripcion := '';
+      Linea.Unidades := '';
+      Linea.Costo := '';
+      Linea.IVA := '';
+      Linea.PVP := '';
+
+      if ColCodigo >= 0 then
+        Linea.Codigo := FLX_NormalizaCodigoExcel(FLX_CeldaTabla(Tabla, R, ColCodigo), True);
+
+      if ColEAN >= 0 then
+        Linea.CodigoEAN := FLX_NormalizaCodigoExcel(FLX_CeldaTabla(Tabla, R, ColEAN), False);
+
+      if ColDescripcion >= 0 then
+        Linea.Descripcion := FLX_NormalizaTextoExcel(FLX_CeldaTabla(Tabla, R, ColDescripcion));
+
+      if Linea.CodigoEAN <> '' then
+        Linea.CodigoEAN := FLX_NormalizaEANImportado(Linea.CodigoEAN, Linea.Codigo, Linea.Descripcion);
+
+      if ColUnidades >= 0 then
+        Linea.Unidades := FLX_NormalizaNumeroExcel(FLX_CeldaTabla(Tabla, R, ColUnidades));
+
+      if ColCosto >= 0 then
+        Linea.Costo := FLX_NormalizaNumeroExcel(FLX_CeldaTabla(Tabla, R, ColCosto));
+
+      if ColIVA >= 0 then
+        Linea.IVA := FLX_NormalizaNumeroExcel(FLX_CeldaTabla(Tabla, R, ColIVA));
+
+      // NO cargamos Precio con Iva del proveedor en Linea.PVP.
+      // Linea.PVP debe quedar vacío para que InsertarLinea use A2 de artitien.
+      Linea.PVP := '';
+
+      if (Linea.Codigo = '') and (Linea.CodigoEAN = '') and (Linea.Descripcion = '') then
+        Continue;
+
+      if FLX_DescripcionEsCajaMixta(Linea.Descripcion) then
+      begin
+        Inc(OmitidasMixtas);
+        FLX_AnadirLineaMixta(LineasMixtas, 'XLSX', R + 1, Linea);
+        Continue;
+      end;
+
+      if not FLX_CosteImportadoGestionable(Linea.Costo) then
+      begin
+        Inc(OmitidasCosteCero);
+        Continue;
+      end;
+
+      Linea.Pos := Cont;
+      BuscarCoincidencias(Linea);
+      SetLength(ArrayDeLineasPedido, Cont);
+      ArrayDeLineasPedido[Cont - 1] := Linea;
+      LlenarLineaGrid(sgDatos, Cont, Linea, AnchuraColumnaCod, AnchuraColumnaEan, AnchuraColumnaDes);
+      Inc(Cont);
+    end;
+
+    if Cont = 1 then
+      ShowMessage('No se ha importado ninguna línea gestionable del XLSX.')
+    else
+      ShowMessage('XLSX leído correctamente. Líneas importadas: ' + IntToStr(Cont - 1));
+
+    FLX_AvisarLineasOmitidas('Resumen de líneas omitidas del XLSX', AFichero,
+      OmitidasCosteCero, OmitidasMixtas, LineasMixtas);
+  finally
+    LineasMixtas.Free;
+    SetLength(Shared, 0);
+    SetLength(Tabla, 0);
+    if (TempDir <> '') and DirectoryExists(TempDir) then
+    begin
+      try
+        DeleteDirectory(TempDir, False);
+      except
+        // Si no se pudiera borrar la carpeta temporal, no interrumpimos la importación.
+      end;
+    end;
+  end;
+end;
+
 //=============== FORMATEAR ==========================
 //Según el fichero importado esté delimitado por caracteres (,) o por
 //dimensiones fijas, obtiene el valor de los campos y los mete en variables dentro
@@ -549,27 +1662,46 @@ var
   PosIni: integer;
   contdel: integer;
   cont: integer;
+  NumLineaFichero: integer;
+  OmitidasCosteCero: integer;
+  OmitidasMixtas: integer;
+  LineasMixtas: TStringList;
   F: TextFile;
   TxtTEMP: String;
   Txt: String;
   FicheroTXT: String;
 begin
+    FicheroTXT:=OpenDialog1.FileName;
+
+    if FLX_EsFicheroExcel(FicheroTXT) then
+    begin
+      FormatearExcel(FicheroTXT);
+      btnGenerar.Enabled:=True;
+      Exit;
+    end;
+
     if Memo1.Lines.Count=0 then begin
        ShowMessage('DEBE SELECCIONAR EL FICHERO DE TEXTO A IMPORTAR');
        btnGenerar.Enabled:=False;
        abort;
     end;
     btnGenerar.Enabled:=True;
-    FicheroTXT:=OpenDialog1.FileName;
+    LineasMixtas := TStringList.Create;
     AssignFile(F,FicheroTXT);
     Reset(F);
 
+    try
+
     if pc.ActivePage=tsSeleccion then begin   // Activada la pestaña de Selección de Posiciones
        cont:=1;
+       NumLineaFichero:=0;
+       OmitidasCosteCero:=0;
+       OmitidasMixtas:=0;
        AnchuraColumnaEan:=0; AnchuraColumnaDes:=0; AnchuraColumnaCod:=0;
 
        while not EOF(F) do begin
              Readln(F,Txt);
+             Inc(NumLineaFichero);
              if length(txt)=0 then Continue; //Si la línea está en blanco, salta. La de EOF está en blanco.
              //sgDatos.RowCount:= cont + 1; //Añade una fila, la primera es la cabecera
              linea.CoinCod:=0; linea.CoinEan:=0; linea.CoinDes:=0;
@@ -595,7 +1727,7 @@ begin
                 linea.CodigoEAN:= copy(Txt,StrToInt(eEANDesde.Text),StrToInt(eEANHasta.Text)-StrToInt(eEANDesde.Text)+1);
 
              if ((eNombreDesde.Text<>'') and (eNombreHasta.Text<>'')) then
-                linea.Descripcion:=copy(Txt,StrToInt(eNombreDesde.Text),StrToInt(eNombreHasta.Text)-StrToInt(eNombreDesde.Text)+1);
+                linea.Descripcion:=FLX_NormalizaDescripcionTXTImportada(copy(Txt,StrToInt(eNombreDesde.Text),StrToInt(eNombreHasta.Text)-StrToInt(eNombreDesde.Text)+1));
 
              if ((eUnidDesde.Text<>'') and (eUnidHasta.Text<>'')) then
                 linea.Unidades:=copy(Txt,StrToInt(eUnidDesde.Text),StrToInt(eUnidHasta.Text)-StrToInt(eUnidDesde.Text)+1);
@@ -610,6 +1742,24 @@ begin
              if ((ePVPDesde.Text<>'') and (ePVPHasta.Text<>'') and (eDecPVPDesde.Text<>'') and (eDecPVPHasta.Text<>'')) then
                 linea.PVP:=copy(Txt,StrToInt(ePVPDesde.Text),StrToInt(ePVPHasta.Text)-StrToInt(ePVPDesde.Text)+1)+'.'+
                 copy(Txt,StrToInt(eDecPVPDesde.Text),StrToInt(eDecPVPHasta.Text)-StrToInt(eDecPVPDesde.Text)+1);
+
+             linea.Descripcion:=FLX_NormalizaDescripcionTXTImportada(linea.Descripcion);
+
+             if linea.CodigoEAN <> '' then
+                linea.CodigoEAN:=FLX_NormalizaEANImportado(linea.CodigoEAN, linea.Codigo, linea.Descripcion);
+
+             if FLX_DescripcionEsCajaMixta(linea.Descripcion) then
+             begin
+                Inc(OmitidasMixtas);
+                FLX_AnadirLineaMixta(LineasMixtas, 'TXT/CSV', NumLineaFichero, linea);
+                Continue;
+             end;
+
+             if not FLX_CosteImportadoGestionable(linea.Costo) then
+             begin
+                Inc(OmitidasCosteCero);
+                Continue;
+             end;
 
              linea.Pos:=cont;// Guarda la posicion del array en el registro
              BuscarCoincidencias(Linea);
@@ -628,10 +1778,14 @@ begin
           abort;
        end;
        cont:=1;
+       NumLineaFichero:=0;
+       OmitidasCosteCero:=0;
+       OmitidasMixtas:=0;
        AnchuraColumnaEan:=0; AnchuraColumnaDes:=0; AnchuraColumnaCod:=0;
 
        while not EOF(F) do begin
              Readln(F,Txt);
+             Inc(NumLineaFichero);
              if length(txt)=0 then Continue; //Si la línea está en blanco, salta. La de EOF está en blanco.
              //sgDatos.RowCount:= cont + 1; //Añade una fila, la primera es la cabecera
              linea.CoinCod:=0; linea.CoinEan:=0; linea.CoinDes:=0;
@@ -683,7 +1837,7 @@ begin
                    end;
                 end;
                 PosFin:=Pos(eDelimitador.Text,TxtTemp);
-                linea.Descripcion:=copy(TxtTemp,1,PosFin-1);
+                linea.Descripcion:=FLX_NormalizaDescripcionTXTImportada(copy(TxtTemp,1,PosFin-1));
              end;
              TxtTemp:=Txt;
              if (eOUnidades.Text<>'') then begin
@@ -763,6 +1917,24 @@ begin
                 PosFin:=Pos(eDelimitador.Text,TxtTemp);
                 linea.PVP:=linea.PVP+'.'+copy(TxtTemp,1,PosFin-1);
              end;
+             linea.Descripcion:=FLX_NormalizaDescripcionTXTImportada(linea.Descripcion);
+
+             if linea.CodigoEAN <> '' then
+                linea.CodigoEAN:=FLX_NormalizaEANImportado(linea.CodigoEAN, linea.Codigo, linea.Descripcion);
+
+             if FLX_DescripcionEsCajaMixta(linea.Descripcion) then
+             begin
+                Inc(OmitidasMixtas);
+                FLX_AnadirLineaMixta(LineasMixtas, 'TXT/CSV', NumLineaFichero, linea);
+                Continue;
+             end;
+
+             if not FLX_CosteImportadoGestionable(linea.Costo) then
+             begin
+                Inc(OmitidasCosteCero);
+                Continue;
+             end;
+
              linea.Pos:=cont;// Guarda la posicion del array en el registro
              BuscarCoincidencias(Linea);
              SetLength(ArrayDeLineasPedido, cont); // Redimensiona el vector al tamaño del contador(líneas contadas)
@@ -772,6 +1944,13 @@ begin
              cont:=cont+1;
        end;
        CloseFile(F);
+    end;
+
+    FLX_AvisarLineasOmitidas('Resumen de líneas omitidas del TXT/CSV', FicheroTXT,
+      OmitidasCosteCero, OmitidasMixtas, LineasMixtas);
+
+    finally
+      LineasMixtas.Free;
     end;
 end;
 
@@ -1057,45 +2236,217 @@ begin
   end;
 end;
 
+function TfImportar.SeleccionarArticuloExistentePorDescripcion(const TextoBusqueda: string; out ACodigo, ANombre: string): Boolean;
+var
+  Busqueda: string;
+  FormSel: TForm;
+  Lista: TListBox;
+  BtnOK, BtnCancel: TButton;
+  Codigos, Nombres: TStringList;
+  Num: Integer;
+begin
+  Result:=False;
+  ACodigo:='';
+  ANombre:='';
+  Busqueda:=Trim(TextoBusqueda);
+
+  repeat
+    if Busqueda='' then
+      Busqueda:=Trim(EditPenNombre.Text);
+
+    if not InputQuery(
+      'Buscar artículo existente',
+      'Indique parte de la descripción o código del artículo existente:' + LineEnding + LineEnding +
+      'Línea importada: ' + Trim(EditPenNombre.Text),
+      Busqueda) then Exit;
+
+    Busqueda:=Trim(Busqueda);
+    if Busqueda='' then
+    begin
+      ShowMessage('Debe indicar un texto para buscar.');
+      Continue;
+    end;
+
+    dbArti.Active:=False;
+    dbArti.SQL.Text:=
+      'SELECT A0,A1 FROM artitien'+Tienda+
+      ' WHERE A1 LIKE "%'+FLX_SQLTexto(Busqueda)+'%"'+
+      ' OR A0 LIKE "%'+FLX_SQLTexto(Busqueda)+'%"'+
+      ' ORDER BY A1 LIMIT 50';
+    dbArti.Active:=True;
+
+    if dbArti.RecordCount=0 then
+    begin
+      if MessageDlg(
+           'No se ha encontrado ningún artículo con:' + LineEnding + LineEnding +
+           Busqueda + LineEnding + LineEnding +
+           '¿Desea realizar otra búsqueda?',
+           mtConfirmation, [mbYes, mbNo], 0) = mrNo then Exit;
+      Continue;
+    end;
+
+    if dbArti.RecordCount=1 then
+    begin
+      ACodigo:=dbArti.FieldByName('A0').AsString;
+      ANombre:=dbArti.FieldByName('A1').AsString;
+      if MessageDlg(
+           'Se ha encontrado este artículo:' + LineEnding + LineEnding +
+           ACodigo + ' - ' + ANombre + LineEnding + LineEnding +
+           '¿Usarlo para añadir el código auxiliar?',
+           mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+      begin
+        Result:=True;
+        Exit;
+      end;
+      Continue;
+    end;
+
+    Codigos:=TStringList.Create;
+    Nombres:=TStringList.Create;
+    FormSel:=TForm.Create(Self);
+    try
+      FormSel.Caption:='Seleccione artículo existente';
+      FormSel.Position:=poScreenCenter;
+      FormSel.BorderStyle:=bsDialog;
+      FormSel.Width:=760;
+      FormSel.Height:=420;
+
+      Lista:=TListBox.Create(FormSel);
+      Lista.Parent:=FormSel;
+      Lista.Left:=8;
+      Lista.Top:=8;
+      Lista.Width:=FormSel.ClientWidth-16;
+      Lista.Height:=FormSel.ClientHeight-56;
+      Lista.Anchors:=[akLeft, akTop, akRight, akBottom];
+
+      BtnOK:=TButton.Create(FormSel);
+      BtnOK.Parent:=FormSel;
+      BtnOK.Caption:='Aceptar';
+      BtnOK.ModalResult:=mrOk;
+      BtnOK.Left:=FormSel.ClientWidth-180;
+      BtnOK.Top:=FormSel.ClientHeight-40;
+      BtnOK.Width:=80;
+      BtnOK.Anchors:=[akRight, akBottom];
+
+      BtnCancel:=TButton.Create(FormSel);
+      BtnCancel.Parent:=FormSel;
+      BtnCancel.Caption:='Cancelar';
+      BtnCancel.ModalResult:=mrCancel;
+      BtnCancel.Left:=FormSel.ClientWidth-92;
+      BtnCancel.Top:=FormSel.ClientHeight-40;
+      BtnCancel.Width:=84;
+      BtnCancel.Anchors:=[akRight, akBottom];
+
+      dbArti.First;
+      while not dbArti.EOF do
+      begin
+        Codigos.Add(dbArti.FieldByName('A0').AsString);
+        Nombres.Add(dbArti.FieldByName('A1').AsString);
+        Lista.Items.Add(dbArti.FieldByName('A0').AsString + '  -  ' + dbArti.FieldByName('A1').AsString);
+        dbArti.Next;
+      end;
+      if Lista.Items.Count>0 then Lista.ItemIndex:=0;
+
+      if FormSel.ShowModal=mrOk then
+      begin
+        Num:=Lista.ItemIndex;
+        if (Num>=0) and (Num<Codigos.Count) then
+        begin
+          ACodigo:=Codigos[Num];
+          ANombre:=Nombres[Num];
+          Result:=True;
+          Exit;
+        end;
+      end
+      else
+        Exit;
+    finally
+      FormSel.Free;
+      Codigos.Free;
+      Nombres.Free;
+    end;
+  until False;
+end;
+
+function TfImportar.PrepararArticuloExistenteParaEan(var Linea: RLineaPedido): Boolean;
+var
+  CodBD, NomBD: string;
+begin
+  Result:=False;
+
+  if not SeleccionarArticuloExistentePorDescripcion(Trim(EditPenNombre.Text), CodBD, NomBD) then Exit;
+
+  EditBDCodigo.Text:=CodBD;
+  EditBDNombre.Text:=NomBD;
+  EditBDEan.Text:='';
+
+  // Marcamos la línea como vinculada a un artículo existente para que el flujo
+  // posterior use la ficha correcta y pueda insertar el EAN/código auxiliar.
+  Linea.Codigo:=CodBD;
+  Linea.Descripcion:=NomBD;
+  Linea.CoinCod:=1;
+  Linea.CoinDes:=1;
+
+  if FLX_TextoValidoEAN(EditPenEan.Text) then
+    Linea.CoinEan:=3
+  else
+    Linea.CoinEan:=0;
+
+  Result:=True;
+end;
+
 procedure TfImportar.NuevoEan(const nuevoEan: string; var linea: RLineaPedido);
 begin
-        // Comprobamos de nuevo que no exista otro ean igual
-        dbArti.Active:=False;
-        dbArti.SQL.Text:='SELECT * FROM eans WHERE EAN0="'+nuevoEan+'"';
-        dbArti.Active:=True;
-              //ShowMessage('  Dato a tratar :' + #13 + #13 +
-              //           ' Código :      ' + dbArti.FieldByName('ean1').AsString + #13 +
-              //           ' Descripción : ' + dbArti.FieldByName('ean2').AsString );
-        if dbArti.RecordCount=0 then
-          begin
-            dbArti.Append;
-            dbArti.FieldByName('EAN0').AsString:=nuevoEan;//-------- Ean
-            dbArti.FieldByName('EAN1').AsString:=EditBDCodigo.Text;//----------Código
-            if EditPenNombre.Text <> '' then
-               dbArti.FieldByName('EAN2').AsString:=EditPenNombre.Text//----------descripción del txt
-            else dbArti.FieldByName('EAN2').AsString:=EditBDNombre.Text;//----------descripción de la BD
+  // Comprobamos de nuevo que no exista otro ean igual.
+  // Si ya existe, NO intentamos duplicarlo: vinculamos la línea al auxiliar ya existente
+  // para que no quede como "artículo nuevo" cuando en realidad ya está en la tabla eans.
+  dbArti.Active:=False;
+  dbArti.SQL.Text:='SELECT * FROM eans WHERE EAN0="'+FLX_SQLTexto(nuevoEan)+'" LIMIT 1';
+  dbArti.Active:=True;
 
-  // CAMPOS QUE YO NO SÉ MANEJAR
+  if dbArti.RecordCount=0 then
+  begin
+    dbArti.Append;
+    dbArti.FieldByName('EAN0').AsString:=nuevoEan;                 // EAN / auxiliar
+    dbArti.FieldByName('EAN1').AsString:=EditBDCodigo.Text;        // Código interno
+    if EditPenNombre.Text <> '' then
+      dbArti.FieldByName('EAN2').AsString:=FLX_NormalizaDescripcionImportada(EditPenNombre.Text)      // Descripción del fichero
+    else
+      dbArti.FieldByName('EAN2').AsString:=FLX_NormalizaDescripcionImportada(EditBDNombre.Text);      // Descripción BD
 
-            dbArti.FieldByName('EAN3').AsString:='1';//-----------------Unidades
-            if linea.PVP <> '' then
-          //-- En principio, lo inicializamos a 0 siempre, luego, ya veremos
-              //dbArti.FieldByName('EAN4').AsString:=linea.PVP //Esto no se si es correcto, creo que NO
-                dbArti.FieldByName('EAN4').AsString:='0'
-                                   else
-                dbArti.FieldByName('EAN4').AsString:='0';//---------Precio
-            dbArti.FieldByName('EAN5').AsString:='1';//-----------------Unidades a descontar
-            dbArti.Post;
+    dbArti.FieldByName('EAN3').AsString:='1';                      // Unidades
+    dbArti.FieldByName('EAN4').AsString:='0';                      // Precio auxiliar
+    dbArti.FieldByName('EAN5').AsString:='1';                      // Unidades a descontar
+    dbArti.Post;
 
-            ShowMessage('   Añadido :' + #13 + #13 +
-                         ' Código :      ' + dbArti.FieldByName('ean1').AsString + #13 +
-                         ' EAN :         ' + dbArti.FieldByName('ean0').AsString + #13 +
-                         ' Descripción : ' + dbArti.FieldByName('ean2').AsString + #13 + #13);
-          end else
-            ShowMessage('   Ya existe ese valor :' + #13 + #13 +
-                         ' Código :      ' + dbArti.FieldByName('ean1').AsString + #13 +
-                         ' Descripción : ' + dbArti.FieldByName('ean2').AsString + #13 + #13 +
-                         'No se crea ningún registro nuevo en la tabla de EAN');
+    ShowMessage(
+      'Añadido código auxiliar:' + LineEnding + LineEnding +
+      'Código:      ' + dbArti.FieldByName('EAN1').AsString + LineEnding +
+      'EAN/Aux.:    ' + dbArti.FieldByName('EAN0').AsString + LineEnding +
+      'Descripción: ' + dbArti.FieldByName('EAN2').AsString
+    );
+
+    // Dejamos la línea vinculada al artículo al que acabamos de añadir el auxiliar.
+    linea.Codigo:=EditBDCodigo.Text;
+    linea.CodigoEAN:=nuevoEan;
+    if EditBDNombre.Text<>'' then
+      linea.Descripcion:=EditBDNombre.Text;
+  end
+  else
+  begin
+    ShowMessage(
+      'Ese código auxiliar ya existía en la base de datos.' + LineEnding + LineEnding +
+      'Se usará el artículo al que ya pertenece:' + LineEnding + LineEnding +
+      'Código:      ' + dbArti.FieldByName('EAN1').AsString + LineEnding +
+      'EAN/Aux.:    ' + dbArti.FieldByName('EAN0').AsString + LineEnding +
+      'Descripción: ' + dbArti.FieldByName('EAN2').AsString
+    );
+
+    // Si ya existe, no es un artículo nuevo: adoptamos la ficha real del auxiliar.
+    linea.Codigo:=dbArti.FieldByName('EAN1').AsString;
+    linea.CodigoEAN:=dbArti.FieldByName('EAN0').AsString;
+    linea.Descripcion:=dbArti.FieldByName('EAN2').AsString;
+  end;
 end;
 
 procedure ShowFormImportar(dbPedid: TzQuery; dbPedic: TzQuery);
@@ -1136,80 +2487,134 @@ end;
 procedure TfImportar.InsertarLinea(Linea: RLineaPedido; VerUltimaLinea: integer );
 var
   valtemp : Double;
+  UnidadesPedido: Double;
+  CostoSinIVA: Double;
+  IvaPedido: Double;
+  RecargoPedido: Double;
+  CostoConIVA: Double;
+  PvpConIVA: Double;
+  PvpSinIVA: Double;
+  MargenPedido: Double;
+  MargenSobrePvpPedido: Double;
 begin
-    valtemp:=0;
-    dbPedidAux.Append;
-    begin
-     dbArti.Active:=False;
-     dbArti.SQL.Text:='SELECT * FROM artitien'+Tienda+' WHERE A0="'+Linea.Codigo+'"';
-     dbArti.Active:=True;
-//--      showmessage(Linea.Codigo+' - '+Linea.CodigoEAN+' - '+Linea.Descripcion+' - '+linea.Unidades+' - '+linea.IVA+' - '+linea.Costo+' - '+linea.PVP);
-//--      showmessage(dbArti.FieldByName('A3').Value);
-// Los datos que tengo en la linea de pedido son estos:
-     //Codigo: string;     CoinCod: integer;
-     //CodigoEAN: string;  CoinEan: integer;
-     //Descripcion: string;CoinDes: integer;
-     //Unidades: string;
-     //Costo: string;
-     //IVA: string;
-     //PVP: string;
-     //Pos: integer; //Posición en el Array de líneas de Pedido
-// el resto de campos implicados en este proceso los dejo en blanco o 0
- dbPedidAux.FieldByName('PD0').Value:=dbPedicAux.FieldByName('PC0').Value;//----- N. Tienda
- dbPedidAux.FieldByName('PD1').Value:=dbPedicAux.FieldByName('PC1').Value;//----- Fecha
- dbPedidAux.FieldByName('PD2').Value:=dbPedicAux.FieldByName('PC2').Value;//----- Proveedor
- dbPedidAux.FieldByName('PD3').Value:=dbPedicAux.FieldByName('PC3').Value;//----- Serie
- dbPedidAux.FieldByName('PD4').Value:=dbPedicAux.FieldByName('PC4').Value;//----- N. Pedido
+  valtemp:=0;
 
-  dbPedidAux.FieldByName('PD5').Value:=VerUltimaLinea;//------- N. Linea    Quizas se pueda utilizar linea.pos
-  dbPedidAux.FieldByName('PD6').AsString:=linea.codigo;//-------- Codigo articulo
-  dbPedidAux.FieldByName('PD7').AsString:=linea.descripcion;//----------- Descripcion
-  dbPedidAux.FieldByName('PD8').AsString:=Linea.unidades;//----------- Unidades
-  dbPedidAux.FieldByName('PD9').AsString:='0';//------------------ Bonificaciones
-  dbPedidAux.FieldByName('PD10').AsString:=Linea.costo;//---------- Precio de costo (Sin Iva y sin Recargo)
+  dbArti.Active:=False;
+  dbArti.SQL.Text:='SELECT * FROM artitien'+Tienda+' WHERE A0="'+Linea.Codigo+'"';
+  dbArti.Active:=True;
 
-  dbPedidAux.FieldByName('PD13').AsString:=FloatToStr(dbArti.FieldByName('A36').Value);//--------- Recargo de equivalencia
-  //------------- Tipo de iva
-  if Linea.IVA='' then dbPedidAux.FieldByName('PD14').AsFloat:=dbArti.FieldByName('A3').Value else dbPedidAux.FieldByName('PD14').AsFloat:=StrToFloat(Linea.IVA);
-  //--------- Precio de costo (Con Iva)
-  dbPedidAux.FieldByName('PD15').AsFloat:=dbPedidAux.FieldByName('PD10').AsFloat*(1+(dbPedidAux.FieldByName('PD14').AsFloat/100));
-  //--------- Precio venta(Con Iva)
-  if Linea.PVP='' then dbPedidAux.FieldByName('PD16').AsFloat:=dbArti.FieldByName('A2').Value else dbPedidAux.FieldByName('PD16').AsString:=Linea.PVP;
-//--  dbPedidAux.FieldByName('PD16').AsString:=Linea.PVP;//--------- Precio venta(Con Iva)
-  //----------Importe total de costo (Con Iva)
-  dbPedidAux.FieldByName('PD17').AsFloat:=dbPedidAux.FieldByName('PD15').AsFloat* dbPedidAux.FieldByName('PD8').AsFloat;
-  valtemp:=(dbPedidAux.FieldByName('PD16').AsFloat)*(StrToFloat(Linea.Unidades));
-  dbPedidAux.FieldByName('PD18').AsFloat:=valtemp;//*StrToFloat(Linea.PVP);//---- Importe total PVP (Con Iva)
-  //-- No se porque estaba comentada la linea
-  dbPedidAux.FieldByName('PD19').Value:=dbArti.FieldByName('A14').Value;//-- Familia
+  if dbArti.RecordCount = 0 then
+  begin
+    ShowMessage(
+      'No se puede insertar la línea en el pedido porque no se encuentra la ficha del artículo.' + LineEnding + LineEnding +
+      'Código: ' + Linea.Codigo + LineEnding +
+      'Descripción: ' + Linea.Descripcion
+    );
+    Exit;
+  end;
 
-//--  NECESITO EL VALOR DEL CAMPO PD16
-  valtemp:=(dbPedidAux.FieldByName('PD16').AsFloat/(1+(dbPedidAux.FieldByName('PD14').AsFloat/100)));
-  dbPedidAux.FieldByName('PD12').AsFloat:=valtemp;//--------- Precio venta(Sin Iva)
-//-- NECESITO DE VALORES ANTERIORES PARA PODER CALCULAR ESTOS CAMPOS
-  //--------- Margen
-  dbPedidAux.FieldByName('PD11').AsFloat:=(((dbPedidAux.FieldByName('PD16').AsFloat-dbPedidAux.FieldByName('PD15').AsFloat)*100)/dbPedidAux.FieldByName('PD15').AsFloat);//--------- Margen
-      //-- No se porque estába comentado
-      dbPedidAux.FieldByName('PD20').Value:=dbArti.FieldByName('A4').Value;//----- Stock actual en el momento de pedir
+  // Normalizamos importes antes de insertar. Esto evita que una línea recién creada
+  // con coste/PVP vacío o a 0 acabe provocando divisiones por cero en los márgenes.
+  UnidadesPedido:=FLX_StrToFloatDefSeguro(Linea.Unidades, 0);
+  CostoSinIVA:=FLX_StrToFloatDefSeguro(Linea.Costo, 0);
+  if CostoSinIVA <= 0 then
+    CostoSinIVA:=dbArti.FieldByName('A24').AsFloat;
+  if CostoSinIVA < 0 then
+    CostoSinIVA:=0;
 
-      dbPedidAux.FieldByName('PD21').AsString:='0';//---------- Unidades vendidas de X a X año actual
-      dbPedidAux.FieldByName('PD22').AsString:='0';//---------- Unidades vendidas de X a X año anterior
+  RecargoPedido:=dbArti.FieldByName('A36').AsFloat;
+  if RecargoPedido < 0 then
+    RecargoPedido:=0;
 
-  dbPedidAux.FieldByName('PD23').AsString:='S';//-------------- Recibido S/N (Por defecto siempre si)
-  dbPedidAux.FieldByName('PD24').AsString:='';//--------------- Serie de colores
-  dbPedidAux.FieldByName('PD25').AsString:='';//--------------- Serie de tallas
-  dbPedidAux.FieldByName('PD26').Value:=dbArti.FieldByName('A28').Value;//--------- Precio Tarifa
-  dbPedidAux.FieldByName('PD27').AsFloat:=dbArti.FieldByName('A29').Value;//------ Dto Importe
-  dbPedidAux.FieldByName('PD28').AsFloat:=dbArti.FieldByName('A30').Value;//------ Dto % 1
-  dbPedidAux.FieldByName('PD29').AsFloat:=dbArti.FieldByName('A31').Value;//------ Dto % 2
-  dbPedidAux.FieldByName('PD30').AsFloat:=(((dbPedidAux.FieldByName('PD15').AsFloat/dbPedidAux.FieldByName('PD16').AsFloat)-1)*(-100));//------ Margen sobre PVP
-end;
+  IvaPedido:=FLX_StrToFloatDefSeguro(Linea.IVA, 0);
+  if IvaPedido <= 0 then
+    IvaPedido:=dbArti.FieldByName('A3').AsFloat;
+  if IvaPedido <= 0 then
+    IvaPedido:=21;
+
+  if Trim(Linea.PVP) <> '' then
+    PvpConIVA:=FLX_StrToFloatDefSeguro(Linea.PVP, 0)
+  else
+    PvpConIVA:=dbArti.FieldByName('A2').AsFloat;
+
+  // Para artículos nuevos el alta los marca con PVP 999,00. Si por cualquier motivo
+  // la ficha todavía devuelve 0, usamos 999,00 en la línea para no paralizar el pedido.
+  if PvpConIVA <= 0 then
+    PvpConIVA:=999.00;
+
+  CostoConIVA:=CostoSinIVA*(1+(IvaPedido/100));
+  PvpSinIVA:=0;
+  if (1+(IvaPedido/100)) <> 0 then
+    PvpSinIVA:=PvpConIVA/(1+(IvaPedido/100));
+
+  MargenPedido:=0;
+  if CostoConIVA <> 0 then
+    MargenPedido:=(((PvpConIVA-CostoConIVA)*100)/CostoConIVA);
+
+  MargenSobrePvpPedido:=0;
+  if PvpConIVA <> 0 then
+    MargenSobrePvpPedido:=(((CostoConIVA/PvpConIVA)-1)*(-100));
+
+  dbPedidAux.Append;
+  try
+    // Los datos que tengo en la linea de pedido son estos:
+    // Codigo: string; CodigoEAN: string; Descripcion: string;
+    // Unidades: string; Costo: string; IVA: string; PVP: string;
+    // el resto de campos implicados en este proceso los dejo en blanco o 0
+    dbPedidAux.FieldByName('PD0').Value:=dbPedicAux.FieldByName('PC0').Value;//----- N. Tienda
+    dbPedidAux.FieldByName('PD1').Value:=dbPedicAux.FieldByName('PC1').Value;//----- Fecha
+    dbPedidAux.FieldByName('PD2').Value:=dbPedicAux.FieldByName('PC2').Value;//----- Proveedor
+    dbPedidAux.FieldByName('PD3').Value:=dbPedicAux.FieldByName('PC3').Value;//----- Serie
+    dbPedidAux.FieldByName('PD4').Value:=dbPedicAux.FieldByName('PC4').Value;//----- N. Pedido
+
+    dbPedidAux.FieldByName('PD5').Value:=VerUltimaLinea;//------- N. Linea
+    dbPedidAux.FieldByName('PD6').AsString:=Linea.Codigo;//------ Codigo articulo
+    dbPedidAux.FieldByName('PD7').AsString:=Linea.Descripcion;//- Descripcion
+    dbPedidAux.FieldByName('PD8').AsFloat:=UnidadesPedido;//----- Unidades
+    dbPedidAux.FieldByName('PD9').AsString:='0';//--------------- Bonificaciones
+    dbPedidAux.FieldByName('PD10').AsFloat:=CostoSinIVA;//------- Precio de costo sin IVA y sin recargo
+
+    dbPedidAux.FieldByName('PD13').AsFloat:=RecargoPedido;//----- Recargo de equivalencia
+    dbPedidAux.FieldByName('PD14').AsFloat:=IvaPedido;//--------- Tipo de IVA
+    dbPedidAux.FieldByName('PD15').AsFloat:=CostoConIVA;//------- Precio costo con IVA
+    dbPedidAux.FieldByName('PD16').AsFloat:=PvpConIVA;//--------- Precio venta con IVA
+    dbPedidAux.FieldByName('PD17').AsFloat:=CostoConIVA*UnidadesPedido;// Importe total coste con IVA
+
+    valtemp:=PvpConIVA*UnidadesPedido;
+    dbPedidAux.FieldByName('PD18').AsFloat:=valtemp;//----------- Importe total PVP con IVA
+    dbPedidAux.FieldByName('PD19').Value:=dbArti.FieldByName('A14').Value;// Familia
+
+    dbPedidAux.FieldByName('PD12').AsFloat:=PvpSinIVA;//--------- Precio venta sin IVA
+    dbPedidAux.FieldByName('PD11').AsFloat:=MargenPedido;//------ Margen
+    dbPedidAux.FieldByName('PD20').Value:=dbArti.FieldByName('A4').Value;// Stock actual
+
+    dbPedidAux.FieldByName('PD21').AsString:='0';//-------------- Unidades vendidas año actual
+    dbPedidAux.FieldByName('PD22').AsString:='0';//-------------- Unidades vendidas año anterior
+
+    dbPedidAux.FieldByName('PD23').AsString:='S';//-------------- Recibido S/N
+    dbPedidAux.FieldByName('PD24').AsString:='';//--------------- Serie de colores
+    dbPedidAux.FieldByName('PD25').AsString:='';//--------------- Serie de tallas
+    dbPedidAux.FieldByName('PD26').Value:=dbArti.FieldByName('A28').Value;// Precio tarifa
+    dbPedidAux.FieldByName('PD27').AsFloat:=dbArti.FieldByName('A29').AsFloat;// Dto Importe
+    dbPedidAux.FieldByName('PD28').AsFloat:=dbArti.FieldByName('A30').AsFloat;// Dto % 1
+    dbPedidAux.FieldByName('PD29').AsFloat:=dbArti.FieldByName('A31').AsFloat;// Dto % 2
+    dbPedidAux.FieldByName('PD30').AsFloat:=MargenSobrePvpPedido;// Margen sobre PVP
+
     dbPedidAux.Post;
-    SumaPendientes(linea.Codigo,linea.Unidades);//----- Sumar unidades pendientes
-
-  //PintarTotalGeneral();
-
-  //      Deberemos limpiar la linea de grid y arrays
+    SumaPendientes(Linea.Codigo, Linea.Unidades);//----- Sumar unidades pendientes
+  except
+    on E: Exception do
+    begin
+      if dbPedidAux.State in [dsInsert, dsEdit] then
+        dbPedidAux.Cancel;
+      ShowMessage(
+        'No se ha podido insertar la línea del pedido.' + LineEnding + LineEnding +
+        'Código: ' + Linea.Codigo + LineEnding +
+        'Descripción: ' + Linea.Descripcion + LineEnding + LineEnding +
+        'Error: ' + E.Message
+      );
+    end;
+  end;
 end;
 //================== UNIDADES PENDIENTES EN PEDIDOS ================
 procedure TFImportar.SumaPendientes(CodiPen, UniPen: String);
@@ -1230,15 +2635,46 @@ var
   F: TextFile;
 begin
   Memo1.Clear;
+  SynEdit1.Clear;
   Panel3.Enabled:=false;
   btnGenerar.Enabled:=False;
   TodoEnblanco1();
   TodoEnBlanco2();
 
   OpenDialog1.InitialDir:=ExtractFilePath(ParamStr(0));
+  OpenDialog1.Filter:='Pedidos de proveedor (*.txt;*.csv;*.xlsx;*.xls)|*.txt;*.csv;*.xlsx;*.xls|Texto (*.txt;*.csv)|*.txt;*.csv|Excel XLSX (*.xlsx)|*.xlsx|Excel antiguo XLS (*.xls)|*.xls|Todos los ficheros (*.*)|*.*';
 
   if OpenDialog1.Execute then begin
      FicheroTXT:=OpenDialog1.FileName;
+
+     if FLX_EsFicheroExcel(FicheroTXT) then
+     begin
+       if not FLX_EsFicheroXLSX(FicheroTXT) then
+       begin
+         SynEdit1.Lines.Add('Fichero XLS antiguo seleccionado: ' + ExtractFileName(FicheroTXT));
+         Memo1.Lines.Add('El formato .XLS antiguo no se puede leer con esta versión sin librerías externas.');
+         Memo1.Lines.Add('Seleccione el fichero .XLSX del proveedor.');
+         ShowMessage('Sin instalar librerías externas, sólo podemos leer .XLSX.' + #13 +
+                     'El .XLS antiguo es binario. Seleccione/solicite el fichero en formato .XLSX.');
+         Panel2.Enabled:=false;
+         Panel4.Enabled:=false;
+         Panel3.Enabled:=true;
+         btnGenerar.Enabled:=False;
+         Exit;
+       end;
+
+       SynEdit1.Lines.Add('Fichero XLSX seleccionado: ' + ExtractFileName(FicheroTXT));
+       Memo1.Lines.Add('Fichero XLSX seleccionado: ' + ExtractFileName(FicheroTXT));
+       Memo1.Lines.Add('Pulse GENERAR para leer el Excel y comprobar las líneas.');
+
+       // Para XLSX no hacen falta las pestañas de posiciones/delimitadores.
+       Panel2.Enabled:=false;
+       Panel4.Enabled:=false;
+       Panel3.Enabled:=true;
+       btnGenerar.Enabled:=True;
+       Exit;
+     end;
+
      // Seleccionamos sólo la primera linea para contar posiciones
      AssignFile(F,FicheroTXT);
      Reset(F);
@@ -1284,7 +2720,7 @@ Val(dbgPendientes.Cells[7,fila],lineaSeleccionada);//Posicion de la linea en el 
 
 linea:=ArrayDeLineasPedido[lineaSeleccionada-1];
 EditPenCodigo.Text:=dbgPendientes.Cells[1,fila];
-EditPenNombre.Text:=dbgPendientes.Cells[2,fila];
+EditPenNombre.Text:=FLX_NormalizaDescripcionImportada(dbgPendientes.Cells[2,fila]);
 EditPenEan.Text:=dbgPendientes.Cells[0,fila];
 //EditPenIVA.Text:=dbgPendientes.Cells[5,fila];
 //EditPenPVP.Text:=dbgPendientes.Cells[6,fila];
@@ -1408,6 +2844,67 @@ EditPenEan.Text:=dbgPendientes.Cells[0,fila];
     EditBDNombre.Text:=dbArti.FieldByName('EAN2').AsString;
     EditBDEan.Text:=dbArti.FieldByName('EAN0').AsString;
   end;
+  // RESCATE PARA TXT/FICHEROS DE ANCHO FIJO
+  // En algunos proveedores el nombre llega con espacios de relleno o pequeñas diferencias
+  // de formato. Antes de considerarlo artículo nuevo, buscamos por nombre recortado.
+  // Si existe en artitien/eans, se habilita de nuevo el alta de EAN auxiliar.
+  if (not Conocido) and (Trim(EditPenNombre.Text) <> '') then
+  begin
+    TxtQuery:='SELECT * FROM artitien'+Tienda+' WHERE TRIM(A1)="'+FLX_SQLTexto(EditPenNombre.Text)+'" LIMIT 1';
+    dbArti.Active:=False;
+    dbArti.Sql.Text:=TxtQuery;
+    dbArti.Active:=True;
+
+    if dbArti.RecordCount<>0 then
+    begin
+      BitBtnAceptarDatosBD.Enabled:=True;
+      if FLX_TextoValidoEAN(EditPenEan.Text) or (Trim(EditPenCodigo.Text) <> '') then
+        BitBtnAltaEan.Enabled:=True;
+      Conocido:=True;
+
+      EditBDCodigo.Text:=dbArti.FieldByName('A0').AsString;
+      EditBDNombre.Text:=dbArti.FieldByName('A1').AsString;
+      EditBDEan.Text:='';
+
+      linea.CoinDes:=1;
+      if FLX_TextoValidoEAN(EditPenEan.Text) then
+        linea.CoinEan:=3;
+      if Trim(EditPenCodigo.Text)=Trim(EditBDCodigo.Text) then
+        linea.CoinCod:=1
+      else if Trim(EditPenCodigo.Text)<>'' then
+        linea.CoinCod:=3;
+
+      ArrayDeLineasPedido[linea.Pos-1]:=linea;
+    end
+    else
+    begin
+      TxtQuery:='SELECT * FROM eans WHERE TRIM(EAN2)="'+FLX_SQLTexto(EditPenNombre.Text)+'" LIMIT 1';
+      dbArti.Active:=False;
+      dbArti.Sql.Text:=TxtQuery;
+      dbArti.Active:=True;
+
+      if dbArti.RecordCount<>0 then
+      begin
+        BitBtnAceptarDatosBD.Enabled:=True;
+        if FLX_TextoValidoEAN(EditPenEan.Text) or (Trim(EditPenCodigo.Text) <> '') then
+          BitBtnAltaEan.Enabled:=True;
+        Conocido:=True;
+
+        EditBDCodigo.Text:=dbArti.FieldByName('EAN1').AsString;
+        EditBDNombre.Text:=dbArti.FieldByName('EAN2').AsString;
+        EditBDEan.Text:=dbArti.FieldByName('EAN0').AsString;
+
+        linea.CoinDes:=2;
+        if FLX_TextoValidoEAN(EditPenEan.Text) then
+          linea.CoinEan:=3;
+        if Trim(EditPenCodigo.Text)<>'' then
+          linea.CoinCod:=3;
+
+        ArrayDeLineasPedido[linea.Pos-1]:=linea;
+      end;
+    end;
+  end;
+
   // ARTICULO NUEVO
   ////Nombre de artículo desconocido sin otros datos conocidos
   //IF ((linea.CoinDes=3) AND (((linea.coinEan=0) and (linea.CoinCod=0)) OR
@@ -1421,6 +2918,12 @@ EditPenEan.Text:=dbgPendientes.Cells[0,fila];
   if not Conocido then
   begin
     BitBtnDAltaCod.Enabled:=True;
+
+    // Aunque la línea se muestre como artículo nuevo, puede corresponderse
+    // con un artículo ya existente que no se ha reconocido automáticamente.
+    // Permitimos buscarlo por descripción y añadirle el EAN/código auxiliar
+    // sin tener que crear una ficha nueva.
+    BitBtnAltaEan.Enabled:=FLX_TextoValidoEAN(EditPenEan.Text) or (Trim(EditPenCodigo.Text) <> '');
 
     EditBDCodigo.Text:='';
     EditBDNombre.Text:='';
@@ -1457,28 +2960,73 @@ procedure TfImportar.BitBtnAltaEanClick(Sender: TObject);
 var
   linea: RLineaPedido;
   nEan: string;
+  InsertoAlgo: Boolean;
 begin
   linea:=ArrayDeLineasPedido[lineaSeleccionada-1];
-  //Caso de Nuevo Ean por ean.txt desconocido
-  if linea.CoinEan = 3 then
+  InsertoAlgo:=False;
+
+  // Si la línea se estaba mostrando como artículo nuevo, todavía damos la
+  // posibilidad de vincularla a un artículo ya existente buscándolo por
+  // descripción. Así se puede añadir el EAN/código auxiliar sin crear ficha.
+  if ((Trim(EditBDCodigo.Text) = '') and (Trim(EditBDNombre.Text) = '')) then
   begin
-    if EditPenEan.Text = '' then begin EditPenEan.SetFocus; exit; end;
+    if not PrepararArticuloExistenteParaEan(linea) then Exit;
+    ArrayDeLineasPedido[linea.Pos-1]:=linea;
+  end;
+
+  // Caso de Nuevo Ean por ean.txt desconocido
+  if (linea.CoinEan = 3) and FLX_TextoValidoEAN(EditPenEan.Text) then
+  begin
     if ((EditBDCodigo.Text = '') and (EditBDNombre.Text ='')) then begin
       ShowMessage('Datos insuficientes');exit;
     end;
-    nEan:=EditPenEan.Text;
-    //Inserta nuevo ean
+    nEan:=FLX_NormalizaEANImportado(EditPenEan.Text, EditPenCodigo.Text, EditPenNombre.Text);
+    if not FLX_TextoValidoEAN(nEan) then
+    begin
+      ShowMessage('No se ha podido normalizar un EAN válido para esta línea.');
+      Exit;
+    end;
+    EditPenEan.Text:=nEan;
     NuevoEan(nEan, linea);
+    InsertoAlgo:=True;
   end;
+
   // Casos en los que esté marcado el añadir cod.txt como ean
   if cbCodtxtAEan.Checked then begin
     if EditPenCodigo.Text = '' then begin EditPenCodigo.SetFocus; exit; end;
-    if ((EditBDEan.Text = '') and (EditBDNombre.Text ='')) then begin
+    if ((EditBDCodigo.Text = '') and (EditBDNombre.Text ='')) then begin
       ShowMessage('Datos insuficientes');exit;
     end;
     nEan:=EditPenCodigo.Text;
-    //Inserta nuevo ean
     NuevoEan(nEan, linea);
+    InsertoAlgo:=True;
+  end
+  else if (not InsertoAlgo) and (not FLX_TextoValidoEAN(EditPenEan.Text)) and
+          (Trim(EditPenCodigo.Text) <> '') then
+  begin
+    // Si no hay EAN válido en el fichero, ofrecemos usar el código del
+    // proveedor como código auxiliar. Esto mantiene el comportamiento manual
+    // y evita crear un artículo duplicado cuando realmente ya existe.
+    if MessageDlg(
+         'La línea no trae un EAN válido.' + LineEnding + LineEnding +
+         '¿Desea insertar el código del proveedor como código auxiliar del artículo seleccionado?' + LineEnding + LineEnding +
+         'Código proveedor: ' + EditPenCodigo.Text + LineEnding +
+         'Artículo BD: ' + EditBDCodigo.Text + ' - ' + EditBDNombre.Text,
+         mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+    begin
+      nEan:=EditPenCodigo.Text;
+      NuevoEan(nEan, linea);
+      InsertoAlgo:=True;
+    end;
+  end;
+
+  if not InsertoAlgo then
+  begin
+    ShowMessage(
+      'No se ha insertado ningún código auxiliar.' + LineEnding + LineEnding +
+      'Revise que la línea tenga EAN válido o marque la opción de usar el código del proveedor como auxiliar.'
+    );
+    Exit;
   end;
 
   BuscarCoincidencias(Linea);
@@ -1498,55 +3046,87 @@ var
   datosDe: String;
 begin
   datosDe:='';
-//los tres campos tienen que estar completos, el codigo es el de la BD y no se puede variar
-  //if EditPenNombre.Text = '' then begin EditPenNombre.SetFocus; exit; end;
-  //if EditPenCodigo.Text = '' then begin EditPenCodigo.SetFocus; exit; end;
-  //if EditPenEan.Text = '' then begin EditPenEan.SetFocus; exit; end;
   linea:=ArrayDeLineasPedido[lineaSeleccionada-1];
 
-  if linea.CoinDes=2 then begin TxtQuery:='SELECT * FROM eans WHERE EAN2="'+EditPenNombre.Text+'"';datosDe:='eans';end
-  else if linea.CoinDes=1 then begin TxtQuery:='SELECT * FROM artitien'+Tienda+' WHERE A1="'+EditPenNombre.Text+'"';datosDe:='artitien';end;
-  if linea.CoinEan=2 then begin TxtQuery:='SELECT * FROM eans WHERE EAN0="'+EditPenEan.Text+'"';datosDe:='eans';end;
-  if linea.CoinCod=2 then begin TxtQuery:='SELECT * FROM eans WHERE EAN1="'+EditPenCodigo.Text+'"';datosDe:='eans';end
-  else if linea.CoinCod=2 then begin TxtQuery:='SELECT * FROM artitien'+Tienda+' WHERE A0="'+EditPenCodigo.Text+'"';datosDe:='artitien';end;
+  // Prioridad de búsqueda:
+  // 1) EAN exacto en eans.
+  // 2) Código del proveedor que realmente es un EAN auxiliar en eans.
+  // 3) Descripción encontrada en eans.
+  // 4) Código interno real en artitien.
+  // 5) Descripción encontrada en artitien.
+  //
+  // OJO: antes había dos errores aquí:
+  // - CoinCod=2 consultaba EAN1, pero BuscarCoincidencias lo había localizado por EAN0.
+  // - El else if repetía CoinCod=2 en lugar de CoinCod=1, por lo que un artículo
+  //   existente por código interno podía quedar como "no encontrado".
 
-  if datosDe <> '' then begin
+  if linea.CoinEan=2 then
+  begin
+    TxtQuery:='SELECT * FROM eans WHERE EAN0="'+FLX_SQLTexto(EditPenEan.Text)+'" LIMIT 1';
+    datosDe:='eans';
+  end
+  else if linea.CoinCod=2 then
+  begin
+    TxtQuery:='SELECT * FROM eans WHERE EAN0="'+FLX_SQLTexto(EditPenCodigo.Text)+'" LIMIT 1';
+    datosDe:='eans';
+  end
+  else if linea.CoinDes=2 then
+  begin
+    TxtQuery:='SELECT * FROM eans WHERE TRIM(EAN2)="'+FLX_SQLTexto(EditPenNombre.Text)+'" LIMIT 1';
+    datosDe:='eans';
+  end
+  else if linea.CoinCod=1 then
+  begin
+    TxtQuery:='SELECT * FROM artitien'+Tienda+' WHERE A0="'+FLX_SQLTexto(EditPenCodigo.Text)+'" LIMIT 1';
+    datosDe:='artitien';
+  end
+  else if linea.CoinDes=1 then
+  begin
+    TxtQuery:='SELECT * FROM artitien'+Tienda+' WHERE TRIM(A1)="'+FLX_SQLTexto(EditPenNombre.Text)+'" LIMIT 1';
+    datosDe:='artitien';
+  end;
+
+  if datosDe <> '' then
+  begin
     dbArti.Active:=False;
     dbArti.SQL.Text:=TxtQuery;
     dbArti.Active:=True;
 
-//        ShowMessage('  Dato a tratar :' + #13 + #13 +
-//                   ' Código :      ' + dbArti.FieldByName('ean1').AsString + #13 +
-//                   ' Descripción : ' + dbArti.FieldByName('ean2').AsString );
-    if dbArti.RecordCount<>0 then begin
-      if datosDe = 'eans' then begin
-        if linea.CoinCod=2 then begin
-          //El cod.txt lo pasamos a ean.txt y ponemos el codigo de la BD
-          Linea.CodigoEAN:=Linea.Codigo;
-          Linea.Codigo:=dbArti.FieldByName('EAN1').AsString;
-          Linea.Descripcion:=dbArti.FieldByName('EAN2').AsString;
-        end
-        else if linea.CoinEan=2 then begin
-          Linea.Codigo:=dbArti.FieldByName('EAN1').AsString;
-          Linea.Descripcion:=dbArti.FieldByName('EAN2').AsString;
-        end
-        else if linea.CoinDes=2 then begin
-          Linea.CodigoEAN:=dbArti.FieldByName('EAN0').AsString;
-          Linea.Codigo:=dbArti.FieldByName('EAN1').AsString;
-        end;
+    if dbArti.RecordCount<>0 then
+    begin
+      if datosDe = 'eans' then
+      begin
+        // Tomamos la ficha real desde el auxiliar encontrado.
+        Linea.CodigoEAN:=dbArti.FieldByName('EAN0').AsString;
+        Linea.Codigo:=dbArti.FieldByName('EAN1').AsString;
+        Linea.Descripcion:=dbArti.FieldByName('EAN2').AsString;
       end
-      else begin
+      else
+      begin
+        // Tomamos la ficha real desde artitien.
         Linea.Codigo:=dbArti.FieldByName('A0').AsString;
         Linea.Descripcion:=dbArti.FieldByName('A1').AsString;
-        Linea.CodigoEan:='';
+        // Dejamos el EAN vacío para no forzar un auxiliar incorrecto.
+        // Si el EAN del fichero no existía, se añadirá con BitBtnAltaEan.
+        if linea.CoinEan<>2 then
+          Linea.CodigoEan:='';
       end;
+    end
+    else
+    begin
+      ShowMessage(
+        'No se ha podido localizar en la base de datos el registro que indicaba la coincidencia.' + LineEnding + LineEnding +
+        'Código importado: ' + EditPenCodigo.Text + LineEnding +
+        'EAN importado: ' + EditPenEan.Text + LineEnding +
+        'Descripción importada: ' + EditPenNombre.Text + LineEnding + LineEnding +
+        'La línea seguirá en pendientes para revisarla manualmente.'
+      );
+      Exit;
     end;
   end;
 
   BuscarCoincidencias(Linea);
-  //Las modificaciones pasan al vector de lineas de pedido
   ArrayDeLineasPedido[linea.Pos-1]:=linea;
-  //writeLinea(ArrayDeLineasPedido[linea.Pos-1]);
 
   DistribuirLineasPedido(ArrayDeLineasPedido);
   BitBtnAceptarDatosBD.Enabled:=False;
@@ -1559,51 +3139,285 @@ var
   Conta: Integer;
   ANO: String;
   linea: RLineaPedido;
+  CodigoNuevo, NombreNuevo, EanNuevo: String;
+  IvaAlta, PvpAlta, PvpSinIvaAlta: Double;
+  CostoAlta, RecargoAlta, CostoConImpuestosAlta: Double;
+  MargenAlta, MargenSobrePvpAlta: Double;
+  IvaPorDefecto: Boolean;
 begin
-  ShowMessage('UN ARTÍCULO PUEDE TENER OTRAS MUCHAS CARACTERISTICAS QUE NO ESTÁN RECOGIDAS EN ESTA CREACIÓN' +#13
-              +'SE RECOMIENDA VISITAR LA FICHA DEL ARTÍCULO'    );
+  ShowMessage(
+    'UN ARTÍCULO PUEDE TENER OTRAS MUCHAS CARACTERISTICAS QUE NO ESTÁN RECOGIDAS EN ESTA CREACIÓN' + LineEnding +
+    'SE RECOMIENDA VISITAR LA FICHA DEL ARTÍCULO' + LineEnding + LineEnding +
+    'Se creará con PVP provisional 999,00 para localizarlo fácilmente.'
+  );
+
+  CodigoNuevo:=Trim(EditPenCodigo.Text);
+  NombreNuevo:=FLX_NormalizaDescripcionImportada(EditPenNombre.Text);
+  EanNuevo:=Trim(EditPenEan.Text);
+  if EanNuevo <> '' then
+  begin
+    EanNuevo:=FLX_NormalizaEANImportado(EanNuevo, CodigoNuevo, NombreNuevo);
+    EditPenEan.Text:=EanNuevo;
+  end;
+
   //los dos campos tienen que estar completos
-  if EditPenNombre.Text = '' then begin EditPenNombre.SetFocus; exit; end;
-  if EditPenCodigo.Text = '' then begin EditPenCodigo.SetFocus; exit; end;
+  if NombreNuevo = '' then begin EditPenNombre.SetFocus; exit; end;
+  if CodigoNuevo = '' then begin EditPenCodigo.SetFocus; exit; end;
+
   linea:=ArrayDeLineasPedido[lineaSeleccionada-1];
 
-  dbArti.Active:=False;
-  dbArti.Sql.Text:='SELECT * FROM artitien'+Tienda+' WHERE A0="'+EditPenCodigo.Text+'"';
-  dbArti.Active:=True;
-  If dbArti.RecordCount = 0 then
+  // Normalizamos la línea antes del alta. En XLSX Linea.PVP viene vacío a propósito
+  // para que en pedidos se use el PVP de la ficha. En artículos nuevos usamos una
+  // marca visible de 999,00 euros para poder revisarlos después.
+  linea.Codigo:=CodigoNuevo;
+  linea.Descripcion:=NombreNuevo;
+  linea.CodigoEAN:=EanNuevo;
+
+  IvaAlta:=FLX_StrToFloatDefSeguro(linea.IVA, -1);
+  IvaPorDefecto:=(IvaAlta <= 0);
+  if IvaPorDefecto then
   begin
+    if not FLX_PedirIVAArticuloNuevo(CodigoNuevo, NombreNuevo, IvaAlta) then Exit;
+    linea.IVA:=FloatToStr(IvaAlta);
+  end;
+
+  PvpAlta:=999.00;       // PVP con IVA provisional para localizar artículos nuevos
+  RecargoAlta:=0;
+  CostoAlta:=FLX_StrToFloatDefSeguro(linea.Costo, 0);
+  if CostoAlta <= 0 then
+  begin
+    ShowMessage(
+      'No se dará de alta este artículo porque el coste importado es 0 o está vacío.' + LineEnding + LineEnding +
+      'Código: ' + CodigoNuevo + LineEnding +
+      'Descripción: ' + NombreNuevo + LineEnding + LineEnding +
+      'Se considera un obsequio del proveedor y no se gestiona desde el importador.'
+    );
+    Exit;
+  end;
+
+  // En los artículos recién creados dejamos también la línea con importes válidos,
+  // para que al pasarla al pedido no dependa de un refresco posterior de la ficha.
+  linea.Costo:=FloatToStr(CostoAlta);
+  linea.PVP:=FloatToStr(PvpAlta);
+
+  PvpSinIvaAlta:=0;
+  if (1 + (IvaAlta / 100)) <> 0 then
+    PvpSinIvaAlta:=PvpAlta / (1 + (IvaAlta / 100));
+
+  CostoConImpuestosAlta:=CostoAlta * (1 + ((IvaAlta + RecargoAlta) / 100));
+  MargenAlta:=0;
+  MargenSobrePvpAlta:=0;
+  if (CostoConImpuestosAlta <> 0) and (PvpAlta <> 0) then
+  begin
+    MargenAlta:=((PvpAlta - CostoConImpuestosAlta) * 100) / CostoConImpuestosAlta;
+    MargenSobrePvpAlta:=((CostoConImpuestosAlta / PvpAlta) - 1) * (-100);
+  end;
+
+  // Protección: si por cualquier motivo esta línea se mostró como nueva,
+  // pero ya existe por código/nombre en artitien, NO creamos otro.
+  // En ese caso preparamos la pantalla para añadir el EAN/código auxiliar al existente.
+  dbArti.Active:=False;
+  dbArti.Sql.Text:='SELECT * FROM artitien'+Tienda+
+                   ' WHERE A0="'+FLX_SQLTexto(CodigoNuevo)+'"'+
+                   ' OR TRIM(A1)="'+FLX_SQLTexto(NombreNuevo)+'" LIMIT 1';
+  dbArti.Active:=True;
+  if dbArti.RecordCount<>0 then
+  begin
+    EditBDCodigo.Text:=dbArti.FieldByName('A0').AsString;
+    EditBDNombre.Text:=dbArti.FieldByName('A1').AsString;
+    EditBDEan.Text:='';
+
+    linea.Codigo:=EditBDCodigo.Text;
+    linea.Descripcion:=EditBDNombre.Text;
+    linea.CoinDes:=1;
+    if Trim(CodigoNuevo)=Trim(EditBDCodigo.Text) then
+      linea.CoinCod:=1
+    else
+      linea.CoinCod:=3;
+    if FLX_TextoValidoEAN(EanNuevo) then
+      linea.CoinEan:=3;
+    ArrayDeLineasPedido[linea.Pos-1]:=linea;
+
+    BitBtnAltaEan.Enabled:=FLX_TextoValidoEAN(EanNuevo) or (Trim(CodigoNuevo) <> '');
+    BitBtnDAltaCod.Enabled:=False;
+
+    ShowMessage(
+      'El artículo ya existe en la ficha de artículos.' + LineEnding + LineEnding +
+      'Código BD: ' + EditBDCodigo.Text + LineEnding +
+      'Nombre BD: ' + EditBDNombre.Text + LineEnding + LineEnding +
+      'No se crea un artículo nuevo. Use el botón de añadir EAN/código auxiliar.'
+    );
+    Exit;
+  end;
+
+  // Segunda protección: puede que no exista como artículo principal, pero sí como
+  // auxiliar en eans. Esto explica el caso "me lo muestra como nuevo, pero al
+  // introducir algún campo dice que ya existe".
+  if FLX_TextoValidoEAN(EanNuevo) then
+  begin
+    dbArti.Active:=False;
+    dbArti.Sql.Text:='SELECT * FROM eans WHERE EAN0="'+FLX_SQLTexto(EanNuevo)+'" LIMIT 1';
+    dbArti.Active:=True;
+    if dbArti.RecordCount<>0 then
+    begin
+      EditBDCodigo.Text:=dbArti.FieldByName('EAN1').AsString;
+      EditBDNombre.Text:=dbArti.FieldByName('EAN2').AsString;
+      EditBDEan.Text:=dbArti.FieldByName('EAN0').AsString;
+
+      linea.Codigo:=EditBDCodigo.Text;
+      linea.CodigoEAN:=EditBDEan.Text;
+      linea.Descripcion:=EditBDNombre.Text;
+      linea.CoinEan:=2;
+      linea.CoinCod:=2;
+      linea.CoinDes:=2;
+      ArrayDeLineasPedido[linea.Pos-1]:=linea;
+
+      BitBtnAceptarDatosBD.Enabled:=True;
+      BitBtnAltaEan.Enabled:=False;
+      BitBtnDAltaCod.Enabled:=False;
+
+      ShowMessage(
+        'El EAN/código auxiliar ya existe en la base de datos.' + LineEnding + LineEnding +
+        'Código BD: ' + EditBDCodigo.Text + LineEnding +
+        'EAN/Aux.: ' + EditBDEan.Text + LineEnding +
+        'Nombre BD: ' + EditBDNombre.Text + LineEnding + LineEnding +
+        'No se crea artículo nuevo. Acepte los datos de BD para usar la ficha existente.'
+      );
+      Exit;
+    end;
+  end;
+
+  if Trim(CodigoNuevo)<>'' then
+  begin
+    dbArti.Active:=False;
+    dbArti.Sql.Text:='SELECT * FROM eans WHERE EAN0="'+FLX_SQLTexto(CodigoNuevo)+'" LIMIT 1';
+    dbArti.Active:=True;
+    if dbArti.RecordCount<>0 then
+    begin
+      EditBDCodigo.Text:=dbArti.FieldByName('EAN1').AsString;
+      EditBDNombre.Text:=dbArti.FieldByName('EAN2').AsString;
+      EditBDEan.Text:=dbArti.FieldByName('EAN0').AsString;
+
+      linea.Codigo:=EditBDCodigo.Text;
+      linea.CodigoEAN:=EditBDEan.Text;
+      linea.Descripcion:=EditBDNombre.Text;
+      linea.CoinCod:=2;
+      linea.CoinEan:=2;
+      linea.CoinDes:=2;
+      ArrayDeLineasPedido[linea.Pos-1]:=linea;
+
+      BitBtnAceptarDatosBD.Enabled:=True;
+      BitBtnAltaEan.Enabled:=False;
+      BitBtnDAltaCod.Enabled:=False;
+
+      ShowMessage(
+        'El código del proveedor ya existe como código auxiliar.' + LineEnding + LineEnding +
+        'Código BD: ' + EditBDCodigo.Text + LineEnding +
+        'Auxiliar: ' + EditBDEan.Text + LineEnding +
+        'Nombre BD: ' + EditBDNombre.Text + LineEnding + LineEnding +
+        'No se crea artículo nuevo. Acepte los datos de BD para usar la ficha existente.'
+      );
+      Exit;
+    end;
+  end;
+
+  if Trim(NombreNuevo)<>'' then
+  begin
+    dbArti.Active:=False;
+    dbArti.Sql.Text:='SELECT * FROM eans WHERE TRIM(EAN2)="'+FLX_SQLTexto(NombreNuevo)+'" LIMIT 1';
+    dbArti.Active:=True;
+    if dbArti.RecordCount<>0 then
+    begin
+      EditBDCodigo.Text:=dbArti.FieldByName('EAN1').AsString;
+      EditBDNombre.Text:=dbArti.FieldByName('EAN2').AsString;
+      EditBDEan.Text:=dbArti.FieldByName('EAN0').AsString;
+
+      linea.Codigo:=EditBDCodigo.Text;
+      linea.CodigoEAN:=EditBDEan.Text;
+      linea.Descripcion:=EditBDNombre.Text;
+      linea.CoinDes:=2;
+      if FLX_TextoValidoEAN(EanNuevo) then
+        linea.CoinEan:=3
+      else
+        linea.CoinEan:=2;
+      linea.CoinCod:=2;
+      ArrayDeLineasPedido[linea.Pos-1]:=linea;
+
+      BitBtnAltaEan.Enabled:=FLX_TextoValidoEAN(EanNuevo) or (Trim(CodigoNuevo) <> '');
+      BitBtnDAltaCod.Enabled:=False;
+
+      ShowMessage(
+        'La descripción ya existe en códigos auxiliares.' + LineEnding + LineEnding +
+        'Código BD: ' + EditBDCodigo.Text + LineEnding +
+        'Auxiliar: ' + EditBDEan.Text + LineEnding +
+        'Nombre BD: ' + EditBDNombre.Text + LineEnding + LineEnding +
+        'No se crea artículo nuevo. Puede aceptar la ficha BD o añadir el nuevo auxiliar si corresponde.'
+      );
+      Exit;
+    end;
+  end;
+
+  // MUY IMPORTANTE: en las comprobaciones anteriores hemos reutilizado dbArti
+  // tanto contra artitien como contra eans. Si la última consulta fue contra eans,
+  // dbArti no tiene campos A0/A1/A2... y al hacer Append daría:
+  // "A0 field not found".
+  // Por eso reabrimos explícitamente dbArti contra artitien antes del Append.
+  dbArti.Active:=False;
+  dbArti.SQL.Text:='SELECT * FROM artitien'+Tienda+
+                   ' WHERE A0="'+FLX_SQLTexto(CodigoNuevo)+'" LIMIT 1';
+  dbArti.Active:=True;
+
+  if dbArti.RecordCount<>0 then
+  begin
+    ShowMessage(
+      'No se puede crear el artículo porque ahora ya aparece en la ficha de artículos.' + LineEnding +
+      'Código: ' + CodigoNuevo + LineEnding +
+      'Descripción: ' + NombreNuevo + LineEnding + LineEnding +
+      'Se cancela el alta para evitar duplicados.'
+    );
+    Exit;
+  end;
+
   dbArti.Append;
-  dbArti.FieldByName('A0').AsString:=EditPenCodigo.Text;//-------------- Código
-  dbArti.FieldByName('A1').AsString:=EditPenNombre.Text;//-------------- Nombre
+  dbArti.FieldByName('A0').AsString:=CodigoNuevo;//-------------- Código
+  dbArti.FieldByName('A1').AsString:=NombreNuevo;//-------------- Nombre
 
-// ESTOS DATOS NO LOS SÉ TRATAR
-
-  dbArti.FieldByName('A21').AsString:='0';//------------ Precio       SEGURO QUE ESTA MAL
-  dbArti.FieldByName('A3').AsString:=linea.IVA;//-------------- Iva
-  //dbArti.FieldByName('A36').AsString:='0';//-------------- Recargo
-  dbArti.FieldByName('A2').AsString:=linea.PVP;//------------- P.V.P.
-  //dbArti.FieldByName('A14').AsString:='';//------------ Familia
-  //dbArti.FieldByName('A24').AsString:='0';//------- Costo
-  //dbArti.FieldByName('A25').AsString:='0';//------- Costo Medio
-  //dbArti.FieldByName('A26').AsString:=Edit11.Text;//------- Margen
-  //dbArti.FieldByName('A37').AsString:=Edit37.Text;//------- Margen sobre Venta
-  //dbArti.FieldByName('A28').AsString:=Edit19.Text;//------- Precio tarifa
-  //dbArti.FieldByName('A29').AsString:=Edit22.Text;//------- Descuento en importe
-  //dbArti.FieldByName('A30').AsString:=Edit27.Text;//------- % Descuento 1
-  //dbArti.FieldByName('A31').AsString:=Edit29.Text;//------- % Descuento 2
-  //dbArti.FieldByName('A32').AsString:=dbProve.FieldByName('P0').AsString;//--- Ultimo proveedor
+  // Alta mínima coherente: PVP provisional 999,00 con IVA, precio sin IVA,
+  // coste del fichero, coste medio y márgenes calculados igual que en pedidos.
+  dbArti.FieldByName('A21').AsFloat:=PvpSinIvaAlta;//------------ Precio venta sin IVA
+  dbArti.FieldByName('A3').AsFloat:=IvaAlta;//------------------- IVA
+  dbArti.FieldByName('A36').AsFloat:=RecargoAlta;//-------------- Recargo
+  dbArti.FieldByName('A2').AsFloat:=PvpAlta;//------------------- P.V.P. con IVA provisional
+  dbArti.FieldByName('A14').AsString:='0';//--------------------- Familia provisional
+  dbArti.FieldByName('A24').AsFloat:=CostoAlta;//---------------- Costo sin IVA
+  dbArti.FieldByName('A25').AsFloat:=CostoAlta;//---------------- Costo medio
+  dbArti.FieldByName('A26').AsFloat:=MargenAlta;//--------------- Margen normal
+  dbArti.FieldByName('A37').AsFloat:=MargenSobrePvpAlta;//------- Margen sobre PVP
+  dbArti.FieldByName('A28').AsFloat:=CostoAlta;//---------------- Precio tarifa compra provisional
+  dbArti.FieldByName('A29').AsFloat:=0;//------------------------ Descuento en importe
+  dbArti.FieldByName('A30').AsFloat:=0;//------------------------ % Descuento 1
+  dbArti.FieldByName('A31').AsFloat:=0;//------------------------ % Descuento 2
   dbArti.Post;
 
   //--------- Estadistica
   ANO:=FormatDateTime('YYYY',Date);
   for conta:=1 to 12 do
     begin
-    //WriteLn('INSERT IGNORE INTO estaarti'+Tienda+' (TA0,TA1,TA2,TA3,TA4,TA5,TA6,TA7) '+'VALUES ("'+EditPenCodigo.Text+'",'+ANO+','+IntToStr(Conta)+',0,0,0,0,0)');
+    //WriteLn('INSERT IGNORE INTO estaarti'+Tienda+' (TA0,TA1,TA2,TA3,TA4,TA5,TA6,TA7) '+'VALUES ("'+CodigoNuevo+'",'+ANO+','+IntToStr(Conta)+',0,0,0,0,0)');
      dbTrabajo.SQL.Text:='INSERT IGNORE INTO estaarti'+Tienda+' (TA0,TA1,TA2,TA3,TA4,TA5,TA6,TA7) '+
-                         'VALUES ("'+EditPenCodigo.Text+'",'+ANO+','+IntToStr(Conta)+',0,0,0,0,0)';
+                         'VALUES ("'+CodigoNuevo+'",'+ANO+','+IntToStr(Conta)+',0,0,0,0,0)';
      dbTrabajo.ExecSQL;
   end;
 
+
+  // Si el fichero traía EAN, al crear el artículo nuevo lo insertamos también
+  // como código auxiliar en la tabla EANS, asociado al código recién creado.
+  if (EanNuevo<>'') and (EanNuevo<>'0000000000000') then
+  begin
+    EditBDCodigo.Text:=CodigoNuevo;
+    EditBDNombre.Text:=NombreNuevo;
+    EditBDEan.Text:='';
+    NuevoEan(EanNuevo, linea);
   end;
 
   BuscarCoincidencias(Linea);
@@ -1614,6 +3428,8 @@ begin
 
   DistribuirLineasPedido(ArrayDeLineasPedido);
   BitBtnAceptarDatosBD.Enabled:=False;
+  BitBtnAltaEan.Enabled:=False;
+  BitBtnDAltaCod.Enabled:=False;
   PanelEdicion.Visible:=False;
 end;
 
@@ -1791,6 +3607,12 @@ end;
 
 procedure TfImportar.btnGenerarClick(Sender: TObject);
 begin
+  if FLX_EsFicheroExcel(OpenDialog1.FileName) then
+  begin
+    Formatear();
+    if Length(ArrayDeLineasPedido)=0 then Exit;
+  end;
+
   tsProcesados.Enabled:=true;
   tsPendientes.Enabled:=true;
   pc.ActivePage:=tsPendientes;

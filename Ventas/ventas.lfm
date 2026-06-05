@@ -1,19 +1,18 @@
 object FVentas: TFVentas
   Left = 0
-  Height = 990
-  Top = 32
+  Height = 1022
+  Top = 0
   Width = 1920
   ActiveControl = pnUsuario1
   Caption = 'FacturLinEx Ventas TPV'
-  ClientHeight = 990
+  ClientHeight = 1022
   ClientWidth = 1920
-  DesignTimePPI = 83
-  Font.Height = -11
+  Font.Height = -13
   Font.Name = 'Sans'
   KeyPreview = True
   Position = poDesktopCenter
   ShowHint = True
-  LCLVersion = '4.4.0.0'
+  LCLVersion = '4.2.0.0'
   WindowState = wsMaximized
   OnClose = FormClose
   OnCreate = FormCreate
@@ -26,9 +25,9 @@ object FVentas: TFVentas
     AnchorSideRight.Control = botones
     AnchorSideBottom.Control = Panel3
     Left = 0
-    Height = 713
-    Top = 140
-    Width = 1697
+    Height = 721
+    Top = 161
+    Width = 1663
     Anchors = [akTop, akLeft, akRight, akBottom]
     BorderSpacing.Right = 3
     Color = clWindow
@@ -37,95 +36,95 @@ object FVentas: TFVentas
         Alignment = taCenter
         ReadOnly = True
         Title.Caption = 'Nº'
-        Width = 28
+        Width = 32
         DisplayFormat = '#0'
       end    
       item
-        MinSize = 9
-        MaxSize = 173
+        MinSize = 10
+        MaxSize = 200
         Title.Caption = 'CODIGO'
-        Width = 111
+        Width = 128
         FieldName = 'V3'
       end    
       item
-        MinSize = 9
-        MaxSize = 173
+        MinSize = 10
+        MaxSize = 200
         Title.Caption = 'DESCRIPCION'
-        Width = 336
+        Width = 389
         FieldName = 'V4'
       end    
       item
         Alignment = taRightJustify
-        MinSize = 9
-        MaxSize = 173
+        MinSize = 10
+        MaxSize = 200
         Title.Alignment = taRightJustify
         Title.Caption = 'UNID.'
-        Width = 55
+        Width = 64
         FieldName = 'V5'
         DisplayFormat = '0.000'
       end    
       item
         Alignment = taRightJustify
-        MinSize = 9
-        MaxSize = 173
+        MinSize = 10
+        MaxSize = 200
         Title.Alignment = taRightJustify
         Title.Caption = 'P.V.P.'
-        Width = 71
+        Width = 82
         FieldName = 'V6'
         DisplayFormat = '0.00'
       end    
       item
         Alignment = taRightJustify
-        MinSize = 9
-        MaxSize = 173
+        MinSize = 10
+        MaxSize = 200
         Title.Alignment = taRightJustify
         Title.Caption = 'PRECIO'
-        Width = 71
+        Width = 82
         FieldName = 'V7'
         DisplayFormat = '0.000'
       end    
       item
         Alignment = taRightJustify
-        MinSize = 9
-        MaxSize = 173
+        MinSize = 10
+        MaxSize = 200
         Title.Alignment = taRightJustify
         Title.Caption = '%DTO'
-        Width = 39
+        Width = 45
         FieldName = 'V8'
         DisplayFormat = '0.00'
       end    
       item
         Alignment = taRightJustify
-        MinSize = 9
-        MaxSize = 173
+        MinSize = 10
+        MaxSize = 200
         Title.Alignment = taRightJustify
         Title.Caption = 'IMPORTE'
-        Width = 71
+        Width = 82
         FieldName = 'V9'
         DisplayFormat = '0.000'
       end    
       item
         Alignment = taRightJustify
-        MinSize = 9
-        MaxSize = 173
+        MinSize = 10
+        MaxSize = 200
         Title.Alignment = taRightJustify
         Title.Caption = '%IVA'
-        Width = 32
+        Width = 37
         FieldName = 'V10'
       end    
       item
         Alignment = taRightJustify
-        MinSize = 9
-        MaxSize = 173
+        MinSize = 10
+        MaxSize = 200
         Title.Alignment = taRightJustify
         Title.Caption = 'TOTAL'
-        Width = 71
+        Width = 82
         FieldName = 'V11'
         DisplayFormat = '0.00'
       end>
     DataSource = Datasource1
     Font.Color = clBlack
-    Font.Height = -11
+    Font.Height = -13
     Font.Name = 'Sans'
     Options = [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
     ParentFont = False
@@ -135,14 +134,14 @@ object FVentas: TFVentas
     OnDblClick = DBGrid1DblClick
   end
   object Panel8: TPanel
-    Left = 645
-    Height = 271
-    Top = 336
-    Width = 403
-    ClientHeight = 271
-    ClientWidth = 403
+    Left = 746
+    Height = 313
+    Top = 389
+    Width = 466
+    ClientHeight = 313
+    ClientWidth = 466
     Color = clGray
-    Font.Height = -11
+    Font.Height = -13
     Font.Name = 'Sans'
     ParentBackground = False
     ParentColor = False
@@ -150,46 +149,46 @@ object FVentas: TFVentas
     TabOrder = 5
     Visible = False
     object Bevel2: TBevel
-      Left = 11
-      Height = 102
-      Top = 124
-      Width = 386
+      Left = 13
+      Height = 118
+      Top = 143
+      Width = 446
       Style = bsRaised
     end
     object Label33: TLabel
-      Left = 12
-      Height = 19
-      Top = 133
-      Width = 83
+      Left = 14
+      Height = 22
+      Top = 154
+      Width = 96
       AutoSize = False
       Caption = 'N. Factura'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
       ParentFont = False
     end
     object Label34: TLabel
-      Left = 189
-      Height = 19
-      Top = 133
-      Width = 99
+      Left = 219
+      Height = 22
+      Top = 154
+      Width = 115
       AutoSize = False
       Caption = 'Fecha Factura'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
       ParentFont = False
     end
     object Label35: TLabel
-      Left = 14
-      Height = 19
-      Top = 159
-      Width = 101
+      Left = 16
+      Height = 22
+      Top = 184
+      Width = 117
       AutoSize = False
       Caption = 'Observaciones'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
@@ -197,26 +196,26 @@ object FVentas: TFVentas
     end
     object Label36: TLabel
       Left = 1
-      Height = 19
+      Height = 22
       Top = 1
-      Width = 401
+      Width = 464
       Align = alTop
       Alignment = taCenter
       AutoSize = False
       Caption = 'SERIES DE FACTURACION'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
       ParentFont = False
     end
     object BitBtn20: TBitBtn
-      Left = 303
-      Height = 29
-      Top = 237
-      Width = 88
+      Left = 350
+      Height = 34
+      Top = 274
+      Width = 102
       Caption = 'Cancelar'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -288,24 +287,24 @@ object FVentas: TFVentas
       OnClick = BitBtn20Click
     end
     object Edit21: TEdit
-      Left = 105
-      Height = 24
-      Top = 133
-      Width = 76
+      Left = 121
+      Height = 28
+      Top = 154
+      Width = 88
       CharCase = ecUppercase
       Enabled = False
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentFont = False
       TabOrder = 1
     end
     object Edit22: TEdit
-      Left = 290
-      Height = 24
-      Top = 133
-      Width = 90
+      Left = 335
+      Height = 28
+      Top = 154
+      Width = 104
       CharCase = ecUppercase
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentFont = False
       TabOrder = 2
@@ -315,11 +314,11 @@ object FVentas: TFVentas
       AnchorSideRight.Control = Panel8
       AnchorSideRight.Side = asrBottom
       Left = 1
-      Height = 94
-      Top = 18
-      Width = 401
+      Height = 109
+      Top = 21
+      Width = 464
       Anchors = [akTop, akLeft, akRight]
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ItemHeight = 0
       ParentFont = False
@@ -329,36 +328,36 @@ object FVentas: TFVentas
       OnClick = ListBox1Click
     end
     object Memo1: TMemo
-      Left = 14
-      Height = 50
-      Top = 178
-      Width = 371
-      Font.Height = -11
+      Left = 16
+      Height = 58
+      Top = 206
+      Width = 429
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentFont = False
       TabOrder = 3
     end
     object Panel14: TPanel
-      Left = 188
-      Height = 29
-      Top = 237
-      Width = 88
+      Left = 217
+      Height = 34
+      Top = 274
+      Width = 102
       AutoSize = True
       BevelOuter = bvNone
-      ClientHeight = 29
-      ClientWidth = 88
-      Font.Height = -11
+      ClientHeight = 34
+      ClientWidth = 102
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentBackground = False
       ParentFont = False
       TabOrder = 5
       object BitBtn23: TBitBtn
         Left = 0
-        Height = 29
+        Height = 34
         Top = 0
-        Width = 88
+        Width = 102
         Caption = 'Aceptar'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -433,26 +432,26 @@ object FVentas: TFVentas
       end
     end
     object Panel15: TPanel
-      Left = 188
-      Height = 29
-      Top = 237
-      Width = 88
+      Left = 217
+      Height = 34
+      Top = 274
+      Width = 102
       AutoSize = True
       BevelOuter = bvNone
-      ClientHeight = 29
-      ClientWidth = 88
-      Font.Height = -11
+      ClientHeight = 34
+      ClientWidth = 102
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentBackground = False
       ParentFont = False
       TabOrder = 6
       object BitBtn19: TBitBtn
         Left = 0
-        Height = 29
+        Height = 34
         Top = 0
-        Width = 88
+        Width = 102
         Caption = 'Aceptar'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -528,14 +527,14 @@ object FVentas: TFVentas
     end
   end
   object Panel11: TPanel
-    Left = 611
-    Height = 227
-    Top = 94
-    Width = 445
-    ClientHeight = 227
-    ClientWidth = 445
+    Left = 707
+    Height = 263
+    Top = 109
+    Width = 515
+    ClientHeight = 263
+    ClientWidth = 515
     Color = clMoneyGreen
-    Font.Height = -11
+    Font.Height = -13
     Font.Name = 'Sans'
     ParentBackground = False
     ParentColor = False
@@ -543,184 +542,184 @@ object FVentas: TFVentas
     TabOrder = 11
     Visible = False
     object Label62: TLabel
-      Left = 4
-      Height = 16
-      Top = 71
-      Width = 60
+      Left = 5
+      Height = 18
+      Top = 82
+      Width = 68
       Caption = 'DIRECCION'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label69: TLabel
-      Left = 4
-      Height = 16
-      Top = 97
-      Width = 62
+      Left = 5
+      Height = 18
+      Top = 112
+      Width = 70
       Caption = 'LOCALIDAD'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label70: TLabel
-      Left = 4
-      Height = 16
-      Top = 126
-      Width = 50
+      Left = 5
+      Height = 18
+      Top = 146
+      Width = 57
       Caption = 'C.POSTAL'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label71: TLabel
-      Left = 137
-      Height = 16
-      Top = 126
-      Width = 59
+      Left = 158
+      Height = 18
+      Top = 146
+      Width = 68
       Caption = 'PROVINCIA'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label72: TLabel
-      Left = 4
-      Height = 16
-      Top = 156
-      Width = 29
+      Left = 5
+      Height = 18
+      Top = 180
+      Width = 32
       Caption = 'N.I.F.:'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label73: TLabel
-      Left = 4
-      Height = 16
-      Top = 39
-      Width = 47
+      Left = 5
+      Height = 18
+      Top = 45
+      Width = 55
       Caption = 'NOMBRE'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label74: TLabel
-      Left = 168
-      Height = 16
-      Top = 156
-      Width = 56
+      Left = 194
+      Height = 18
+      Top = 180
+      Width = 65
       Caption = 'TELEFONO'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label75: TLabel
-      Left = 163
-      Height = 16
-      Top = 7
-      Width = 139
+      Left = 189
+      Height = 18
+      Top = 8
+      Width = 163
       Caption = 'CREAR UN NUEVO CLIENTE'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Edit29: TEdit
-      Left = 71
-      Height = 24
-      Top = 35
-      Width = 367
+      Left = 82
+      Height = 28
+      Top = 40
+      Width = 424
       CharCase = ecUppercase
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       MaxLength = 50
       ParentFont = False
       TabOrder = 0
     end
     object Edit31: TEdit
-      Left = 71
-      Height = 24
-      Top = 67
-      Width = 367
+      Left = 82
+      Height = 28
+      Top = 77
+      Width = 424
       CharCase = ecUppercase
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       MaxLength = 50
       ParentFont = False
       TabOrder = 1
     end
     object Edit32: TEdit
-      Left = 71
-      Height = 24
-      Top = 94
-      Width = 367
+      Left = 82
+      Height = 28
+      Top = 109
+      Width = 424
       CharCase = ecUppercase
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       MaxLength = 50
       ParentFont = False
       TabOrder = 2
     end
     object Edit37: TEdit
-      Left = 71
-      Height = 24
-      Top = 122
-      Width = 64
+      Left = 82
+      Height = 28
+      Top = 141
+      Width = 74
       CharCase = ecUppercase
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       MaxLength = 6
       ParentFont = False
       TabOrder = 3
     end
     object Edit38: TEdit
-      Left = 199
-      Height = 24
-      Top = 122
-      Width = 237
+      Left = 230
+      Height = 28
+      Top = 141
+      Width = 274
       CharCase = ecUppercase
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       MaxLength = 50
       ParentFont = False
       TabOrder = 4
     end
     object Edit39: TEdit
-      Left = 71
-      Height = 24
-      Top = 154
-      Width = 88
+      Left = 82
+      Height = 28
+      Top = 178
+      Width = 102
       CharCase = ecUppercase
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       MaxLength = 50
       ParentFont = False
       TabOrder = 5
     end
     object Edit40: TEdit
-      Left = 226
-      Height = 24
-      Top = 154
-      Width = 134
+      Left = 261
+      Height = 28
+      Top = 178
+      Width = 155
       CharCase = ecUppercase
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       MaxLength = 50
       ParentFont = False
       TabOrder = 6
     end
     object BitBtn33: TBitBtn
-      Left = 7
-      Height = 29
-      Top = 191
-      Width = 88
+      Left = 8
+      Height = 34
+      Top = 221
+      Width = 102
       Caption = 'Aceptar'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -792,12 +791,12 @@ object FVentas: TFVentas
       OnClick = BitBtn33Click
     end
     object BitBtn34: TBitBtn
-      Left = 346
-      Height = 29
-      Top = 191
-      Width = 88
+      Left = 400
+      Height = 34
+      Top = 221
+      Width = 102
       Caption = 'Cancelar'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Glyph.Data = {
         46050000424D4605000000000000360000002800000012000000120000000100
@@ -849,12 +848,12 @@ object FVentas: TFVentas
       OnClick = BitBtn34Click
     end
     object BitBtn39: TBitBtn
-      Left = 178
-      Height = 29
-      Top = 191
-      Width = 88
+      Left = 206
+      Height = 34
+      Top = 221
+      Width = 102
       Caption = 'LOPD'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Glyph.Data = {
         36240000424D3624000000000000360000002800000030000000300000000100
@@ -1154,14 +1153,14 @@ object FVentas: TFVentas
     end
   end
   object Panel9: TPanel
-    Left = 18
-    Height = 455
-    Top = 71
-    Width = 616
-    ClientHeight = 455
-    ClientWidth = 616
+    Left = 21
+    Height = 526
+    Top = 82
+    Width = 712
+    ClientHeight = 526
+    ClientWidth = 712
     Color = clSilver
-    Font.Height = -11
+    Font.Height = -13
     Font.Name = 'Sans'
     ParentBackground = False
     ParentColor = False
@@ -1169,203 +1168,203 @@ object FVentas: TFVentas
     TabOrder = 9
     Visible = False
     object Label45: TLabel
-      Left = 178
-      Height = 16
+      Left = 206
+      Height = 19
       Top = 3
-      Width = 261
+      Width = 302
       Alignment = taCenter
       AutoSize = False
       Caption = 'REALIZAR PEDIDO DE LA VENTA ACTUAL'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
       ParentFont = False
     end
     object PageControl1: TPageControl
-      Left = 4
-      Height = 386
-      Top = 29
-      Width = 603
+      Left = 5
+      Height = 446
+      Top = 34
+      Width = 697
       ActivePage = TabSheet1
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentFont = False
       TabIndex = 0
       TabOrder = 0
       object TabSheet1: TTabSheet
         Caption = '  CREAR PEDIDOS  '
-        ClientHeight = 356
-        ClientWidth = 599
-        Font.Height = -11
+        ClientHeight = 410
+        ClientWidth = 691
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentFont = False
         OnShow = TabSheet1Show
         object Bevel3: TBevel
           Left = 0
-          Height = 123
-          Top = 9
-          Width = 597
+          Height = 142
+          Top = 10
+          Width = 691
           Style = bsRaised
         end
         object Bevel4: TBevel
           Left = 0
-          Height = 136
-          Top = 144
-          Width = 593
+          Height = 157
+          Top = 167
+          Width = 686
           Style = bsRaised
         end
         object Label46: TLabel
-          Left = 450
-          Height = 19
-          Top = 33
-          Width = 67
+          Left = 520
+          Height = 22
+          Top = 38
+          Width = 77
           AutoSize = False
           Caption = 'Telefono'
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           Layout = tlCenter
           ParentColor = False
           ParentFont = False
         end
         object Label47: TLabel
-          Left = 16
-          Height = 19
-          Top = 92
-          Width = 46
+          Left = 19
+          Height = 22
+          Top = 106
+          Width = 53
           AutoSize = False
           Caption = 'TOTAL'
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           Layout = tlCenter
           ParentColor = False
           ParentFont = False
         end
         object Label48: TLabel
-          Left = 178
-          Height = 19
-          Top = 92
-          Width = 118
+          Left = 206
+          Height = 22
+          Top = 106
+          Width = 136
           AutoSize = False
           Caption = 'ENTREGA A CUENTA'
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           Layout = tlCenter
           ParentColor = False
           ParentFont = False
         end
         object Label49: TLabel
-          Left = 427
-          Height = 19
-          Top = 92
-          Width = 46
+          Left = 494
+          Height = 22
+          Top = 106
+          Width = 53
           AutoSize = False
           Caption = 'RESTO'
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           Layout = tlCenter
           ParentColor = False
           ParentFont = False
         end
         object Label50: TLabel
-          Left = 154
-          Height = 16
-          Top = 144
-          Width = 261
+          Left = 178
+          Height = 19
+          Top = 167
+          Width = 302
           Alignment = taCenter
           AutoSize = False
           Caption = 'PEDIDOS ACTUALES'
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           Layout = tlCenter
           ParentColor = False
           ParentFont = False
         end
         object Label52: TLabel
-          Left = 5
-          Height = 19
-          Top = 328
-          Width = 90
+          Left = 6
+          Height = 22
+          Top = 379
+          Width = 104
           AutoSize = False
           Caption = 'PROVEEDOR'
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           Layout = tlCenter
           ParentColor = False
           ParentFont = False
         end
         object Label51: TLabel
-          Left = 5
-          Height = 19
-          Top = 289
-          Width = 90
+          Left = 6
+          Height = 22
+          Top = 334
+          Width = 104
           AutoSize = False
           Caption = 'FECHA PEDIDO'
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           Layout = tlCenter
           ParentColor = False
           ParentFont = False
         end
         object Label54: TLabel
-          Left = 227
-          Height = 19
-          Top = 289
-          Width = 35
+          Left = 263
+          Height = 22
+          Top = 334
+          Width = 40
           AutoSize = False
           Caption = 'SERIE'
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           Layout = tlCenter
           ParentColor = False
           ParentFont = False
         end
         object Label53: TLabel
-          Left = 434
-          Height = 19
-          Top = 289
-          Width = 60
+          Left = 502
+          Height = 22
+          Top = 334
+          Width = 69
           AutoSize = False
           Caption = 'N. PEDIDO'
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           Layout = tlCenter
           ParentColor = False
           ParentFont = False
         end
         object Edit19: TEdit
-          Left = 64
-          Height = 24
-          Top = 92
-          Width = 86
+          Left = 74
+          Height = 28
+          Top = 106
+          Width = 99
           CharCase = ecUppercase
           Enabled = False
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           MaxLength = 50
           ParentFont = False
           TabOrder = 1
         end
         object Edit18: TEdit
-          Left = 450
-          Height = 24
-          Top = 54
-          Width = 127
+          Left = 520
+          Height = 28
+          Top = 62
+          Width = 147
           CharCase = ecUppercase
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           MaxLength = 50
           ParentFont = False
           TabOrder = 3
         end
         object CheckBox2: TCheckBox
-          Left = 16
-          Height = 21
-          Top = 29
-          Width = 149
+          Left = 19
+          Height = 24
+          Top = 34
+          Width = 178
           Caption = 'Pedido para el cliente.:'
           Checked = True
-          Font.Height = -12
+          Font.Height = -14
           Font.Name = 'Sans'
           ParentFont = False
           State = cbChecked
@@ -1374,24 +1373,24 @@ object FVentas: TFVentas
           OnChange = CheckBox2Change
         end
         object Edit20: TEdit
-          Left = 302
-          Height = 24
-          Top = 92
-          Width = 86
+          Left = 349
+          Height = 28
+          Top = 106
+          Width = 99
           CharCase = ecUppercase
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           MaxLength = 50
           ParentFont = False
           TabOrder = 4
         end
         object Edit23: TEdit
-          Left = 489
-          Height = 24
-          Top = 92
-          Width = 86
+          Left = 566
+          Height = 28
+          Top = 106
+          Width = 99
           CharCase = ecUppercase
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           MaxLength = 50
           ParentFont = False
@@ -1399,71 +1398,71 @@ object FVentas: TFVentas
         end
         object DBGrid3: TDBGrid
           Left = 0
-          Height = 108
-          Top = 166
-          Width = 590
+          Height = 125
+          Top = 192
+          Width = 682
           Color = clWindow
           Columns = <          
             item
-              MinSize = 9
-              MaxSize = 173
+              MinSize = 10
+              MaxSize = 200
               Title.Alignment = taCenter
               Title.Caption = 'FECHA'
-              Width = 71
+              Width = 82
               FieldName = 'PC1'
             end          
             item
-              MinSize = 9
-              MaxSize = 173
+              MinSize = 10
+              MaxSize = 200
               Title.Caption = 'SER.'
-              Width = 30
+              Width = 35
               FieldName = 'PC3'
             end          
             item
               Alignment = taRightJustify
-              MinSize = 9
-              MaxSize = 173
+              MinSize = 10
+              MaxSize = 200
               Title.Alignment = taRightJustify
               Title.Caption = 'N.PED.'
-              Width = 53
+              Width = 61
               FieldName = 'PC4'
             end          
             item
               Alignment = taRightJustify
-              MinSize = 9
-              MaxSize = 173
+              MinSize = 10
+              MaxSize = 200
               Title.Alignment = taRightJustify
               Title.Caption = 'CGO.'
-              Width = 61
+              Width = 71
               FieldName = 'PC2'
             end          
             item
-              MinSize = 9
-              MaxSize = 173
+              MinSize = 10
+              MaxSize = 200
               Title.Caption = 'PROVEEDOR'
-              Width = 205
+              Width = 237
               FieldName = 'PC13'
             end          
             item
               Alignment = taRightJustify
-              MinSize = 9
-              MaxSize = 173
+              MinSize = 10
+              MaxSize = 200
               Title.Alignment = taRightJustify
               Title.Caption = 'N. LIN.'
-              Width = 55
+              Width = 64
               FieldName = 'PC5'
             end          
             item
               Alignment = taRightJustify
-              MinSize = 9
-              MaxSize = 173
+              MinSize = 10
+              MaxSize = 200
               Title.Alignment = taRightJustify
               Title.Caption = 'IMPORTE'
-              Width = 79
+              Width = 91
               FieldName = 'PC8'
             end>
           DataSource = Datasource3
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           Options = [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgDisplayMemoText]
           ParentFont = False
@@ -1472,24 +1471,24 @@ object FVentas: TFVentas
           OnDblClick = DBGrid3DblClick
         end
         object Edit17: TEdit
-          Left = 16
-          Height = 24
-          Top = 54
-          Width = 427
-          Font.Height = -11
+          Left = 19
+          Height = 28
+          Top = 62
+          Width = 494
+          Font.Height = -13
           Font.Name = 'Sans'
           ParentFont = False
           TabOrder = 8
         end
         object DateEdit1: TDateEdit
-          Left = 102
-          Height = 25
-          Top = 289
-          Width = 83
+          Left = 118
+          Height = 30
+          Top = 334
+          Width = 96
           CalendarDisplaySettings = [dsShowHeadings, dsShowDayNames]
           DefaultToday = True
           DateOrder = doNone
-          ButtonWidth = 19
+          ButtonWidth = 22
           Glyph.Data = {
             36040000424D3604000000000000360000002800000010000000100000000100
             2000000000000004000064000000640000000000000000000000000008000600
@@ -1527,19 +1526,19 @@ object FVentas: TFVentas
             00000000000000000000000000000000000000000000FFFFFF00
           }
           NumGlyphs = 1
-          Font.Height = -12
+          Font.Height = -14
           Font.Name = 'Sans'
           MaxLength = 0
           ParentFont = False
           TabOrder = 9
         end
         object Edit24: TEdit
-          Left = 102
-          Height = 24
-          Top = 328
-          Width = 71
+          Left = 118
+          Height = 28
+          Top = 379
+          Width = 82
           CharCase = ecUppercase
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           MaxLength = 50
           ParentFont = False
@@ -1548,13 +1547,13 @@ object FVentas: TFVentas
           OnExit = Edit24Exit
         end
         object BitBtn29: TBitBtn
-          Left = 171
-          Height = 19
+          Left = 198
+          Height = 22
           Hint = 'Teclee las iniciales del nombre a buscar y pulse en este boton. % delante para buscar cadenas.'
-          Top = 328
-          Width = 18
+          Top = 379
+          Width = 21
           Caption = '...'
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           Margin = 0
           ParentFont = False
@@ -1564,12 +1563,12 @@ object FVentas: TFVentas
           OnClick = BitBtn29Click
         end
         object Combo5: TComboBox
-          Left = 268
-          Height = 19
-          Top = 289
-          Width = 152
+          Left = 310
+          Height = 22
+          Top = 334
+          Width = 176
           AutoSize = False
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           ItemHeight = 0
           ParentFont = False
@@ -1578,25 +1577,25 @@ object FVentas: TFVentas
           OnChange = Combo5Change
         end
         object Edit26: TEdit
-          Left = 501
-          Height = 24
-          Top = 289
-          Width = 86
+          Left = 579
+          Height = 28
+          Top = 334
+          Width = 99
           CharCase = ecUppercase
           Enabled = False
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           MaxLength = 50
           ParentFont = False
           TabOrder = 11
         end
         object Edit25: TEdit
-          Left = 195
-          Height = 24
-          Top = 328
-          Width = 396
+          Left = 226
+          Height = 28
+          Top = 379
+          Width = 458
           CharCase = ecUppercase
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           MaxLength = 50
           ParentFont = False
@@ -1604,11 +1603,11 @@ object FVentas: TFVentas
           TabOrder = 13
         end
         object Combo4: TComboBox
-          Left = 102
-          Height = 26
-          Top = 320
-          Width = 487
-          Font.Height = -11
+          Left = 118
+          Height = 30
+          Top = 370
+          Width = 563
+          Font.Height = -13
           Font.Name = 'Sans'
           ItemHeight = 0
           ParentFont = False
@@ -1621,102 +1620,102 @@ object FVentas: TFVentas
       end
       object TabSheet2: TTabSheet
         Caption = '  RECUPERAR PEDIDOS  '
-        ClientHeight = 356
-        ClientWidth = 599
-        Font.Height = -11
+        ClientHeight = 410
+        ClientWidth = 691
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentFont = False
         OnShow = TabSheet2Show
         object Label1: TLabel
-          Left = 171
-          Height = 16
-          Top = 71
-          Width = 38
+          Left = 198
+          Height = 18
+          Top = 82
+          Width = 43
           Caption = 'Código'
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           ParentColor = False
           ParentFont = False
           Visible = False
         end
         object Label57: TLabel
-          Left = 237
-          Height = 16
-          Top = 71
-          Width = 42
+          Left = 274
+          Height = 18
+          Top = 82
+          Width = 50
           Caption = 'Nombre'
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           ParentColor = False
           ParentFont = False
           Visible = False
         end
         object DBGrid4: TDBGrid
-          Left = 5
-          Height = 237
-          Top = 112
-          Width = 590
+          Left = 6
+          Height = 274
+          Top = 130
+          Width = 682
           Color = clWindow
           Columns = <          
             item
-              MinSize = 9
-              MaxSize = 173
+              MinSize = 10
+              MaxSize = 200
               Title.Alignment = taCenter
               Title.Caption = 'FECHA'
-              Width = 71
+              Width = 82
               FieldName = 'HPC1'
             end          
             item
-              MinSize = 9
-              MaxSize = 173
+              MinSize = 10
+              MaxSize = 200
               Title.Caption = 'SER.'
-              Width = 30
+              Width = 35
               FieldName = 'HPC3'
             end          
             item
               Alignment = taRightJustify
-              MinSize = 9
-              MaxSize = 173
+              MinSize = 10
+              MaxSize = 200
               Title.Alignment = taRightJustify
               Title.Caption = 'N.PED.'
-              Width = 53
+              Width = 61
               FieldName = 'HPC4'
             end          
             item
-              MinSize = 9
-              MaxSize = 173
+              MinSize = 10
+              MaxSize = 200
               Title.Caption = 'CLIENTE'
-              Width = 205
+              Width = 237
               FieldName = 'HPC15'
             end          
             item
               Alignment = taRightJustify
-              MinSize = 9
-              MaxSize = 173
+              MinSize = 10
+              MaxSize = 200
               Title.Alignment = taRightJustify
               Title.Caption = 'N. LIN.'
-              Width = 43
+              Width = 50
               FieldName = 'HPC5'
             end          
             item
               Alignment = taRightJustify
-              MinSize = 9
-              MaxSize = 173
+              MinSize = 10
+              MaxSize = 200
               Title.Alignment = taRightJustify
               Title.Caption = 'IMPORTE'
-              Width = 79
+              Width = 91
               FieldName = 'HPC8'
               DisplayFormat = '###,###,#00.0'
             end          
             item
-              MinSize = 9
-              MaxSize = 173
+              MinSize = 10
+              MaxSize = 200
               Title.Caption = 'PROVEEDOR'
-              Width = 173
+              Width = 200
               FieldName = 'HPC13'
             end>
           DataSource = Datasource4
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           Options = [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgDisplayMemoText]
           ParentFont = False
@@ -1725,13 +1724,13 @@ object FVentas: TFVentas
           OnDblClick = DBGrid3DblClick
         end
         object RadioButton3: TRadioButton
-          Left = 12
-          Height = 21
-          Top = 16
-          Width = 200
+          Left = 14
+          Height = 23
+          Top = 19
+          Width = 221
           Caption = 'Todos los pedidos de los clientes'
           Checked = True
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           ParentFont = False
           TabOrder = 1
@@ -1739,24 +1738,24 @@ object FVentas: TFVentas
           OnClick = RadioButton3Click
         end
         object RadioButton4: TRadioButton
-          Left = 12
-          Height = 21
-          Top = 85
-          Width = 140
+          Left = 14
+          Height = 23
+          Top = 98
+          Width = 159
           Caption = 'Pedidos de un cliente.'
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           ParentFont = False
           TabOrder = 3
           OnClick = RadioButton4Click
         end
         object Edit27: TEdit
-          Left = 171
-          Height = 24
-          Top = 85
-          Width = 61
+          Left = 198
+          Height = 28
+          Top = 98
+          Width = 71
           CharCase = ecUppercase
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           MaxLength = 11
           ParentFont = False
@@ -1765,13 +1764,13 @@ object FVentas: TFVentas
           OnExit = Edit27Exit
         end
         object BitBtn32: TBitBtn
-          Left = 578
-          Height = 19
+          Left = 669
+          Height = 22
           Hint = 'Teclee las iniciales del nombre a buscar y pulse en este boton. % delante para buscar cadenas.'
-          Top = 85
-          Width = 18
+          Top = 98
+          Width = 21
           Caption = '...'
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           Margin = 0
           ParentFont = False
@@ -1782,12 +1781,12 @@ object FVentas: TFVentas
           OnClick = BitBtn32Click
         end
         object Edit28: TEdit
-          Left = 237
-          Height = 24
-          Top = 85
-          Width = 339
+          Left = 274
+          Height = 28
+          Top = 98
+          Width = 392
           CharCase = ecUppercase
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           MaxLength = 50
           ParentFont = False
@@ -1797,12 +1796,12 @@ object FVentas: TFVentas
           OnKeyPress = Edit28KeyPress
         end
         object RadioButton5: TRadioButton
-          Left = 12
-          Height = 21
-          Top = 47
-          Width = 158
+          Left = 14
+          Height = 23
+          Top = 54
+          Width = 180
           Caption = 'Pedidos ya despachados.'
-          Font.Height = -11
+          Font.Height = -13
           Font.Name = 'Sans'
           ParentFont = False
           TabOrder = 2
@@ -1811,13 +1810,13 @@ object FVentas: TFVentas
       end
     end
     object BitBtn27: TBitBtn
-      Left = 4
-      Height = 29
+      Left = 5
+      Height = 34
       Hint = 'Crear un pedido nuevo'
-      Top = 422
-      Width = 124
+      Top = 488
+      Width = 143
       Caption = 'Nuevo pedido'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Glyph.Data = {
         46050000424D4605000000000000360000002800000012000000120000000100
@@ -1869,12 +1868,12 @@ object FVentas: TFVentas
       OnClick = BitBtn27Click
     end
     object BitBtn28: TBitBtn
-      Left = 486
-      Height = 29
-      Top = 422
-      Width = 124
+      Left = 562
+      Height = 34
+      Top = 488
+      Width = 143
       Caption = 'Salir'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Glyph.Data = {
         46050000424D4605000000000000360000002800000012000000120000000100
@@ -1926,13 +1925,13 @@ object FVentas: TFVentas
       OnClick = BitBtn28Click
     end
     object BitBtn30: TBitBtn
-      Left = 166
-      Height = 29
+      Left = 192
+      Height = 34
       Hint = 'Añadir estas lineas a un pedido existente'
-      Top = 422
-      Width = 124
+      Top = 488
+      Width = 143
       Caption = 'Añadir al pedido'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Glyph.Data = {
         46050000424D4605000000000000360000002800000012000000120000000100
@@ -1984,13 +1983,13 @@ object FVentas: TFVentas
       OnClick = BitBtn30Click
     end
     object BitBtn31: TBitBtn
-      Left = 327
-      Height = 29
+      Left = 378
+      Height = 34
       Hint = 'Recuperar un pedido del histórico'
-      Top = 422
-      Width = 127
+      Top = 488
+      Width = 147
       Caption = 'Recuperar pedido'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -2063,63 +2062,63 @@ object FVentas: TFVentas
     end
   end
   object Panel6: TPanel
-    Left = 278
-    Height = 144
-    Top = 403
-    Width = 214
-    ClientHeight = 144
-    ClientWidth = 214
-    Font.Height = -11
+    Left = 322
+    Height = 167
+    Top = 466
+    Width = 248
+    ClientHeight = 167
+    ClientWidth = 248
+    Font.Height = -13
     Font.Name = 'Sans'
     ParentFont = False
     TabOrder = 7
     Visible = False
     object Label38: TLabel
       Left = 1
-      Height = 16
+      Height = 19
       Top = 1
-      Width = 212
+      Width = 246
       Align = alTop
       Alignment = taCenter
       AutoSize = False
       Caption = 'LISTADO DE LA VENTA ACTUAL'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
       ParentFont = False
     end
     object RadioButton1: TRadioButton
-      Left = 22
-      Height = 21
-      Top = 35
-      Width = 139
+      Left = 25
+      Height = 22
+      Top = 40
+      Width = 155
       Caption = 'Imprimir por ticketera'
       Checked = True
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentFont = False
       TabOrder = 0
       TabStop = True
     end
     object RadioButton2: TRadioButton
-      Left = 22
-      Height = 21
-      Top = 71
-      Width = 147
+      Left = 25
+      Height = 22
+      Top = 82
+      Width = 164
       Caption = 'Imprimir por impresora'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentFont = False
       TabOrder = 1
     end
     object BitBtn25: TBitBtn
-      Left = 9
-      Height = 25
-      Top = 109
-      Width = 61
+      Left = 10
+      Height = 29
+      Top = 126
+      Width = 71
       Caption = 'Listar'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Glyph.Data = {
         46050000424D4605000000000000360000002800000012000000120000000100
@@ -2171,12 +2170,12 @@ object FVentas: TFVentas
       OnClick = BitBtn25Click
     end
     object BitBtn26: TBitBtn
-      Left = 147
-      Height = 25
-      Top = 109
-      Width = 61
+      Left = 170
+      Height = 29
+      Top = 126
+      Width = 71
       Caption = 'Salir'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Glyph.Data = {
         46050000424D4605000000000000360000002800000012000000120000000100
@@ -2229,14 +2228,14 @@ object FVentas: TFVentas
     end
   end
   object Panel10: TPanel
-    Left = 11
-    Height = 455
-    Top = 175
-    Width = 616
-    ClientHeight = 455
-    ClientWidth = 616
+    Left = 13
+    Height = 526
+    Top = 202
+    Width = 712
+    ClientHeight = 526
+    ClientWidth = 712
     Color = clSilver
-    Font.Height = -11
+    Font.Height = -13
     Font.Name = 'Sans'
     ParentBackground = False
     ParentColor = False
@@ -2244,133 +2243,139 @@ object FVentas: TFVentas
     TabOrder = 10
     Visible = False
     object Bevel5: TBevel
-      Left = 11
-      Height = 173
-      Top = 188
-      Width = 593
+      Left = 13
+      Height = 200
+      Top = 217
+      Width = 686
       Style = bsRaised
     end
     object Label58: TLabel
-      Left = 147
-      Height = 16
+      Left = 170
+      Height = 19
       Top = 3
-      Width = 335
+      Width = 387
       Alignment = taCenter
       AutoSize = False
       Caption = 'REALIZAR PRESUPUESTO / PROFORMA DE LA VENTA ACTUAL'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
       ParentFont = False
     end
     object Bevel6: TBevel
-      Left = 11
-      Height = 83
-      Top = 99
-      Width = 597
+      Left = 13
+      Height = 96
+      Top = 115
+      Width = 691
       Style = bsRaised
     end
     object Label59: TLabel
-      Left = 396
-      Height = 19
-      Top = 144
-      Width = 67
+      Left = 458
+      Height = 22
+      Top = 167
+      Width = 77
       AutoSize = False
       Caption = 'Telefono'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
       ParentFont = False
     end
     object Label63: TLabel
-      Left = 162
-      Height = 16
-      Top = 192
-      Width = 261
+      Left = 187
+      Height = 19
+      Top = 222
+      Width = 302
       Alignment = taCenter
       AutoSize = False
       Caption = 'PRESUPUESTOS ACTUALES'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
       ParentFont = False
     end
     object Label65: TLabel
-      Left = 12
-      Height = 19
-      Top = 380
-      Width = 90
+      AnchorSideTop.Control = DBGrid5
+      AnchorSideTop.Side = asrBottom
+      Left = 14
+      Height = 22
+      Top = 431
+      Width = 104
       AutoSize = False
+      BorderSpacing.Top = 23
       Caption = 'FECHA PRESUP.'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
       ParentFont = False
     end
     object Label66: TLabel
-      Left = 237
-      Height = 19
-      Top = 380
-      Width = 35
+      AnchorSideTop.Control = DBGrid5
+      AnchorSideTop.Side = asrBottom
+      Left = 274
+      Height = 22
+      Top = 431
+      Width = 40
       AutoSize = False
+      BorderSpacing.Top = 23
       Caption = 'SERIE'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
       ParentFont = False
     end
     object Label67: TLabel
-      Left = 444
-      Height = 19
-      Top = 380
-      Width = 60
+      Left = 514
+      Height = 22
+      Top = 440
+      Width = 69
       AutoSize = False
       Caption = 'N. PRESUP.'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
       ParentFont = False
     end
     object Label64: TLabel
-      Left = 22
-      Height = 19
-      Top = 144
-      Width = 67
+      Left = 25
+      Height = 22
+      Top = 167
+      Width = 77
       AutoSize = False
       Caption = 'DIRECCION'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
       ParentFont = False
     end
     object Label68: TLabel
-      Left = 22
-      Height = 19
-      Top = 112
-      Width = 58
+      Left = 25
+      Height = 22
+      Top = 130
+      Width = 67
       AutoSize = False
       Caption = 'CODIGO'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
       ParentFont = False
     end
     object BitBtn35: TBitBtn
-      Left = 7
-      Height = 29
+      Left = 8
+      Height = 34
       Hint = 'Crear un pedido nuevo'
-      Top = 422
-      Width = 124
+      Top = 488
+      Width = 143
       Caption = 'Nuevo presup.'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Glyph.Data = {
         46050000424D4605000000000000360000002800000012000000120000000100
@@ -2422,12 +2427,12 @@ object FVentas: TFVentas
       OnClick = BitBtn35Click
     end
     object BitBtn36: TBitBtn
-      Left = 486
-      Height = 29
-      Top = 422
-      Width = 124
+      Left = 562
+      Height = 34
+      Top = 488
+      Width = 143
       Caption = 'Salir'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Glyph.Data = {
         46050000424D4605000000000000360000002800000012000000120000000100
@@ -2479,13 +2484,13 @@ object FVentas: TFVentas
       OnClick = BitBtn36Click
     end
     object BitBtn37: TBitBtn
-      Left = 166
-      Height = 29
+      Left = 192
+      Height = 34
       Hint = 'Añadir estas lineas a un pedido existente'
-      Top = 422
-      Width = 124
+      Top = 488
+      Width = 143
       Caption = 'Añadir al presup.'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Glyph.Data = {
         46050000424D4605000000000000360000002800000012000000120000000100
@@ -2537,13 +2542,13 @@ object FVentas: TFVentas
       OnClick = BitBtn37Click
     end
     object BitBtn38: TBitBtn
-      Left = 327
-      Height = 29
+      Left = 378
+      Height = 34
       Hint = 'Recuperar un pedido del histórico'
-      Top = 422
-      Width = 127
+      Top = 488
+      Width = 147
       Caption = 'Recuperar presup.'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -2615,13 +2620,13 @@ object FVentas: TFVentas
       OnClick = BitBtn38Click
     end
     object RadioButton9: TRadioButton
-      Left = 144
-      Height = 21
-      Top = 71
-      Width = 93
+      Left = 167
+      Height = 22
+      Top = 82
+      Width = 106
       Caption = 'Presupuestos'
       Checked = True
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentFont = False
       TabOrder = 0
@@ -2629,109 +2634,109 @@ object FVentas: TFVentas
       OnClick = RadioButton9Click
     end
     object RadioButton10: TRadioButton
-      Left = 275
-      Height = 21
-      Top = 71
-      Width = 124
+      Left = 318
+      Height = 22
+      Top = 82
+      Width = 141
       Caption = 'Facturas Proformas'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentFont = False
       TabOrder = 1
       OnClick = RadioButton10Click
     end
     object Edit33: TEdit
-      Left = 168
-      Height = 24
-      Top = 112
-      Width = 422
+      Left = 194
+      Height = 28
+      Top = 130
+      Width = 488
       Enabled = False
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentFont = False
       TabOrder = 3
     end
     object Edit30: TEdit
-      Left = 465
-      Height = 24
-      Top = 144
-      Width = 127
+      Left = 538
+      Height = 28
+      Top = 167
+      Width = 147
       CharCase = ecUppercase
       Enabled = False
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       MaxLength = 50
       ParentFont = False
       TabOrder = 5
     end
     object DBGrid5: TDBGrid
-      Left = 12
-      Height = 137
-      Top = 216
-      Width = 590
+      Left = 14
+      Height = 158
+      Top = 250
+      Width = 682
       Color = clWindow
       Columns = <      
         item
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taCenter
           Title.Caption = 'FECHA'
-          Width = 71
+          Width = 82
           FieldName = 'PRC1'
         end      
         item
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Caption = 'SER.'
-          Width = 30
+          Width = 35
           FieldName = 'PRC2'
         end      
         item
           Alignment = taRightJustify
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taRightJustify
           Title.Caption = 'N.PED.'
-          Width = 53
+          Width = 61
           FieldName = 'PRC3'
         end      
         item
           Alignment = taRightJustify
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taRightJustify
           Title.Caption = 'CGO.'
-          Width = 61
+          Width = 71
           FieldName = 'PRC0'
         end      
         item
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Caption = 'CLIENTE'
-          Width = 205
+          Width = 237
           FieldName = 'C1'
         end      
         item
           Alignment = taRightJustify
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taRightJustify
           Title.Caption = 'N. LIN.'
-          Width = 55
+          Width = 64
           FieldName = 'PRC4'
         end      
         item
           Alignment = taRightJustify
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taRightJustify
           Title.Caption = 'IMPORTE'
-          Width = 79
+          Width = 91
           FieldName = 'PRC9'
           DisplayFormat = '###,###,#00.0'
         end>
       DataSource = Datasource3
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Options = [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgDisplayMemoText]
       ParentFont = False
@@ -2740,14 +2745,20 @@ object FVentas: TFVentas
       OnDblClick = DBGrid5DblClick
     end
     object DateEdit2: TDateEdit
-      Left = 112
-      Height = 24
-      Top = 380
-      Width = 83
+      AnchorSideTop.Control = DBGrid5
+      AnchorSideTop.Side = asrBottom
+      AnchorSideBottom.Control = Label65
+      AnchorSideBottom.Side = asrBottom
+      Left = 130
+      Height = 22
+      Top = 431
+      Width = 120
       CalendarDisplaySettings = [dsShowHeadings, dsShowDayNames]
       DefaultToday = True
       DateOrder = doNone
-      ButtonWidth = 19
+      ButtonWidth = 22
+      Anchors = [akTop, akLeft, akBottom]
+      BorderSpacing.Top = 23
       Glyph.Data = {
         36040000424D3604000000000000360000002800000010000000100000000100
         2000000000000004000064000000640000000000000000000000000008000600
@@ -2785,19 +2796,25 @@ object FVentas: TFVentas
         00000000000000000000000000000000000000000000FFFFFF00
       }
       NumGlyphs = 1
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       MaxLength = 0
       ParentFont = False
       TabOrder = 7
     end
     object Combo6: TComboBox
-      Left = 278
-      Height = 19
-      Top = 380
-      Width = 152
+      AnchorSideTop.Control = DBGrid5
+      AnchorSideTop.Side = asrBottom
+      AnchorSideBottom.Control = Label66
+      AnchorSideBottom.Side = asrBottom
+      Left = 322
+      Height = 22
+      Top = 431
+      Width = 176
+      Anchors = [akTop, akLeft, akBottom]
       AutoSize = False
-      Font.Height = -11
+      BorderSpacing.Top = 23
+      Font.Height = -13
       Font.Name = 'Sans'
       ItemHeight = 0
       ParentFont = False
@@ -2806,50 +2823,53 @@ object FVentas: TFVentas
       OnChange = Combo6Change
     end
     object Edit35: TEdit
-      Left = 510
-      Height = 24
-      Top = 380
-      Width = 86
+      AnchorSideTop.Control = DBGrid5
+      AnchorSideTop.Side = asrBottom
+      Left = 590
+      Height = 28
+      Top = 431
+      Width = 99
+      BorderSpacing.Top = 23
       CharCase = ecUppercase
       Enabled = False
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       MaxLength = 50
       ParentFont = False
       TabOrder = 9
     end
     object Edit34: TEdit
-      Left = 85
-      Height = 24
-      Top = 112
-      Width = 78
+      Left = 98
+      Height = 28
+      Top = 130
+      Width = 90
       CharCase = ecUppercase
       Enabled = False
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       MaxLength = 50
       ParentFont = False
       TabOrder = 2
     end
     object Edit36: TEdit
-      Left = 85
-      Height = 24
-      Top = 144
-      Width = 297
+      Left = 98
+      Height = 28
+      Top = 167
+      Width = 344
       Enabled = False
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentFont = False
       TabOrder = 4
     end
     object CheckBox3: TCheckBox
-      Left = 16
-      Height = 21
-      Top = 35
-      Width = 179
+      Left = 19
+      Height = 22
+      Top = 40
+      Width = 201
       Caption = 'Seleccionar cliente de la venta'
       Checked = True
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentFont = False
       State = cbChecked
@@ -2862,26 +2882,26 @@ object FVentas: TFVentas
     AnchorSideTop.Side = asrBottom
     AnchorSideRight.Control = Owner
     AnchorSideRight.Side = asrBottom
-    Left = 1700
-    Height = 48
-    Top = 35
-    Width = 220
+    Left = 1666
+    Height = 56
+    Top = 40
+    Width = 254
     Anchors = [akTop, akRight]
-    ClientHeight = 48
-    ClientWidth = 220
-    Font.Height = -11
+    ClientHeight = 56
+    ClientWidth = 254
+    Font.Height = -13
     Font.Name = 'Sans'
     ParentFont = False
     TabOrder = 3
     object StaticText1: TStaticText
-      Left = 7
-      Height = 40
+      Left = 8
+      Height = 46
       Top = 3
-      Width = 208
+      Width = 241
       Alignment = taRightJustify
       BorderStyle = sbsSunken
       Caption = '0.00'
-      Font.Height = -32
+      Font.Height = -37
       Font.Name = 'Sans'
       Font.Style = [fsBold]
       ParentFont = False
@@ -2889,25 +2909,25 @@ object FVentas: TFVentas
     end
   end
   object Panel5: TPanel
-    Left = 4
-    Height = 127
-    Top = 7
-    Width = 176
-    ClientHeight = 127
-    ClientWidth = 176
-    Font.Height = -11
+    Left = 5
+    Height = 147
+    Top = 8
+    Width = 204
+    ClientHeight = 147
+    ClientWidth = 204
+    Font.Height = -13
     Font.Name = 'Sans'
     ParentFont = False
     TabOrder = 6
     object Label37: TLabel
       Left = 1
-      Height = 16
+      Height = 18
       Top = 1
-      Width = 174
+      Width = 202
       Align = alTop
       Alignment = taCenter
       Caption = 'TICKETS ABIERTOS'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
@@ -2918,12 +2938,12 @@ object FVentas: TFVentas
       AnchorSideBottom.Control = Panel5
       AnchorSideBottom.Side = asrBottom
       Left = 3
-      Height = 33
-      Top = 93
-      Width = 169
+      Height = 38
+      Top = 108
+      Width = 197
       Anchors = [akLeft, akRight, akBottom]
       Caption = 'Aparcar ticket'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -2999,33 +3019,33 @@ object FVentas: TFVentas
       AnchorSideRight.Side = asrBottom
       AnchorSideBottom.Control = BitBtn24
       Left = 3
-      Height = 77
-      Top = 16
-      Width = 172
+      Height = 89
+      Top = 19
+      Width = 200
       Anchors = [akTop, akLeft, akRight, akBottom]
       Color = clWindow
       Columns = <      
         item
           Alignment = taRightJustify
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taCenter
           Title.Caption = 'T.'
-          Width = 26
+          Width = 30
           FieldName = 'TI0'
         end      
         item
           Alignment = taRightJustify
-          MinSize = 9
-          MaxSize = 173
+          MinSize = 10
+          MaxSize = 200
           Title.Alignment = taRightJustify
           Title.Caption = 'IMP.'
-          Width = 61
+          Width = 71
           FieldName = 'TI1'
           DisplayFormat = '####0.00'
         end>
       DataSource = Datasource2
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Options = [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgDisplayMemoText]
       ParentFont = False
@@ -3041,88 +3061,88 @@ object FVentas: TFVentas
     AnchorSideRight.Control = Owner
     AnchorSideRight.Side = asrBottom
     AnchorSideBottom.Control = DBGrid1
-    Left = 1700
-    Height = 57
-    Top = 83
-    Width = 220
+    Left = 1666
+    Height = 65
+    Top = 96
+    Width = 254
     Anchors = [akTop, akRight, akBottom]
-    ClientHeight = 57
-    ClientWidth = 220
-    Font.Height = -11
+    ClientHeight = 65
+    ClientWidth = 254
+    Font.Height = -13
     Font.Name = 'Sans'
     ParentFont = False
     TabOrder = 8
     object Bevel1: TBevel
-      Left = 7
-      Height = 22
-      Top = 23
-      Width = 209
+      Left = 8
+      Height = 25
+      Top = 27
+      Width = 242
     end
     object Label39: TLabel
-      Left = 12
-      Height = 16
-      Top = 7
-      Width = 50
+      Left = 14
+      Height = 18
+      Top = 8
+      Width = 58
       Caption = 'Stock Act.'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label40: TLabel
-      Left = 12
-      Height = 16
-      Top = 26
-      Width = 55
+      Left = 14
+      Height = 19
+      Top = 30
+      Width = 64
       Alignment = taCenter
       AutoSize = False
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label41: TLabel
-      Left = 90
-      Height = 16
-      Top = 26
-      Width = 54
+      Left = 104
+      Height = 19
+      Top = 30
+      Width = 62
       Alignment = taCenter
       AutoSize = False
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label42: TLabel
-      Left = 90
-      Height = 16
-      Top = 7
-      Width = 54
+      Left = 104
+      Height = 18
+      Top = 8
+      Width = 62
       Caption = 'Stock Min.'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label43: TLabel
-      Left = 157
-      Height = 16
-      Top = 26
-      Width = 58
+      Left = 182
+      Height = 19
+      Top = 30
+      Width = 67
       Alignment = taCenter
       AutoSize = False
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label44: TLabel
-      Left = 159
-      Height = 16
-      Top = 7
-      Width = 56
+      Left = 184
+      Height = 18
+      Top = 8
+      Width = 65
       Caption = 'Stock Max.'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
@@ -3135,26 +3155,26 @@ object FVentas: TFVentas
     AnchorSideRight.Control = Panel7
     AnchorSideBottom.Control = Panel5
     AnchorSideBottom.Side = asrCenter
-    Left = 180
-    Height = 140
+    Left = 209
+    Height = 161
     Top = 0
-    Width = 1520
+    Width = 1457
     Anchors = [akTop, akLeft, akRight, akBottom]
-    ClientHeight = 140
-    ClientWidth = 1520
-    Font.Height = -11
+    ClientHeight = 161
+    ClientWidth = 1457
+    Font.Height = -13
     Font.Name = 'Sans'
     ParentFont = False
     TabOrder = 1
     object PanelNotas: TPanel
-      Left = 61
-      Height = 54
-      Top = 30
-      Width = 448
-      ClientHeight = 54
-      ClientWidth = 448
+      Left = 71
+      Height = 62
+      Top = 35
+      Width = 518
+      ClientHeight = 62
+      ClientWidth = 518
       Color = 10607615
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentBackground = False
       ParentColor = False
@@ -3162,12 +3182,12 @@ object FVentas: TFVentas
       TabOrder = 7
       Visible = False
       object Memo2: TMemo
-        Left = 5
-        Height = 50
-        Top = 5
-        Width = 408
+        Left = 6
+        Height = 58
+        Top = 6
+        Width = 472
         Color = 10607615
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentFont = False
         ReadOnly = True
@@ -3175,12 +3195,12 @@ object FVentas: TFVentas
         TabOrder = 1
       end
       object Button2: TButton
-        Left = 419
-        Height = 22
+        Left = 485
+        Height = 25
         Top = 3
-        Width = 16
+        Width = 19
         Caption = 'X'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentFont = False
         TabOrder = 0
@@ -3190,15 +3210,15 @@ object FVentas: TFVentas
     object PanelAvisoClienteVario: TPanel
       AnchorSideRight.Control = Panel1
       AnchorSideRight.Side = asrBottom
-      Left = 61
-      Height = 48
-      Top = 39
-      Width = 445
+      Left = 71
+      Height = 56
+      Top = 45
+      Width = 515
       BevelInner = bvLowered
-      ClientHeight = 48
-      ClientWidth = 445
+      ClientHeight = 56
+      ClientWidth = 515
       Color = 10607615
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentBackground = False
       ParentColor = False
@@ -3206,26 +3226,26 @@ object FVentas: TFVentas
       TabOrder = 8
       Visible = False
       object Label79: TLabel
-        Left = 29
-        Height = 16
-        Top = 10
-        Width = 357
+        Left = 34
+        Height = 18
+        Top = 12
+        Width = 406
         Caption = 'No está dado de alta el cliente para ventas varias, se acaba de crear  :'
         Font.Color = clBlack
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         Layout = tlCenter
         ParentColor = False
         ParentFont = False
       end
       object Label80: TLabel
-        Left = 72
-        Height = 16
-        Top = 26
-        Width = 180
+        Left = 83
+        Height = 18
+        Top = 30
+        Width = 204
         Caption = '    999999 - Cliente Venta Contado. '
         Font.Color = clBlack
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         Layout = tlCenter
         ParentColor = False
@@ -3233,179 +3253,179 @@ object FVentas: TFVentas
       end
     end
     object Label2: TLabel
-      Left = 11
-      Height = 16
-      Top = 39
-      Width = 60
+      Left = 13
+      Height = 18
+      Top = 45
+      Width = 68
       Caption = 'DIRECCION'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label3: TLabel
-      Left = 11
-      Height = 16
-      Top = 80
-      Width = 30
+      Left = 13
+      Height = 18
+      Top = 93
+      Width = 35
       Caption = '06001'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label4: TLabel
-      Left = 11
-      Height = 16
-      Top = 58
-      Width = 62
+      Left = 13
+      Height = 18
+      Top = 67
+      Width = 70
       Caption = 'LOCALIDAD'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label5: TLabel
-      Left = 54
-      Height = 16
-      Top = 80
-      Width = 105
+      Left = 62
+      Height = 18
+      Top = 93
+      Width = 121
       Caption = 'PROVINCIA CLIENTE'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label6: TLabel
-      Left = 11
-      Height = 16
-      Top = 99
-      Width = 29
+      Left = 13
+      Height = 18
+      Top = 115
+      Width = 32
       Caption = 'N.I.F.:'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label7: TLabel
-      Left = 136
-      Height = 16
-      Top = 99
-      Width = 61
+      Left = 157
+      Height = 18
+      Top = 115
+      Width = 71
       Caption = 'TELEFONO.:'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label8: TLabel
       Left = 3
-      Height = 16
-      Top = 11
-      Width = 43
+      Height = 18
+      Top = 13
+      Width = 50
       Caption = 'CLIENTE'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
       ParentFont = False
     end
     object Label9: TLabel
-      Left = 354
-      Height = 16
-      Top = 58
-      Width = 69
+      Left = 409
+      Height = 18
+      Top = 67
+      Width = 79
       Caption = 'T. Descuento:'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label10: TLabel
-      Left = 354
-      Height = 16
-      Top = 99
-      Width = 79
+      Left = 409
+      Height = 18
+      Top = 115
+      Width = 90
       Caption = 'Dto. Comercial:'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label21: TLabel
-      Left = 44
-      Height = 16
-      Top = 99
-      Width = 86
+      Left = 51
+      Height = 19
+      Top = 115
+      Width = 99
       AutoSize = False
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label22: TLabel
-      Left = 201
-      Height = 16
-      Top = 99
-      Width = 144
+      Left = 232
+      Height = 19
+      Top = 115
+      Width = 167
       AutoSize = False
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label23: TLabel
-      Left = 354
-      Height = 16
-      Top = 80
-      Width = 74
+      Left = 409
+      Height = 18
+      Top = 93
+      Width = 82
       Caption = 'Dto. Pr. Pago.:'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label24: TLabel
-      Left = 444
-      Height = 16
-      Top = 58
-      Width = 54
+      Left = 514
+      Height = 19
+      Top = 67
+      Width = 62
       AutoSize = False
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label25: TLabel
-      Left = 444
-      Height = 16
-      Top = 80
-      Width = 54
+      Left = 514
+      Height = 19
+      Top = 93
+      Width = 62
       AutoSize = False
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Label26: TLabel
-      Left = 444
-      Height = 16
-      Top = 99
-      Width = 54
+      Left = 514
+      Height = 19
+      Top = 115
+      Width = 62
       AutoSize = False
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
     end
     object Edit1: TEdit
-      Left = 54
-      Height = 24
-      Top = 9
-      Width = 83
+      Left = 62
+      Height = 28
+      Top = 10
+      Width = 96
       Alignment = taRightJustify
       CharCase = ecUppercase
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       MaxLength = 11
       ParentFont = False
@@ -3416,14 +3436,14 @@ object FVentas: TFVentas
     end
     object Edit2: TEdit
       AnchorSideRight.Control = BitBtn1
-      Left = 196
-      Height = 24
-      Top = 7
-      Width = 1293
+      Left = 227
+      Height = 28
+      Top = 8
+      Width = 1195
       Anchors = [akTop, akLeft, akRight]
       BorderSpacing.Right = 2
       CharCase = ecUppercase
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       MaxLength = 50
       ParentFont = False
@@ -3434,14 +3454,14 @@ object FVentas: TFVentas
     object BitBtn1: TBitBtn
       AnchorSideRight.Control = Panel1
       AnchorSideRight.Side = asrBottom
-      Left = 1491
-      Height = 19
+      Left = 1424
+      Height = 22
       Hint = 'Teclee las iniciales del nombre a buscar y pulse en este boton. % delante para buscar cadenas.'
-      Top = 7
-      Width = 28
+      Top = 8
+      Width = 32
       Anchors = [akTop, akRight]
       Caption = '...'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Margin = 0
       ParentFont = False
@@ -3451,13 +3471,13 @@ object FVentas: TFVentas
       OnClick = BitBtn1Click
     end
     object CheckBox1: TCheckBox
-      Left = 354
-      Height = 21
-      Top = 35
-      Width = 133
+      Left = 409
+      Height = 22
+      Top = 40
+      Width = 150
       Caption = 'Recargo Equivalencia'
       Enabled = False
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentFont = False
       TabOrder = 3
@@ -3466,12 +3486,12 @@ object FVentas: TFVentas
     object Combo1: TComboBox
       AnchorSideRight.Control = Panel1
       AnchorSideRight.Side = asrBottom
-      Left = 196
-      Height = 26
-      Top = 7
-      Width = 1323
+      Left = 227
+      Height = 30
+      Top = 8
+      Width = 1229
       Anchors = [akTop, akLeft, akRight]
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ItemHeight = 0
       ParentFont = False
@@ -3485,15 +3505,15 @@ object FVentas: TFVentas
       AnchorSideTop.Side = asrBottom
       AnchorSideRight.Control = Panel1
       AnchorSideRight.Side = asrBottom
-      Left = 1341
-      Height = 48
-      Top = 33
-      Width = 178
+      Left = 1250
+      Height = 56
+      Top = 38
+      Width = 206
       Anchors = [akTop, akRight]
-      ClientHeight = 48
-      ClientWidth = 178
+      ClientHeight = 56
+      ClientWidth = 206
       Color = 10607615
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentBackground = False
       ParentColor = False
@@ -3501,14 +3521,14 @@ object FVentas: TFVentas
       TabOrder = 5
       Visible = False
       object Label55: TLabel
-        Left = 4
-        Height = 19
-        Top = 23
-        Width = 144
+        Left = 5
+        Height = 22
+        Top = 27
+        Width = 167
         Alignment = taRightJustify
         AutoSize = False
         Caption = '0.00'
-        Font.Height = -18
+        Font.Height = -21
         Font.Name = 'Sans'
         Font.Style = [fsBold]
         Layout = tlCenter
@@ -3516,23 +3536,23 @@ object FVentas: TFVentas
         ParentFont = False
       end
       object Label56: TLabel
-        Left = 4
-        Height = 16
-        Top = 4
-        Width = 100
+        Left = 5
+        Height = 18
+        Top = 5
+        Width = 114
         Caption = 'Credito pendiente.:'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
         ParentFont = False
       end
       object Button1: TButton
-        Left = 161
-        Height = 22
+        Left = 186
+        Height = 25
         Top = 2
-        Width = 16
+        Width = 19
         Caption = 'X'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentFont = False
         TabOrder = 0
@@ -3540,13 +3560,13 @@ object FVentas: TFVentas
       end
     end
     object btCodigo: TBitBtn
-      Left = 136
-      Height = 22
+      Left = 157
+      Height = 25
       Hint = 'Genera número de cliente nuevo.'
-      Top = 9
-      Width = 61
+      Top = 10
+      Width = 71
       Caption = 'Crear'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -3619,14 +3639,14 @@ object FVentas: TFVentas
       OnClick = btCodigoClick
     end
     object PanelNuevoCli: TPanel
-      Left = 53
-      Height = 48
-      Top = 28
-      Width = 137
-      ClientHeight = 48
-      ClientWidth = 137
+      Left = 61
+      Height = 56
+      Top = 32
+      Width = 158
+      ClientHeight = 56
+      ClientWidth = 158
       Color = clMoneyGreen
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentBackground = False
       ParentColor = False
@@ -3634,13 +3654,13 @@ object FVentas: TFVentas
       TabOrder = 6
       Visible = False
       object Label60: TLabel
-        Left = 4
-        Height = 19
-        Top = 22
-        Width = 126
+        Left = 5
+        Height = 22
+        Top = 25
+        Width = 146
         Alignment = taRightJustify
         AutoSize = False
-        Font.Height = -18
+        Font.Height = -21
         Font.Name = 'Sans'
         Font.Style = [fsBold]
         Layout = tlCenter
@@ -3648,12 +3668,12 @@ object FVentas: TFVentas
         ParentFont = False
       end
       object Label61: TLabel
-        Left = 10
-        Height = 16
+        Left = 12
+        Height = 18
         Top = 3
-        Width = 77
+        Width = 88
         Caption = 'Nuevo cliente.:'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
         ParentFont = False
@@ -3662,29 +3682,29 @@ object FVentas: TFVentas
   end
   object PanelBuscaArticulos: TPanel
     AnchorSideBottom.Control = Panel3
-    Left = 609
-    Height = 284
-    Top = 565
-    Width = 447
+    Left = 597
+    Height = 328
+    Top = 549
+    Width = 517
     Anchors = [akBottom]
     BorderSpacing.Top = 3
-    BorderSpacing.Bottom = 4
-    ClientHeight = 284
-    ClientWidth = 447
-    Font.Height = -11
+    BorderSpacing.Bottom = 5
+    ClientHeight = 328
+    ClientWidth = 517
+    Font.Height = -13
     Font.Name = 'Sans'
     ParentFont = False
     TabOrder = 12
     Visible = False
     object ListBox3: TListBox
       Left = 1
-      Height = 282
+      Height = 326
       Top = 1
-      Width = 445
+      Width = 515
       Align = alClient
       Color = cl3DLight
       Font.Color = clBlack
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ItemHeight = 0
       ParentFont = False
@@ -3699,38 +3719,38 @@ object FVentas: TFVentas
     AnchorSideTop.Control = Owner
     AnchorSideRight.Control = Owner
     AnchorSideRight.Side = asrBottom
-    Left = 1700
-    Height = 35
+    Left = 1666
+    Height = 40
     Top = 0
-    Width = 220
+    Width = 254
     Anchors = [akTop, akRight]
-    ClientHeight = 35
-    ClientWidth = 220
-    Font.Height = -11
+    ClientHeight = 40
+    ClientWidth = 254
+    Font.Height = -13
     Font.Name = 'Sans'
     ParentColor = False
     ParentFont = False
     TabOrder = 13
     object lbUsuario: TLabel
-      Left = 4
-      Height = 13
-      Top = 9
-      Width = 42
+      Left = 5
+      Height = 14
+      Top = 10
+      Width = 47
       Caption = 'USUARIO'
-      Font.Height = -9
+      Font.Height = -10
       Font.Name = 'Sans'
       Font.Style = [fsBold]
       ParentColor = False
       ParentFont = False
     end
     object cbUsuario: TComboBox
-      Left = 51
-      Height = 28
+      Left = 59
+      Height = 32
       Top = 3
-      Width = 168
+      Width = 194
       CharCase = ecUppercase
       Color = clSilver
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ItemHeight = 0
       ParentFont = False
@@ -3747,28 +3767,28 @@ object FVentas: TFVentas
     AnchorSideRight.Side = asrBottom
     AnchorSideBottom.Control = botones
     Left = 0
-    Height = 122
-    Top = 853
+    Height = 141
+    Top = 882
     Width = 1920
     Anchors = [akLeft, akRight]
-    ClientHeight = 122
+    ClientHeight = 141
     ClientWidth = 1920
     Color = clBtnFace
-    Font.Height = -11
+    Font.Height = -13
     Font.Name = 'Sans'
     ParentBackground = False
     ParentColor = False
     ParentFont = False
     TabOrder = 2
     object Label11: TLabel
-      Left = 214
-      Height = 19
-      Top = -520
-      Width = 491
+      Left = 248
+      Height = 22
+      Top = -601
+      Width = 568
       AutoSize = False
       Font.CharSet = ANSI_CHARSET
       Font.Color = clBlue
-      Font.Height = 12
+      Font.Height = 14
       Font.Name = '-adobe-helvetica-*-*-*-*-*-*-*-*-*-*-iso10646-1'
       Font.Pitch = fpVariable
       Font.Style = [fsBold]
@@ -3780,15 +3800,15 @@ object FVentas: TFVentas
       AnchorSideLeft.Control = BitBtn40
       AnchorSideLeft.Side = asrBottom
       AnchorSideBottom.Control = Edit3
-      Left = 33
-      Height = 16
-      Top = 10
-      Width = 70
+      Left = 38
+      Height = 19
+      Top = 12
+      Width = 78
       Anchors = [akTop, akLeft, akBottom]
-      BorderSpacing.Left = 7
+      BorderSpacing.Left = 8
       BorderSpacing.Bottom = 3
       Caption = 'CODIGO ART.'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
@@ -3798,15 +3818,15 @@ object FVentas: TFVentas
       AnchorSideLeft.Control = BitBtn41
       AnchorSideLeft.Side = asrBottom
       AnchorSideBottom.Control = Edit4
-      Left = 149
-      Height = 14
-      Top = 11
-      Width = 130
+      Left = 172
+      Height = 16
+      Top = 13
+      Width = 148
       Anchors = [akTop, akLeft, akBottom]
-      BorderSpacing.Left = 7
-      BorderSpacing.Bottom = 4
+      BorderSpacing.Left = 8
+      BorderSpacing.Bottom = 5
       Caption = 'DESCRIPCION ARTICULO'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
@@ -3815,15 +3835,15 @@ object FVentas: TFVentas
     object Label14: TLabel
       AnchorSideLeft.Control = Edit5
       AnchorSideBottom.Control = Edit5
-      Left = 592
-      Height = 15
-      Top = 11
-      Width = 49
+      Left = 685
+      Height = 18
+      Top = 13
+      Width = 58
       Alignment = taRightJustify
       Anchors = [akTop, akLeft, akBottom]
       BorderSpacing.Bottom = 3
       Caption = 'UNID.(F5)'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
@@ -3832,15 +3852,15 @@ object FVentas: TFVentas
     object Label15: TLabel
       AnchorSideLeft.Control = Edit6
       AnchorSideBottom.Control = Edit6
-      Left = 655
-      Height = 15
-      Top = 11
-      Width = 63
+      Left = 758
+      Height = 18
+      Top = 13
+      Width = 73
       Alignment = taRightJustify
       Anchors = [akTop, akLeft, akBottom]
       BorderSpacing.Bottom = 3
       Caption = 'PVP+iva (F6)'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
@@ -3849,15 +3869,15 @@ object FVentas: TFVentas
     object Label16: TLabel
       AnchorSideLeft.Control = Edit7
       AnchorSideBottom.Control = Edit7
-      Left = 738
-      Height = 15
-      Top = 11
-      Width = 21
+      Left = 854
+      Height = 18
+      Top = 13
+      Width = 24
       Alignment = taRightJustify
       Anchors = [akTop, akLeft, akBottom]
       BorderSpacing.Bottom = 3
       Caption = 'PVP'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
@@ -3866,15 +3886,15 @@ object FVentas: TFVentas
     object Label17: TLabel
       AnchorSideLeft.Control = Edit8
       AnchorSideBottom.Control = Edit8
-      Left = 818
-      Height = 15
-      Top = 11
-      Width = 59
+      Left = 946
+      Height = 18
+      Top = 13
+      Width = 69
       Alignment = taRightJustify
       Anchors = [akTop, akLeft, akBottom]
       BorderSpacing.Bottom = 3
       Caption = '%DTO (F11)'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
@@ -3883,15 +3903,15 @@ object FVentas: TFVentas
     object Label18: TLabel
       AnchorSideLeft.Control = Edit9
       AnchorSideBottom.Control = Edit9
-      Left = 936
-      Height = 15
-      Top = 11
-      Width = 49
+      Left = 1082
+      Height = 18
+      Top = 13
+      Width = 56
       Alignment = taRightJustify
       Anchors = [akTop, akLeft, akBottom]
       BorderSpacing.Bottom = 3
       Caption = 'IMPORTE'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
@@ -3900,15 +3920,15 @@ object FVentas: TFVentas
     object Label19: TLabel
       AnchorSideLeft.Control = Edit10
       AnchorSideBottom.Control = Edit10
-      Left = 1019
-      Height = 15
-      Top = 11
-      Width = 26
+      Left = 1178
+      Height = 18
+      Top = 13
+      Width = 30
       Alignment = taRightJustify
       Anchors = [akTop, akLeft, akBottom]
       BorderSpacing.Bottom = 3
       Caption = '%IVA'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
@@ -3918,16 +3938,16 @@ object FVentas: TFVentas
       AnchorSideRight.Control = botolineas
       AnchorSideRight.Side = asrBottom
       AnchorSideBottom.Control = Edit11
-      Left = 1801
-      Height = 15
-      Top = 11
-      Width = 53
+      Left = 1796
+      Height = 18
+      Top = 13
+      Width = 63
       Alignment = taRightJustify
       Anchors = [akTop, akBottom]
-      BorderSpacing.Right = 23
+      BorderSpacing.Right = 27
       BorderSpacing.Bottom = 3
       Caption = 'TOTAL (F7)'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
       ParentColor = False
@@ -3938,14 +3958,14 @@ object FVentas: TFVentas
       AnchorSideTop.Control = Edit4
       AnchorSideBottom.Control = Edit4
       AnchorSideBottom.Side = asrCenter
-      Left = 8
-      Height = 24
-      Top = 29
-      Width = 106
+      Left = 9
+      Height = 27
+      Top = 34
+      Width = 123
       Anchors = [akTop, akLeft, akBottom]
-      BorderSpacing.Left = 7
+      BorderSpacing.Left = 8
       CharCase = ecUppercase
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       MaxLength = 13
       ParentFont = False
@@ -3961,15 +3981,15 @@ object FVentas: TFVentas
       AnchorSideRight.Control = Edit5
       AnchorSideBottom.Control = Edit5
       AnchorSideBottom.Side = asrBottom
-      Left = 119
-      Height = 24
-      Top = 29
-      Width = 461
+      Left = 138
+      Height = 28
+      Top = 34
+      Width = 533
       Anchors = [akTop, akLeft, akBottom]
-      BorderSpacing.Left = 5
+      BorderSpacing.Left = 6
       BorderSpacing.Right = 2
       CharCase = ecUppercase
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       MaxLength = 50
       ParentFont = False
@@ -3979,13 +3999,13 @@ object FVentas: TFVentas
     object Edit5: TEdit
       AnchorSideLeft.Control = Edit4
       AnchorSideLeft.Side = asrBottom
-      Left = 592
-      Height = 24
-      Top = 29
-      Width = 51
-      BorderSpacing.Left = 12
+      Left = 685
+      Height = 28
+      Top = 34
+      Width = 59
+      BorderSpacing.Left = 14
       CharCase = ecUppercase
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentFont = False
       TabOrder = 4
@@ -3999,14 +4019,14 @@ object FVentas: TFVentas
       AnchorSideTop.Control = Edit7
       AnchorSideBottom.Control = Edit7
       AnchorSideBottom.Side = asrCenter
-      Left = 655
+      Left = 758
       Height = 20
-      Top = 29
-      Width = 71
+      Top = 34
+      Width = 82
       Anchors = [akTop, akLeft, akBottom]
-      BorderSpacing.Left = 12
+      BorderSpacing.Left = 14
       CharCase = ecUppercase
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentFont = False
       TabOrder = 5
@@ -4020,14 +4040,14 @@ object FVentas: TFVentas
       AnchorSideTop.Control = Edit8
       AnchorSideBottom.Control = Edit8
       AnchorSideBottom.Side = asrCenter
-      Left = 738
-      Height = 20
-      Top = 29
-      Width = 71
+      Left = 854
+      Height = 21
+      Top = 34
+      Width = 82
       Anchors = [akTop, akLeft, akBottom]
-      BorderSpacing.Left = 12
+      BorderSpacing.Left = 14
       CharCase = ecUppercase
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentFont = False
       TabOrder = 6
@@ -4041,14 +4061,14 @@ object FVentas: TFVentas
       AnchorSideTop.Control = Edit9
       AnchorSideBottom.Control = Edit9
       AnchorSideBottom.Side = asrCenter
-      Left = 818
-      Height = 21
-      Top = 29
-      Width = 32
+      Left = 946
+      Height = 23
+      Top = 34
+      Width = 37
       Anchors = [akTop, akLeft, akBottom]
-      BorderSpacing.Left = 9
+      BorderSpacing.Left = 10
       CharCase = ecUppercase
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentFont = False
       TabOrder = 7
@@ -4062,15 +4082,15 @@ object FVentas: TFVentas
       AnchorSideTop.Control = Edit10
       AnchorSideBottom.Control = Edit10
       AnchorSideBottom.Side = asrCenter
-      Left = 936
-      Height = 23
-      Top = 29
-      Width = 71
+      Left = 1082
+      Height = 25
+      Top = 34
+      Width = 82
       Anchors = [akTop, akLeft, akBottom]
-      BorderSpacing.Left = 86
+      BorderSpacing.Left = 99
       CharCase = ecUppercase
       Enabled = False
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentFont = False
       TabOrder = 8
@@ -4082,14 +4102,14 @@ object FVentas: TFVentas
       AnchorSideTop.Control = Edit11
       AnchorSideBottom.Control = Edit11
       AnchorSideBottom.Side = asrCenter
-      Left = 1019
-      Height = 24
-      Top = 29
-      Width = 32
+      Left = 1178
+      Height = 27
+      Top = 34
+      Width = 37
       Anchors = [akTop, akLeft, akBottom]
-      BorderSpacing.Left = 12
+      BorderSpacing.Left = 14
       CharCase = ecUppercase
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentFont = False
       TabOrder = 9
@@ -4099,14 +4119,14 @@ object FVentas: TFVentas
     object Edit11: TEdit
       AnchorSideRight.Control = botolineas
       AnchorSideRight.Side = asrBottom
-      Left = 1821
-      Height = 24
-      Top = 29
-      Width = 76
+      Left = 1806
+      Height = 28
+      Top = 34
+      Width = 88
       Anchors = [akTop, akRight]
-      BorderSpacing.Right = 22
+      BorderSpacing.Right = 25
       CharCase = ecUppercase
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentFont = False
       TabOrder = 10
@@ -4116,15 +4136,15 @@ object FVentas: TFVentas
     end
     object BitBtn40: TBitBtn
       AnchorSideLeft.Control = botolineas
-      Left = 8
-      Height = 19
+      Left = 9
+      Height = 22
       Hint = 'Buscar código de un lote.'
-      Top = 5
-      Width = 18
-      BorderSpacing.Left = 7
+      Top = 6
+      Width = 21
+      BorderSpacing.Left = 8
       Caption = '..'
       Enabled = False
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Kind = bkRetry
       Margin = 0
@@ -4136,13 +4156,13 @@ object FVentas: TFVentas
       OnClick = BitBtn40Click
     end
     object BitBtn41: TBitBtn
-      Left = 124
-      Height = 19
+      Left = 143
+      Height = 22
       Hint = 'Teclee las iniciales del nombre a buscar y pulse en este boton. % delante para buscar cadenas.'
-      Top = 7
-      Width = 18
+      Top = 8
+      Width = 21
       Caption = '...'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Margin = 0
       ParentFont = False
@@ -4156,16 +4176,16 @@ object FVentas: TFVentas
       AnchorSideTop.Control = Panel3
       AnchorSideRight.Control = Edit6
       AnchorSideBottom.Control = botolineas
-      Left = 119
-      Height = 55
+      Left = 138
+      Height = 64
       Top = 1
-      Width = 524
+      Width = 606
       Anchors = [akTop, akLeft, akRight]
       BevelInner = bvLowered
-      ClientHeight = 55
-      ClientWidth = 524
+      ClientHeight = 64
+      ClientWidth = 606
       Color = 8177038
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentBackground = False
       ParentColor = False
@@ -4174,13 +4194,13 @@ object FVentas: TFVentas
       Visible = False
       object Label76: TLabel
         AnchorSideLeft.Control = PanelCodigoVario
-        Left = 16
-        Height = 16
-        Top = 5
-        Width = 73
-        BorderSpacing.Left = 14
+        Left = 18
+        Height = 18
+        Top = 6
+        Width = 83
+        BorderSpacing.Left = 16
         Caption = 'DESCRIPCION'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         Layout = tlCenter
         ParentColor = False
@@ -4191,13 +4211,13 @@ object FVentas: TFVentas
         AnchorSideRight.Control = PanelCodigoVario
         AnchorSideRight.Side = asrBottom
         Left = 5
-        Height = 24
-        Top = 28
-        Width = 515
+        Height = 28
+        Top = 33
+        Width = 597
         Anchors = [akLeft, akRight]
         BorderSpacing.Left = 3
         BorderSpacing.Right = 2
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         MaxLength = 50
         ParentFont = False
@@ -4207,15 +4227,15 @@ object FVentas: TFVentas
       end
     end
     object PanelAvisoVario: TPanel
-      Left = 26
-      Height = 48
-      Top = 5
-      Width = 419
+      Left = 30
+      Height = 56
+      Top = 6
+      Width = 485
       BevelInner = bvLowered
-      ClientHeight = 48
-      ClientWidth = 419
+      ClientHeight = 56
+      ClientWidth = 485
       Color = 10607615
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentBackground = False
       ParentColor = False
@@ -4223,26 +4243,26 @@ object FVentas: TFVentas
       TabOrder = 12
       Visible = False
       object Label77: TLabel
-        Left = 29
-        Height = 16
-        Top = 10
-        Width = 346
+        Left = 34
+        Height = 18
+        Top = 12
+        Width = 392
         Caption = 'No existe el código VARIO para la entrada de artículos sin codificar'
         Font.Color = clBlack
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         Layout = tlCenter
         ParentColor = False
         ParentFont = False
       end
       object Label78: TLabel
-        Left = 29
-        Height = 16
-        Top = 26
-        Width = 202
+        Left = 34
+        Height = 18
+        Top = 30
+        Width = 231
         Caption = 'Deberá crear el artículo 9999999999999'
         Font.Color = clBlack
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         Layout = tlCenter
         ParentColor = False
@@ -4257,14 +4277,14 @@ object FVentas: TFVentas
       AnchorSideRight.Side = asrBottom
       AnchorSideBottom.Side = asrBottom
       Left = 1
-      Height = 55
-      Top = 60
+      Height = 63
+      Top = 70
       Width = 1918
       Anchors = [akTop, akLeft, akRight, akBottom]
-      BorderSpacing.Top = 7
-      ClientHeight = 55
+      BorderSpacing.Top = 8
+      ClientHeight = 63
       ClientWidth = 1918
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentBackground = False
       ParentFont = False
@@ -4275,16 +4295,16 @@ object FVentas: TFVentas
         AnchorSideRight.Side = asrBottom
         AnchorSideBottom.Control = botolineas
         AnchorSideBottom.Side = asrBottom
-        Left = 1820
-        Height = 45
-        Top = 5
-        Width = 85
+        Left = 1805
+        Height = 51
+        Top = 6
+        Width = 98
         Anchors = [akTop, akRight, akBottom]
-        BorderSpacing.Top = 4
-        BorderSpacing.Right = 12
-        BorderSpacing.Bottom = 4
+        BorderSpacing.Top = 5
+        BorderSpacing.Right = 14
+        BorderSpacing.Bottom = 5
         Caption = 'Teclado'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         Glyph.Data = {
           26040000424D2604000000000000360000002800000012000000120000000100
@@ -4330,16 +4350,16 @@ object FVentas: TFVentas
         AnchorSideTop.Control = botolineas
         AnchorSideBottom.Control = botolineas
         AnchorSideBottom.Side = asrBottom
-        Left = 8
-        Height = 45
-        Top = 5
-        Width = 95
+        Left = 9
+        Height = 51
+        Top = 6
+        Width = 110
         Anchors = [akTop, akLeft, akBottom]
-        BorderSpacing.Left = 7
-        BorderSpacing.Top = 4
-        BorderSpacing.Bottom = 4
+        BorderSpacing.Left = 8
+        BorderSpacing.Top = 5
+        BorderSpacing.Bottom = 5
         Caption = 'Nuevo'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         Glyph.Data = {
           26040000424D2604000000000000360000002800000012000000120000000100
@@ -4386,16 +4406,16 @@ object FVentas: TFVentas
         AnchorSideRight.Control = BitBtn2
         AnchorSideBottom.Control = botolineas
         AnchorSideBottom.Side = asrBottom
-        Left = 1716
-        Height = 45
-        Top = 5
-        Width = 95
+        Left = 1685
+        Height = 51
+        Top = 6
+        Width = 110
         Anchors = [akTop, akRight, akBottom]
-        BorderSpacing.Top = 4
-        BorderSpacing.Right = 9
-        BorderSpacing.Bottom = 4
+        BorderSpacing.Top = 5
+        BorderSpacing.Right = 10
+        BorderSpacing.Bottom = 5
         Caption = 'Marcar'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         Glyph.Data = {
           26040000424D2604000000000000360000002800000012000000120000000100
@@ -4442,16 +4462,16 @@ object FVentas: TFVentas
         AnchorSideRight.Control = BitBtn6
         AnchorSideBottom.Control = botolineas
         AnchorSideBottom.Side = asrBottom
-        Left = 1608
-        Height = 45
-        Top = 5
-        Width = 99
+        Left = 1560
+        Height = 51
+        Top = 6
+        Width = 115
         Anchors = [akTop, akRight, akBottom]
-        BorderSpacing.Top = 4
-        BorderSpacing.Right = 9
-        BorderSpacing.Bottom = 4
+        BorderSpacing.Top = 5
+        BorderSpacing.Right = 10
+        BorderSpacing.Bottom = 5
         Caption = 'Buscar'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         Glyph.Data = {
           26040000424D2604000000000000360000002800000012000000120000000100
@@ -4499,17 +4519,17 @@ object FVentas: TFVentas
         AnchorSideTop.Control = botolineas
         AnchorSideBottom.Control = botolineas
         AnchorSideBottom.Side = asrBottom
-        Left = 112
-        Height = 45
-        Top = 5
-        Width = 95
+        Left = 129
+        Height = 51
+        Top = 6
+        Width = 110
         Anchors = [akTop, akLeft, akBottom]
-        BorderSpacing.Left = 9
-        BorderSpacing.Top = 4
-        BorderSpacing.Bottom = 4
+        BorderSpacing.Left = 10
+        BorderSpacing.Top = 5
+        BorderSpacing.Bottom = 5
         Caption = 'Modif.'
         Enabled = False
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         Glyph.Data = {
           26040000424D2604000000000000360000002800000012000000120000000100
@@ -4557,16 +4577,16 @@ object FVentas: TFVentas
         AnchorSideTop.Control = botolineas
         AnchorSideBottom.Control = botolineas
         AnchorSideBottom.Side = asrBottom
-        Left = 216
-        Height = 45
-        Top = 5
-        Width = 92
+        Left = 249
+        Height = 51
+        Top = 6
+        Width = 106
         Anchors = [akTop, akLeft, akBottom]
-        BorderSpacing.Left = 9
-        BorderSpacing.Top = 4
-        BorderSpacing.Bottom = 4
+        BorderSpacing.Left = 10
+        BorderSpacing.Top = 5
+        BorderSpacing.Bottom = 5
         Caption = 'Borrar'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         Glyph.Data = {
           26040000424D2604000000000000360000002800000012000000120000000100
@@ -4613,14 +4633,14 @@ object FVentas: TFVentas
         AnchorSideLeft.Side = asrBottom
         AnchorSideRight.Control = btHistoricos
         AnchorSideBottom.Control = botolineas
-        Left = 1388
-        Height = 25
-        Top = 9
-        Width = 108
+        Left = 1306
+        Height = 29
+        Top = 10
+        Width = 125
         Anchors = [akTop, akRight]
-        BorderSpacing.Left = 11
-        BorderSpacing.Right = 9
-        BorderSpacing.Bottom = 7
+        BorderSpacing.Left = 13
+        BorderSpacing.Right = 10
+        BorderSpacing.Bottom = 8
         ItemHeight = 0
         ItemIndex = 0
         Items.Strings = (
@@ -4635,15 +4655,15 @@ object FVentas: TFVentas
       end
       object lbHistorico: TLabel
         AnchorSideRight.Control = cbHistoricos
-        Left = 1230
-        Height = 14
-        Top = 14
-        Width = 147
+        Left = 1123
+        Height = 16
+        Top = 16
+        Width = 170
         Alignment = taCenter
         Anchors = [akTop, akRight]
         AutoSize = False
         Caption = 'FILTRO HISTORICOS'
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
         ParentFont = False
@@ -4653,14 +4673,14 @@ object FVentas: TFVentas
         AnchorSideRight.Control = BitBtn5
         AnchorSideBottom.Control = botolineas
         AnchorSideBottom.Side = asrBottom
-        Left = 1505
-        Height = 45
-        Top = 5
-        Width = 94
+        Left = 1441
+        Height = 51
+        Top = 6
+        Width = 109
         Anchors = [akTop, akRight, akBottom]
-        BorderSpacing.Top = 4
-        BorderSpacing.Right = 9
-        BorderSpacing.Bottom = 4
+        BorderSpacing.Top = 5
+        BorderSpacing.Right = 10
+        BorderSpacing.Bottom = 5
         Caption = 'Históricos'
         Glyph.Data = {
           8E050000424D8E05000000000000360000002800000012000000130000000100
@@ -4718,15 +4738,15 @@ object FVentas: TFVentas
       AnchorSideTop.Control = botolineas
       AnchorSideBottom.Control = botolineas
       AnchorSideBottom.Side = asrBottom
-      Left = 1218
-      Height = 47
-      Top = 64
-      Width = 147
+      Left = 1214
+      Height = 53
+      Top = 75
+      Width = 170
       Anchors = [akTop, akBottom]
-      BorderSpacing.Top = 4
-      BorderSpacing.Bottom = 4
+      BorderSpacing.Top = 5
+      BorderSpacing.Bottom = 5
       Color = 14606299
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ItemHeight = 0
       ParentFont = False
@@ -4745,16 +4765,16 @@ object FVentas: TFVentas
     AnchorSideRight.Control = Owner
     AnchorSideRight.Side = asrBottom
     AnchorSideBottom.Control = Panel3
-    Left = 1700
-    Height = 705
-    Top = 144
-    Width = 220
+    Left = 1666
+    Height = 711
+    Top = 166
+    Width = 254
     Anchors = [akTop, akLeft, akRight, akBottom]
-    BorderSpacing.Top = 4
-    BorderSpacing.Bottom = 4
-    ClientHeight = 705
-    ClientWidth = 220
-    Font.Height = -11
+    BorderSpacing.Top = 5
+    BorderSpacing.Bottom = 5
+    ClientHeight = 711
+    ClientWidth = 254
+    Font.Height = -13
     Font.Name = 'Sans'
     ParentFont = False
     TabOrder = 14
@@ -4764,19 +4784,19 @@ object FVentas: TFVentas
       AnchorSideRight.Control = botones
       AnchorSideRight.Side = asrBottom
       AnchorSideBottom.Control = BitBtn17
-      Left = 5
-      Height = 46
+      Left = 6
+      Height = 53
       Hint = 'Totalizar la venta actual. (F8)'
-      Top = 330
-      Width = 210
+      Top = 275
+      Width = 242
       Anchors = [akLeft, akRight, akBottom]
-      BorderSpacing.Left = 4
-      BorderSpacing.Right = 4
-      BorderSpacing.Bottom = 4
+      BorderSpacing.Left = 5
+      BorderSpacing.Right = 5
+      BorderSpacing.Bottom = 5
       Caption = 'Totaliz. (F8)'
       Color = clTeal
       Font.Color = clWhite
-      Font.Height = -14
+      Font.Height = -16
       Font.Name = 'Sans'
       Glyph.Data = {
         460E0000424D460E00000000000036000000280000001E0000001E0000000100
@@ -4906,17 +4926,17 @@ object FVentas: TFVentas
       AnchorSideRight.Control = botones
       AnchorSideRight.Side = asrBottom
       AnchorSideBottom.Control = BitBtn18
-      Left = 5
-      Height = 44
+      Left = 6
+      Height = 51
       Hint = 'Ir a la pantalla de creditos.'
-      Top = 476
-      Width = 210
+      Top = 445
+      Width = 242
       Anchors = [akLeft, akRight, akBottom]
-      BorderSpacing.Left = 4
-      BorderSpacing.Right = 4
-      BorderSpacing.Bottom = 4
+      BorderSpacing.Left = 5
+      BorderSpacing.Right = 5
+      BorderSpacing.Bottom = 5
       Caption = 'Creditos'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Glyph.Data = {
         FE0A0000424DFE0A00000000000036000000280000001E0000001E0000000100
@@ -5020,17 +5040,17 @@ object FVentas: TFVentas
       AnchorSideRight.Control = botones
       AnchorSideRight.Side = asrBottom
       AnchorSideBottom.Control = BitBtn22
-      Left = 5
-      Height = 44
+      Left = 6
+      Height = 51
       Hint = 'Abrir cajon'
-      Top = 380
-      Width = 210
+      Top = 333
+      Width = 242
       Anchors = [akLeft, akRight, akBottom]
-      BorderSpacing.Left = 4
-      BorderSpacing.Right = 4
-      BorderSpacing.Bottom = 4
+      BorderSpacing.Left = 5
+      BorderSpacing.Right = 5
+      BorderSpacing.Bottom = 5
       Caption = 'Cajon'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Glyph.Data = {
         FE0A0000424DFE0A00000000000036000000280000001E0000001E0000000100
@@ -5134,17 +5154,17 @@ object FVentas: TFVentas
       AnchorSideRight.Control = botones
       AnchorSideRight.Side = asrBottom
       AnchorSideBottom.Control = BitBtn21
-      Left = 5
-      Height = 44
+      Left = 6
+      Height = 51
       Hint = 'Imprimir la venta actual.'
-      Top = 524
-      Width = 210
+      Top = 501
+      Width = 242
       Anchors = [akLeft, akRight, akBottom]
-      BorderSpacing.Left = 4
-      BorderSpacing.Right = 4
-      BorderSpacing.Bottom = 4
+      BorderSpacing.Left = 5
+      BorderSpacing.Right = 5
+      BorderSpacing.Bottom = 5
       Caption = 'Imprimir'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Glyph.Data = {
         FE0A0000424DFE0A00000000000036000000280000001E0000001E0000000100
@@ -5248,17 +5268,17 @@ object FVentas: TFVentas
       AnchorSideRight.Control = botones
       AnchorSideRight.Side = asrBottom
       AnchorSideBottom.Control = BitBtn15
-      Left = 5
-      Height = 44
+      Left = 6
+      Height = 51
       Hint = 'Si hay lineas en ventas puede crear pedidos / Si la venta esta vacía, puede recuperar pedidos.'
-      Top = 572
-      Width = 210
+      Top = 557
+      Width = 242
       Anchors = [akLeft, akRight, akBottom]
-      BorderSpacing.Left = 4
-      BorderSpacing.Right = 4
-      BorderSpacing.Bottom = 4
+      BorderSpacing.Left = 5
+      BorderSpacing.Right = 5
+      BorderSpacing.Bottom = 5
       Caption = 'Pedido'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Glyph.Data = {
         460E0000424D460E00000000000036000000280000001E0000001E0000000100
@@ -5388,17 +5408,17 @@ object FVentas: TFVentas
       AnchorSideRight.Control = botones
       AnchorSideRight.Side = asrBottom
       AnchorSideBottom.Control = BitBtn16
-      Left = 5
-      Height = 44
+      Left = 6
+      Height = 51
       Hint = 'Realizar / Recuperar un presupuesto / proforma'
-      Top = 428
-      Width = 210
+      Top = 389
+      Width = 242
       Anchors = [akLeft, akRight, akBottom]
-      BorderSpacing.Left = 4
-      BorderSpacing.Right = 4
-      BorderSpacing.Bottom = 4
+      BorderSpacing.Left = 5
+      BorderSpacing.Right = 5
+      BorderSpacing.Bottom = 5
       Caption = 'Pre./Pro.'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Glyph.Data = {
         FE0A0000424DFE0A00000000000036000000280000001E0000001E0000000100
@@ -5502,17 +5522,17 @@ object FVentas: TFVentas
       AnchorSideRight.Control = botones
       AnchorSideRight.Side = asrBottom
       AnchorSideBottom.Control = BitBtn7
-      Left = 5
-      Height = 40
+      Left = 6
+      Height = 46
       Hint = 'Borrar todas las lineas de venta'
-      Top = 620
-      Width = 210
+      Top = 613
+      Width = 242
       Anchors = [akLeft, akRight, akBottom]
-      BorderSpacing.Left = 4
-      BorderSpacing.Right = 4
-      BorderSpacing.Bottom = 4
+      BorderSpacing.Left = 5
+      BorderSpacing.Right = 5
+      BorderSpacing.Bottom = 5
       Caption = 'Borrar'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Glyph.Data = {
         26040000424D2604000000000000360000002800000012000000120000000100
@@ -5562,9 +5582,9 @@ object FVentas: TFVentas
       AnchorSideBottom.Control = botones
       AnchorSideBottom.Side = asrBottom
       Left = 4
-      Height = 37
+      Height = 43
       Top = 664
-      Width = 212
+      Width = 246
       Anchors = [akLeft, akRight, akBottom]
       BorderSpacing.Left = 3
       BorderSpacing.Right = 3
@@ -5572,7 +5592,7 @@ object FVentas: TFVentas
       Caption = 'Salir    [ESC]'
       Color = clMaroon
       Font.Color = clWhite
-      Font.Height = -14
+      Font.Height = -16
       Font.Name = 'Sans'
       Glyph.Data = {
         26040000424D2604000000000000360000002800000012000000120000000100
@@ -5620,21 +5640,21 @@ object FVentas: TFVentas
       AnchorSideRight.Control = botones
       AnchorSideRight.Side = asrBottom
       AnchorSideBottom.Control = BitBtn8
-      Left = 5
-      Height = 313
-      Top = 5
-      Width = 210
+      Left = 6
+      Height = 255
+      Top = 6
+      Width = 242
       Anchors = [akTop, akLeft, akRight, akBottom]
-      BorderSpacing.Left = 4
-      BorderSpacing.Top = 4
-      BorderSpacing.Right = 4
-      BorderSpacing.Bottom = 12
+      BorderSpacing.Left = 5
+      BorderSpacing.Top = 5
+      BorderSpacing.Right = 5
+      BorderSpacing.Bottom = 14
       BevelColor = clMaroon
       BevelInner = bvLowered
       BevelOuter = bvLowered
       BorderStyle = bsSingle
-      ClientHeight = 311
-      ClientWidth = 208
+      ClientHeight = 253
+      ClientWidth = 240
       Color = clWindow
       ParentBackground = False
       ParentColor = False
@@ -5645,16 +5665,16 @@ object FVentas: TFVentas
         AnchorSideRight.Control = Panel16
         AnchorSideRight.Side = asrBottom
         AnchorSideBottom.Control = Image1
-        Left = 6
-        Height = 273
-        Top = 6
-        Width = 196
+        Left = 7
+        Height = 209
+        Top = 7
+        Width = 226
         Align = alCustom
         Anchors = [akTop, akLeft, akRight, akBottom]
-        BorderSpacing.Left = 4
-        BorderSpacing.Top = 4
-        BorderSpacing.Right = 4
-        BorderSpacing.Bottom = 4
+        BorderSpacing.Left = 5
+        BorderSpacing.Top = 5
+        BorderSpacing.Right = 5
+        BorderSpacing.Bottom = 5
         ParentColor = False
         Text = 'FACTURLINEX'
         BackgroundColor = clWindow
@@ -5667,13 +5687,13 @@ object FVentas: TFVentas
         AnchorSideRight.Side = asrBottom
         AnchorSideBottom.Control = Panel16
         AnchorSideBottom.Side = asrBottom
-        Left = 6
-        Height = 26
-        Top = 283
-        Width = 196
+        Left = 7
+        Height = 30
+        Top = 221
+        Width = 226
         Anchors = [akLeft, akRight, akBottom]
-        BorderSpacing.Left = 4
-        BorderSpacing.Right = 4
+        BorderSpacing.Left = 5
+        BorderSpacing.Right = 5
         Center = True
         ParentShowHint = False
         Picture.Data = {
@@ -5908,17 +5928,17 @@ object FVentas: TFVentas
     end
   end
   object Panel4: TPanel
-    Left = 340
-    Height = 439
-    Top = 144
-    Width = 527
+    Left = 393
+    Height = 508
+    Top = 167
+    Width = 610
     BevelInner = bvRaised
     BorderWidth = 2
     BorderStyle = bsSingle
-    ClientHeight = 437
-    ClientWidth = 525
+    ClientHeight = 506
+    ClientWidth = 608
     Color = clSkyBlue
-    Font.Height = -11
+    Font.Height = -13
     Font.Name = 'Sans'
     ParentBackground = False
     ParentColor = False
@@ -5926,13 +5946,13 @@ object FVentas: TFVentas
     TabOrder = 4
     Visible = False
     object Label81: TLabel
-      Left = 173
-      Height = 29
-      Top = 213
-      Width = 131
+      Left = 200
+      Height = 34
+      Top = 246
+      Width = 152
       AutoSize = False
       Caption = 'CONTADO'
-      Font.Height = -22
+      Font.Height = -25
       Font.Name = 'Sans'
       Font.Style = [fsBold]
       Layout = tlCenter
@@ -5942,16 +5962,16 @@ object FVentas: TFVentas
     end
     object Panel12: TPanel
       Left = 4
-      Height = 429
+      Height = 498
       Top = 4
-      Width = 517
+      Width = 600
       Align = alClient
       BevelInner = bvLowered
       BevelWidth = 2
-      ClientHeight = 429
-      ClientWidth = 517
+      ClientHeight = 498
+      ClientWidth = 600
       Color = clSilver
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       ParentBackground = False
       ParentColor = False
@@ -5963,18 +5983,18 @@ object FVentas: TFVentas
         AnchorSideRight.Control = Panel12
         AnchorSideRight.Side = asrBottom
         Left = 7
-        Height = 64
-        Top = 361
-        Width = 503
+        Height = 74
+        Top = 420
+        Width = 586
         Align = alBottom
         BorderSpacing.Left = 3
         BorderSpacing.Right = 3
         BevelInner = bvLowered
         BevelWidth = 2
-        ClientHeight = 64
-        ClientWidth = 503
+        ClientHeight = 74
+        ClientWidth = 586
         Color = clSkyBlue
-        Font.Height = -11
+        Font.Height = -13
         Font.Name = 'Sans'
         ParentBackground = False
         ParentColor = False
@@ -5982,15 +6002,15 @@ object FVentas: TFVentas
         TabOrder = 0
         object Label82: TLabel
           AnchorSideTop.Control = Panel13
-          Left = 11
-          Height = 22
-          Top = 23
-          Width = 444
+          Left = 13
+          Height = 25
+          Top = 26
+          Width = 514
           Alignment = taCenter
           AutoSize = False
-          BorderSpacing.Top = 19
+          BorderSpacing.Top = 22
           Caption = 'Usuario que realizó la operación'
-          Font.Height = -16
+          Font.Height = -19
           Font.Name = 'Sans'
           Font.Style = [fsItalic]
           ParentColor = False
@@ -5999,13 +6019,13 @@ object FVentas: TFVentas
       end
     end
     object Label27: TLabel
-      Left = 11
-      Height = 29
-      Top = 76
-      Width = 127
+      Left = 13
+      Height = 34
+      Top = 88
+      Width = 147
       AutoSize = False
       Caption = 'IMPORTE'
-      Font.Height = -22
+      Font.Height = -25
       Font.Name = 'Sans'
       Font.Style = [fsBold]
       Layout = tlCenter
@@ -6013,13 +6033,13 @@ object FVentas: TFVentas
       ParentFont = False
     end
     object Label29: TLabel
-      Left = 188
-      Height = 29
-      Top = 76
-      Width = 105
+      Left = 217
+      Height = 34
+      Top = 88
+      Width = 121
       AutoSize = False
       Caption = '% DTO.'
-      Font.Height = -22
+      Font.Height = -25
       Font.Name = 'Sans'
       Font.Style = [fsBold]
       Layout = tlCenter
@@ -6027,13 +6047,13 @@ object FVentas: TFVentas
       ParentFont = False
     end
     object Label30: TLabel
-      Left = 310
-      Height = 29
-      Top = 76
-      Width = 122
+      Left = 359
+      Height = 34
+      Top = 88
+      Width = 141
       AutoSize = False
       Caption = 'TOTAL'
-      Font.Height = -22
+      Font.Height = -25
       Font.Name = 'Sans'
       Font.Style = [fsBold]
       Layout = tlCenter
@@ -6041,13 +6061,13 @@ object FVentas: TFVentas
       ParentFont = False
     end
     object Label31: TLabel
-      Left = 173
-      Height = 29
-      Top = 163
-      Width = 131
+      Left = 200
+      Height = 34
+      Top = 189
+      Width = 152
       AutoSize = False
       Caption = 'E&NTREGA'
-      Font.Height = -22
+      Font.Height = -25
       Font.Name = 'Sans'
       Font.Style = [fsBold]
       Layout = tlCenter
@@ -6055,13 +6075,13 @@ object FVentas: TFVentas
       ParentFont = False
     end
     object Label28: TLabel
-      Left = 11
-      Height = 29
-      Top = 22
-      Width = 127
+      Left = 13
+      Height = 34
+      Top = 25
+      Width = 147
       AutoSize = False
       Caption = 'F. PAGO'
-      Font.Height = -22
+      Font.Height = -25
       Font.Name = 'Sans'
       Font.Style = [fsBold]
       Layout = tlCenter
@@ -6069,13 +6089,13 @@ object FVentas: TFVentas
       ParentFont = False
     end
     object Label32: TLabel
-      Left = 173
-      Height = 29
-      Top = 214
-      Width = 131
+      Left = 200
+      Height = 34
+      Top = 248
+      Width = 152
       AutoSize = False
       Caption = 'CAMBIO'
-      Font.Height = -22
+      Font.Height = -25
       Font.Name = 'Sans'
       Font.Style = [fsBold]
       Layout = tlCenter
@@ -6089,15 +6109,15 @@ object FVentas: TFVentas
       AnchorSideRight.Side = asrBottom
       AnchorSideBottom.Control = Panel4
       AnchorSideBottom.Side = asrBottom
-      Left = 395
-      Height = 32
-      Top = 392
-      Width = 126
+      Left = 457
+      Height = 37
+      Top = 455
+      Width = 147
       Anchors = [akLeft, akRight, akBottom]
-      BorderSpacing.Left = 4
-      BorderSpacing.Bottom = 9
+      BorderSpacing.Left = 5
+      BorderSpacing.Bottom = 10
       Caption = 'Salir'
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -6172,14 +6192,14 @@ object FVentas: TFVentas
     end
     object Edit12: TEdit
       AnchorSideLeft.Control = Panel4
-      Left = 9
-      Height = 43
-      Top = 105
-      Width = 163
+      Left = 10
+      Height = 51
+      Top = 121
+      Width = 189
       Alignment = taRightJustify
-      BorderSpacing.Left = 5
+      BorderSpacing.Left = 6
       CharCase = ecUppercase
-      Font.Height = -25
+      Font.Height = -29
       Font.Name = 'Sans'
       Font.Style = [fsBold]
       ParentFont = False
@@ -6191,16 +6211,16 @@ object FVentas: TFVentas
       AnchorSideLeft.Control = Edit12
       AnchorSideLeft.Side = asrBottom
       AnchorSideRight.Control = Edit14
-      Left = 186
-      Height = 43
-      Top = 105
-      Width = 110
+      Left = 215
+      Height = 51
+      Top = 121
+      Width = 128
       Alignment = taRightJustify
       Anchors = [akTop, akLeft, akRight]
-      BorderSpacing.Left = 14
-      BorderSpacing.Right = 14
+      BorderSpacing.Left = 16
+      BorderSpacing.Right = 16
       CharCase = ecUppercase
-      Font.Height = -25
+      Font.Height = -29
       Font.Name = 'Sans'
       Font.Style = [fsBold]
       ParentFont = False
@@ -6210,15 +6230,15 @@ object FVentas: TFVentas
     object Edit14: TEdit
       AnchorSideRight.Control = Panel4
       AnchorSideRight.Side = asrBottom
-      Left = 310
-      Height = 43
-      Top = 105
-      Width = 201
+      Left = 359
+      Height = 51
+      Top = 121
+      Width = 233
       Alignment = taRightJustify
       Anchors = [akTop, akLeft, akRight]
-      BorderSpacing.Right = 10
+      BorderSpacing.Right = 12
       CharCase = ecUppercase
-      Font.Height = -25
+      Font.Height = -29
       Font.Name = 'Sans'
       Font.Style = [fsBold]
       ParentFont = False
@@ -6230,16 +6250,16 @@ object FVentas: TFVentas
       AnchorSideBottom.Control = Panel4
       AnchorSideBottom.Side = asrBottom
       Left = 7
-      Height = 32
+      Height = 37
       Hint = 'Totalizar sin ticket. (F8)'
-      Top = 392
-      Width = 94
+      Top = 455
+      Width = 109
       Anchors = [akLeft, akBottom]
       BidiMode = bdRightToLeft
       BorderSpacing.Left = 3
-      BorderSpacing.Bottom = 9
+      BorderSpacing.Bottom = 10
       Caption = 'Totalizar-F8'
-      Font.Height = -10
+      Font.Height = -12
       Font.Name = 'Sans'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -6319,17 +6339,17 @@ object FVentas: TFVentas
       AnchorSideRight.Control = BitBtn12
       AnchorSideBottom.Control = Panel4
       AnchorSideBottom.Side = asrBottom
-      Left = 105
-      Height = 32
+      Left = 121
+      Height = 37
       Hint = 'Totalizar operacion con ticket. (F9)'
-      Top = 392
-      Width = 86
+      Top = 455
+      Width = 99
       Anchors = [akLeft, akBottom]
       BidiMode = bdRightToLeft
-      BorderSpacing.Left = 4
-      BorderSpacing.Bottom = 9
+      BorderSpacing.Left = 5
+      BorderSpacing.Bottom = 10
       Caption = 'Ticket-F9'
-      Font.Height = -10
+      Font.Height = -12
       Font.Name = 'Sans'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -6409,16 +6429,16 @@ object FVentas: TFVentas
       AnchorSideRight.Control = BitBtn13
       AnchorSideBottom.Control = Panel4
       AnchorSideBottom.Side = asrBottom
-      Left = 195
-      Height = 32
-      Top = 392
-      Width = 102
+      Left = 225
+      Height = 37
+      Top = 455
+      Width = 118
       Anchors = [akLeft, akBottom]
       BidiMode = bdRightToLeft
-      BorderSpacing.Left = 4
-      BorderSpacing.Bottom = 9
+      BorderSpacing.Left = 5
+      BorderSpacing.Bottom = 10
       Caption = 'Albaran-F10'
-      Font.Height = -10
+      Font.Height = -12
       Font.Name = 'Sans'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -6497,16 +6517,16 @@ object FVentas: TFVentas
       AnchorSideLeft.Side = asrBottom
       AnchorSideBottom.Control = Panel4
       AnchorSideBottom.Side = asrBottom
-      Left = 301
-      Height = 32
-      Top = 392
-      Width = 90
+      Left = 348
+      Height = 37
+      Top = 455
+      Width = 104
       Anchors = [akLeft, akBottom]
       BidiMode = bdRightToLeft
-      BorderSpacing.Left = 4
-      BorderSpacing.Bottom = 9
+      BorderSpacing.Left = 5
+      BorderSpacing.Bottom = 10
       Caption = 'Factura-F11'
-      Font.Height = -10
+      Font.Height = -12
       Font.Name = 'Sans'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -6584,17 +6604,17 @@ object FVentas: TFVentas
       AnchorSideTop.Control = Panel4
       AnchorSideRight.Control = Panel4
       AnchorSideRight.Side = asrBottom
-      Left = 138
-      Height = 45
-      Top = 11
-      Width = 373
+      Left = 160
+      Height = 53
+      Top = 12
+      Width = 432
       Anchors = [akTop, akLeft, akRight]
       AutoComplete = True
       AutoCompleteText = [cbactEnabled, cbactEndOfLineComplete, cbactSearchAscending]
-      BorderSpacing.Top = 7
-      BorderSpacing.Right = 10
+      BorderSpacing.Top = 8
+      BorderSpacing.Right = 12
       CharCase = ecUppercase
-      Font.Height = -25
+      Font.Height = -29
       Font.Name = 'Sans'
       Font.Style = [fsBold]
       ItemHeight = 0
@@ -6620,16 +6640,16 @@ object FVentas: TFVentas
       AnchorSideTop.Side = asrBottom
       AnchorSideRight.Control = Panel4
       AnchorSideRight.Side = asrBottom
-      Left = 310
-      Height = 43
-      Top = 201
-      Width = 201
+      Left = 359
+      Height = 51
+      Top = 235
+      Width = 233
       Alignment = taRightJustify
       Anchors = [akTop, akLeft, akRight]
-      BorderSpacing.Top = 5
-      BorderSpacing.Right = 10
+      BorderSpacing.Top = 6
+      BorderSpacing.Right = 12
       CharCase = ecUppercase
-      Font.Height = -25
+      Font.Height = -29
       Font.Name = 'Sans'
       Font.Style = [fsBold]
       ParentFont = False
@@ -6642,16 +6662,16 @@ object FVentas: TFVentas
       AnchorSideTop.Side = asrBottom
       AnchorSideRight.Control = Panel4
       AnchorSideRight.Side = asrBottom
-      Left = 310
-      Height = 43
-      Top = 251
-      Width = 201
+      Left = 359
+      Height = 51
+      Top = 294
+      Width = 233
       Alignment = taRightJustify
       Anchors = [akTop, akLeft, akRight]
-      BorderSpacing.Top = 7
-      BorderSpacing.Right = 10
+      BorderSpacing.Top = 8
+      BorderSpacing.Right = 12
       CharCase = ecUppercase
-      Font.Height = -25
+      Font.Height = -29
       Font.Name = 'Sans'
       Font.Style = [fsBold]
       ParentFont = False
@@ -6663,16 +6683,16 @@ object FVentas: TFVentas
       AnchorSideTop.Side = asrBottom
       AnchorSideRight.Control = Panel4
       AnchorSideRight.Side = asrBottom
-      Left = 310
-      Height = 43
-      Top = 153
-      Width = 201
+      Left = 359
+      Height = 51
+      Top = 178
+      Width = 233
       Alignment = taRightJustify
       Anchors = [akTop, akLeft, akRight]
-      BorderSpacing.Top = 5
-      BorderSpacing.Right = 10
+      BorderSpacing.Top = 6
+      BorderSpacing.Right = 12
       CharCase = ecUppercase
-      Font.Height = -25
+      Font.Height = -29
       Font.Name = 'Sans'
       Font.Style = [fsBold]
       ParentFont = False
@@ -6680,12 +6700,12 @@ object FVentas: TFVentas
       OnExit = Edit15Exit
     end
     object ChBoxRegalo: TCheckBox
-      Left = 7
-      Height = 21
-      Top = 164
-      Width = 102
+      Left = 8
+      Height = 22
+      Top = 190
+      Width = 117
       Caption = ' + Ticket Regalo.'
-      Font.Height = -10
+      Font.Height = -12
       Font.Name = 'Sans'
       Font.Style = [fsBold, fsItalic]
       ParentFont = False
@@ -6693,20 +6713,20 @@ object FVentas: TFVentas
     end
     object cbImprimir: TCheckBox
       AnchorSideBottom.Control = BitBtn10
-      Left = 14
-      Height = 60
-      Top = 332
-      Width = 161
+      Left = 16
+      Height = 71
+      Top = 384
+      Width = 181
       Anchors = [akTop, akLeft, akBottom]
       Caption = '&Imprimir Albarán / Factura'
       TabOrder = 14
     end
     object cbImpresionDirecta: TCheckBox
       AnchorSideBottom.Control = BitBtn10
-      Left = 199
-      Height = 50
-      Top = 342
-      Width = 114
+      Left = 232
+      Height = 59
+      Top = 396
+      Width = 129
       Anchors = [akTop, akBottom]
       Caption = 'Impresión &directa'
       Checked = True
@@ -6716,13 +6736,13 @@ object FVentas: TFVentas
     object edNumeroCopias: TEdit
       AnchorSideRight.Control = Panel4
       AnchorSideRight.Side = asrBottom
-      Left = 445
-      Height = 24
-      Top = 343
-      Width = 54
+      Left = 515
+      Height = 28
+      Top = 397
+      Width = 64
       Alignment = taCenter
       Anchors = [akTop, akLeft, akRight]
-      BorderSpacing.Right = 22
+      BorderSpacing.Right = 25
       NumbersOnly = True
       TabOrder = 16
       Text = '1'
@@ -6730,23 +6750,23 @@ object FVentas: TFVentas
     object lbNumeroCopias: TLabel
       AnchorSideRight.Control = edNumeroCopias
       AnchorSideBottom.Control = BitBtn13
-      Left = 386
-      Height = 33
-      Top = 348
-      Width = 48
+      Left = 446
+      Height = 39
+      Top = 403
+      Width = 56
       Anchors = [akTop, akLeft, akRight, akBottom]
-      BorderSpacing.Right = 11
-      BorderSpacing.Bottom = 11
+      BorderSpacing.Right = 13
+      BorderSpacing.Bottom = 13
       Caption = '&Copias'
     end
     object cbCorreoElectronico: TCheckBox
       AnchorSideBottom.Control = cbImprimir
-      Left = 14
-      Height = 18
-      Top = 310
-      Width = 174
+      Left = 16
+      Height = 20
+      Top = 359
+      Width = 195
       Anchors = [akTop, akLeft, akBottom]
-      BorderSpacing.Bottom = 4
+      BorderSpacing.Bottom = 5
       Caption = 'Envío por correo &electrónico.'
       TabOrder = 17
     end
@@ -6755,42 +6775,42 @@ object FVentas: TFVentas
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 54
-    Top = 35
+    Left = 62
+    Top = 40
   end
   object dbArti: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 71
-    Top = 166
+    Left = 82
+    Top = 192
   end
   object dbVentas: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 12
-    Top = 166
+    Left = 14
+    Top = 192
   end
   object Datasource1: TDataSource
     DataSet = dbVentas
     OnDataChange = Datasource1DataChange
-    Left = 42
-    Top = 166
+    Left = 49
+    Top = 192
   end
   object dbTrabajo: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 735
-    Top = 150
+    Left = 850
+    Top = 173
   end
   object dbBusca: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 83
-    Top = 35
+    Left = 96
+    Top = 40
   end
   object frReport1: TfrReport
     Dataset = frDBDataSet1
@@ -6802,47 +6822,47 @@ object FVentas: TFVentas
     Title = 'Presupuestos / Proformas de clientes'
     OnGetValue = frReport1GetValue
     OnEnterRect = frReport1EnterRect
-    Left = 718
-    Top = 540
+    Left = 830
+    Top = 625
   end
   object frDBDataSet1: TfrDBDataSet
     DataSet = dbMuestrad
-    Left = 747
-    Top = 540
+    Left = 864
+    Top = 625
   end
   object dbTiendas: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 676
-    Top = 150
+    Left = 782
+    Top = 173
   end
   object dbSeries: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 706
-    Top = 150
+    Left = 817
+    Top = 173
   end
   object dbMuestrad: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 759
-    Top = 150
+    Left = 878
+    Top = 173
   end
   object dbTickets: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 42
-    Top = 42
+    Left = 49
+    Top = 49
   end
   object Datasource2: TDataSource
     DataSet = dbTickets
     OnDataChange = Datasource2DataChange
-    Left = 71
-    Top = 42
+    Left = 82
+    Top = 49
   end
   object frReport2: TfrReport
     Dataset = frDBDataSet2
@@ -6853,72 +6873,72 @@ object FVentas: TFVentas
     DataType = dtDataSet
     Title = 'Presupuestos / Proformas de clientes'
     OnGetValue = frReport2GetValue
-    Left = 354
-    Top = 533
+    Left = 409
+    Top = 616
   end
   object frDBDataSet2: TfrDBDataSet
     DataSet = dbVentas
-    Left = 380
-    Top = 533
+    Left = 440
+    Top = 616
   end
   object dbPedi: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 830
-    Top = 166
+    Left = 960
+    Top = 192
   end
   object dbPedid: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 830
-    Top = 195
+    Left = 960
+    Top = 226
   end
   object Datasource3: TDataSource
     DataSet = dbPedi
-    Left = 830
-    Top = 220
+    Left = 960
+    Top = 254
   end
   object dbCajas: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 12
-    Top = 491
+    Left = 14
+    Top = 568
   end
   object dbHiPedic: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 830
-    Top = 249
+    Left = 960
+    Top = 288
   end
   object dbHiPedid: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 830
-    Top = 278
+    Left = 960
+    Top = 322
   end
   object Datasource4: TDataSource
     DataSet = dbHiPedic
-    Left = 830
-    Top = 303
+    Left = 960
+    Top = 350
   end
   object dbImprimir: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 325
-    Top = 533
+    Left = 376
+    Top = 616
   end
   object dbPuntos: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 95
-    Top = 166
+    Left = 110
+    Top = 192
   end
   object frReport3: TfrReport
     InitialZoom = pzDefault
@@ -6926,28 +6946,28 @@ object FVentas: TFVentas
     PreviewButtons = [pbZoom, pbLoad, pbSave, pbPrint, pbFind, pbHelp, pbExit]
     DataType = dtDataSet
     OnGetValue = frReport3GetValue
-    Left = 361
-    Top = 22
+    Left = 418
+    Top = 25
   end
   object Timer1: TTimer
     Enabled = False
     OnTimer = Timer1Timer
     OnStopTimer = Timer1StopTimer
-    Left = 108
-    Top = 4
+    Left = 125
+    Top = 5
   end
   object dbUsu: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 131
-    Top = 166
+    Left = 152
+    Top = 192
   end
   object dbIva: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 735
-    Top = 178
+    Left = 850
+    Top = 206
   end
 end

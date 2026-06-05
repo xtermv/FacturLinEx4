@@ -1,0 +1,204 @@
+object fBackupFTPConfig: TfBackupFTPConfig
+  Left = 440
+  Height = 460
+  Top = 220
+  Width = 640
+  Caption = 'Configuración Backup FTP'
+  ClientHeight = 460
+  ClientWidth = 640
+  OnCreate = FormCreate
+  OnShow = FormShow
+  Position = poScreenCenter
+  LCLVersion = '3.0'
+  object lblProto: TLabel
+    Left = 16
+    Height = 15
+    Top = 16
+    Width = 56
+    Caption = 'Protocolo'
+  end
+  object cbProto: TComboBox
+    Left = 16
+    Height = 23
+    Top = 36
+    Width = 100
+    Style = csDropDownList
+    TabOrder = 0
+  end
+  object lblHost: TLabel
+    Left = 136
+    Height = 15
+    Top = 16
+    Width = 43
+    Caption = 'Servidor'
+  end
+  object edHost: TEdit
+    Left = 136
+    Height = 23
+    Top = 36
+    Width = 240
+    TabOrder = 1
+  end
+  object lblPort: TLabel
+    Left = 392
+    Height = 15
+    Top = 16
+    Width = 32
+    Caption = 'Puerto'
+  end
+  object edPort: TEdit
+    Left = 392
+    Height = 23
+    Top = 36
+    Width = 70
+    TabOrder = 2
+    Text = '21'
+  end
+  object lblUser: TLabel
+    Left = 16
+    Height = 15
+    Top = 72
+    Width = 39
+    Caption = 'Usuario'
+  end
+  object edUser: TEdit
+    Left = 16
+    Height = 23
+    Top = 92
+    Width = 210
+    TabOrder = 3
+  end
+  object lblPassword: TLabel
+    Left = 240
+    Height = 15
+    Top = 72
+    Width = 61
+    Caption = 'Contraseña'
+  end
+  object edPassword: TEdit
+    Left = 240
+    Height = 23
+    Top = 92
+    Width = 222
+    TabOrder = 4
+  end
+  object lblRemoteDir: TLabel
+    Left = 16
+    Height = 15
+    Top = 128
+    Width = 96
+    Caption = 'Carpeta remota FTP'
+  end
+  object edRemoteDir: TEdit
+    Left = 16
+    Height = 23
+    Top = 148
+    Width = 446
+    TabOrder = 5
+    Text = '/copias/facturlinex'
+  end
+  object chkCreateRemoteDir: TCheckBox
+    Left = 16
+    Height = 23
+    Top = 184
+    Width = 210
+    Caption = 'Crear carpeta remota si no existe'
+    TabOrder = 6
+  end
+  object chkPassive: TCheckBox
+    Left = 248
+    Height = 23
+    Top = 184
+    Width = 150
+    Caption = 'Modo pasivo'
+    TabOrder = 7
+  end
+  object chkCompress: TCheckBox
+    Left = 16
+    Height = 23
+    Top = 216
+    Width = 160
+    Caption = 'Comprimir backup'
+    TabOrder = 8
+  end
+  object lblArchiveFormat: TLabel
+    Left = 200
+    Height = 15
+    Top = 220
+    Width = 96
+    Caption = 'Formato compresión'
+  end
+  object cbArchiveFormat: TComboBox
+    Left = 312
+    Height = 23
+    Top = 216
+    Width = 100
+    Style = csDropDownList
+    TabOrder = 9
+  end
+  object chkEncryptArchive: TCheckBox
+    Left = 16
+    Height = 23
+    Top = 252
+    Width = 210
+    Caption = 'Cifrar archivo comprimido'
+    TabOrder = 10
+  end
+  object lblArchivePassword: TLabel
+    Left = 240
+    Height = 15
+    Top = 252
+    Width = 112
+    Caption = 'Clave archivo cifrado'
+  end
+  object edArchivePassword: TEdit
+    Left = 360
+    Height = 23
+    Top = 248
+    Width = 220
+    TabOrder = 11
+  end
+  object chkDeleteSourceAfterArchive: TCheckBox
+    Left = 16
+    Height = 23
+    Top = 288
+    Width = 270
+    Caption = 'Borrar carpeta local tras comprimir'
+    TabOrder = 12
+  end
+  object chkDeleteArchiveAfterFTP: TCheckBox
+    Left = 16
+    Height = 23
+    Top = 320
+    Width = 260
+    Caption = 'Borrar archivo tras subir al FTP'
+    TabOrder = 13
+  end
+  object lblNote: TLabel
+    Left = 16
+    Height = 45
+    Top = 352
+    Width = 590
+    AutoSize = False
+    WordWrap = True
+    Caption = 'Las contraseñas deben guardarse con el cifrado propio de FacturLinEx. Hasta enlazar ese cifrado en el código, este formulario permite guardar host, usuario, puerto y ruta, y la contraseña se puede pedir al lanzar el backup FLX + FTP.'
+  end
+  object btnGuardar: TButton
+    Left = 430
+    Height = 30
+    Top = 416
+    Width = 90
+    Caption = 'Guardar'
+    OnClick = btnGuardarClick
+    TabOrder = 14
+  end
+  object btnCancelar: TButton
+    Left = 530
+    Height = 30
+    Top = 416
+    Width = 90
+    Caption = 'Cancelar'
+    OnClick = btnCancelarClick
+    TabOrder = 15
+  end
+end

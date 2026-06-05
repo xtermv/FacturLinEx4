@@ -29,6 +29,11 @@ function VeriFactu_TakeNextPending(out Serie: string; out Numero: Integer;
   out PayloadJSON: string; out EncadenamientoHash: string): Boolean;
 
 
+
+// Reclama UNA factura concreta PENDIENTE (serie+numero) y recalcula encadenamiento.
+function VeriFactu_TakeSpecificPending(const SerieIn: string; const NumeroIn: Integer;
+  out PayloadJSON: string; out EncadenamientoHash: string): Boolean;
+
 // Marca una factura como ENVIADO. Permite guardar hash y respuesta (opcional).
 procedure VeriFactu_MarkSent(const Serie: string; const Numero: Integer; const Hash: string = ''; const Respuesta: string = '');
 
@@ -238,11 +243,23 @@ var
   SUp: string;
 begin
   SUp := UpperCase(Trim(Serie));
-  // Tickets TPV: series tipo FS-A25, FS-XXXX...
+
+  // Rectificativa de factura simplificada: FS-R26, FS-R25, etc.
+  // Debe ir como R5, no como F2.
+  if (Copy(SUp, 1, 4) = 'FS-R') or (Copy(SUp, 1, 5) = 'FS-R-') then
+    Exit('R5');
+
+  // Rectificativa de factura completa: R26, R25, etc.
+  // Usamos R1 como tipo general de rectificativa por diferencias.
+  if (Length(SUp) >= 1) and (SUp[1] = 'R') then
+    Exit('R1');
+
+  // Tickets TPV / factura simplificada normal: FS-A26, FS-B26, etc.
   if (Copy(SUp, 1, 3) = 'FS-') or (Copy(SUp, 1, 2) = 'FS') then
-    Result := 'F2'
-  else
-    Result := 'F1';
+    Exit('F2');
+
+  // Resto: factura completa normal.
+  Result := 'F1';
 end;
 
 // ---------- JSON helpers ----------
@@ -279,6 +296,7 @@ begin
     '"version":"1.2.1",' +
     '"tipo":"FACTURA",' +
     '"cabecera":{' +
+      '"tipoFactura":"' + JsonEscape(VF_DetectTipoFacturaFromSerie(Serie)) + '",' +
       '"serie":"' + JsonEscape(Serie) + '",' +
       '"numero":' + IntToStr(Numero) + ',' +
       '"fecha":"' + FechaISO + '",' +
@@ -490,6 +508,7 @@ begin
 
     // columnas tolerantes (ALTER ... dentro de try/except)
     try qry.SQL.Text := 'ALTER TABLE verifactu_config ADD COLUMN cert_pass_enc VARCHAR(64) NULL'; qry.ExecSQL; except on E: Exception do ; end;
+    try qry.SQL.Text := 'ALTER TABLE verifactu_config ADD COLUMN endpoint_local VARCHAR(255) DEFAULT "http://127.0.0.1:8080/verifactu/test'; qry.ExecSQL; except on E: Exception do ; end;
 
 
     // verifactu_config: insertar fila inicial si está vacía
@@ -672,6 +691,394 @@ begin
   end;
 end;
 
+
+
+function DetectHistoTableExact(Conn: TZConnection; out TableName: string): boolean;
+var
+  q: TZQuery;
+  t: string;
+begin
+  Result := False;
+  TableName := '';
+  q := TZQuery.Create(nil);
+  try
+    q.Connection := Conn;
+    q.SQL.Text :=
+      'SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES ' +
+      'WHERE TABLE_SCHEMA=:db AND TABLE_NAME REGEXP ''^hisopcc[0-9]{4}$'' ORDER BY TABLE_NAME';
+    q.ParamByName('db').AsString := CurrentDatabase(Conn);
+    q.Open;
+    while not q.EOF do
+    begin
+      t := q.Fields[0].AsString;
+      // Requisitos mínimos para leer la rectificación desde histórico
+      if TableHasColumns(Conn, t, ['HO0','HO1','HO2','HO3','HO4','HO20_RECT']) then
+      begin
+        TableName := t;
+        Result := True;
+        Exit;
+      end;
+      q.Next;
+    end;
+  finally
+    q.Free;
+  end;
+end;
+
+function VF_NormalizeRectifTag(const S: string): string;
+begin
+  Result := Trim(S);
+  // Evita ';' final, por consistencia con el formato que usas en facturas
+  while (Result <> '') and (Result[Length(Result)] = ';') do
+    Delete(Result, Length(Result), 1);
+end;
+
+function LoadRectifTagFromFacturaObs(Conn: TZConnection; const Serie: string; Numero: Integer): string;
+var
+  tname: string;
+  q: TZQuery;
+  obs: string;
+  p: Integer;
+begin
+  Result := '';
+  if not DetectCabTableExact(Conn, tname) then Exit;
+
+  q := TZQuery.Create(nil);
+  try
+    try
+      q.Connection := Conn;
+      // FC19 = observaciones (si existe en tu schema)
+      q.SQL.Text := 'SELECT FC19 FROM ' + QuoteIdent(tname) + ' WHERE FC2=:serie AND FC3=:num LIMIT 1';
+      q.ParamByName('serie').AsString := Serie;
+      q.ParamByName('num').AsInteger := Numero;
+      q.Open;
+      if not q.IsEmpty then
+      begin
+        obs := q.Fields[0].AsString;
+        p := Pos('VF_RECTIF:', obs);
+        if p > 0 then
+          Result := VF_NormalizeRectifTag(Copy(obs, p, 255));
+      end;
+    except
+      // Si FC19 no existe o hay cualquier problema, simplemente no devolvemos tag
+      Result := '';
+    end;
+  finally
+    q.Free;
+  end;
+end;
+
+function LoadRectifTagFromHisto(Conn: TZConnection; const Serie: string; Numero: Integer;
+  const FechaISO, HoraISO: string): string;
+var
+  tname: string;
+  q: TZQuery;
+  d: TDate;
+  t: TTime;
+  cand1, cand2, cand3, tail: string;
+  p: Integer;
+
+  function ParseISODate(const S: string; out AD: TDate): Boolean;
+  var
+    Y, M, Dd: Word;
+  begin
+    Result := False;
+    if Length(S) < 10 then Exit;
+    try
+      Y  := StrToInt(Copy(S, 1, 4));
+      M  := StrToInt(Copy(S, 6, 2));
+      Dd := StrToInt(Copy(S, 9, 2));
+      AD := EncodeDate(Y, M, Dd);
+      Result := True;
+    except
+      Result := False;
+    end;
+  end;
+
+  function ParseISOTime(const S: string; out AT: TTime): Boolean;
+  var
+    H, N, Sec: Word;
+  begin
+    Result := False;
+    if Length(S) < 8 then Exit;
+    try
+      H   := StrToInt(Copy(S, 1, 2));
+      N   := StrToInt(Copy(S, 4, 2));
+      Sec := StrToInt(Copy(S, 7, 2));
+      AT := EncodeTime(H, N, Sec, 0);
+      Result := True;
+    except
+      Result := False;
+    end;
+  end;
+
+  function TrimTo3(const S: string): string;
+  begin
+    Result := Trim(S);
+    if Length(Result) > 3 then
+      Result := Copy(Result, 1, 3);
+  end;
+
+  function SameCand(const A, B: string): Boolean;
+  begin
+    Result := (A <> '') and (B <> '') and (AnsiCompareText(A, B) = 0);
+  end;
+
+  function TryWithSerie(const S: string): Boolean;
+  begin
+    Result := False;
+    if S = '' then Exit;
+    if q.Active then q.Close;
+    q.ParamByName('serie').AsString := S;
+    q.Open;
+    Result := not q.IsEmpty;
+  end;
+
+begin
+  Result := '';
+  if not DetectHistoTableExact(Conn, tname) then Exit;
+
+  // Parse defensivo de fecha/hora (sin depender de ISO8601ToDate)
+  if (not ParseISODate(FechaISO, d)) or (not ParseISOTime(HoraISO, t)) then
+    Exit;
+
+  // Candidatos de serie para hisopcc.HO4 (3 chars):
+  // - Si Serie ya viene en 3 caracteres, probamos tal cual.
+  // - Si viene como serie VF (p.ej. 'FS-XX' / 'RYY' / etc.), probamos la parte derecha y/o últimos 3.
+  cand1 := '';
+  cand2 := '';
+  cand3 := '';
+
+  if Length(Trim(Serie)) <= 3 then
+    cand1 := Trim(Serie);
+
+  // Parte derecha después de 'FS-' o del primer '-'
+  if Length(Serie) > 3 then
+  begin
+    tail := Serie;
+    if (Length(Serie) >= 3) and (AnsiCompareText(Copy(Serie, 1, 3), 'FS-') = 0) then
+      tail := Copy(Serie, 4, 255)
+    else
+    begin
+      p := Pos('-', Serie);
+      if p > 0 then
+        tail := Copy(Serie, p + 1, 255);
+    end;
+    cand2 := TrimTo3(tail);
+
+    // Últimos 3 caracteres como fallback
+    if Length(Serie) >= 3 then
+      cand3 := Copy(Serie, Length(Serie) - 2, 3);
+  end;
+
+  q := TZQuery.Create(nil);
+  try
+    q.Connection := Conn;
+    // HO4 es CHAR(3) en hisopcc, por lo que la serie VF tipo "FS-XXX" no casa.
+    // Buscamos por fecha + serie interna (3 chars) + número. La hora se usa si está disponible,
+    // pero no es imprescindible para localizar el registro.
+    q.SQL.Text :=
+      'SELECT HO20_RECT FROM ' + QuoteIdent(tname) +
+      ' WHERE HO0=:d AND HO4=:serie AND HO3=:num AND (HO1=:t OR :t IS NULL)' +
+      ' ORDER BY HO1 DESC LIMIT 1';
+    q.ParamByName('d').AsDate := d;
+    q.ParamByName('num').AsInteger := Numero;
+    q.ParamByName('t').AsTime := t;
+
+    // Intentamos con varios candidatos (sin duplicados)
+    if TryWithSerie(cand1) then
+      Result := VF_NormalizeRectifTag(q.Fields[0].AsString)
+    else if (cand2 <> '') and (not SameCand(cand2, cand1)) and TryWithSerie(cand2) then
+      Result := VF_NormalizeRectifTag(q.Fields[0].AsString)
+    else if (cand3 <> '') and (not SameCand(cand3, cand1)) and (not SameCand(cand3, cand2)) and TryWithSerie(cand3) then
+      Result := VF_NormalizeRectifTag(q.Fields[0].AsString);
+
+  finally
+    q.Free;
+  end;
+end;
+
+function LoadRectifTag(Conn: TZConnection; const Serie: string; Numero: Integer;
+  const FechaISO, HoraISO: string): string;
+begin
+  Result := '';
+  // 1) Preferimos observaciones de factura (factuc.FC19), si existen.
+  Result := LoadRectifTagFromFacturaObs(Conn, Serie, Numero);
+  if Result <> '' then Exit;
+
+  // 2) Fallback a histórico de operaciones (hisopcc.HO20_RECT)
+  Result := LoadRectifTagFromHisto(Conn, Serie, Numero, FechaISO, HoraISO);
+end;
+
+type
+  TVFRectifInfo = record
+    HasRectif: Boolean;
+    OrigIsFS: Boolean;
+    OrigSerieRaw: string;   // tal y como viene en el tag (puede venir FS-A26)
+    OrigSerieInt: string;   // serie interna 3 chars (A26)
+    OrigNumText: string;    // texto del número (para compatibilidad)
+    OrigNum: Integer;       // si es numérico, >0
+  end;
+
+function VF_ParseRectifTag(const Tag: string; out Info: TVFRectifInfo): Boolean;
+var
+  S, Body, Part, Key, Val: string;
+  i, p, eq: Integer;
+  Parts: TStringList;
+begin
+  FillChar(Info, SizeOf(Info), 0);
+  Info.HasRectif := False;
+  Info.OrigNum := 0;
+  Info.OrigNumText := '';
+
+  S := Trim(Tag);
+  if S = '' then Exit(False);
+
+  p := Pos('VF_RECTIF:', S);
+  if p <= 0 then Exit(False);
+
+  Body := Copy(S, p + Length('VF_RECTIF:'), 2048);
+  Parts := TStringList.Create;
+  try
+    Parts.StrictDelimiter := True;
+    Parts.Delimiter := ';';
+    Parts.DelimitedText := Body;
+
+    for i := 0 to Parts.Count - 1 do
+    begin
+      Part := Trim(Parts[i]);
+      if Part = '' then Continue;
+      eq := Pos('=', Part);
+      if eq <= 0 then Continue;
+      Key := UpperCase(Trim(Copy(Part, 1, eq - 1)));
+      Val := Trim(Copy(Part, eq + 1, 2048));
+
+      if Key = 'TYPE' then
+      begin
+        Info.OrigIsFS := (UpperCase(Val) = 'FS');
+        Info.HasRectif := True;
+      end
+      else if Key = 'ORIG_SERIE' then
+        Info.OrigSerieRaw := Val
+      else if Key = 'ORIG_NUM' then
+      begin
+        Info.OrigNumText := Val;
+        Info.OrigNum := StrToIntDef(Val, 0);
+      end;
+    end;
+
+    if not Info.HasRectif then
+      Exit(False);
+
+    // Derivar serie interna de 3 chars (HO4)
+    Info.OrigSerieInt := Trim(Info.OrigSerieRaw);
+    if (Length(Info.OrigSerieInt) >= 3) and (AnsiCompareText(Copy(Info.OrigSerieInt, 1, 3), 'FS-') = 0) then
+      Info.OrigSerieInt := Copy(Info.OrigSerieInt, 4, 255);
+    // Nos quedamos con 3 caracteres máximo
+    Info.OrigSerieInt := Trim(Info.OrigSerieInt);
+    if Length(Info.OrigSerieInt) > 3 then
+      Info.OrigSerieInt := Copy(Info.OrigSerieInt, 1, 3);
+
+    Result := True;
+  finally
+    Parts.Free;
+  end;
+end;
+
+function VF_LoadOrigDateTimeFromHisto(Conn: TZConnection; const SerieInt: string; OrigNum: Integer;
+  ClienteID: Integer; out OrigFechaISO, OrigHoraISO: string): Boolean;
+var
+  tname: string;
+  q: TZQuery;
+  d: TDate;
+  t: TTime;
+  useCli: Boolean;
+begin
+  Result := False;
+  OrigFechaISO := '';
+  OrigHoraISO := '';
+  if (Conn = nil) or (not Conn.Connected) then Exit;
+  if (SerieInt = '') or (OrigNum <= 0) then Exit;
+
+  if not DetectHistoTableExact(Conn, tname) then Exit;
+
+  useCli := (ClienteID > 0);
+
+  q := TZQuery.Create(nil);
+  try
+    q.Connection := Conn;
+    // HO8 = cliente (int). Si lo tenemos, lo usamos para desambiguar.
+    if useCli then
+      q.SQL.Text :=
+        'SELECT HO0, HO1 FROM ' + QuoteIdent(tname) +
+        ' WHERE HO4=:serie AND HO3=:num AND HO8=:cli' +
+        ' ORDER BY HO0 DESC, HO1 DESC LIMIT 1'
+    else
+      q.SQL.Text :=
+        'SELECT HO0, HO1 FROM ' + QuoteIdent(tname) +
+        ' WHERE HO4=:serie AND HO3=:num' +
+        ' ORDER BY HO0 DESC, HO1 DESC LIMIT 1';
+
+    q.ParamByName('serie').AsString := SerieInt;
+    q.ParamByName('num').AsInteger := OrigNum;
+    if useCli then
+      q.ParamByName('cli').AsInteger := ClienteID;
+
+    q.Open;
+    if q.IsEmpty then Exit(False);
+
+    d := q.Fields[0].AsDateTime;
+    t := q.Fields[1].AsDateTime;
+
+    OrigFechaISO := FormatDateTime('yyyy-mm-dd', d);
+    OrigHoraISO  := FormatDateTime('hh:nn:ss', t);
+    Result := True;
+  finally
+    q.Free;
+  end;
+end;
+
+function VF_BuildRectifExtraJSON(Conn: TZConnection; const RectifTag, CodCliente: string): string;
+var
+  Info: TVFRectifInfo;
+  cliID: Integer;
+  ofecha, ohora: string;
+  numJSON: string;
+begin
+  Result := '';
+  if not VF_ParseRectifTag(RectifTag, Info) then Exit('');
+
+  // Cliente (HO8) solo aplica si lo tenemos (facturas normales). En FS suele venir vacío.
+  cliID := StrToIntDef(Trim(CodCliente), 0);
+
+  // Número original: en producción será numérico. En pruebas puedes estar usando YYYYMMDD.
+  if Info.OrigNum > 0 then
+    numJSON := IntToStr(Info.OrigNum)
+  else
+    numJSON := '"' + JsonEscape(Info.OrigNumText) + '"';
+
+  // Intentamos cargar fecha/hora originales desde histórico
+  ofecha := '';
+  ohora := '';
+  if (Info.OrigNum > 0) then
+    VF_LoadOrigDateTimeFromHisto(Conn, Info.OrigSerieInt, Info.OrigNum, cliID, ofecha, ohora);
+
+  // Construimos bloque estructurado para que el sender XML no tenga que consultar BD.
+  Result := '"rectif":{' +
+              '"tipo_rect":"I",' +
+              '"orig_is_fs":' + LowerCase(BoolToStr(Info.OrigIsFS, True)) + ',' +
+              '"orig_serie":"' + JsonEscape(Info.OrigSerieRaw) + '",' +
+              '"orig_serie_int":"' + JsonEscape(Info.OrigSerieInt) + '",' +
+              '"orig_num":' + numJSON;
+
+  if ofecha <> '' then
+    Result := Result + ',"orig_fecha":"' + ofecha + '"';
+  if ohora <> '' then
+    Result := Result + ',"orig_hora":"' + ohora + '"';
+
+  Result := Result + '},';
+end;
+
 procedure LoadHeaderFromCab(Conn: TZConnection; const Serie: string; Numero: Integer;
                             out NIFCliente: string; out CodCliente: string;
                             out TotalSinIVA, TotalConIVA: Double;
@@ -838,18 +1245,28 @@ begin
   Result := S;
 end;
 
-function MergeHeaderIntoJSON(const Payload, NIFCliente, CodCliente, NombreCliente: string;
-                             const TotalSinIVA, TotalConIVA: Double;
-                             LineasTotales: Integer; CantArticulos: Double): string;
+function MergeHeaderIntoJSON(const Payload, NIFCliente, CodCliente, NombreCliente, RectifTag: string;
+  const TotalSinIVA, TotalConIVA: Double;
+  LineasTotales: Integer; CantArticulos: Double;
+  const RectifExtra: string = ''): string;
 var
   S: string;
   NomCliEsc: string;
+  RectPart: string;
 begin
   S := Payload;
   
   // Escapamos por si trae comillas, etc.
   NomCliEsc := JsonEscape(NombreCliente);
-  
+
+  RectPart := '';
+
+  if Trim(RectifTag) <> '' then
+    RectPart := RectPart + '"rectif_tag":"' + JsonEscape(VF_NormalizeRectifTag(RectifTag)) + '",' ;
+
+  if Trim(RectifExtra) <> '' then
+    RectPart := RectPart + RectifExtra;
+
   S := StringReplace(S, '"cabecera":{',
         '"cabecera":{' +
         '"nifCliente":"' + JsonEscape(NIFCliente) + '",' +
@@ -857,7 +1274,7 @@ begin
         '"nombreCliente":"' + NomCliEsc + '",' +
         '"totalSinIVA":' + F2(TotalSinIVA) + ',' +
         '"lineasTotales":' + IntToStr(LineasTotales) + ',' +
-        '"cantidadTotalArticulos":' + F2(CantArticulos) + ',', []);
+        '"cantidadTotalArticulos":' + F2(CantArticulos) + ',' + RectPart, []);
   Result := S;
 end;
 
@@ -866,7 +1283,7 @@ end;
 function TryOpenTempConn(out Temp: TZConnection): boolean;
 var
   Host, Port, DBName, UserName, Password, IniUsed: string;
-  protos: array[0..4] of string = ('mariadb-10','mariadb','mysql-8','mysql-5','mysql');
+  protos: array[0..1] of string = ('mariadb','mysql');
   i: Integer;
 begin
   Result := False;
@@ -927,13 +1344,16 @@ var
   nLineas: Integer;
   nArt: Double;
   NombreCliente: string; // <-- NUEVO
+  RectifTag: string; // <-- rectificativas
+  RectifExtra: string; // <-- rectificativas (bloque JSON estructurado)
 begin
   skel := BuildJSONSkeleton(Serie, Numero, FechaISO, HoraISO, TotalConIVA);
   lines := '[]';
   ivas  := '[]';
   NIFCliente := ''; CodCliente := ''; TSin := 0; TCon := TotalConIVA; nLineas := 0; nArt := 0;
   NombreCliente := ''; // <-- inicializado
-
+  RectifTag := '';
+  RectifExtra := '';
 
   if Assigned(GConn) and GConn.Connected then
   begin
@@ -942,6 +1362,10 @@ begin
       LoadLinesAndTaxes(GConn, Serie, Numero, lines, ivas);
       // NUEVO: intentamos cargar el nombre del cliente desde la tabla clientesNNNN
       NombreCliente := LoadClienteNombreFromDB(GConn, CodCliente);
+      
+      // Rectificativas: tag desde factuc.FC19 o hisopcc.HO20_RECT
+      RectifTag := LoadRectifTag(GConn, Serie, Numero, FechaISO, HoraISO);
+      RectifExtra := VF_BuildRectifExtraJSON(GConn, RectifTag, CodCliente);
     except
       on E: Exception do WriteDiag('BuildJSON(DB) error: ' + E.Message);
     end;
@@ -953,6 +1377,10 @@ begin
       LoadLinesAndTaxes(temp, Serie, Numero, lines, ivas);
       // NUEVO: nombre cliente usando conexión temporal
       NombreCliente := LoadClienteNombreFromDB(temp, CodCliente);
+      
+      RectifTag := LoadRectifTag(temp, Serie, Numero, FechaISO, HoraISO);
+      RectifExtra := VF_BuildRectifExtraJSON(temp, RectifTag, CodCliente);
+RectifTag := LoadRectifTag(temp, Serie, Numero, FechaISO, HoraISO);
     finally
       try if temp.Connected then temp.Disconnect; except end;
       temp.Free;
@@ -962,7 +1390,7 @@ begin
     WriteDiag('BuildJSON: sin DB disponible → JSON básico.');
 
   Result := MergeJSON(skel, lines, ivas);
-  Result := MergeHeaderIntoJSON(Result, NIFCliente, CodCliente, NombreCliente, TSin, TCon, nLineas, nArt);
+  Result := MergeHeaderIntoJSON(Result, NIFCliente, CodCliente, NombreCliente, RectifTag, TSin, TCon, nLineas, nArt, RectifExtra);
 end;
 
 
@@ -972,6 +1400,7 @@ procedure QueueToDB_Conn(Conn: TZConnection; const Serie: string; Numero: Intege
 var
   qry: TZQuery;
   TipoFactura: string;
+  PayloadFinal: string;
 begin
   // Idempotencia: si ya existe, no insertar
   if ExistsInQueue(Conn, Serie, Numero) then
@@ -980,8 +1409,16 @@ begin
     Exit;
   end;
 
-  // Determinamos el tipo de factura en el momento de encolar (F1/F2) según la serie
+  // Determinamos el tipo de factura en el momento de encolar.
+  // OJO: FS-Rxx debe ser R5 y Rxx debe ser R1.
   TipoFactura := VF_DetectTipoFacturaFromSerie(Serie);
+
+  // Guardamos también el tipo dentro del JSON para que el sender no tenga que
+  // recalcularlo ni pueda volver a convertir una FS-Rxx en F2.
+  PayloadFinal := PayloadJSON;
+  if Pos('"tipoFactura"', PayloadFinal) = 0 then
+    PayloadFinal := StringReplace(PayloadFinal, '"cabecera":{',
+      '"cabecera":{"tipoFactura":"' + JsonEscape(TipoFactura) + '",', []);
 
   qry := TZQuery.Create(nil);
   try
@@ -997,7 +1434,7 @@ begin
     qry.ParamByName('fecha').AsString := FechaISO;
     qry.ParamByName('hora').AsString := HoraISO;
     qry.ParamByName('total').AsFloat := TotalConIVA;
-    qry.ParamByName('payload').AsString := PayloadJSON;
+    qry.ParamByName('payload').AsString := PayloadFinal;
     qry.ParamByName('tipo_factura').AsString := TipoFactura;
     qry.ExecSQL;
 
@@ -1012,7 +1449,7 @@ begin
   begin
     try
       WriteDiag('Copia JSON (dual-write) iniciada.');
-      QueueToFiles(Serie, Numero, FechaISO, HoraISO, TotalConIVA, PayloadJSON);
+      QueueToFiles(Serie, Numero, FechaISO, HoraISO, TotalConIVA, PayloadFinal);
     except
       on E: Exception do WriteDiag('Fallo en copia JSON (dual-write): ' + E.Message);
     end;
@@ -1112,10 +1549,106 @@ begin
   end;
 end;
 
+// -------------------- Lock DB para encadenamiento hash/hash_prev --------------------
+// NOTA: Necesario si hay concurrencia (threads o varios procesos) para evitar que varios
+//       registros usen el mismo hash_prev. Se usa GET_LOCK/RELEASE_LOCK (MySQL/MariaDB).
+
+function VF_MakeChainLockName(const Serie: string): string;
+var
+  S: string;
+  k: Integer;
+  ch: Char;
+begin
+  S := Trim(Serie);
+  // Normalizamos: solo [A-Za-z0-9_-] para nombre de lock estable
+  for k := 1 to Length(S) do
+  begin
+    ch := S[k];
+    if not (ch in ['A'..'Z','a'..'z','0'..'9','_','-']) then
+      S[k] := '_';
+  end;
+  Result := 'VF_CHAIN_' + S;
+  // MySQL limita el nombre del lock a 64 caracteres
+  if Length(Result) > 64 then
+    SetLength(Result, 64);
+end;
+
+function VF_DB_GetLock(Conn: TZConnection; const LockName: string; TimeoutSec: Integer): Boolean;
+var
+  q: TZQuery;
+begin
+  Result := False;
+  if (Conn = nil) or (not Conn.Connected) then Exit;
+  q := TZQuery.Create(nil);
+  try
+    q.Connection := Conn;
+    q.SQL.Text := 'SELECT GET_LOCK(:n, :t) AS L';
+    q.ParamByName('n').AsString := LockName;
+    q.ParamByName('t').AsInteger := TimeoutSec;
+    q.Open;
+    // GET_LOCK devuelve 1 si obtiene el lock, 0 si timeout, NULL si error
+    if (not q.IsEmpty) then
+      Result := (q.FieldByName('L').AsInteger = 1);
+  finally
+    q.Free;
+  end;
+end;
+
+procedure VF_DB_ReleaseLock(Conn: TZConnection; const LockName: string);
+var
+  q: TZQuery;
+begin
+  if (Conn = nil) or (not Conn.Connected) then Exit;
+  q := TZQuery.Create(nil);
+  try
+    q.Connection := Conn;
+    q.SQL.Text := 'SELECT RELEASE_LOCK(:n)';
+    q.ParamByName('n').AsString := LockName;
+    q.Open;
+  finally
+    q.Free;
+  end;
+end;
+
 function HostTag: string;
 begin
-  Result := GetEnvironmentVariable('HOSTNAME');
-  if Result = '' then Result := 'host';
+  Result := Trim(GetEnvironmentVariable('HOSTNAME'));
+  if Result = '' then
+    Result := Trim(GetEnvironmentVariable('COMPUTERNAME'));
+  if Result = '' then
+    Result := 'host';
+
+  // El token usa HostTag, así que lo mantenemos corto y sin separadores raros.
+  Result := StringReplace(Result, '|', '-', [rfReplaceAll]);
+  Result := StringReplace(Result, ' ', '_', [rfReplaceAll]);
+  if Length(Result) > 18 then
+    Result := Copy(Result, 1, 18);
+end;
+
+function VF_ClaimTag: string;
+var
+  Host, VPuesto, VEnv: string;
+begin
+  Host := HostTag;
+
+  VPuesto := Trim(Puesto);
+  if VPuesto = '' then
+    VPuesto := '?';
+  VPuesto := StringReplace(VPuesto, '|', '-', [rfReplaceAll]);
+  if Length(VPuesto) > 3 then
+    VPuesto := Copy(VPuesto, 1, 3);
+
+  // Mantenerlo compacto porque verifactu_queue.claimed_by es VARCHAR(64).
+  // Cambiar aquí la versión visible cuando quieras identificar una revisión nueva.
+  VEnv := 'PROD';
+  if (Pos('prewww', LowerCase(vfUrlTP)) > 0) or
+     (Pos('prewww', LowerCase(vfUrl)) > 0) or
+     (Pos('prueba', LowerCase(vfUrlTP)) > 0) then
+    VEnv := 'PRE';
+
+  Result := Host + '|P=' + VPuesto + '|V=33|'+ VEnv;
+  if Length(Result) > 64 then
+    Result := Copy(Result, 1, 64);
 end;
 
 function NewToken: string;
@@ -1131,6 +1664,8 @@ var
   Conn: TZConnection;
   q: TZQuery;
   token: string;
+  LockName: string;
+  Locked: Boolean;
 begin
   Result := False;
   Serie := '';
@@ -1139,6 +1674,7 @@ begin
   EncadenamientoHash := '';
 
   ownTemp := False;
+  Locked := False;
   if not GetConnForOps(Conn) then
   begin
     WriteDiag('TakeNextPending: no hay conexión DB.');
@@ -1160,7 +1696,7 @@ begin
       'ORDER BY created_at ASC ' +
       'LIMIT 1';
     q.ParamByName('t').AsString  := token;
-    q.ParamByName('cb').AsString := HostTag;
+    q.ParamByName('cb').AsString := VF_ClaimTag;
     q.ExecSQL;
 
     if q.RowsAffected = 0 then
@@ -1182,7 +1718,19 @@ begin
     PayloadJSON := q.FieldByName('payload_json').AsString;
 
     // 3) AHORA SÍ: recalculamos hash_prev en este momento
-    VF_AttachHashToQueue(Conn, Serie, Numero, PayloadJSON, 'ALTA');
+    // -- LOCK DB para asegurar encadenamiento (evita hash_prev repetido con concurrencia)
+    LockName := VF_MakeChainLockName(Serie);
+    Locked := VF_DB_GetLock(Conn, LockName, 10);
+    if not Locked then
+    begin
+      WriteDiag('TakeNextPending: GET_LOCK timeout ' + LockName);
+      Exit(False);
+    end;
+    try
+      VF_AttachHashToQueue(Conn, Serie, Numero, PayloadJSON, 'ALTA');
+    finally
+      VF_DB_ReleaseLock(Conn, LockName);
+    end;
 
     // 4) Volvemos a leer la fila, ahora con hash y hash_prev actualizados
     q.Close;
@@ -1204,6 +1752,113 @@ begin
     EncadenamientoHash := q.FieldByName('hash').AsString;
     GHash              := q.FieldByName('hash').AsString;
     GHashPrev          := q.FieldByName('hash_prev').AsString;
+
+    Result := True;
+  finally
+    q.Free;
+    if ownTemp then
+    begin
+      try
+        if Conn.Connected then Conn.Disconnect;
+      except
+      end;
+      Conn.Free;
+    end;
+  end;
+end;
+
+function VeriFactu_TakeSpecificPending(const SerieIn: string; const NumeroIn: Integer;
+  out PayloadJSON: string; out EncadenamientoHash: string): Boolean;
+var
+  ownTemp: Boolean;
+  Conn: TZConnection;
+  q: TZQuery;
+  token: string;
+  LockName: string;
+  Locked: Boolean;
+begin
+  Result := False;
+  PayloadJSON := '';
+  EncadenamientoHash := '';
+
+  ownTemp := False;
+  Locked := False;
+
+  if not GetConnForOps(Conn) then
+  begin
+    WriteDiag('TakeSpecificPending: no hay conexión DB.');
+    Exit(False);
+  end;
+  if Conn <> GConn then ownTemp := True;
+
+  q := TZQuery.Create(nil);
+  try
+    q.Connection := Conn;
+    token := NewToken;
+
+    // 1) Reclamo seguro de ESA PENDIENTE (serie+numero)
+    q.SQL.Text :=
+      'UPDATE verifactu_queue ' +
+      'SET estado="EN_PROCESO", token=:t, claimed_by=:cb, claimed_at=NOW(), ' +
+      '    claimed_until=DATE_ADD(NOW(), INTERVAL 10 MINUTE), intentos=intentos+1, ' +
+      '    updated_at=NOW(), last_attempt_at=NOW() ' +
+      'WHERE estado="PENDIENTE" AND serie=:s AND numero=:n ' +
+      'LIMIT 1';
+    q.ParamByName('t').AsString  := token;
+    q.ParamByName('cb').AsString := VF_ClaimTag;
+    q.ParamByName('s').AsString  := SerieIn;
+    q.ParamByName('n').AsInteger := NumeroIn;
+    q.ExecSQL;
+
+    if q.RowsAffected = 0 then
+      Exit(False);
+
+    // 2) Obtenemos payload de la fila reclamada
+    q.Close;
+    q.SQL.Text := 'SELECT payload_json FROM verifactu_queue WHERE token=:t LIMIT 1';
+    q.ParamByName('t').AsString := token;
+    q.Open;
+    if q.IsEmpty then
+    begin
+      WriteDiag('TakeSpecificPending: no fila por token tras UPDATE.');
+      Exit(False);
+    end;
+
+    PayloadJSON := q.FieldByName('payload_json').AsString;
+
+    // 3) Recalcular hash_prev/hashes (LOCK DB para encadenamiento)
+    LockName := VF_MakeChainLockName(SerieIn);
+    Locked := VF_DB_GetLock(Conn, LockName, 10);
+    if not Locked then
+    begin
+      WriteDiag('TakeSpecificPending: GET_LOCK timeout ' + LockName);
+      Exit(False);
+    end;
+
+    try
+      VF_AttachHashToQueue(Conn, SerieIn, NumeroIn, PayloadJSON, 'ALTA');
+    finally
+      VF_DB_ReleaseLock(Conn, LockName);
+    end;
+
+    // 4) Leer ya con hash y hash_prev actualizado
+    q.Close;
+    q.SQL.Text :=
+      'SELECT payload_json, hash, hash_prev ' +
+      'FROM verifactu_queue WHERE token=:t LIMIT 1';
+    q.ParamByName('t').AsString := token;
+    q.Open;
+    if q.IsEmpty then
+    begin
+      WriteDiag('TakeSpecificPending: no fila por token (2ª lectura).');
+      Exit(False);
+    end;
+
+    PayloadJSON        := q.FieldByName('payload_json').AsString;
+    EncadenamientoHash := q.FieldByName('hash').AsString;
+
+    GHash     := q.FieldByName('hash').AsString;
+    GHashPrev := q.FieldByName('hash_prev').AsString;
 
     Result := True;
   finally
@@ -1244,7 +1899,7 @@ begin
   			'last_error=NULL, ' +
   			'intentos=intentos+1, ' +
   			'updated_at=NOW(), ' +
-  			'token=NULL, claimed_by=NULL, claimed_until=NULL ' +
+  			'token=NULL, claimed_until=NULL ' +
   			'WHERE serie=:s AND numero=:n LIMIT 1';
 
     q.ParamByName('h').AsString := Hash;
@@ -1281,7 +1936,7 @@ begin
   try
     q.Connection := Conn;
     q.SQL.Text :=
-      'UPDATE verifactu_queue SET estado="ERROR", last_error=:e, respuesta_text=:r, updated_at=NOW(), token=NULL, claimed_by=NULL, claimed_until=NULL ' +
+      'UPDATE verifactu_queue SET estado="ERROR", last_error=:e, respuesta_text=:r, updated_at=NOW(), token=NULL, claimed_until=NULL ' +
       'WHERE serie=:s AND numero=:n LIMIT 1';
     q.ParamByName('e').AsString := Copy(MensajeError, 1, 255);
     q.ParamByName('r').AsString := Respuesta;
