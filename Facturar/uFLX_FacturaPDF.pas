@@ -31,6 +31,7 @@ unit uFLX_FacturaPDF;
 interface
 
 uses
+  uFLX_Log, // logging
   Classes, SysUtils, DateUtils, StrUtils,
   fppdf, Dialogs,      // ✅ NECESARIO PARA ShowMessage
   ZConnection, ZDataset, ZAbstractRODataset,
@@ -134,27 +135,50 @@ end;
 
 function EnsureRutaPdf: string;
 var
-  HomeDir, Candidate1, Candidate2, FinalDir: string;
+  HomeDir, CandidateRuta, CandidateHome, CandidateCur, FinalDir: string;
 begin
   HomeDir := GetEnvironmentVariable('HOME');
-  Candidate2 := IncludeTrailingPathDelimiter(HomeDir) + 'pdf' + DirectorySeparator;
+  CandidateHome := IncludeTrailingPathDelimiter(HomeDir) + 'pdf' + DirectorySeparator;
+  CandidateCur  := IncludeTrailingPathDelimiter(GetCurrentDir) + 'pdf' + DirectorySeparator;
 
-  // 1) Candidato principal: lo de siempre
-  if Trim(RutaPdf) <> '' then
-    Candidate1 := RutaPdf
-  else
-    Candidate1 := IncludeTrailingPathDelimiter(GetCurrentDir) + 'pdf' + DirectorySeparator;
+  // 1) Candidato principal: RutaPdf (si está definida)
+  CandidateRuta := Trim(RutaPdf);
 
-  // 2) Intento candidato 1
-  if TryEnsureWritableDir(Candidate1, FinalDir) then
+  FLX_WriteLog('PDF', 'EnsureRutaPdf: RutaPdf=' + CandidateRuta +
+                       ' Home=' + CandidateHome +
+                       ' Cur=' + CandidateCur);
+
+  // 2) Intento RutaPdf
+  if (CandidateRuta <> '') and TryEnsureWritableDir(CandidateRuta, FinalDir) then
+  begin
+    FLX_WriteLog('PDF', 'EnsureRutaPdf: usando RutaPdf=' + FinalDir);
     Exit(FinalDir);
+  end;
 
-  // 3) Fallback a ~/pdf
-  if TryEnsureWritableDir(Candidate2, FinalDir) then
+  // 3) Fallback a ~/pdf  (preferido frente a CurrentDir, para evitar rutas "raras" al lanzar desde menú)
+  if TryEnsureWritableDir(CandidateHome, FinalDir) then
+  begin
+    FLX_WriteLog('PDF', 'EnsureRutaPdf: usando HOME=' + FinalDir);
     Exit(FinalDir);
+  end;
 
-  // 4) Último recurso: devolvemos el fallback aunque no sea escribible (evita Result vacío)
-  Result := Candidate2;
+  // 4) Último recurso: ./pdf
+  if TryEnsureWritableDir(CandidateCur, FinalDir) then
+  begin
+    FLX_WriteLog('PDF', 'EnsureRutaPdf: usando CurrentDir=' + FinalDir);
+    Exit(FinalDir);
+  end;
+
+  // 5) Si todo falla, devolvemos HOME/pdf (pero intentamos crearlo igualmente)
+  try
+    if not DirectoryExists(CandidateHome) then
+      ForceDirectories(CandidateHome);
+  except
+    // no hacemos Exit: devolvemos CandidateHome igualmente
+  end;
+
+  FLX_WriteLog('PDF', 'EnsureRutaPdf: WARNING no se pudo asegurar ruta escribible; devolviendo ' + CandidateHome);
+  Result := CandidateHome;
 end;
 
 function BuildPDFFileName(const Serie: string; Numero: Integer): string;
@@ -824,12 +848,15 @@ begin
       PDF_WriteWrappedText(Page, FontIdxMono, 7, Y, X, 100, Lopd2, LineH);
 
     ForceDirectories(ExtractFileDir(AFileName));
+    FLX_WriteLog('PDF', 'Guardando PDF: ' + AFileName);
     Doc.SaveToFile(AFileName);
+    FLX_WriteLog('PDF', 'PDF guardado OK: ' + AFileName);
 
     Result := True;
   except
     on E: Exception do
     begin
+      FLX_WriteLog('PDF', 'Error PDF: ' + E.Message + ' (file=' + AFileName + ')');
       ShowMessage('Error PDF: ' + E.Message);
       Result := False;
     end;

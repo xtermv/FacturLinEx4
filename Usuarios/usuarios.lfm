@@ -1,13 +1,12 @@
 object FUsuarios: TFUsuarios
   Left = 0
-  Height = 712
-  Top = 32
-  Width = 1360
+  Height = 1022
+  Top = 0
+  Width = 1920
   ActiveControl = Edit1
   Caption = 'FacturLinEx (Usuarios)'
-  ClientHeight = 712
-  ClientWidth = 1360
-  DesignTimePPI = 60
+  ClientHeight = 1022
+  ClientWidth = 1920
   Icon.Data = {
     3EC20100000001000100C0C000000100180028C201001600000028000000C000
     000080010000010018000000000000B001006400000064000000000000000000
@@ -3614,28 +3613,28 @@ object FUsuarios: TFUsuarios
     0000
   }
   Position = poDesktopCenter
-  LCLVersion = '4.4.0.0'
+  LCLVersion = '4.2.0.0'
   WindowState = wsMaximized
   OnClose = FormClose
   OnCreate = FormCreate
   object Label1: TLabel
-    Left = 5
-    Height = 12
-    Top = 20
-    Width = 27
+    Left = 8
+    Height = 19
+    Top = 32
+    Width = 43
     Caption = 'Codigo'
     Layout = tlCenter
     ParentColor = False
   end
   object Label2: TLabel
-    Left = 130
-    Height = 14
-    Top = 16
-    Width = 365
+    Left = 208
+    Height = 22
+    Top = 25
+    Width = 584
     AutoSize = False
     Font.CharSet = ANSI_CHARSET
     Font.Color = clBlue
-    Font.Height = 9
+    Font.Height = 14
     Font.Name = '-adobe-helvetica-*-*-*-*-*-*-*-*-*-*-iso10646-1'
     Font.Pitch = fpVariable
     Font.Style = [fsBold]
@@ -3644,10 +3643,10 @@ object FUsuarios: TFUsuarios
     ParentFont = False
   end
   object Edit1: TEdit
-    Left = 45
-    Height = 20
-    Top = 16
-    Width = 75
+    Left = 72
+    Height = 29
+    Top = 25
+    Width = 120
     CharCase = ecUppercase
     MaxLength = 11
     TabOrder = 0
@@ -3658,20 +3657,20 @@ object FUsuarios: TFUsuarios
   end
   object Panel1: TPanel
     Left = 0
-    Height = 40
-    Top = 672
-    Width = 1360
+    Height = 64
+    Top = 958
+    Width = 1920
     Align = alBottom
-    ClientHeight = 40
-    ClientWidth = 1360
+    ClientHeight = 64
+    ClientWidth = 1920
     TabOrder = 2
     object BitBtn2: TBitBtn
       AnchorSideLeft.Control = Panel1
-      Left = 15
-      Height = 22
-      Top = 10
-      Width = 51
-      BorderSpacing.Left = 14
+      Left = 23
+      Height = 35
+      Top = 16
+      Width = 82
+      BorderSpacing.Left = 22
       Caption = 'Nuevo'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -3742,10 +3741,10 @@ object FUsuarios: TFUsuarios
       OnClick = BitBtn2Click
     end
     object BitBtn3: TBitBtn
-      Left = 282
-      Height = 22
-      Top = 10
-      Width = 51
+      Left = 412
+      Height = 35
+      Top = 16
+      Width = 82
       Anchors = [akTop]
       Caption = 'Borrar'
       Glyph.Data = {
@@ -3817,10 +3816,10 @@ object FUsuarios: TFUsuarios
       OnClick = BitBtn3Click
     end
     object BitBtn4: TBitBtn
-      Left = 522
-      Height = 22
-      Top = 10
-      Width = 51
+      Left = 750
+      Height = 35
+      Top = 16
+      Width = 82
       Anchors = [akTop]
       Caption = 'Modif.'
       Glyph.Data = {
@@ -3892,10 +3891,10 @@ object FUsuarios: TFUsuarios
       OnClick = BitBtn4Click
     end
     object BitBtn5: TBitBtn
-      Left = 758
-      Height = 22
-      Top = 10
-      Width = 51
+      Left = 1084
+      Height = 35
+      Top = 16
+      Width = 82
       Anchors = [akTop]
       Caption = 'Anter.'
       Glyph.Data = {
@@ -3967,10 +3966,10 @@ object FUsuarios: TFUsuarios
       OnClick = BitBtn5Click
     end
     object BitBtn6: TBitBtn
-      Left = 996
-      Height = 22
-      Top = 10
-      Width = 51
+      Left = 1420
+      Height = 35
+      Top = 16
+      Width = 82
       Anchors = [akTop]
       Caption = 'Post.'
       Glyph.Data = {
@@ -4044,12 +4043,12 @@ object FUsuarios: TFUsuarios
     object BitBtn1: TBitBtn
       AnchorSideRight.Control = Panel1
       AnchorSideRight.Side = asrBottom
-      Left = 1292
-      Height = 22
-      Top = 10
-      Width = 49
+      Left = 1813
+      Height = 35
+      Top = 16
+      Width = 77
       Anchors = [akTop, akRight]
-      BorderSpacing.Right = 18
+      BorderSpacing.Right = 29
       Caption = 'Cerrar'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -4122,254 +4121,254 @@ object FUsuarios: TFUsuarios
   end
   object PageControl1: TPageControl
     Left = 0
-    Height = 351
-    Top = 321
-    Width = 1360
+    Height = 562
+    Top = 396
+    Width = 1920
     ActivePage = TabSheet4
     Align = alBottom
     TabIndex = 0
     TabOrder = 1
     object TabSheet4: TTabSheet
       Caption = ' Datos generales '
-      ClientHeight = 325
-      ClientWidth = 1356
+      ClientHeight = 525
+      ClientWidth = 1914
       object Label16: TLabel
-        Left = 14
-        Height = 12
-        Top = 19
-        Width = 32
+        Left = 22
+        Height = 19
+        Top = 30
+        Width = 51
         Caption = 'Nombre'
         Layout = tlCenter
         ParentColor = False
       end
       object Label7: TLabel
-        Left = 12
-        Height = 12
-        Top = 41
-        Width = 36
+        Left = 19
+        Height = 19
+        Top = 66
+        Width = 57
         Caption = 'Direccion'
         Layout = tlCenter
         ParentColor = False
       end
       object Label3: TLabel
-        Left = 14
-        Height = 12
-        Top = 66
-        Width = 37
+        Left = 22
+        Height = 19
+        Top = 106
+        Width = 59
         Caption = 'Localidad'
         Layout = tlCenter
         ParentColor = False
       end
       object Label4: TLabel
-        Left = 14
+        Left = 22
         Height = 1
-        Top = 91
+        Top = 146
         Width = 1
         Layout = tlCenter
         ParentColor = False
       end
       object Label5: TLabel
-        Left = 14
-        Height = 12
-        Top = 94
-        Width = 43
+        Left = 22
+        Height = 19
+        Top = 150
+        Width = 69
         Caption = 'Cgo. Postal'
         ParentColor = False
       end
       object Label6: TLabel
-        Left = 144
-        Height = 12
-        Top = 94
-        Width = 35
+        Left = 230
+        Height = 19
+        Top = 150
+        Width = 56
         Caption = 'Provincia'
         ParentColor = False
       end
       object Label8: TLabel
-        Left = 266
-        Height = 12
-        Top = 122
-        Width = 19
+        Left = 426
+        Height = 19
+        Top = 195
+        Width = 33
         Caption = 'N.I.F.'
         ParentColor = False
       end
       object Label10: TLabel
-        Left = 14
-        Height = 12
-        Top = 184
-        Width = 25
+        Left = 22
+        Height = 19
+        Top = 294
+        Width = 37
         Caption = 'E-Mail'
         ParentColor = False
       end
       object Label9: TLabel
-        Left = 14
-        Height = 12
-        Top = 124
-        Width = 34
+        Left = 22
+        Height = 19
+        Top = 198
+        Width = 54
         Caption = 'Telefono'
         ParentColor = False
       end
       object Label11: TLabel
-        Left = 14
-        Height = 12
-        Top = 156
-        Width = 55
+        Left = 22
+        Height = 19
+        Top = 250
+        Width = 88
         Caption = 'Imagen / Foto'
         Layout = tlCenter
         ParentColor = False
       end
       object Label12: TLabel
-        Left = 14
-        Height = 12
-        Top = 218
-        Width = 30
+        Left = 22
+        Height = 19
+        Top = 349
+        Width = 49
         Caption = 'Usuario'
         ParentColor = False
       end
       object Label13: TLabel
-        Left = 208
-        Height = 12
-        Top = 218
-        Width = 62
+        Left = 333
+        Height = 19
+        Top = 349
+        Width = 98
         Caption = 'Clave de acceso'
         ParentColor = False
       end
       object Label14: TLabel
-        Left = 14
-        Height = 12
-        Top = 249
-        Width = 41
+        Left = 22
+        Height = 19
+        Top = 398
+        Width = 64
         Caption = 'Tipo de rol'
         ParentColor = False
       end
       object Label15: TLabel
-        Left = 14
-        Height = 12
-        Top = 279
-        Width = 58
+        Left = 22
+        Height = 19
+        Top = 446
+        Width = 92
         Caption = 'Observaciones'
         ParentColor = False
       end
       object Image1: TImage
-        Left = 504
-        Height = 129
-        Top = 18
-        Width = 122
+        Left = 806
+        Height = 206
+        Top = 29
+        Width = 195
         Center = True
       end
       object Bevel1: TBevel
-        Left = 501
-        Height = 135
-        Top = 15
-        Width = 127
+        Left = 802
+        Height = 216
+        Top = 24
+        Width = 204
       end
       object Label17: TLabel
-        Left = 124
-        Height = 17
-        Top = 245
-        Width = 352
+        Left = 198
+        Height = 27
+        Top = 392
+        Width = 563
         AutoSize = False
         Layout = tlCenter
         ParentColor = False
       end
       object Edit2: TEdit
-        Left = 84
-        Height = 20
-        Top = 15
-        Width = 315
+        Left = 134
+        Height = 29
+        Top = 24
+        Width = 504
         CharCase = ecUppercase
         MaxLength = 50
         TabOrder = 0
         OnKeyPress = Edit2KeyPress
       end
       object Edit3: TEdit
-        Left = 84
-        Height = 20
-        Top = 38
-        Width = 315
+        Left = 134
+        Height = 29
+        Top = 61
+        Width = 504
         CharCase = ecUppercase
         MaxLength = 50
         TabOrder = 1
       end
       object Edit4: TEdit
-        Left = 84
-        Height = 20
-        Top = 62
-        Width = 315
+        Left = 134
+        Height = 29
+        Top = 99
+        Width = 504
         CharCase = ecUppercase
         MaxLength = 50
         TabOrder = 2
       end
       object Edit5: TEdit
-        Left = 84
-        Height = 20
-        Top = 91
-        Width = 50
+        Left = 134
+        Height = 29
+        Top = 146
+        Width = 80
         CharCase = ecUppercase
         TabOrder = 3
       end
       object Edit6: TEdit
-        Left = 189
-        Height = 20
-        Top = 91
-        Width = 210
+        Left = 302
+        Height = 29
+        Top = 146
+        Width = 335
         CharCase = ecUppercase
         TabOrder = 4
       end
       object Edit7: TEdit
-        Left = 314
-        Height = 20
-        Top = 120
-        Width = 85
+        Left = 502
+        Height = 29
+        Top = 192
+        Width = 136
         CharCase = ecUppercase
         TabOrder = 6
       end
       object Edit8: TEdit
-        Left = 84
-        Height = 20
-        Top = 120
-        Width = 154
+        Left = 134
+        Height = 29
+        Top = 192
+        Width = 246
         CharCase = ecUppercase
         TabOrder = 5
       end
       object Edit10: TEdit
-        Left = 84
-        Height = 20
-        Top = 181
-        Width = 235
+        Left = 134
+        Height = 29
+        Top = 290
+        Width = 376
         TabOrder = 8
       end
       object Edit9: TEdit
-        Left = 84
-        Height = 20
-        Top = 149
-        Width = 290
+        Left = 134
+        Height = 29
+        Top = 238
+        Width = 464
         MaxLength = 50
         TabOrder = 7
         OnExit = Edit9Exit
       end
       object Edit11: TEdit
-        Left = 84
-        Height = 20
-        Top = 214
-        Width = 93
+        Left = 134
+        Height = 29
+        Top = 342
+        Width = 149
         CharCase = ecUppercase
         MaxLength = 8
         TabOrder = 9
       end
       object Edit12: TEdit
-        Left = 295
-        Height = 20
-        Top = 214
-        Width = 74
+        Left = 472
+        Height = 29
+        Top = 342
+        Width = 118
         EchoMode = emPassword
         PasswordChar = '*'
         TabOrder = 10
       end
       object Edit13: TEdit
-        Left = 84
-        Height = 20
-        Top = 245
-        Width = 30
+        Left = 134
+        Height = 29
+        Top = 392
+        Width = 49
         CharCase = ecUppercase
         MaxLength = 4
         TabOrder = 11
@@ -4378,20 +4377,20 @@ object FUsuarios: TFUsuarios
         OnExit = Edit13Exit
       end
       object Memo1: TMemo
-        Left = 84
-        Height = 46
-        Top = 278
-        Width = 533
+        Left = 134
+        Height = 74
+        Top = 445
+        Width = 852
         Lines.Strings = (
           ''
         )
         TabOrder = 12
       end
       object BitBtn12: TBitBtn
-        Left = 384
-        Height = 14
-        Top = 149
-        Width = 14
+        Left = 614
+        Height = 22
+        Top = 238
+        Width = 22
         Caption = '...'
         Layout = blGlyphTop
         Margin = 0
@@ -4400,19 +4399,19 @@ object FUsuarios: TFUsuarios
         OnClick = BitBtn12Click
       end
       object BitBtn7: TBitBtn
-        Left = 406
-        Height = 14
-        Top = 15
-        Width = 14
+        Left = 650
+        Height = 22
+        Top = 24
+        Width = 22
         Caption = '...'
         TabOrder = 14
         OnClick = BitBtn7Click
       end
       object BitBtn21: TBitBtn
-        Left = 424
-        Height = 22
-        Top = 10
-        Width = 68
+        Left = 678
+        Height = 35
+        Top = 16
+        Width = 109
         Caption = 'LOPD'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -4485,30 +4484,30 @@ object FUsuarios: TFUsuarios
     end
     object TabSheet2: TTabSheet
       Caption = ' Estadisticas '
-      ClientHeight = 325
-      ClientWidth = 1356
+      ClientHeight = 525
+      ClientWidth = 1914
       object Panel3: TPanel
-        Left = 1257
-        Height = 325
+        Left = 1756
+        Height = 525
         Top = 0
-        Width = 99
+        Width = 158
         Align = alRight
-        ClientHeight = 325
-        ClientWidth = 99
+        ClientHeight = 525
+        ClientWidth = 158
         TabOrder = 0
         object Label57: TLabel
-          Left = 10
-          Height = 12
-          Top = 9
-          Width = 75
+          Left = 16
+          Height = 19
+          Top = 14
+          Width = 121
           Caption = 'Periodo a visualizar'
           ParentColor = False
         end
         object ListBox1: TListBox
-          Left = 10
-          Height = 77
-          Top = 24
-          Width = 80
+          Left = 16
+          Height = 123
+          Top = 38
+          Width = 128
           ItemHeight = 0
           ScrollWidth = 126
           TabOrder = 0
@@ -4518,64 +4517,64 @@ object FUsuarios: TFUsuarios
       end
       object DBGrid1: TDBGrid
         Left = 0
-        Height = 296
+        Height = 479
         Top = 0
-        Width = 1257
+        Width = 1756
         Align = alClient
-        BorderSpacing.Bottom = 29
+        BorderSpacing.Bottom = 46
         Color = clWindow
         Columns = <        
           item
             Title.Alignment = taCenter
             Title.Caption = 'AÑO'
-            Width = 38
+            Width = 61
             FieldName = 'TUSU1'
           end        
           item
             Title.Alignment = taCenter
             Title.Caption = 'MES'
-            Width = 38
+            Width = 61
             FieldName = 'TUSU2'
           end        
           item
             Alignment = taRightJustify
             Title.Alignment = taRightJustify
             Title.Caption = 'U.COMP.'
-            Width = 62
+            Width = 99
             FieldName = 'TUSU3'
           end        
           item
             Alignment = taRightJustify
             Title.Alignment = taRightJustify
             Title.Caption = 'I. COMP.'
-            Width = 75
+            Width = 120
             FieldName = 'TUSU4'
           end        
           item
             Alignment = taRightJustify
             Title.Alignment = taRightJustify
             Title.Caption = 'U. VEND.'
-            Width = 62
+            Width = 99
             FieldName = 'TUSU5'
           end        
           item
             Alignment = taRightJustify
             Title.Alignment = taRightJustify
             Title.Caption = 'I. V. PRECIO'
-            Width = 75
+            Width = 120
             FieldName = 'TUSU6'
           end        
           item
             Alignment = taRightJustify
             Title.Alignment = taRightJustify
             Title.Caption = 'I. V. COSTO'
-            Width = 75
+            Width = 120
             FieldName = 'TUSU7'
           end        
           item
             Title.Alignment = taRightJustify
             Title.Caption = 'BENEFICIO'
-            Width = 75
+            Width = 120
             FieldName = 'BENEF'
             DisplayFormat = '#0.00'
           end>
@@ -4584,144 +4583,144 @@ object FUsuarios: TFUsuarios
         TabOrder = 1
       end
       object Label76: TLabel
-        Left = 8
-        Height = 12
-        Top = 305
-        Width = 53
+        Left = 13
+        Height = 19
+        Top = 488
+        Width = 84
         Caption = 'U.Compradas'
         ParentColor = False
       end
       object lbUC: TLabel
-        Left = 8
-        Height = 14
-        Top = 316
-        Width = 48
+        Left = 13
+        Height = 22
+        Top = 505
+        Width = 77
         Alignment = taCenter
         AutoSize = False
         Caption = '0.00'
-        Font.Height = 12
+        Font.Height = 19
         Font.Name = 'Sans'
         OptimalFill = True
         ParentColor = False
         ParentFont = False
       end
       object Label75: TLabel
-        Left = 244
-        Height = 12
-        Top = 305
-        Width = 48
+        Left = 341
+        Height = 19
+        Top = 488
+        Width = 77
         Anchors = [akTop]
         Caption = 'I. Comprado'
         ParentColor = False
       end
       object lbIC: TLabel
-        Left = 231
-        Height = 14
-        Top = 316
-        Width = 48
+        Left = 339
+        Height = 22
+        Top = 505
+        Width = 77
         Alignment = taCenter
         Anchors = [akTop]
         AutoSize = False
         Caption = '0.00'
-        Font.Height = 12
+        Font.Height = 19
         Font.Name = 'Sans'
         OptimalFill = True
         ParentColor = False
         ParentFont = False
       end
       object Label68: TLabel
-        Left = 447
-        Height = 12
-        Top = 305
-        Width = 44
+        Left = 627
+        Height = 19
+        Top = 488
+        Width = 70
         Anchors = [akTop]
         Caption = 'U.Vendidas'
         ParentColor = False
       end
       object lbUV: TLabel
-        Left = 436
-        Height = 14
-        Top = 316
-        Width = 48
+        Left = 628
+        Height = 22
+        Top = 505
+        Width = 77
         Alignment = taCenter
         Anchors = [akTop]
         AutoSize = False
         Caption = '0.00'
-        Font.Height = 12
+        Font.Height = 19
         Font.Name = 'Sans'
         OptimalFill = True
         ParentColor = False
         ParentFont = False
       end
       object Label65: TLabel
-        Left = 659
-        Height = 12
-        Top = 305
-        Width = 53
+        Left = 924
+        Height = 19
+        Top = 488
+        Width = 85
         Anchors = [akTop]
         Caption = 'I.V.enta a Pvp'
         ParentColor = False
       end
       object lbIVP: TLabel
-        Left = 639
-        Height = 14
-        Top = 316
-        Width = 48
+        Left = 915
+        Height = 22
+        Top = 505
+        Width = 77
         Alignment = taCenter
         Anchors = [akTop]
         AutoSize = False
         Caption = '0.00'
-        Font.Height = 12
+        Font.Height = 19
         Font.Name = 'Sans'
         OptimalFill = True
         ParentColor = False
         ParentFont = False
       end
       object Label18: TLabel
-        Left = 857
-        Height = 12
-        Top = 305
-        Width = 59
+        Left = 1204
+        Height = 19
+        Top = 488
+        Width = 94
         Anchors = [akTop]
         Caption = 'I.Venta a Coste'
         ParentColor = False
       end
       object lbIVC: TLabel
-        Left = 832
-        Height = 14
-        Top = 316
-        Width = 48
+        Left = 1187
+        Height = 22
+        Top = 505
+        Width = 77
         Alignment = taCenter
         Anchors = [akTop]
         AutoSize = False
         Caption = '0.00'
-        Font.Height = 12
+        Font.Height = 19
         Font.Name = 'Sans'
         OptimalFill = True
         ParentColor = False
         ParentFont = False
       end
       object Label19: TLabel
-        Left = 1204
-        Height = 12
-        Top = 305
-        Width = 36
+        Left = 1670
+        Height = 19
+        Top = 488
+        Width = 58
         Anchors = [akTop, akRight]
         Caption = 'Beneficio'
         ParentColor = False
       end
       object lbBeneficio: TLabel
         AnchorSideRight.Control = Panel3
-        Left = 1201
-        Height = 14
-        Top = 316
-        Width = 48
+        Left = 1666
+        Height = 22
+        Top = 505
+        Width = 77
         Alignment = taCenter
         Anchors = [akTop, akRight]
         AutoSize = False
-        BorderSpacing.Right = 8
+        BorderSpacing.Right = 13
         Caption = '0.00'
-        Font.Height = 12
+        Font.Height = 19
         Font.Name = 'Sans'
         OptimalFill = True
         ParentColor = False
@@ -4730,37 +4729,37 @@ object FUsuarios: TFUsuarios
     end
     object TabSheet3: TTabSheet
       Caption = ' Graficas '
-      ClientHeight = 325
-      ClientWidth = 1356
+      ClientHeight = 525
+      ClientWidth = 1914
       object Label47: TLabel
-        Left = 523
-        Height = 12
-        Top = 19
-        Width = 75
+        Left = 837
+        Height = 19
+        Top = 30
+        Width = 121
         Caption = 'Periodo a visualizar'
         ParentColor = False
       end
       object Label48: TLabel
-        Left = 523
-        Height = 12
-        Top = 89
-        Width = 68
+        Left = 837
+        Height = 19
+        Top = 142
+        Width = 109
         Caption = 'Datos a visualizar'
         ParentColor = False
       end
       object Label49: TLabel
-        Left = 528
-        Height = 12
-        Top = 229
-        Width = 58
+        Left = 845
+        Height = 19
+        Top = 365
+        Width = 91
         Caption = 'Tipo de gráfica'
         ParentColor = False
       end
       object Chart1: TChart
         Left = 0
-        Height = 325
+        Height = 525
         Top = 0
-        Width = 518
+        Width = 829
         AxisList = <        
           item
             Visible = False
@@ -4801,10 +4800,10 @@ object FUsuarios: TFUsuarios
         end
       end
       object ListBox2: TListBox
-        Left = 523
-        Height = 40
-        Top = 34
-        Width = 103
+        Left = 837
+        Height = 64
+        Top = 54
+        Width = 165
         ItemHeight = 0
         ScrollWidth = 163
         TabOrder = 1
@@ -4812,10 +4811,10 @@ object FUsuarios: TFUsuarios
         OnClick = ListBox2Click
       end
       object ListBox3: TListBox
-        Left = 523
-        Height = 110
-        Top = 104
-        Width = 103
+        Left = 837
+        Height = 176
+        Top = 167
+        Width = 165
         Items.Strings = (
           'Unidades compradas'
           'Importe comprado'
@@ -4831,10 +4830,10 @@ object FUsuarios: TFUsuarios
         OnClick = ListBox3Click
       end
       object ListBox6: TListBox
-        Left = 523
-        Height = 73
-        Top = 244
-        Width = 103
+        Left = 837
+        Height = 117
+        Top = 390
+        Width = 165
         Items.Strings = (
           'Lineas'
           'Barras'
@@ -4850,12 +4849,12 @@ object FUsuarios: TFUsuarios
     end
   end
   object PanelNuevoUs: TPanel
-    Left = 125
-    Height = 17
-    Top = 18
-    Width = 84
+    Left = 200
+    Height = 27
+    Top = 29
+    Width = 134
     Color = 3916778
-    Font.Height = -20
+    Font.Height = -32
     ParentBackground = False
     ParentColor = False
     ParentFont = False
@@ -4866,38 +4865,38 @@ object FUsuarios: TFUsuarios
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 40
+    Left = 64
   end
   object dbEsta: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 60
+    Left = 96
   end
   object Datasource1: TDataSource
     DataSet = dbEsta
-    Left = 80
+    Left = 128
   end
   object dbGrafica: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 105
+    Left = 168
   end
   object OpenPictureDialog1: TOpenPictureDialog
-    Left = 600
-    Top = 90
+    Left = 960
+    Top = 145
   end
   object dbUsuarios1: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 485
-    Top = 10
+    Left = 776
+    Top = 16
   end
   object frDBDataSet1: TfrDBDataSet
-    Left = 460
-    Top = 10
+    Left = 736
+    Top = 16
   end
   object frReport1: TfrReport
     Dataset = frDBDataSet1
@@ -4906,20 +4905,20 @@ object FUsuarios: TFUsuarios
     PreviewButtons = [pbZoom, pbLoad, pbSave, pbPrint, pbFind, pbHelp, pbExit]
     DataType = dtDataSet
     OnGetValue = frReport1GetValue
-    Left = 435
-    Top = 10
+    Left = 696
+    Top = 16
   end
   object dbRoles: TZQuery
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 485
-    Top = 300
+    Left = 776
+    Top = 480
   end
   object dbTrabajo: TZQuery
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 128
-    Top = 1
+    Left = 205
+    Top = 2
   end
 end

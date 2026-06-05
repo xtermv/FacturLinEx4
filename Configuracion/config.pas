@@ -1035,7 +1035,7 @@ begin
     IniReader.WriteString('Correo','Mensaje4',edMensaje4.Text);
     IniReader.WriteString('Correo','Usuario',edUsuario.Text);
     IniReader.WriteString('Correo','Host',edHost.Text);
-    IniReader.WriteString('Correo','Clave',edClave.Text);
+    FLX_IniWritePassword(IniReader, 'Correo', 'Clave', edClave.Text);
     IniReader.WriteString('Correo','Puerto',edPuerto.Text);
     IniReader.WriteString('Correo','SSL',BoolToStr(cbSSL.Checked));
     IniReader.WriteString('Correo','TLS',BoolToStr(cbTLS.Checked));
@@ -1410,7 +1410,7 @@ begin
      edMensaje4.Text:=  IniReader.ReadString('Correo','Mensaje4','');
      edUsuario.Text:=   IniReader.ReadString('Correo','Usuario','');
      edHost.Text:=      IniReader.ReadString('Correo','Host','');
-     edClave.Text:=     IniReader.ReadString('Correo','Clave','');
+     edClave.Text:=     FLX_IniReadPassword(IniReader, 'Correo', 'Clave', '');
      edPuerto.Text:=    IniReader.ReadString('Correo','Puerto','');
 
          //----------------- VeriFactu -----------------------------

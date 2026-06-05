@@ -1,11 +1,11 @@
 object FConfig: TFConfig
-  Left = 656
-  Height = 686
-  Top = 42
-  Width = 1022
+  Left = 0
+  Height = 1022
+  Top = 0
+  Width = 1920
   Caption = 'Configuracion'
-  ClientHeight = 686
-  ClientWidth = 1022
+  ClientHeight = 1022
+  ClientWidth = 1920
   Icon.Data = {
     3E520200000001000100C0C0000001002000285202001600000028000000C000
     0000800100000100200000000000004002006400000064000000000000000000
@@ -4774,15 +4774,15 @@ object FConfig: TFConfig
     Left = 0
     Height = 88
     Top = 0
-    Width = 1022
+    Width = 1920
     Align = alTop
     ClientHeight = 88
-    ClientWidth = 1022
+    ClientWidth = 1920
     ParentFont = False
     TabOrder = 0
     object BitBtn1: TBitBtn
       Left = 14
-      Height = 70
+      Height = 71
       Top = 10
       Width = 64
       Caption = 'Guardar'
@@ -4926,7 +4926,7 @@ object FConfig: TFConfig
     end
     object BitBtn2: TBitBtn
       Left = 104
-      Height = 70
+      Height = 71
       Top = 10
       Width = 64
       Caption = 'Recup.'
@@ -5070,7 +5070,7 @@ object FConfig: TFConfig
     end
     object BitBtn3: TBitBtn
       Left = 296
-      Height = 70
+      Height = 71
       Top = 10
       Width = 64
       Caption = 'Cerrar'
@@ -5213,7 +5213,7 @@ object FConfig: TFConfig
     end
     object BitBtn6: TBitBtn
       Left = 192
-      Height = 70
+      Height = 71
       Top = 10
       Width = 64
       Caption = 'Aplicar'
@@ -5353,9 +5353,9 @@ object FConfig: TFConfig
   end
   object PageControl1: TPageControl
     Left = 0
-    Height = 598
+    Height = 934
     Top = 88
-    Width = 1022
+    Width = 1920
     ActivePage = TabSheet1
     Align = alClient
     ParentFont = False
@@ -5363,14 +5363,14 @@ object FConfig: TFConfig
     TabOrder = 1
     object TabSheet1: TTabSheet
       Caption = '  Registro  '
-      ClientHeight = 565
-      ClientWidth = 1018
+      ClientHeight = 897
+      ClientWidth = 1914
       ParentFont = False
       object Bevel2: TBevel
-        Left = 742
-        Height = 218
+        Left = 743
+        Height = 217
         Top = 32
-        Width = 203
+        Width = 204
       end
       object Label1: TLabel
         Left = 22
@@ -5508,7 +5508,7 @@ object FConfig: TFConfig
       end
       object Edit1: TEdit
         Left = 126
-        Height = 27
+        Height = 29
         Top = 27
         Width = 568
         ParentFont = False
@@ -5517,7 +5517,7 @@ object FConfig: TFConfig
       end
       object Edit2: TEdit
         Left = 126
-        Height = 27
+        Height = 29
         Top = 80
         Width = 568
         ParentFont = False
@@ -5526,7 +5526,7 @@ object FConfig: TFConfig
       end
       object Edit3: TEdit
         Left = 126
-        Height = 27
+        Height = 29
         Top = 128
         Width = 568
         ParentFont = False
@@ -5535,7 +5535,7 @@ object FConfig: TFConfig
       end
       object Edit4: TEdit
         Left = 126
-        Height = 27
+        Height = 29
         Top = 176
         Width = 568
         ParentFont = False
@@ -5544,7 +5544,7 @@ object FConfig: TFConfig
       end
       object Edit5: TEdit
         Left = 126
-        Height = 27
+        Height = 29
         Top = 224
         Width = 82
         ParentFont = False
@@ -5553,7 +5553,7 @@ object FConfig: TFConfig
       end
       object Edit6: TEdit
         Left = 293
-        Height = 27
+        Height = 29
         Top = 224
         Width = 398
         ParentFont = False
@@ -5562,7 +5562,7 @@ object FConfig: TFConfig
       end
       object Edit7: TEdit
         Left = 126
-        Height = 27
+        Height = 29
         Top = 272
         Width = 136
         ParentFont = False
@@ -5571,7 +5571,7 @@ object FConfig: TFConfig
       end
       object Edit8: TEdit
         Left = 126
-        Height = 27
+        Height = 29
         Top = 320
         Width = 136
         ParentFont = False
@@ -5580,7 +5580,7 @@ object FConfig: TFConfig
       end
       object Edit9: TEdit
         Left = 437
-        Height = 27
+        Height = 29
         Top = 320
         Width = 136
         ParentFont = False
@@ -5589,7 +5589,7 @@ object FConfig: TFConfig
       end
       object Edit10: TEdit
         Left = 126
-        Height = 27
+        Height = 29
         Top = 368
         Width = 446
         ParentFont = False
@@ -5598,9 +5598,9 @@ object FConfig: TFConfig
       end
       object Edit57: TEdit
         Left = 126
-        Height = 27
+        Height = 29
         Top = 411
-        Width = 506
+        Width = 505
         MaxLength = 150
         ParentFont = False
         TabOrder = 10
@@ -5623,7 +5623,7 @@ object FConfig: TFConfig
       end
       object Edit16: TEdit
         Left = 126
-        Height = 27
+        Height = 29
         Top = 458
         Width = 568
         ParentFont = False
@@ -5632,7 +5632,7 @@ object FConfig: TFConfig
       end
       object Edit67: TEdit
         Left = 810
-        Height = 27
+        Height = 29
         Top = 320
         Width = 104
         ParentFont = False
@@ -5641,7 +5641,7 @@ object FConfig: TFConfig
       end
       object Edit68: TEdit
         Left = 810
-        Height = 27
+        Height = 29
         Top = 368
         Width = 104
         ParentFont = False
@@ -5672,7 +5672,7 @@ object FConfig: TFConfig
         Left = 22
         Height = 24
         Top = 518
-        Width = 781
+        Width = 782
         Caption = 'SISTEMA MONO-USUARIO (SE ACTIVAN LAS COPIAS DE SEGURIDAD AUTOMÁTICAS AL CERRAR EL PROGRAMA)'
         Color = clNone
         Font.Color = clMaroon
@@ -5687,8 +5687,8 @@ object FConfig: TFConfig
     end
     object TabSheet10: TTabSheet
       Caption = 'Conf.General 1'
-      ClientHeight = 565
-      ClientWidth = 1018
+      ClientHeight = 897
+      ClientWidth = 1914
       ParentFont = False
       object lbStock: TLabel
         Left = 22
@@ -5708,7 +5708,7 @@ object FConfig: TFConfig
         Width = 56
         AutoSize = False
         CharCase = ecUppercase
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -5726,7 +5726,7 @@ object FConfig: TFConfig
         Top = 251
         Width = 56
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -5755,7 +5755,7 @@ object FConfig: TFConfig
         Top = 254
         Width = 224
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         ItemIndex = 0
@@ -5795,7 +5795,7 @@ object FConfig: TFConfig
       object Label112: TLabel
         Left = 390
         Height = 27
-        Top = 166
+        Top = 167
         Width = 288
         AutoSize = False
         Caption = 'Pedidos pendientes de recibir en el menú'
@@ -5806,11 +5806,11 @@ object FConfig: TFConfig
       object ComboBox28: TComboBox
         Left = 686
         Height = 22
-        Top = 166
+        Top = 167
         Width = 56
         AutoSize = False
         CharCase = ecUppercase
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -5825,7 +5825,7 @@ object FConfig: TFConfig
       object Label83: TLabel
         Left = 758
         Height = 27
-        Top = 166
+        Top = 167
         Width = 106
         AutoSize = False
         Caption = 'Avisar antes de'
@@ -5835,8 +5835,8 @@ object FConfig: TFConfig
       end
       object Edit65: TEdit
         Left = 870
-        Height = 27
-        Top = 166
+        Height = 29
+        Top = 167
         Width = 40
         ParentFont = False
         TabOrder = 4
@@ -5845,7 +5845,7 @@ object FConfig: TFConfig
       object Label114: TLabel
         Left = 922
         Height = 27
-        Top = 166
+        Top = 167
         Width = 35
         AutoSize = False
         Caption = 'dias'
@@ -5866,8 +5866,8 @@ object FConfig: TFConfig
       end
       object Edit64: TEdit
         Left = 870
-        Height = 27
-        Top = 122
+        Height = 29
+        Top = 121
         Width = 40
         ParentFont = False
         TabOrder = 5
@@ -5876,7 +5876,7 @@ object FConfig: TFConfig
       object Label82: TLabel
         Left = 758
         Height = 22
-        Top = 122
+        Top = 121
         Width = 106
         AutoSize = False
         Caption = 'Avisar antes de '
@@ -5887,11 +5887,11 @@ object FConfig: TFConfig
       object ComboBox27: TComboBox
         Left = 686
         Height = 22
-        Top = 122
+        Top = 121
         Width = 56
         AutoSize = False
         CharCase = ecUppercase
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -5906,7 +5906,7 @@ object FConfig: TFConfig
       object Label111: TLabel
         Left = 390
         Height = 22
-        Top = 122
+        Top = 121
         Width = 288
         AutoSize = False
         Caption = 'Llamadas / Correos pendientes en el menú'
@@ -5916,7 +5916,7 @@ object FConfig: TFConfig
       end
       object Edit66: TEdit
         Left = 686
-        Height = 27
+        Height = 29
         Top = 27
         Width = 125
         Alignment = taCenter
@@ -5929,7 +5929,7 @@ object FConfig: TFConfig
       object Label84: TLabel
         Left = 390
         Height = 27
-        Top = 26
+        Top = 25
         Width = 286
         AutoSize = False
         Caption = 'Código de artículo para balanzas'
@@ -5943,7 +5943,7 @@ object FConfig: TFConfig
         Top = 424
         Width = 56
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -5983,7 +5983,7 @@ object FConfig: TFConfig
         Top = 387
         Width = 56
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -6001,7 +6001,7 @@ object FConfig: TFConfig
         Top = 350
         Width = 56
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -6015,7 +6015,7 @@ object FConfig: TFConfig
       end
       object Label93: TLabel
         Left = 22
-        Height = 26
+        Height = 25
         Top = 350
         Width = 224
         AutoSize = False
@@ -6027,10 +6027,10 @@ object FConfig: TFConfig
       object ComboBox3: TComboBox
         Left = 258
         Height = 22
-        Top = 174
+        Top = 173
         Width = 56
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -6045,7 +6045,7 @@ object FConfig: TFConfig
       object Label87: TLabel
         Left = 22
         Height = 27
-        Top = 174
+        Top = 173
         Width = 221
         AutoSize = False
         Caption = 'Sacar beneficio en caja'
@@ -6059,7 +6059,7 @@ object FConfig: TFConfig
         Top = 61
         Width = 56
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -6085,10 +6085,10 @@ object FConfig: TFConfig
       object ComboBox29: TComboBox
         Left = 258
         Height = 22
-        Top = 26
+        Top = 25
         Width = 56
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -6103,7 +6103,7 @@ object FConfig: TFConfig
       object Label118: TLabel
         Left = 22
         Height = 27
-        Top = 26
+        Top = 25
         Width = 229
         AutoSize = False
         Caption = 'Activar claves de acceso'
@@ -6117,7 +6117,7 @@ object FConfig: TFConfig
         Top = 101
         Width = 56
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -6142,7 +6142,7 @@ object FConfig: TFConfig
       end
       object edMoneda: TEdit
         Left = 686
-        Height = 26
+        Height = 25
         Top = 322
         Width = 125
         Alignment = taCenter
@@ -6154,7 +6154,7 @@ object FConfig: TFConfig
       end
       object lbCliVario: TLabel
         Left = 390
-        Height = 18
+        Height = 19
         Top = 381
         Width = 286
         AutoSize = False
@@ -6165,7 +6165,7 @@ object FConfig: TFConfig
       end
       object edCliVario: TEdit
         Left = 686
-        Height = 26
+        Height = 25
         Top = 371
         Width = 125
         Alignment = taCenter
@@ -6177,7 +6177,7 @@ object FConfig: TFConfig
       end
       object CgSCajon: TEdit
         Left = 686
-        Height = 26
+        Height = 25
         Top = 419
         Width = 125
         Alignment = taCenter
@@ -6189,7 +6189,7 @@ object FConfig: TFConfig
       end
       object lbCliVario1: TLabel
         Left = 387
-        Height = 18
+        Height = 19
         Top = 429
         Width = 286
         AutoSize = False
@@ -6201,13 +6201,13 @@ object FConfig: TFConfig
     end
     object TabSheet9: TTabSheet
       Caption = 'Conf.General 2'
-      ClientHeight = 565
-      ClientWidth = 1018
+      ClientHeight = 897
+      ClientWidth = 1914
       ParentFont = False
       object Label86: TLabel
         Left = 22
         Height = 27
-        Top = 26
+        Top = 25
         Width = 230
         AutoSize = False
         Caption = 'Los precios son con IVA'
@@ -6229,7 +6229,7 @@ object FConfig: TFConfig
       object Label89: TLabel
         Left = 22
         Height = 27
-        Top = 122
+        Top = 121
         Width = 221
         AutoSize = False
         Caption = 'Permitir Facturas a crédito'
@@ -6284,7 +6284,7 @@ object FConfig: TFConfig
       object Label98: TLabel
         Left = 390
         Height = 27
-        Top = 26
+        Top = 25
         Width = 224
         AutoSize = False
         Caption = 'Visualizar antes de Imprimir'
@@ -6371,7 +6371,7 @@ object FConfig: TFConfig
       end
       object Label110: TLabel
         Left = 22
-        Height = 26
+        Height = 25
         Top = 397
         Width = 288
         AutoSize = False
@@ -6383,10 +6383,10 @@ object FConfig: TFConfig
       object ComboBox2: TComboBox
         Left = 258
         Height = 22
-        Top = 26
+        Top = 25
         Width = 56
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -6404,7 +6404,7 @@ object FConfig: TFConfig
         Top = 83
         Width = 56
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -6419,10 +6419,10 @@ object FConfig: TFConfig
       object ComboBox5: TComboBox
         Left = 258
         Height = 22
-        Top = 122
+        Top = 121
         Width = 56
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -6440,7 +6440,7 @@ object FConfig: TFConfig
         Top = 178
         Width = 56
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -6458,7 +6458,7 @@ object FConfig: TFConfig
         Top = 280
         Width = 56
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -6476,7 +6476,7 @@ object FConfig: TFConfig
         Top = 315
         Width = 56
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -6494,7 +6494,7 @@ object FConfig: TFConfig
         Top = 477
         Width = 56
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -6509,10 +6509,10 @@ object FConfig: TFConfig
       object ComboBox14: TComboBox
         Left = 686
         Height = 22
-        Top = 26
+        Top = 25
         Width = 56
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -6530,7 +6530,7 @@ object FConfig: TFConfig
         Top = 59
         Width = 125
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -6548,7 +6548,7 @@ object FConfig: TFConfig
         Top = 94
         Width = 56
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -6566,7 +6566,7 @@ object FConfig: TFConfig
         Top = 134
         Width = 56
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -6584,7 +6584,7 @@ object FConfig: TFConfig
         Top = 170
         Width = 125
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -6602,7 +6602,7 @@ object FConfig: TFConfig
         Top = 206
         Width = 56
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -6620,7 +6620,7 @@ object FConfig: TFConfig
         Top = 242
         Width = 125
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -6638,7 +6638,7 @@ object FConfig: TFConfig
         Top = 515
         Width = 56
         AutoSize = False
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -6657,7 +6657,7 @@ object FConfig: TFConfig
         Width = 90
         AutoSize = False
         CharCase = ecUppercase
-        Font.Height = -11
+        Font.Height = -12
         Font.Name = 'Sans'
         ItemHeight = 0
         Items.Strings = (
@@ -6674,8 +6674,8 @@ object FConfig: TFConfig
     end
     object TabSheet2: TTabSheet
       Caption = '  Conexion  '
-      ClientHeight = 565
-      ClientWidth = 1018
+      ClientHeight = 897
+      ClientWidth = 1914
       ParentFont = False
       object Bevel1: TBevel
         Left = 598
@@ -6740,7 +6740,7 @@ object FConfig: TFConfig
       object Label23: TLabel
         Left = 613
         Height = 19
-        Top = 358
+        Top = 359
         Width = 94
         Caption = 'Servidor BBDD'
         ParentColor = False
@@ -6767,7 +6767,7 @@ object FConfig: TFConfig
       object Label26: TLabel
         Left = 613
         Height = 19
-        Top = 454
+        Top = 455
         Width = 92
         Caption = 'Nombre BBDD'
         ParentColor = False
@@ -6801,8 +6801,8 @@ object FConfig: TFConfig
         ParentFont = False
       end
       object Edit11: TEdit
-        Left = 166
-        Height = 27
+        Left = 167
+        Height = 29
         Top = 50
         Width = 232
         ParentFont = False
@@ -6810,8 +6810,8 @@ object FConfig: TFConfig
         OnChange = Edit1Change
       end
       object Edit12: TEdit
-        Left = 166
-        Height = 27
+        Left = 167
+        Height = 29
         Top = 94
         Width = 232
         ParentFont = False
@@ -6819,8 +6819,8 @@ object FConfig: TFConfig
         OnChange = Edit1Change
       end
       object Edit13: TEdit
-        Left = 166
-        Height = 27
+        Left = 167
+        Height = 29
         Top = 138
         Width = 232
         EchoMode = emPassword
@@ -6830,17 +6830,17 @@ object FConfig: TFConfig
         OnChange = Edit1Change
       end
       object Edit14: TEdit
-        Left = 166
-        Height = 27
-        Top = 181
+        Left = 167
+        Height = 29
+        Top = 180
         Width = 232
         ParentFont = False
         TabOrder = 3
         OnChange = Edit1Change
       end
       object Edit15: TEdit
-        Left = 166
-        Height = 27
+        Left = 167
+        Height = 29
         Top = 224
         Width = 62
         ParentFont = False
@@ -6850,7 +6850,7 @@ object FConfig: TFConfig
       object BitBtn4: TBitBtn
         Left = 429
         Height = 29
-        Top = 262
+        Top = 263
         Width = 154
         Caption = 'Test de conexión'
         ParentFont = False
@@ -6858,8 +6858,8 @@ object FConfig: TFConfig
         OnClick = BitBtn4Click
       end
       object Combo1: TComboBox
-        Left = 166
-        Height = 29
+        Left = 167
+        Height = 31
         Top = 266
         Width = 232
         ItemHeight = 0
@@ -6896,7 +6896,7 @@ object FConfig: TFConfig
       end
       object Edit21: TEdit
         Left = 741
-        Height = 27
+        Height = 29
         Top = 355
         Width = 232
         Enabled = False
@@ -6906,7 +6906,7 @@ object FConfig: TFConfig
       end
       object Edit22: TEdit
         Left = 741
-        Height = 27
+        Height = 29
         Top = 387
         Width = 232
         Enabled = False
@@ -6916,7 +6916,7 @@ object FConfig: TFConfig
       end
       object Edit23: TEdit
         Left = 741
-        Height = 27
+        Height = 29
         Top = 419
         Width = 232
         Enabled = False
@@ -6926,7 +6926,7 @@ object FConfig: TFConfig
       end
       object Edit24: TEdit
         Left = 741
-        Height = 27
+        Height = 29
         Top = 451
         Width = 232
         Enabled = False
@@ -6936,7 +6936,7 @@ object FConfig: TFConfig
       end
       object Edit25: TEdit
         Left = 741
-        Height = 27
+        Height = 29
         Top = 483
         Width = 62
         Enabled = False
@@ -6946,7 +6946,7 @@ object FConfig: TFConfig
       end
       object Combo2: TComboBox
         Left = 741
-        Height = 29
+        Height = 31
         Top = 515
         Width = 232
         Enabled = False
@@ -6983,10 +6983,10 @@ object FConfig: TFConfig
         OnChange = Edit1Change
       end
       object BitBtn5: TBitBtn
-        Left = 698
+        Left = 697
         Height = 29
         Top = 560
-        Width = 210
+        Width = 211
         Caption = 'Test de conexión'
         Enabled = False
         ParentFont = False
@@ -6996,19 +6996,19 @@ object FConfig: TFConfig
       object CheckBox1: TCheckBox
         Left = 645
         Height = 23
-        Top = 306
-        Width = 260
+        Top = 307
+        Width = 261
         Caption = 'Activar sistema de informacion comun'
         ParentFont = False
         TabOrder = 14
         OnChange = CheckBox1Change
       end
       object PanelCambiable1: TPanel
-        Left = 462
-        Height = 48
+        Left = 461
+        Height = 49
         Top = 45
         Width = 541
-        ClientHeight = 48
+        ClientHeight = 49
         ClientWidth = 541
         ParentFont = False
         TabOrder = 15
@@ -7023,9 +7023,9 @@ object FConfig: TFConfig
         end
         object BitBtnCambiable1: TBitBtn
           Left = 256
-          Height = 26
+          Height = 25
           Top = 10
-          Width = 26
+          Width = 25
           Caption = '...'
           Layout = blGlyphTop
           Margin = 0
@@ -7037,7 +7037,7 @@ object FConfig: TFConfig
         end
         object ComboCambiableNombre1: TComboBox
           Left = 288
-          Height = 29
+          Height = 31
           Top = 10
           Width = 232
           ItemHeight = 0
@@ -7050,7 +7050,7 @@ object FConfig: TFConfig
         end
         object EditCambiableCodigo1: TEdit
           Left = 146
-          Height = 27
+          Height = 29
           Top = 10
           Width = 106
           CharCase = ecUppercase
@@ -7063,20 +7063,20 @@ object FConfig: TFConfig
         end
         object StaticTextCambiableNombre1: TStaticText
           Left = 286
-          Height = 26
+          Height = 25
           Top = 10
-          Width = 218
+          Width = 217
           BorderStyle = sbsSingle
           ParentFont = False
           TabOrder = 3
         end
       end
       object PanelCambiable2: TPanel
-        Left = 462
-        Height = 48
+        Left = 461
+        Height = 49
         Top = 99
         Width = 541
-        ClientHeight = 48
+        ClientHeight = 49
         ClientWidth = 541
         ParentFont = False
         TabOrder = 16
@@ -7091,9 +7091,9 @@ object FConfig: TFConfig
         end
         object BitBtnCambiable2: TBitBtn
           Left = 256
-          Height = 26
+          Height = 25
           Top = 10
-          Width = 26
+          Width = 25
           Caption = '...'
           Layout = blGlyphTop
           Margin = 0
@@ -7105,7 +7105,7 @@ object FConfig: TFConfig
         end
         object ComboCambiableNombre2: TComboBox
           Left = 288
-          Height = 29
+          Height = 31
           Top = 10
           Width = 232
           ItemHeight = 0
@@ -7118,7 +7118,7 @@ object FConfig: TFConfig
         end
         object EditCambiableCodigo2: TEdit
           Left = 146
-          Height = 27
+          Height = 29
           Top = 10
           Width = 106
           CharCase = ecUppercase
@@ -7131,9 +7131,9 @@ object FConfig: TFConfig
         end
         object StaticTextCambiableNombre2: TStaticText
           Left = 286
-          Height = 26
+          Height = 25
           Top = 10
-          Width = 218
+          Width = 217
           BorderStyle = sbsSingle
           ParentFont = False
           TabOrder = 3
@@ -7211,7 +7211,7 @@ object FConfig: TFConfig
         end
         object edCuenta: TEdit
           Left = 91
-          Height = 26
+          Height = 28
           Top = 14
           Width = 290
           Font.Height = -13
@@ -7222,7 +7222,7 @@ object FConfig: TFConfig
         end
         object edUsuario: TEdit
           Left = 91
-          Height = 26
+          Height = 28
           Top = 88
           Width = 290
           Font.Height = -13
@@ -7233,9 +7233,9 @@ object FConfig: TFConfig
         end
         object edClave: TEdit
           Left = 91
-          Height = 26
+          Height = 28
           Top = 130
-          Width = 166
+          Width = 167
           EchoMode = emPassword
           Font.Height = -13
           Font.Name = 'Sans'
@@ -7246,8 +7246,8 @@ object FConfig: TFConfig
         end
         object edHost: TEdit
           Left = 91
-          Height = 26
-          Top = 174
+          Height = 28
+          Top = 173
           Width = 186
           Font.Height = -13
           Font.Name = 'Sans'
@@ -7257,8 +7257,8 @@ object FConfig: TFConfig
         end
         object edPuerto: TEdit
           Left = 435
-          Height = 26
-          Top = 174
+          Height = 28
+          Top = 173
           Width = 62
           Font.Height = -13
           Font.Name = 'Sans'
@@ -7271,7 +7271,7 @@ object FConfig: TFConfig
           Left = 453
           Height = 23
           Top = 19
-          Width = 44
+          Width = 45
           Caption = 'SSL'
           Checked = True
           Font.Height = -13
@@ -7284,7 +7284,7 @@ object FConfig: TFConfig
           Left = 453
           Height = 23
           Top = 62
-          Width = 44
+          Width = 45
           Caption = 'TLS'
           Checked = True
           Font.Height = -13
@@ -7306,7 +7306,7 @@ object FConfig: TFConfig
         end
         object edCabecera: TEdit
           Left = 91
-          Height = 26
+          Height = 28
           Top = 219
           Width = 434
           Font.Height = -13
@@ -7329,7 +7329,7 @@ object FConfig: TFConfig
         end
         object edMensaje1: TEdit
           Left = 91
-          Height = 26
+          Height = 28
           Top = 253
           Width = 434
           Font.Height = -13
@@ -7340,7 +7340,7 @@ object FConfig: TFConfig
         end
         object edMensaje2: TEdit
           Left = 91
-          Height = 26
+          Height = 28
           Top = 275
           Width = 434
           Font.Height = -13
@@ -7351,7 +7351,7 @@ object FConfig: TFConfig
         end
         object edMensaje3: TEdit
           Left = 91
-          Height = 26
+          Height = 28
           Top = 298
           Width = 434
           Font.Height = -13
@@ -7362,7 +7362,7 @@ object FConfig: TFConfig
         end
         object edmensaje4: TEdit
           Left = 91
-          Height = 26
+          Height = 28
           Top = 322
           Width = 434
           Font.Height = -13
@@ -7384,7 +7384,7 @@ object FConfig: TFConfig
         end
         object edCuentaCopia: TEdit
           Left = 91
-          Height = 26
+          Height = 28
           Top = 50
           Width = 290
           Font.Height = -13
@@ -7423,8 +7423,8 @@ object FConfig: TFConfig
     end
     object TabSheet3: TTabSheet
       Caption = '  Actualizaciones  '
-      ClientHeight = 565
-      ClientWidth = 1018
+      ClientHeight = 897
+      ClientWidth = 1914
       ParentFont = False
       object Label20: TLabel
         Left = 38
@@ -7438,7 +7438,7 @@ object FConfig: TFConfig
       object Label21: TLabel
         Left = 38
         Height = 19
-        Top = 114
+        Top = 115
         Width = 49
         Caption = 'Usuario'
         ParentColor = False
@@ -7455,7 +7455,7 @@ object FConfig: TFConfig
       end
       object Edit18: TEdit
         Left = 230
-        Height = 27
+        Height = 29
         Top = 50
         Width = 232
         ParentFont = False
@@ -7464,7 +7464,7 @@ object FConfig: TFConfig
       end
       object Edit19: TEdit
         Left = 230
-        Height = 27
+        Height = 29
         Top = 110
         Width = 232
         ParentFont = False
@@ -7473,8 +7473,8 @@ object FConfig: TFConfig
       end
       object Edit20: TEdit
         Left = 230
-        Height = 27
-        Top = 166
+        Height = 29
+        Top = 167
         Width = 232
         ParentFont = False
         TabOrder = 2
@@ -7483,8 +7483,8 @@ object FConfig: TFConfig
     end
     object TabSheet5: TTabSheet
       Caption = '  Tickets  '
-      ClientHeight = 565
-      ClientWidth = 1018
+      ClientHeight = 897
+      ClientWidth = 1914
       ParentFont = False
       object Label43: TLabel
         Left = 14
@@ -7496,7 +7496,7 @@ object FConfig: TFConfig
         ParentFont = False
       end
       object Label44: TLabel
-        Left = 550
+        Left = 551
         Height = 19
         Top = 19
         Width = 193
@@ -7532,7 +7532,7 @@ object FConfig: TFConfig
         ParentFont = False
       end
       object Label48: TLabel
-        Left = 550
+        Left = 551
         Height = 19
         Top = 59
         Width = 204
@@ -7588,7 +7588,7 @@ object FConfig: TFConfig
       object Label54: TLabel
         Left = 14
         Height = 19
-        Top = 299
+        Top = 300
         Width = 129
         Caption = 'Cabecera del ticket 4'
         ParentColor = False
@@ -7696,7 +7696,7 @@ object FConfig: TFConfig
       object Label66: TLabel
         Left = 566
         Height = 19
-        Top = 299
+        Top = 300
         Width = 140
         Caption = 'Secuencia negro doble'
         ParentColor = False
@@ -7758,7 +7758,7 @@ object FConfig: TFConfig
       end
       object Edit32: TEdit
         Left = 190
-        Height = 27
+        Height = 29
         Top = 14
         Width = 350
         ParentFont = False
@@ -7767,25 +7767,25 @@ object FConfig: TFConfig
       end
       object Edit33: TEdit
         Left = 773
-        Height = 27
+        Height = 29
         Top = 14
-        Width = 48
+        Width = 49
         ParentFont = False
         TabOrder = 1
         OnChange = Edit1Change
       end
       object Edit34: TEdit
         Left = 950
-        Height = 27
+        Height = 29
         Top = 14
-        Width = 48
+        Width = 49
         ParentFont = False
         TabOrder = 2
         OnChange = Edit1Change
       end
       object Edit35: TEdit
         Left = 190
-        Height = 27
+        Height = 29
         Top = 54
         Width = 350
         ParentFont = False
@@ -7794,7 +7794,7 @@ object FConfig: TFConfig
       end
       object Edit36: TEdit
         Left = 190
-        Height = 27
+        Height = 29
         Top = 94
         Width = 350
         ParentFont = False
@@ -7803,25 +7803,25 @@ object FConfig: TFConfig
       end
       object Edit37: TEdit
         Left = 773
-        Height = 27
+        Height = 29
         Top = 54
-        Width = 48
+        Width = 49
         ParentFont = False
         TabOrder = 5
         OnChange = Edit1Change
       end
       object Edit38: TEdit
         Left = 950
-        Height = 27
+        Height = 29
         Top = 54
-        Width = 48
+        Width = 49
         ParentFont = False
         TabOrder = 6
         OnChange = Edit1Change
       end
       object Edit39: TEdit
         Left = 190
-        Height = 27
+        Height = 29
         Top = 134
         Width = 350
         ParentFont = False
@@ -7830,7 +7830,7 @@ object FConfig: TFConfig
       end
       object Edit40: TEdit
         Left = 190
-        Height = 27
+        Height = 29
         Top = 176
         Width = 350
         MaxLength = 40
@@ -7840,7 +7840,7 @@ object FConfig: TFConfig
       end
       object Edit41: TEdit
         Left = 190
-        Height = 27
+        Height = 29
         Top = 214
         Width = 350
         MaxLength = 40
@@ -7850,7 +7850,7 @@ object FConfig: TFConfig
       end
       object Edit42: TEdit
         Left = 190
-        Height = 27
+        Height = 29
         Top = 254
         Width = 350
         MaxLength = 40
@@ -7860,7 +7860,7 @@ object FConfig: TFConfig
       end
       object Edit43: TEdit
         Left = 190
-        Height = 27
+        Height = 29
         Top = 294
         Width = 350
         MaxLength = 40
@@ -7870,7 +7870,7 @@ object FConfig: TFConfig
       end
       object Edit44: TEdit
         Left = 190
-        Height = 27
+        Height = 29
         Top = 334
         Width = 350
         MaxLength = 40
@@ -7880,7 +7880,7 @@ object FConfig: TFConfig
       end
       object Edit45: TEdit
         Left = 190
-        Height = 27
+        Height = 29
         Top = 374
         Width = 350
         MaxLength = 40
@@ -7890,7 +7890,7 @@ object FConfig: TFConfig
       end
       object Edit46: TEdit
         Left = 190
-        Height = 27
+        Height = 29
         Top = 416
         Width = 350
         MaxLength = 40
@@ -7900,8 +7900,8 @@ object FConfig: TFConfig
       end
       object Edit47: TEdit
         Left = 190
-        Height = 27
-        Top = 454
+        Height = 29
+        Top = 455
         Width = 350
         ParentFont = False
         TabOrder = 15
@@ -7909,7 +7909,7 @@ object FConfig: TFConfig
       end
       object Edit48: TEdit
         Left = 190
-        Height = 27
+        Height = 29
         Top = 494
         Width = 350
         MaxLength = 40
@@ -7919,7 +7919,7 @@ object FConfig: TFConfig
       end
       object Edit49: TEdit
         Left = 190
-        Height = 27
+        Height = 29
         Top = 534
         Width = 350
         MaxLength = 40
@@ -7929,65 +7929,65 @@ object FConfig: TFConfig
       end
       object Edit50: TEdit
         Left = 766
-        Height = 27
+        Height = 29
         Hint = '027112000020080   Epson TM'
         Top = 94
-        Width = 240
+        Width = 241
         ParentFont = False
         TabOrder = 18
         OnChange = Edit1Change
       end
       object Edit51: TEdit
         Left = 766
-        Height = 27
+        Height = 29
         Hint = '027091052110 Epson TM'
         Top = 134
-        Width = 240
+        Width = 241
         ParentFont = False
         TabOrder = 19
         OnChange = Edit1Change
       end
       object Edit52: TEdit
         Left = 766
-        Height = 27
+        Height = 29
         Top = 176
-        Width = 240
+        Width = 241
         ParentFont = False
         TabOrder = 20
         OnChange = Edit1Change
       end
       object Edit53: TEdit
         Left = 766
-        Height = 27
+        Height = 29
         Top = 214
-        Width = 240
+        Width = 241
         ParentFont = False
         TabOrder = 21
         OnChange = Edit1Change
       end
       object Edit54: TEdit
         Left = 766
-        Height = 27
+        Height = 29
         Top = 254
-        Width = 240
+        Width = 241
         ParentFont = False
         TabOrder = 22
         OnChange = Edit1Change
       end
       object Edit55: TEdit
         Left = 766
-        Height = 27
+        Height = 29
         Top = 294
-        Width = 240
+        Width = 241
         ParentFont = False
         TabOrder = 23
         OnChange = Edit1Change
       end
       object Edit56: TEdit
         Left = 766
-        Height = 27
+        Height = 29
         Top = 334
-        Width = 240
+        Width = 241
         ParentFont = False
         TabOrder = 24
         OnChange = Edit1Change
@@ -8027,7 +8027,7 @@ object FConfig: TFConfig
       object ComboBox24: TComboBox
         Left = 782
         Height = 21
-        Top = 454
+        Top = 455
         Width = 66
         AutoSize = False
         ItemHeight = 0
@@ -8042,7 +8042,7 @@ object FConfig: TFConfig
       end
       object ComboBox25: TComboBox
         Left = 782
-        Height = 26
+        Height = 25
         Top = 494
         Width = 66
         AutoSize = False
@@ -8060,7 +8060,7 @@ object FConfig: TFConfig
       end
       object ComboBox30: TComboBox
         Left = 782
-        Height = 26
+        Height = 25
         Top = 534
         Width = 66
         AutoSize = False
@@ -8087,10 +8087,10 @@ object FConfig: TFConfig
       end
       object Edit70: TEdit
         Left = 766
-        Height = 27
+        Height = 29
         Hint = '027112000020080   Epson TM'
         Top = 578
-        Width = 240
+        Width = 241
         ParentFont = False
         TabOrder = 30
         OnChange = Edit70Change
@@ -8098,8 +8098,8 @@ object FConfig: TFConfig
     end
     object TabSheet4: TTabSheet
       Caption = '  Impuestos  '
-      ClientHeight = 565
-      ClientWidth = 1018
+      ClientHeight = 897
+      ClientWidth = 1914
       ParentFont = False
       object Label31: TLabel
         Left = 38
@@ -8248,9 +8248,9 @@ object FConfig: TFConfig
       end
       object Edit26: TEdit
         Left = 142
-        Height = 27
+        Height = 29
         Top = 50
-        Width = 48
+        Width = 49
         ParentFont = False
         TabOrder = 0
         OnChange = Edit1Change
@@ -8258,9 +8258,9 @@ object FConfig: TFConfig
       end
       object Edit27: TEdit
         Left = 142
-        Height = 27
+        Height = 29
         Top = 101
-        Width = 48
+        Width = 49
         ParentFont = False
         TabOrder = 1
         OnChange = Edit1Change
@@ -8268,9 +8268,9 @@ object FConfig: TFConfig
       end
       object Edit28: TEdit
         Left = 142
-        Height = 27
+        Height = 29
         Top = 154
-        Width = 48
+        Width = 49
         ParentFont = False
         TabOrder = 2
         OnChange = Edit1Change
@@ -8278,9 +8278,9 @@ object FConfig: TFConfig
       end
       object Edit29: TEdit
         Left = 374
-        Height = 27
+        Height = 29
         Top = 50
-        Width = 48
+        Width = 49
         ParentFont = False
         TabOrder = 3
         OnChange = Edit1Change
@@ -8288,9 +8288,9 @@ object FConfig: TFConfig
       end
       object Edit30: TEdit
         Left = 374
-        Height = 27
+        Height = 29
         Top = 101
-        Width = 48
+        Width = 49
         ParentFont = False
         TabOrder = 4
         OnChange = Edit1Change
@@ -8298,9 +8298,9 @@ object FConfig: TFConfig
       end
       object Edit31: TEdit
         Left = 374
-        Height = 27
+        Height = 29
         Top = 154
-        Width = 48
+        Width = 49
         ParentFont = False
         TabOrder = 5
         OnChange = Edit1Change
@@ -8367,7 +8367,7 @@ object FConfig: TFConfig
       end
       object fechaiva: TDateEdit
         Left = 254
-        Height = 27
+        Height = 29
         Top = 195
         Width = 173
         CalendarDisplaySettings = [dsShowHeadings, dsShowDayNames]
@@ -8453,14 +8453,14 @@ object FConfig: TFConfig
     end
     object TabSheet8: TTabSheet
       Caption = '   Informes  '
-      ClientHeight = 565
-      ClientWidth = 1018
+      ClientHeight = 897
+      ClientWidth = 1914
       ParentFont = False
       object CheckBox2: TCheckBox
         Left = 22
         Height = 23
         Top = 29
-        Width = 325
+        Width = 326
         BidiMode = bdRightToLeft
         Caption = 'Imprimir los datos de la empresa en los informes'
         Checked = True
@@ -8474,7 +8474,7 @@ object FConfig: TFConfig
         AnchorSideLeft.Control = TabSheet8
         AnchorSideBottom.Control = gbTipoInstalacion
         Left = 17
-        Height = 170
+        Height = 169
         Top = 84
         Width = 307
         Anchors = [akTop, akLeft, akBottom]
@@ -8490,7 +8490,7 @@ object FConfig: TFConfig
         ChildSizing.ShrinkVertical = crsScaleChilds
         ChildSizing.Layout = cclLeftToRightThenTopToBottom
         ChildSizing.ControlsPerLine = 1
-        ClientHeight = 149
+        ClientHeight = 148
         ClientWidth = 303
         ItemIndex = 1
         Items.Strings = (
@@ -8508,14 +8508,14 @@ object FConfig: TFConfig
         AnchorSideRight.Side = asrBottom
         Left = 17
         Height = 294
-        Top = 270
-        Width = 985
+        Top = 269
+        Width = 1881
         Anchors = [akTop, akLeft, akRight]
         BorderSpacing.Left = 17
         BorderSpacing.Right = 16
         Caption = ' Entorno del sistema '
         ClientHeight = 290
-        ClientWidth = 981
+        ClientWidth = 1877
         ParentFont = False
         TabOrder = 2
         object lbSistema: TLabel
@@ -8534,7 +8534,7 @@ object FConfig: TFConfig
           Transparent = False
         end
         object lbIni: TLabel
-          Left = 18
+          Left = 19
           Height = 19
           Top = 54
           Width = 194
@@ -8543,7 +8543,7 @@ object FConfig: TFConfig
           ParentFont = False
         end
         object lbSql: TLabel
-          Left = 18
+          Left = 19
           Height = 19
           Top = 93
           Width = 253
@@ -8552,7 +8552,7 @@ object FConfig: TFConfig
           ParentFont = False
         end
         object lbReport: TLabel
-          Left = 18
+          Left = 19
           Height = 19
           Top = 130
           Width = 207
@@ -8561,7 +8561,7 @@ object FConfig: TFConfig
           ParentFont = False
         end
         object lbImagenes: TLabel
-          Left = 18
+          Left = 19
           Height = 19
           Top = 163
           Width = 178
@@ -8570,7 +8570,7 @@ object FConfig: TFConfig
           ParentFont = False
         end
         object lbBinario: TLabel
-          Left = 18
+          Left = 19
           Height = 19
           Top = 202
           Width = 148
@@ -8579,7 +8579,7 @@ object FConfig: TFConfig
           ParentFont = False
         end
         object lbModulos: TLabel
-          Left = 18
+          Left = 19
           Height = 19
           Top = 242
           Width = 168
@@ -8593,15 +8593,15 @@ object FConfig: TFConfig
         AnchorSideRight.Side = asrBottom
         AnchorSideBottom.Control = gbTipoInstalacion
         Left = 685
-        Height = 182
+        Height = 181
         Top = 72
-        Width = 317
+        Width = 1213
         Anchors = [akTop, akLeft, akRight, akBottom]
         BorderSpacing.Right = 16
         BorderSpacing.Bottom = 16
         Caption = ' Datos QR No Veri*factu  '
-        ClientHeight = 178
-        ClientWidth = 313
+        ClientHeight = 177
+        ClientWidth = 1209
         TabOrder = 3
         object lbLeyendaSuperior: TLabel
           Left = 17
@@ -8632,9 +8632,9 @@ object FConfig: TFConfig
         end
         object edLeyendaSuperior: TEdit
           Left = 142
-          Height = 27
+          Height = 29
           Top = 16
-          Width = 491
+          Width = 492
           ParentFont = False
           TabOrder = 0
           OnChange = Edit1Change
@@ -8642,9 +8642,9 @@ object FConfig: TFConfig
         end
         object edLeyendaInferior: TEdit
           Left = 142
-          Height = 27
+          Height = 29
           Top = 60
-          Width = 491
+          Width = 492
           ParentFont = False
           TabOrder = 1
           OnChange = Edit1Change
@@ -8652,9 +8652,9 @@ object FConfig: TFConfig
         end
         object edTextoQR: TEdit
           Left = 142
-          Height = 27
+          Height = 29
           Top = 105
-          Width = 491
+          Width = 492
           ParentFont = False
           TabOrder = 2
           OnChange = Edit1Change
@@ -8664,14 +8664,14 @@ object FConfig: TFConfig
     end
     object TabSheet6: TTabSheet
       Caption = '  Aplicaciones extra  '
-      ClientHeight = 565
-      ClientWidth = 1018
+      ClientHeight = 897
+      ClientWidth = 1914
       ParentFont = False
       object pcAplicacionesExtra: TPageControl
         Left = 0
-        Height = 565
+        Height = 897
         Top = 0
-        Width = 1018
+        Width = 1914
         ActivePage = tsGeneral
         Align = alClient
         ParentFont = False
@@ -8680,8 +8680,8 @@ object FConfig: TFConfig
         OnEnter = pcAplicacionesExtraEnter
         object tsGeneral: TTabSheet
           Caption = '  General  '
-          ClientHeight = 561
-          ClientWidth = 1014
+          ClientHeight = 891
+          ClientWidth = 1908
           ParentFont = False
           object Label69: TLabel
             Left = 14
@@ -8721,7 +8721,7 @@ object FConfig: TFConfig
           end
           object Edit58: TEdit
             Left = 278
-            Height = 27
+            Height = 29
             Top = 27
             Width = 370
             ParentFont = False
@@ -8729,7 +8729,7 @@ object FConfig: TFConfig
             OnChange = Edit1Change
           end
           object BitBtn13: TBitBtn
-            Left = 654
+            Left = 653
             Height = 22
             Top = 32
             Width = 22
@@ -8743,7 +8743,7 @@ object FConfig: TFConfig
           end
           object Edit59: TEdit
             Left = 278
-            Height = 27
+            Height = 29
             Top = 66
             Width = 370
             ParentFont = False
@@ -8751,9 +8751,9 @@ object FConfig: TFConfig
             OnChange = Edit1Change
           end
           object BitBtn14: TBitBtn
-            Left = 654
+            Left = 653
             Height = 22
-            Top = 70
+            Top = 71
             Width = 22
             Caption = '...'
             Layout = blGlyphTop
@@ -8765,7 +8765,7 @@ object FConfig: TFConfig
           end
           object Edit69: TEdit
             Left = 278
-            Height = 27
+            Height = 29
             Top = 106
             Width = 480
             ParentFont = False
@@ -8788,8 +8788,8 @@ object FConfig: TFConfig
           end
           object EditAbrirArchivo: TEdit
             Left = 278
-            Height = 27
-            Top = 144
+            Height = 29
+            Top = 143
             Width = 206
             ParentFont = False
             TabOrder = 6
@@ -8798,8 +8798,8 @@ object FConfig: TFConfig
         end
         object tsCopiasAutomaticas: TTabSheet
           Caption = '  Copias Automaticas  '
-          ClientHeight = 561
-          ClientWidth = 1014
+          ClientHeight = 891
+          ClientWidth = 1908
           ParentFont = False
           object gbCopia1: TGroupBox
             Left = 82
@@ -8815,7 +8815,7 @@ object FConfig: TFConfig
               Left = 30
               Height = 23
               Top = 14
-              Width = 139
+              Width = 140
               Caption = 'Activar/Desactivar'
               ParentFont = False
               TabOrder = 0
@@ -8832,7 +8832,7 @@ object FConfig: TFConfig
             end
             object Copia1InicioHora: TEdit
               Left = 126
-              Height = 27
+              Height = 29
               Top = 38
               Width = 34
               Alignment = taCenter
@@ -8843,7 +8843,7 @@ object FConfig: TFConfig
             end
             object Copia1InicioUD1: TUpDown
               Left = 160
-              Height = 27
+              Height = 29
               Top = 38
               Width = 14
               Associate = Copia1InicioHora
@@ -8864,7 +8864,7 @@ object FConfig: TFConfig
             end
             object Copia1InicioMinutos: TEdit
               Left = 230
-              Height = 27
+              Height = 29
               Top = 38
               Width = 34
               Alignment = taCenter
@@ -8875,7 +8875,7 @@ object FConfig: TFConfig
             end
             object Copia1InicioUD2: TUpDown
               Left = 264
-              Height = 27
+              Height = 29
               Top = 38
               Width = 14
               Associate = Copia1InicioMinutos
@@ -8906,15 +8906,15 @@ object FConfig: TFConfig
             end
             object Copia1Destino: TEdit
               Left = 126
-              Height = 27
-              Top = 70
+              Height = 29
+              Top = 71
               Width = 645
               ParentFont = False
               ParentShowHint = False
               TabOrder = 9
             end
             object Label128: TLabel
-              Left = 462
+              Left = 461
               Height = 19
               Top = 46
               Width = 74
@@ -8923,8 +8923,8 @@ object FConfig: TFConfig
               ParentFont = False
             end
             object Copia1FinHora: TEdit
-              Left = 558
-              Height = 27
+              Left = 557
+              Height = 29
               Top = 38
               Width = 34
               Alignment = taCenter
@@ -8944,7 +8944,7 @@ object FConfig: TFConfig
             end
             object Copia1FinMinutos: TEdit
               Left = 662
-              Height = 27
+              Height = 29
               Top = 37
               Width = 34
               Alignment = taCenter
@@ -8963,8 +8963,8 @@ object FConfig: TFConfig
               ParentFont = False
             end
             object Copia1FinUD1: TUpDown
-              Left = 592
-              Height = 27
+              Left = 591
+              Height = 29
               Top = 38
               Width = 14
               Associate = Copia1FinHora
@@ -8975,7 +8975,7 @@ object FConfig: TFConfig
             end
             object Copia1FinUD2: TUpDown
               Left = 696
-              Height = 27
+              Height = 29
               Top = 37
               Width = 14
               Associate = Copia1FinMinutos
@@ -9000,7 +9000,7 @@ object FConfig: TFConfig
               Left = 30
               Height = 23
               Top = 14
-              Width = 139
+              Width = 140
               Caption = 'Activar/Desactivar'
               ParentFont = False
               TabOrder = 0
@@ -9017,7 +9017,7 @@ object FConfig: TFConfig
             end
             object Copia2InicioHora: TEdit
               Left = 126
-              Height = 27
+              Height = 29
               Top = 40
               Width = 34
               Alignment = taCenter
@@ -9028,7 +9028,7 @@ object FConfig: TFConfig
             end
             object Copia2InicioUD1: TUpDown
               Left = 160
-              Height = 27
+              Height = 29
               Top = 40
               Width = 14
               Associate = Copia2InicioHora
@@ -9041,7 +9041,7 @@ object FConfig: TFConfig
             object Label131: TLabel
               Left = 182
               Height = 19
-              Top = 48
+              Top = 49
               Width = 35
               Caption = 'horas'
               ParentColor = False
@@ -9049,7 +9049,7 @@ object FConfig: TFConfig
             end
             object Copia2InicioMinutos: TEdit
               Left = 230
-              Height = 27
+              Height = 29
               Top = 38
               Width = 34
               Alignment = taCenter
@@ -9060,7 +9060,7 @@ object FConfig: TFConfig
             end
             object Copia2InicioUD2: TUpDown
               Left = 264
-              Height = 27
+              Height = 29
               Top = 38
               Width = 14
               Associate = Copia2InicioMinutos
@@ -9083,7 +9083,7 @@ object FConfig: TFConfig
             object Label134: TLabel
               Left = 30
               Height = 19
-              Top = 78
+              Top = 77
               Width = 75
               Caption = 'Dir. Destino:'
               ParentColor = False
@@ -9091,25 +9091,25 @@ object FConfig: TFConfig
             end
             object Copia2Destino: TEdit
               Left = 126
-              Height = 27
-              Top = 70
+              Height = 29
+              Top = 71
               Width = 645
               ParentFont = False
               ParentShowHint = False
               TabOrder = 9
             end
             object Label133: TLabel
-              Left = 462
+              Left = 461
               Height = 19
-              Top = 48
+              Top = 49
               Width = 74
               Caption = 'Fin Proceso:'
               ParentColor = False
               ParentFont = False
             end
             object Copia2FinHora: TEdit
-              Left = 558
-              Height = 27
+              Left = 557
+              Height = 29
               Top = 40
               Width = 34
               Alignment = taCenter
@@ -9121,7 +9121,7 @@ object FConfig: TFConfig
             object Label142: TLabel
               Left = 614
               Height = 19
-              Top = 48
+              Top = 49
               Width = 35
               Caption = 'horas'
               ParentColor = False
@@ -9129,7 +9129,7 @@ object FConfig: TFConfig
             end
             object Copia2FinMinutos: TEdit
               Left = 662
-              Height = 27
+              Height = 29
               Top = 38
               Width = 34
               Alignment = taCenter
@@ -9148,8 +9148,8 @@ object FConfig: TFConfig
               ParentFont = False
             end
             object Copia2FinUD1: TUpDown
-              Left = 592
-              Height = 27
+              Left = 591
+              Height = 29
               Top = 40
               Width = 14
               Associate = Copia2FinHora
@@ -9160,7 +9160,7 @@ object FConfig: TFConfig
             end
             object Copia2FinUD2: TUpDown
               Left = 696
-              Height = 27
+              Height = 29
               Top = 38
               Width = 14
               Associate = Copia2FinMinutos
@@ -9185,7 +9185,7 @@ object FConfig: TFConfig
               Left = 30
               Height = 23
               Top = 14
-              Width = 139
+              Width = 140
               Caption = 'Activar/Desactivar'
               ParentFont = False
               TabOrder = 0
@@ -9202,7 +9202,7 @@ object FConfig: TFConfig
             end
             object Copia3InicioHora: TEdit
               Left = 126
-              Height = 27
+              Height = 29
               Top = 40
               Width = 34
               Alignment = taCenter
@@ -9213,7 +9213,7 @@ object FConfig: TFConfig
             end
             object Copia3InicioUD1: TUpDown
               Left = 160
-              Height = 27
+              Height = 29
               Top = 40
               Width = 14
               Associate = Copia3InicioHora
@@ -9226,7 +9226,7 @@ object FConfig: TFConfig
             object Label136: TLabel
               Left = 182
               Height = 19
-              Top = 48
+              Top = 49
               Width = 35
               Caption = 'horas'
               ParentColor = False
@@ -9234,7 +9234,7 @@ object FConfig: TFConfig
             end
             object Copia3InicioMinutos: TEdit
               Left = 230
-              Height = 27
+              Height = 29
               Top = 38
               Width = 34
               Alignment = taCenter
@@ -9245,7 +9245,7 @@ object FConfig: TFConfig
             end
             object Copia3InicioUD2: TUpDown
               Left = 264
-              Height = 27
+              Height = 29
               Top = 38
               Width = 14
               Associate = Copia3InicioMinutos
@@ -9268,7 +9268,7 @@ object FConfig: TFConfig
             object Label139: TLabel
               Left = 30
               Height = 19
-              Top = 78
+              Top = 77
               Width = 75
               Caption = 'Dir. Destino:'
               ParentColor = False
@@ -9276,15 +9276,15 @@ object FConfig: TFConfig
             end
             object Copia3Destino: TEdit
               Left = 126
-              Height = 27
-              Top = 70
+              Height = 29
+              Top = 71
               Width = 645
               ParentFont = False
               ParentShowHint = False
               TabOrder = 9
             end
             object Label138: TLabel
-              Left = 462
+              Left = 461
               Height = 19
               Top = 46
               Width = 74
@@ -9293,8 +9293,8 @@ object FConfig: TFConfig
               ParentFont = False
             end
             object Copia3FinHora: TEdit
-              Left = 558
-              Height = 27
+              Left = 557
+              Height = 29
               Top = 38
               Width = 34
               Alignment = taCenter
@@ -9314,7 +9314,7 @@ object FConfig: TFConfig
             end
             object Copia3FinMinutos: TEdit
               Left = 662
-              Height = 27
+              Height = 29
               Top = 37
               Width = 34
               Alignment = taCenter
@@ -9333,8 +9333,8 @@ object FConfig: TFConfig
               ParentFont = False
             end
             object Copia3FinUD1: TUpDown
-              Left = 592
-              Height = 27
+              Left = 591
+              Height = 29
               Top = 38
               Width = 14
               Associate = Copia3FinHora
@@ -9345,7 +9345,7 @@ object FConfig: TFConfig
             end
             object Copia3FinUD2: TUpDown
               Left = 696
-              Height = 27
+              Height = 29
               Top = 37
               Width = 14
               Associate = Copia3FinMinutos
@@ -9358,7 +9358,7 @@ object FConfig: TFConfig
           end
           object btnValidarCopiasAutomaticas: TBitBtn
             Left = 394
-            Height = 48
+            Height = 49
             Top = 424
             Width = 206
             Caption = 'Validar Copias Automáticas'
@@ -9371,8 +9371,8 @@ object FConfig: TFConfig
     end
     object TabSheet7: TTabSheet
       Caption = 'Sistema de Puntos'
-      ClientHeight = 565
-      ClientWidth = 1018
+      ClientHeight = 897
+      ClientWidth = 1914
       ParentFont = False
       object Label19: TLabel
         Left = 50
@@ -9386,7 +9386,7 @@ object FConfig: TFConfig
       object Label71: TLabel
         Left = 50
         Height = 19
-        Top = 70
+        Top = 71
         Width = 183
         Caption = 'Activar TODOS los productos :'
         ParentColor = False
@@ -9484,7 +9484,7 @@ object FConfig: TFConfig
       end
       object Edit17: TEdit
         Left = 342
-        Height = 27
+        Height = 29
         Top = 38
         Width = 77
         Alignment = taCenter
@@ -9496,7 +9496,7 @@ object FConfig: TFConfig
       end
       object Edit60: TEdit
         Left = 342
-        Height = 27
+        Height = 29
         Top = 67
         Width = 77
         Alignment = taCenter
@@ -9508,7 +9508,7 @@ object FConfig: TFConfig
       end
       object Edit61: TEdit
         Left = 342
-        Height = 27
+        Height = 29
         Top = 93
         Width = 77
         Alignment = taCenter
@@ -9519,8 +9519,8 @@ object FConfig: TFConfig
       end
       object Edit62: TEdit
         Left = 342
-        Height = 27
-        Top = 122
+        Height = 29
+        Top = 121
         Width = 77
         Alignment = taCenter
         ParentFont = False
@@ -9530,7 +9530,7 @@ object FConfig: TFConfig
       end
       object Edit63: TEdit
         Left = 342
-        Height = 27
+        Height = 29
         Top = 147
         Width = 77
         Alignment = taCenter
@@ -9542,8 +9542,8 @@ object FConfig: TFConfig
     end
     object TabSheet11: TTabSheet
       Caption = 'VeriFactu'
-      ClientHeight = 565
-      ClientWidth = 1018
+      ClientHeight = 897
+      ClientWidth = 1914
       object Label157: TLabel
         Left = 22
         Height = 19
@@ -9553,7 +9553,7 @@ object FConfig: TFConfig
       end
       object Edit71: TEdit
         Left = 346
-        Height = 27
+        Height = 29
         Top = 29
         Width = 526
         TabOrder = 0
@@ -9575,7 +9575,7 @@ object FConfig: TFConfig
       end
       object Edit72: TEdit
         Left = 346
-        Height = 27
+        Height = 29
         Top = 90
         Width = 526
         TabOrder = 1
@@ -9585,20 +9585,20 @@ object FConfig: TFConfig
         Left = 346
         Height = 23
         Top = 243
-        Width = 268
+        Width = 269
         Caption = 'ON = PRUEBAS   //   OFF = PRODUCCIÓN'
         TabOrder = 2
       end
       object Label160: TLabel
         Left = 22
         Height = 19
-        Top = 166
+        Top = 167
         Width = 173
         Caption = 'URL TEST Local  Veri*Factu  :'
       end
       object Edit73: TEdit
         Left = 346
-        Height = 27
+        Height = 29
         Top = 154
         Width = 526
         TabOrder = 3
@@ -9622,7 +9622,7 @@ object FConfig: TFConfig
     AutoCalcFields = False
     Connection = DataModule1.dbConexion
     Params = <>
-    Left = 506
+    Left = 505
     Top = 14
   end
   object dbCambiable1: TZQuery

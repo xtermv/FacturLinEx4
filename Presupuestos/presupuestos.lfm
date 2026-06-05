@@ -1,14 +1,13 @@
 ﻿object FPresupuesto: TFPresupuesto
   Left = 0
-  Height = 990
-  Top = 32
+  Height = 1022
+  Top = 0
   Width = 1920
   ActiveControl = Panel5
   Caption = 'Presupuestos de clientes'
-  ClientHeight = 990
+  ClientHeight = 1022
   ClientWidth = 1920
   Color = clSilver
-  DesignTimePPI = 83
   Icon.Data = {
     3EC20100000001000100C0C000000100180028C201001600000028000000C000
     000080010000010018000000000000B001006400000064000000000000000000
@@ -3617,7 +3616,7 @@
   KeyPreview = True
   Position = poDesktopCenter
   ShowHint = True
-  LCLVersion = '4.4.0.0'
+  LCLVersion = '4.2.0.0'
   WindowState = wsMaximized
   OnClose = FormClose
   OnCreate = FormCreate
@@ -3628,64 +3627,64 @@
     AnchorSideRight.Side = asrBottom
     AnchorSideBottom.Control = Panel1
     Left = 0
-    Height = 936
+    Height = 960
     Top = 0
     Width = 1920
     Align = alClient
     Caption = 'Panel5'
-    ClientHeight = 936
+    ClientHeight = 960
     ClientWidth = 1920
     Color = clSilver
     ParentBackground = False
     ParentColor = False
     TabOrder = 1
     object Panel3: TPanel
-      Left = 533
-      Height = 72
-      Top = 14
-      Width = 339
-      ClientHeight = 72
-      ClientWidth = 339
+      Left = 616
+      Height = 83
+      Top = 16
+      Width = 392
+      ClientHeight = 83
+      ClientWidth = 392
       Color = clSilver
       ParentBackground = False
       ParentColor = False
       TabOrder = 5
       Visible = False
       object Label2: TLabel
-        Left = 7
-        Height = 17
-        Top = 14
-        Width = 67
+        Left = 8
+        Height = 19
+        Top = 16
+        Width = 80
         Caption = 'Desde Fecha'
         ParentColor = False
       end
       object Label3: TLabel
-        Left = 131
-        Height = 17
-        Top = 14
-        Width = 65
+        Left = 152
+        Height = 19
+        Top = 16
+        Width = 77
         Caption = 'Hasta Fecha'
         ParentColor = False
       end
       object Edit3: TEdit
-        Left = 7
-        Height = 25
-        Top = 33
-        Width = 76
+        Left = 8
+        Height = 29
+        Top = 38
+        Width = 88
         TabOrder = 0
       end
       object Edit4: TEdit
-        Left = 131
-        Height = 25
-        Top = 33
-        Width = 81
+        Left = 152
+        Height = 29
+        Top = 38
+        Width = 94
         TabOrder = 1
       end
       object BitBtn4: TBitBtn
-        Left = 263
-        Height = 28
-        Top = 37
-        Width = 67
+        Left = 304
+        Height = 32
+        Top = 43
+        Width = 77
         Caption = 'Acept.'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -3762,8 +3761,8 @@
       AnchorSideBottom.Control = Panel5
       AnchorSideBottom.Side = asrBottom
       Left = 3
-      Height = 785
-      Top = 150
+      Height = 786
+      Top = 173
       Width = 1916
       Anchors = [akTop, akLeft, akRight, akBottom]
       Color = clBtnFace
@@ -3772,28 +3771,28 @@
           Alignment = taCenter
           Title.Alignment = taCenter
           Title.Caption = 'FECHA'
-          Width = 65
+          Width = 75
           FieldName = 'PRC1'
         end      
         item
           Alignment = taCenter
           Title.Alignment = taCenter
           Title.Caption = 'SER.'
-          Width = 39
+          Width = 45
           FieldName = 'PRC2'
         end      
         item
           Alignment = taRightJustify
           Title.Alignment = taRightJustify
           Title.Caption = 'N.DOC.'
-          Width = 61
+          Width = 71
           FieldName = 'PRC3'
         end      
         item
           Alignment = taRightJustify
           Title.Alignment = taRightJustify
           Title.Caption = 'IMPORTE'
-          Width = 86
+          Width = 99
           FieldName = 'PRC9'
           DisplayFormat = '0.00'
         end      
@@ -3801,13 +3800,13 @@
           Alignment = taRightJustify
           Title.Alignment = taRightJustify
           Title.Caption = 'CGO.'
-          Width = 61
+          Width = 71
           FieldName = 'PRC0'
         end      
         item
           Font.Color = clBlack
           Title.Caption = 'NOMBRE'
-          Width = 260
+          Width = 301
           FieldName = 'C1'
         end      
         item
@@ -3815,7 +3814,7 @@
           ButtonStyle = cbsCheckboxColumn
           Title.Alignment = taCenter
           Title.Caption = 'M'
-          Width = 26
+          Width = 30
           ValueChecked = 'S'
           ValueUnchecked = 'N'
           FieldName = 'PRC10'
@@ -3846,10 +3845,10 @@
           FieldName = 'PRC18'
         end      
         item
-          MinSize = 86
+          MinSize = 99
           ReadOnly = True
           Title.Caption = 'OBSERVACIONES'
-          Width = 260
+          Width = 301
           FieldName = 'PRNOTAS'
         end>
       DataSource = Datasource1
@@ -3866,10 +3865,10 @@
       OnTitleClick = DBGrid1TitleClick
     end
     object RadioButton1: TRadioButton
-      Left = 284
-      Height = 21
-      Top = 21
-      Width = 149
+      Left = 328
+      Height = 23
+      Top = 24
+      Width = 164
       Caption = '&Todos los documentos.'
       Checked = True
       TabOrder = 1
@@ -3877,21 +3876,21 @@
       OnClick = RadioButton1Click
     end
     object RadioButton3: TRadioButton
-      Left = 284
-      Height = 21
-      Top = 90
-      Width = 138
+      Left = 328
+      Height = 23
+      Top = 104
+      Width = 159
       Caption = 'Acotado entre &Fechas'
       TabOrder = 3
       OnClick = RadioButton3Click
     end
     object Panel7: TPanel
-      Left = 230
-      Height = 138
-      Top = 351
-      Width = 606
-      ClientHeight = 138
-      ClientWidth = 606
+      Left = 266
+      Height = 160
+      Top = 406
+      Width = 701
+      ClientHeight = 160
+      ClientWidth = 701
       Color = clSilver
       ParentBackground = False
       ParentColor = False
@@ -3899,9 +3898,9 @@
       Visible = False
       object Label20: TLabel
         Left = 1
-        Height = 21
+        Height = 24
         Top = 1
-        Width = 604
+        Width = 699
         Align = alTop
         Alignment = taCenter
         AutoSize = False
@@ -3909,11 +3908,11 @@
         ParentColor = False
       end
       object BitBtn17: TBitBtn
-        Left = 507
-        Height = 29
+        Left = 586
+        Height = 34
         Hint = '<ESCAPE> Cancela la edición de las observaciones.'
-        Top = 104
-        Width = 88
+        Top = 120
+        Width = 102
         Caption = 'Cancelar'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -3984,11 +3983,11 @@
         OnClick = BitBtn17Click
       end
       object BitBtn18: TBitBtn
-        Left = 375
-        Height = 29
+        Left = 434
+        Height = 34
         Hint = '<F-8> Graba las observaciones de este documento.'
-        Top = 104
-        Width = 88
+        Top = 120
+        Width = 102
         Caption = 'Aceptar'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -4059,10 +4058,10 @@
         OnClick = BitBtn18Click
       end
       object Memo1: TMemo
-        Left = 7
-        Height = 69
-        Top = 28
-        Width = 590
+        Left = 8
+        Height = 80
+        Top = 32
+        Width = 682
         Lines.Strings = (
           ''
         )
@@ -4070,54 +4069,54 @@
       end
     end
     object Panel9: TPanel
-      Left = 379
-      Height = 205
-      Top = 313
-      Width = 456
-      ClientHeight = 205
-      ClientWidth = 456
+      Left = 438
+      Height = 237
+      Top = 362
+      Width = 527
+      ClientHeight = 237
+      ClientWidth = 527
       Color = clSilver
       ParentBackground = False
       ParentColor = False
       TabOrder = 10
       Visible = False
       object Label21: TLabel
-        Left = 11
-        Height = 17
-        Top = 48
-        Width = 71
+        Left = 13
+        Height = 19
+        Top = 56
+        Width = 84
         Caption = 'Desde cliente'
         ParentColor = False
       end
       object Label22: TLabel
-        Left = 11
-        Height = 17
-        Top = 79
-        Width = 69
+        Left = 13
+        Height = 19
+        Top = 91
+        Width = 81
         Caption = 'Hasta cliente'
         ParentColor = False
       end
       object Label23: TLabel
-        Left = 11
-        Height = 17
-        Top = 126
-        Width = 65
+        Left = 13
+        Height = 19
+        Top = 146
+        Width = 78
         Caption = 'Desde fecha'
         ParentColor = False
       end
       object Label24: TLabel
-        Left = 233
-        Height = 17
-        Top = 126
-        Width = 63
+        Left = 269
+        Height = 19
+        Top = 146
+        Width = 75
         Caption = 'Hasta fecha'
         ParentColor = False
       end
       object Label25: TLabel
         Left = 1
-        Height = 22
+        Height = 25
         Top = 1
-        Width = 454
+        Width = 525
         Align = alTop
         Alignment = taCenter
         AutoSize = False
@@ -4128,11 +4127,11 @@
         Transparent = False
       end
       object BitBtn21: TBitBtn
-        Left = 238
-        Height = 29
+        Left = 275
+        Height = 34
         Hint = '<F8> Graba las observaciones.'
-        Top = 170
-        Width = 88
+        Top = 197
+        Width = 102
         Caption = 'Aceptar'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -4203,11 +4202,11 @@
         OnClick = BitBtn21Click
       end
       object BitBtn22: TBitBtn
-        Left = 360
-        Height = 29
+        Left = 416
+        Height = 34
         Hint = '<ESCAPE> cancela la entrada de observaciones.'
-        Top = 170
-        Width = 88
+        Top = 197
+        Width = 102
         Caption = 'Cancelar'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -4278,105 +4277,105 @@
         OnClick = BitBtn22Click
       end
       object Edit14: TEdit
-        Left = 97
-        Height = 25
-        Top = 46
-        Width = 55
+        Left = 112
+        Height = 29
+        Top = 53
+        Width = 64
         CharCase = ecUppercase
         TabOrder = 0
         OnEnter = Edit14Enter
         OnExit = Edit14Exit
       end
       object Edit15: TEdit
-        Left = 159
-        Height = 25
-        Top = 46
-        Width = 289
+        Left = 184
+        Height = 29
+        Top = 53
+        Width = 334
         CharCase = ecUppercase
         TabStop = False
         TabOrder = 1
       end
       object Edit16: TEdit
-        Left = 97
-        Height = 25
-        Top = 76
-        Width = 55
+        Left = 112
+        Height = 29
+        Top = 88
+        Width = 64
         CharCase = ecUppercase
         TabOrder = 2
         OnEnter = Edit16Enter
         OnExit = Edit16Exit
       end
       object Edit17: TEdit
-        Left = 159
-        Height = 25
-        Top = 76
-        Width = 289
+        Left = 184
+        Height = 29
+        Top = 88
+        Width = 334
         CharCase = ecUppercase
         TabStop = False
         TabOrder = 3
       end
       object Edit18: TEdit
-        Left = 97
-        Height = 25
-        Top = 123
-        Width = 90
+        Left = 112
+        Height = 29
+        Top = 142
+        Width = 104
         CharCase = ecUppercase
         TabOrder = 4
       end
       object Edit19: TEdit
-        Left = 304
-        Height = 25
-        Top = 123
-        Width = 90
+        Left = 352
+        Height = 29
+        Top = 142
+        Width = 104
         CharCase = ecUppercase
         TabOrder = 5
       end
     end
     object Panel8: TPanel
-      Left = 9
-      Height = 184
-      Top = 360
-      Width = 403
-      ClientHeight = 184
-      ClientWidth = 403
+      Left = 10
+      Height = 213
+      Top = 416
+      Width = 466
+      ClientHeight = 213
+      ClientWidth = 466
       Color = clMoneyGreen
       ParentBackground = False
       ParentColor = False
       TabOrder = 9
       Visible = False
       object Bevel2: TBevel
-        Left = 7
-        Height = 35
-        Top = 104
-        Width = 386
+        Left = 8
+        Height = 40
+        Top = 120
+        Width = 446
         Style = bsRaised
       end
       object Label26: TLabel
-        Left = 14
-        Height = 19
-        Top = 112
-        Width = 67
+        Left = 16
+        Height = 22
+        Top = 130
+        Width = 77
         AutoSize = False
         Caption = 'N. Albaran'
         Layout = tlCenter
         ParentColor = False
       end
       object Label27: TLabel
-        Left = 194
-        Height = 19
-        Top = 112
-        Width = 92
+        Left = 224
+        Height = 22
+        Top = 130
+        Width = 106
         AutoSize = False
         Caption = 'Fecha Albaran'
         Layout = tlCenter
         ParentColor = False
       end
       object BitBtn19: TBitBtn
-        Left = 180
-        Height = 29
+        Left = 208
+        Height = 34
         Hint = '<F8> Acepta la serie y el número marcado.'
-        Top = 145
-        Width = 88
+        Top = 168
+        Width = 102
         Caption = 'Ac&eptar'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -4447,11 +4446,11 @@
         OnClick = BitBtn19Click
       end
       object BitBtn20: TBitBtn
-        Left = 304
-        Height = 29
+        Left = 352
+        Height = 34
         Hint = '<ESCAPE> cancela la ventana activa'
-        Top = 145
-        Width = 88
+        Top = 168
+        Width = 102
         Caption = 'Ca&ncelar'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -4522,27 +4521,27 @@
         OnClick = BitBtn20Click
       end
       object Edit21: TEdit
-        Left = 105
-        Height = 25
-        Top = 112
-        Width = 76
+        Left = 121
+        Height = 29
+        Top = 130
+        Width = 88
         CharCase = ecUppercase
         Enabled = False
         TabOrder = 2
       end
       object Edit22: TEdit
-        Left = 290
-        Height = 25
-        Top = 112
-        Width = 90
+        Left = 335
+        Height = 29
+        Top = 130
+        Width = 104
         CharCase = ecUppercase
         TabOrder = 3
       end
       object ListBox1: TListBox
-        Left = 7
-        Height = 94
-        Top = 7
-        Width = 386
+        Left = 8
+        Height = 109
+        Top = 8
+        Width = 446
         Color = clCream
         ItemHeight = 0
         ScrollWidth = 445
@@ -4552,10 +4551,10 @@
         OnKeyDown = ListBox1KeyDown
       end
       object CheckBox4: TCheckBox
-        Left = 7
-        Height = 21
-        Top = 154
-        Width = 203
+        Left = 8
+        Height = 23
+        Top = 178
+        Width = 231
         Caption = 'Sólo cabeceras de la misma serie.'
         Checked = True
         State = cbChecked
@@ -4563,19 +4562,19 @@
       end
     end
     object RadioButton2: TRadioButton
-      Left = 284
-      Height = 21
-      Top = 55
-      Width = 93
+      Left = 328
+      Height = 23
+      Top = 64
+      Width = 107
       Caption = 'De un &Cliente'
       TabOrder = 7
       OnClick = RadioButton2Click
     end
     object StaticText1: TStaticText
-      Left = 9
-      Height = 22
-      Top = 127
-      Width = 475
+      Left = 10
+      Height = 25
+      Top = 147
+      Width = 549
       Alignment = taCenter
       BorderSpacing.Left = 2
       BorderSpacing.Top = 2
@@ -4588,12 +4587,12 @@
       TabOrder = 12
     end
     object Panel11: TPanel
-      Left = 270
-      Height = 144
-      Top = 214
-      Width = 307
-      ClientHeight = 144
-      ClientWidth = 307
+      Left = 312
+      Height = 167
+      Top = 248
+      Width = 355
+      ClientHeight = 167
+      ClientWidth = 355
       Color = clSilver
       ParentBackground = False
       ParentColor = False
@@ -4601,9 +4600,9 @@
       Visible = False
       object Label41: TLabel
         Left = 2
-        Height = 19
+        Height = 22
         Top = 2
-        Width = 307
+        Width = 355
         Alignment = taCenter
         AutoSize = False
         Caption = 'Datos de la recuperación'
@@ -4612,85 +4611,85 @@
         Transparent = False
       end
       object Label42: TLabel
-        Left = 19
-        Height = 17
-        Top = 32
-        Width = 79
+        Left = 22
+        Height = 19
+        Top = 37
+        Width = 93
         Caption = 'Recuperado a :'
         ParentColor = False
       end
       object Label43: TLabel
-        Left = 19
-        Height = 17
-        Top = 61
-        Width = 34
+        Left = 22
+        Height = 19
+        Top = 71
+        Width = 40
         Caption = 'Fecha '
         ParentColor = False
       end
       object Label44: TLabel
-        Left = 19
-        Height = 17
-        Top = 88
-        Width = 79
+        Left = 22
+        Height = 19
+        Top = 102
+        Width = 92
         Caption = 'Serie / número'
         ParentColor = False
       end
       object Label45: TLabel
-        Left = 198
-        Height = 17
-        Top = 87
-        Width = 4
+        Left = 229
+        Height = 19
+        Top = 101
+        Width = 5
         Caption = '/'
         ParentColor = False
       end
       object Edit26: TEdit
-        Left = 150
-        Height = 25
-        Top = 28
-        Width = 133
+        Left = 173
+        Height = 29
+        Top = 32
+        Width = 154
         Enabled = False
         TabOrder = 0
       end
       object Edit27: TEdit
-        Left = 150
-        Height = 25
-        Top = 57
-        Width = 133
+        Left = 173
+        Height = 29
+        Top = 66
+        Width = 154
         Enabled = False
         TabOrder = 1
       end
       object Edit28: TEdit
-        Left = 150
-        Height = 25
-        Top = 85
-        Width = 39
+        Left = 173
+        Height = 29
+        Top = 98
+        Width = 45
         Enabled = False
         TabOrder = 2
       end
       object Edit29: TEdit
-        Left = 213
-        Height = 25
-        Top = 85
-        Width = 69
+        Left = 246
+        Height = 29
+        Top = 98
+        Width = 80
         Enabled = False
         TabOrder = 3
       end
       object Button1: TButton
-        Left = 213
-        Height = 25
-        Top = 112
-        Width = 85
+        Left = 246
+        Height = 29
+        Top = 130
+        Width = 98
         Caption = 'Aceptar'
         TabOrder = 4
         OnClick = Button1Click
       end
     end
     object RadioGroup2: TRadioGroup
-      Left = 147
-      Height = 87
+      Left = 170
+      Height = 101
       Hint = 'Selecciona los documentos a listar en la rejilla.'
-      Top = 10
-      Width = 124
+      Top = 12
+      Width = 143
       AutoFill = True
       Caption = 'Filtro marcas'
       ChildSizing.LeftRightSpacing = 6
@@ -4701,8 +4700,8 @@
       ChildSizing.ShrinkVertical = crsScaleChilds
       ChildSizing.Layout = cclTopToBottomThenLeftToRight
       ChildSizing.ControlsPerLine = 3
-      ClientHeight = 68
-      ClientWidth = 120
+      ClientHeight = 80
+      ClientWidth = 139
       ColumnLayout = clVerticalThenHorizontal
       ItemIndex = 0
       Items.Strings = (
@@ -4715,20 +4714,20 @@
       OnClick = RadioGroup2Click
     end
     object GroupBox1: TGroupBox
-      Left = 7
-      Height = 87
-      Top = 10
-      Width = 131
+      Left = 8
+      Height = 101
+      Top = 12
+      Width = 152
       Caption = ' Documentos  '
-      ClientHeight = 68
-      ClientWidth = 127
+      ClientHeight = 80
+      ClientWidth = 148
       ParentBackground = False
       TabOrder = 11
       object RadioButton4: TRadioButton
-        Left = 10
-        Height = 21
+        Left = 12
+        Height = 23
         Top = 2
-        Width = 56
+        Width = 60
         Caption = 'Todos'
         Checked = True
         TabOrder = 0
@@ -4736,32 +4735,32 @@
         OnClick = RadioButton4Click
       end
       object RadioButton5: TRadioButton
-        Left = 10
-        Height = 21
-        Top = 22
-        Width = 93
+        Left = 12
+        Height = 23
+        Top = 25
+        Width = 105
         Caption = 'Recuperados'
         TabOrder = 1
         OnClick = RadioButton5Click
       end
     end
     object RadioButton6: TRadioButton
-      Left = 19
-      Height = 21
-      Top = 71
-      Width = 82
+      Left = 22
+      Height = 23
+      Top = 82
+      Width = 94
       Caption = 'Pendientes'
       TabOrder = 2
       OnClick = RadioButton6Click
     end
     object ComboBox1: TComboBox
-      Left = 7
-      Height = 21
-      Top = 99
-      Width = 263
+      Left = 8
+      Height = 24
+      Top = 115
+      Width = 304
       AutoSize = False
       CharCase = ecUppercase
-      Font.Height = -12
+      Font.Height = -14
       Font.Name = 'Sans'
       ItemHeight = 0
       ParentFont = False
@@ -4772,95 +4771,95 @@
     object Panel4: TPanel
       AnchorSideRight.Control = Panel5
       AnchorSideRight.Side = asrBottom
-      Left = 7
-      Height = 147
+      Left = 8
+      Height = 170
       Top = 3
-      Width = 1912
+      Width = 1911
       Anchors = [akTop, akLeft, akRight]
-      ClientHeight = 147
-      ClientWidth = 1912
+      ClientHeight = 170
+      ClientWidth = 1911
       Color = clSilver
       ParentBackground = False
       ParentColor = False
       TabOrder = 6
       Visible = False
       object Bevel1: TBevel
-        Left = 5
-        Height = 124
-        Top = 7
-        Width = 348
+        Left = 6
+        Height = 143
+        Top = 8
+        Width = 403
         Style = bsRaised
       end
       object Label4: TLabel
-        Left = 16
-        Height = 16
-        Top = 18
-        Width = 334
+        Left = 19
+        Height = 19
+        Top = 21
+        Width = 386
         AutoSize = False
         ParentColor = False
       end
       object Label5: TLabel
-        Left = 16
-        Height = 16
-        Top = 39
-        Width = 334
+        Left = 19
+        Height = 19
+        Top = 45
+        Width = 386
         AutoSize = False
         ParentColor = False
       end
       object Label6: TLabel
-        Left = 16
-        Height = 16
-        Top = 60
-        Width = 57
+        Left = 19
+        Height = 19
+        Top = 69
+        Width = 66
         AutoSize = False
         ParentColor = False
       end
       object Label7: TLabel
-        Left = 85
-        Height = 16
-        Top = 60
-        Width = 265
+        Left = 98
+        Height = 19
+        Top = 69
+        Width = 307
         AutoSize = False
         ParentColor = False
       end
       object Label8: TLabel
-        Left = 16
-        Height = 16
-        Top = 80
-        Width = 334
+        Left = 19
+        Height = 19
+        Top = 93
+        Width = 386
         AutoSize = False
         ParentColor = False
       end
       object Label9: TLabel
-        Left = 16
-        Height = 16
-        Top = 104
-        Width = 147
+        Left = 19
+        Height = 19
+        Top = 120
+        Width = 170
         AutoSize = False
         ParentColor = False
       end
       object Label10: TLabel
-        Left = 195
-        Height = 16
-        Top = 104
-        Width = 154
+        Left = 226
+        Height = 19
+        Top = 120
+        Width = 178
         AutoSize = False
         ParentColor = False
       end
       object LabelTotal: TLabel
         AnchorSideRight.Control = Panel4
         AnchorSideRight.Side = asrBottom
-        Left = 1703
-        Height = 42
-        Top = 7
-        Width = 199
+        Left = 1670
+        Height = 49
+        Top = 8
+        Width = 230
         Alignment = taRightJustify
         Anchors = [akTop, akRight]
         AutoSize = False
-        BorderSpacing.Right = 9
+        BorderSpacing.Right = 10
         Caption = '0.00'
         Font.CharSet = ANSI_CHARSET
-        Font.Height = 21
+        Font.Height = 24
         Font.Name = '-adobe-helvetica-*-*-*-*-*-*-*-*-*-*-iso10646-1'
         Font.Pitch = fpVariable
         Font.Style = [fsBold]
@@ -4869,75 +4868,75 @@
         ParentFont = False
       end
       object Label29: TLabel
-        Left = 368
-        Height = 17
-        Top = 92
-        Width = 76
+        Left = 426
+        Height = 19
+        Top = 106
+        Width = 89
         Caption = 'PRESUPUESTO'
         Layout = tlCenter
         ParentColor = False
       end
       object Label30: TLabel
-        Left = 502
-        Height = 16
-        Top = 92
-        Width = 25
+        Left = 581
+        Height = 19
+        Top = 106
+        Width = 29
         Alignment = taRightJustify
         AutoSize = False
         Layout = tlCenter
         ParentColor = False
       end
       object Label31: TLabel
-        Left = 545
-        Height = 16
-        Top = 90
-        Width = 55
+        Left = 630
+        Height = 19
+        Top = 104
+        Width = 64
         AutoSize = False
         Layout = tlCenter
         ParentColor = False
       end
       object Label32: TLabel
-        Left = 368
-        Height = 17
-        Top = 115
-        Width = 35
+        Left = 426
+        Height = 19
+        Top = 133
+        Width = 41
         Caption = 'FECHA'
         Layout = tlCenter
         ParentColor = False
       end
       object Label33: TLabel
-        Left = 507
-        Height = 16
-        Top = 115
-        Width = 94
+        Left = 586
+        Height = 19
+        Top = 133
+        Width = 109
         Alignment = taCenter
         AutoSize = False
         Layout = tlCenter
         ParentColor = False
       end
       object Label34: TLabel
-        Left = 533
-        Height = 17
-        Top = 92
-        Width = 4
+        Left = 616
+        Height = 19
+        Top = 106
+        Width = 5
         Caption = '/'
         Layout = tlCenter
         ParentColor = False
       end
       object CheckBox1: TCheckBox
-        Left = 375
-        Height = 21
-        Top = 7
-        Width = 136
+        Left = 434
+        Height = 23
+        Top = 8
+        Width = 155
         Caption = 'Recargo Equivalencia'
         Enabled = False
         TabOrder = 0
       end
       object CheckBox2: TCheckBox
-        Left = 375
-        Height = 21
-        Top = 28
-        Width = 115
+        Left = 434
+        Height = 23
+        Top = 32
+        Width = 131
         Caption = 'Dto. Pronto Pago'
         Enabled = False
         TabOrder = 1
@@ -4949,33 +4948,33 @@
       AnchorSideBottom.Control = Panel5
       AnchorSideBottom.Side = asrBottom
       Left = 3
-      Height = 785
-      Top = 150
+      Height = 786
+      Top = 173
       Width = 1916
       Anchors = [akTop, akLeft, akRight, akBottom]
       Color = clBtnFace
       Columns = <      
         item
           Title.Caption = 'CODIGO.'
-          Width = 86
+          Width = 99
           FieldName = 'PRD5'
         end      
         item
           Title.Caption = 'DESCRIPCION'
-          Width = 260
+          Width = 301
           FieldName = 'DESCRI'
         end      
         item
           Alignment = taRightJustify
           Title.Alignment = taRightJustify
           Title.Caption = 'CANT.'
-          Width = 61
+          Width = 71
           FieldName = 'PRD7'
           DisplayFormat = '0.00'
         end      
         item
           Title.Caption = 'TARIFA'
-          Width = 61
+          Width = 71
           FieldName = 'PRD17'
           DisplayFormat = '###,###,##0.00'
         end      
@@ -4983,7 +4982,7 @@
           Alignment = taRightJustify
           Title.Alignment = taRightJustify
           Title.Caption = 'P.V.P.'
-          Width = 61
+          Width = 71
           FieldName = 'PRD8'
           DisplayFormat = '###,###,##0.00'
         end      
@@ -4991,7 +4990,7 @@
           Alignment = taRightJustify
           Title.Alignment = taRightJustify
           Title.Caption = 'PRECIO'
-          Width = 61
+          Width = 71
           FieldName = 'PRD9'
           DisplayFormat = '###,###,##0.000'
         end      
@@ -4999,7 +4998,7 @@
           Alignment = taRightJustify
           Title.Alignment = taRightJustify
           Title.Caption = '%DTO.'
-          Width = 53
+          Width = 61
           FieldName = 'PRD10'
           DisplayFormat = '0.00'
         end      
@@ -5007,7 +5006,7 @@
           Alignment = taRightJustify
           Title.Alignment = taRightJustify
           Title.Caption = 'IMPORTE'
-          Width = 78
+          Width = 90
           FieldName = 'PRD11'
           DisplayFormat = '###,###,##0.00'
         end      
@@ -5015,21 +5014,21 @@
           Alignment = taRightJustify
           Title.Alignment = taRightJustify
           Title.Caption = '%IVA'
-          Width = 39
+          Width = 45
           FieldName = 'PRD12'
         end      
         item
           Alignment = taRightJustify
           Title.Alignment = taRightJustify
           Title.Caption = 'TOTAL'
-          Width = 81
+          Width = 94
           FieldName = 'PRD13'
           DisplayFormat = '###,###,##0.00'
         end>
       DataSource = Datasource2
       FixedColor = clBtnShadow
       Font.Color = clBlack
-      Font.Height = -11
+      Font.Height = -13
       Font.Name = 'Sans'
       Options = [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgDisplayMemoText]
       ParentFont = False
@@ -5044,15 +5043,15 @@
       AnchorSideRight.Control = Panel4
       AnchorSideRight.Side = asrBottom
       AnchorSideBottom.Control = DBGrid2
-      Left = 493
-      Height = 147
+      Left = 569
+      Height = 170
       Top = 3
-      Width = 1426
+      Width = 1350
       Anchors = [akTop, akLeft, akRight]
-      BorderSpacing.Left = 9
+      BorderSpacing.Left = 10
       BorderSpacing.Bottom = 2
-      ClientHeight = 147
-      ClientWidth = 1426
+      ClientHeight = 170
+      ClientWidth = 1350
       Color = clSilver
       ParentBackground = False
       ParentColor = False
@@ -5060,26 +5059,26 @@
       Visible = False
       object Label1: TLabel
         Left = 2
-        Height = 17
+        Height = 19
         Top = 2
-        Width = 44
+        Width = 50
         Caption = 'Código :'
         ParentColor = False
       end
       object Label35: TLabel
         Left = 2
-        Height = 17
-        Top = 51
-        Width = 72
+        Height = 19
+        Top = 59
+        Width = 83
         Caption = 'Razón Social :'
         ParentColor = False
       end
       object Edit1: TEdit
-        Left = 21
-        Height = 25
+        Left = 24
+        Height = 29
         Hint = 'pulsa <F12> para buscar un cliente. '
-        Top = 22
-        Width = 97
+        Top = 25
+        Width = 112
         MaxLength = 11
         TabOrder = 0
         OnEnter = Edit1Enter
@@ -5088,14 +5087,14 @@
       object Edit2: TEdit
         AnchorSideRight.Control = Panel2
         AnchorSideRight.Side = asrBottom
-        Left = 21
-        Height = 29
+        Left = 24
+        Height = 34
         Hint = 'Teclea las iniciales a buscar y pulsar Enter.'
-        Top = 71
-        Width = 1399
+        Top = 82
+        Width = 1319
         Anchors = [akTop, akLeft, akRight]
         AutoSize = False
-        BorderSpacing.Right = 5
+        BorderSpacing.Right = 6
         CharCase = ecUppercase
         TabOrder = 1
         OnExit = Edit2Exit
@@ -5106,13 +5105,13 @@
         AnchorSideTop.Side = asrBottom
         AnchorSideRight.Control = Panel2
         AnchorSideRight.Side = asrBottom
-        Left = 1326
-        Height = 28
-        Top = 105
-        Width = 88
+        Left = 1234
+        Height = 32
+        Top = 122
+        Width = 102
         Anchors = [akTop, akRight]
-        BorderSpacing.Top = 5
-        BorderSpacing.Right = 11
+        BorderSpacing.Top = 6
+        BorderSpacing.Right = 13
         Caption = 'Acept.'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -5183,11 +5182,11 @@
         OnClick = BitBtn3Click
       end
       object BitBtn7: TBitBtn
-        Left = 123
-        Height = 28
+        Left = 142
+        Height = 30
         Hint = 'pulsa <F12> para buscar un cliente. '
-        Top = 16
-        Width = 28
+        Top = 19
+        Width = 30
         AutoSize = True
         Glyph.Data = {
           46050000424D4605000000000000360000002800000012000000120000000100
@@ -5242,11 +5241,11 @@
   end
   object Panel1: TPanel
     Left = 0
-    Height = 54
-    Top = 936
+    Height = 62
+    Top = 960
     Width = 1920
     Align = alBottom
-    ClientHeight = 54
+    ClientHeight = 62
     ClientWidth = 1920
     Color = clSilver
     ParentBackground = False
@@ -5254,12 +5253,12 @@
     TabOrder = 0
     object BitBtn1: TBitBtn
       AnchorSideLeft.Control = Panel1
-      Left = 8
-      Height = 33
+      Left = 9
+      Height = 38
       Hint = '<F1> -  Entramos en gestionar documentos.'
-      Top = 9
-      Width = 104
-      BorderSpacing.Left = 7
+      Top = 10
+      Width = 120
+      BorderSpacing.Left = 8
       Caption = ' Gestionar'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -5332,13 +5331,13 @@
     object BitBtn2: TBitBtn
       AnchorSideRight.Control = Panel1
       AnchorSideRight.Side = asrBottom
-      Left = 1808
-      Height = 33
+      Left = 1791
+      Height = 38
       Hint = '<ESCAPE> Para salir del documento.'
-      Top = 9
-      Width = 104
+      Top = 10
+      Width = 120
       Anchors = [akTop, akRight]
-      BorderSpacing.Right = 7
+      BorderSpacing.Right = 8
       Caption = 'Cerrar'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -5411,13 +5410,13 @@
     object BitBtn5: TBitBtn
       AnchorSideRight.Control = Panel1
       AnchorSideRight.Side = asrBottom
-      Left = 1813
-      Height = 33
+      Left = 1796
+      Height = 38
       Hint = '<ESC> para salir del detalle de documentos.'
-      Top = 11
-      Width = 99
+      Top = 13
+      Width = 115
       Anchors = [akTop, akRight]
-      BorderSpacing.Right = 7
+      BorderSpacing.Right = 8
       Caption = 'Salir'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -5489,11 +5488,11 @@
       OnClick = BitBtn5Click
     end
     object BitBtn9: TBitBtn
-      Left = 556
-      Height = 33
+      Left = 553
+      Height = 38
       Hint = '<F2> - Creamos un nuevo documento.'
-      Top = 9
-      Width = 104
+      Top = 10
+      Width = 120
       Anchors = [akTop]
       Caption = 'Nuevo'
       Glyph.Data = {
@@ -5565,11 +5564,11 @@
       OnClick = BitBtn9Click
     end
     object BitBtn10: TBitBtn
-      Left = 975
-      Height = 33
+      Left = 972
+      Height = 38
       Hint = '<F3> - Borra un documento entero.'
-      Top = 9
-      Width = 104
+      Top = 10
+      Width = 120
       Anchors = [akTop]
       Caption = 'Borrar'
       Glyph.Data = {
@@ -5642,12 +5641,12 @@
     end
     object BitBtn12: TBitBtn
       AnchorSideLeft.Control = Panel1
-      Left = 8
-      Height = 33
+      Left = 9
+      Height = 38
       Hint = '<F2> - Crear una nueva linea'
-      Top = 11
-      Width = 104
-      BorderSpacing.Left = 7
+      Top = 13
+      Width = 120
+      BorderSpacing.Left = 8
       Caption = 'Crear'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -5719,11 +5718,11 @@
       OnClick = BitBtn12Click
     end
     object BitBtn13: TBitBtn
-      Left = 809
-      Height = 33
+      Left = 807
+      Height = 38
       Hint = '<F4> - Modificar una linea'
-      Top = 11
-      Width = 104
+      Top = 13
+      Width = 120
       Anchors = [akTop]
       Caption = 'Modificar'
       Glyph.Data = {
@@ -5796,11 +5795,11 @@
       OnClick = DBGrid2DblClick
     end
     object BitBtn14: TBitBtn
-      Left = 473
-      Height = 33
+      Left = 471
+      Height = 38
       Hint = '<F3> - Borra la línea seleccionada.'
-      Top = 11
-      Width = 104
+      Top = 13
+      Width = 120
       Anchors = [akTop]
       Caption = 'Borrar'
       Glyph.Data = {
@@ -5873,11 +5872,11 @@
       OnClick = BitBtn14Click
     end
     object BitBtn16: TBitBtn
-      Left = 1481
-      Height = 33
+      Left = 1479
+      Height = 38
       Hint = '<F10> - Observaciones del documento.'
-      Top = 11
-      Width = 104
+      Top = 13
+      Width = 120
       Anchors = [akTop]
       Caption = 'Notas'
       Glyph.Data = {
@@ -5950,11 +5949,11 @@
       OnClick = BitBtn16Click
     end
     object BitBtn23: TBitBtn
-      Left = 1391
-      Height = 33
+      Left = 1388
+      Height = 38
       Hint = '<F11> - Listado de cabeceras de documentos'
-      Top = 9
-      Width = 104
+      Top = 10
+      Width = 120
       Anchors = [akTop]
       Caption = 'Listado'
       Glyph.Data = {
@@ -6026,11 +6025,11 @@
       OnClick = BitBtn23Click
     end
     object BitBtn15: TBitBtn
-      Left = 1145
-      Height = 33
+      Left = 1143
+      Height = 38
       Hint = '<F11> - Imprimir el documento.'
-      Top = 11
-      Width = 104
+      Top = 13
+      Width = 120
       Anchors = [akTop]
       Caption = 'Imprimir'
       Glyph.Data = {
@@ -6104,98 +6103,98 @@
     end
   end
   object Panel6: TPanel
-    Left = 9
-    Height = 251
-    Top = 403
-    Width = 609
-    ClientHeight = 251
-    ClientWidth = 609
+    Left = 10
+    Height = 290
+    Top = 466
+    Width = 704
+    ClientHeight = 290
+    ClientWidth = 704
     Color = 14606299
     ParentBackground = False
     ParentColor = False
     TabOrder = 2
     Visible = False
     object Label11: TLabel
-      Left = 16
-      Height = 17
-      Top = 69
-      Width = 38
+      Left = 19
+      Height = 19
+      Top = 80
+      Width = 43
       Caption = 'Código'
       ParentColor = False
     end
     object Label12: TLabel
-      Left = 133
-      Height = 17
-      Top = 69
-      Width = 64
+      Left = 154
+      Height = 19
+      Top = 80
+      Width = 72
       Caption = 'Descripcion'
       ParentColor = False
     end
     object Label13: TLabel
-      Left = 21
-      Height = 17
-      Top = 143
-      Width = 47
+      Left = 24
+      Height = 19
+      Top = 165
+      Width = 56
       Caption = 'Cantidad'
       ParentColor = False
     end
     object Label14: TLabel
-      Left = 195
-      Height = 17
-      Top = 143
-      Width = 43
+      Left = 226
+      Height = 19
+      Top = 165
+      Width = 49
       Caption = 'PRECIO '
       ParentColor = False
     end
     object Label15: TLabel
-      Left = 292
-      Height = 17
-      Top = 143
-      Width = 70
+      Left = 338
+      Height = 19
+      Top = 165
+      Width = 82
       Caption = 'PRECIO S/IVA'
       ParentColor = False
     end
     object Label16: TLabel
-      Left = 386
-      Height = 17
-      Top = 143
-      Width = 36
+      Left = 446
+      Height = 19
+      Top = 165
+      Width = 41
       Caption = '%DTO.'
       ParentColor = False
     end
     object Label17: TLabel
-      Left = 469
-      Height = 17
-      Top = 143
-      Width = 49
+      Left = 542
+      Height = 19
+      Top = 165
+      Width = 57
       Caption = 'IMPORTE'
       ParentColor = False
     end
     object Label18: TLabel
-      Left = 558
-      Height = 17
-      Top = 143
-      Width = 27
+      Left = 645
+      Height = 19
+      Top = 165
+      Width = 32
       Caption = '%IVA'
       ParentColor = False
     end
     object Label19: TLabel
-      Left = 466
-      Height = 17
-      Top = 54
-      Width = 34
+      Left = 539
+      Height = 19
+      Top = 62
+      Width = 39
       Caption = 'TOTAL'
       ParentColor = False
     end
     object Label28: TLabel
       Left = 2
-      Height = 32
+      Height = 37
       Top = 2
-      Width = 607
+      Width = 702
       Alignment = taCenter
       AutoSize = False
       Color = clGray
-      Font.Height = -16
+      Font.Height = -19
       Font.Name = 'Sans'
       Font.Style = [fsBold]
       ParentColor = False
@@ -6203,31 +6202,31 @@
       Transparent = False
     end
     object Label36: TLabel
-      Left = 104
-      Height = 17
-      Top = 143
-      Width = 37
+      Left = 120
+      Height = 19
+      Top = 165
+      Width = 44
       Caption = 'TARIFA'
       ParentColor = False
     end
     object lbActivarPrecios: TLabel
-      Left = 191
-      Height = 13
-      Top = 188
-      Width = 212
+      Left = 221
+      Height = 14
+      Top = 217
+      Width = 248
       Caption = 'Para activar de nuevo todos los precios pulsar <F1>'
       Font.Color = clMaroon
-      Font.Height = -9
+      Font.Height = -10
       Font.Name = 'Sans'
       ParentColor = False
       ParentFont = False
       Visible = False
     end
     object ListBox3: TListBox
-      Left = 133
-      Height = 141
-      Top = 105
-      Width = 445
+      Left = 154
+      Height = 163
+      Top = 121
+      Width = 515
       Color = 14606299
       ItemHeight = 0
       ScrollWidth = 514
@@ -6239,11 +6238,11 @@
       OnKeyPress = ListBox3KeyPress
     end
     object BitBtn6: TBitBtn
-      Left = 503
-      Height = 29
+      Left = 582
+      Height = 34
       Hint = 'Pulsa <ESCAPE> para terminar la entrada de líneas.'
-      Top = 208
-      Width = 88
+      Top = 241
+      Width = 102
       Caption = 'Cancelar'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -6314,87 +6313,87 @@
       OnClick = BitBtn6Click
     end
     object Edit5: TEdit
-      Left = 14
-      Height = 25
+      Left = 16
+      Height = 29
       Hint = 'Con <F12> Buscamos artículos..'
-      Top = 85
-      Width = 111
+      Top = 98
+      Width = 128
       CharCase = ecUppercase
       TabOrder = 0
       OnExit = Edit5Exit
     end
     object Edit7: TEdit
-      Left = 16
-      Height = 25
+      Left = 19
+      Height = 29
       Hint = '<F5> para editar la cantidad.'
-      Top = 164
-      Width = 65
+      Top = 190
+      Width = 75
       ParentBidiMode = False
       TabOrder = 2
       OnExit = Edit7Exit
       OnKeyPress = Edit7KeyPress
     end
     object Edit8: TEdit
-      Left = 185
-      Height = 25
-      Top = 164
-      Width = 83
+      Left = 214
+      Height = 29
+      Top = 190
+      Width = 96
       TabOrder = 4
       OnEnter = Edit8Enter
       OnExit = Edit8Exit
     end
     object Edit9: TEdit
-      Left = 282
-      Height = 25
+      Left = 326
+      Height = 29
       Hint = 'Pulsa <F7> para editar el precio y <F11> o dobleclick para ver las tarifas.'
-      Top = 164
-      Width = 86
+      Top = 190
+      Width = 99
       TabOrder = 5
       OnDblClick = Edit9DblClick
       OnEnter = Edit9Enter
       OnExit = Edit9Exit
     end
     object Edit10: TEdit
-      Left = 385
-      Height = 25
+      Left = 445
+      Height = 29
       Hint = 'Con <F6> podemos editar el descuento.'
-      Top = 164
-      Width = 48
+      Top = 190
+      Width = 56
       TabOrder = 6
       OnEnter = Edit10Enter
       OnExit = Edit10Exit
     end
     object Edit11: TEdit
-      Left = 455
-      Height = 25
-      Top = 164
-      Width = 80
+      Left = 526
+      Height = 29
+      Top = 190
+      Width = 93
       Enabled = False
       TabOrder = 9
     end
     object Edit12: TEdit
-      Left = 549
-      Height = 25
-      Top = 164
-      Width = 44
+      Left = 635
+      Height = 29
+      Top = 190
+      Width = 51
       TabOrder = 7
       OnEnter = Edit12Enter
       OnExit = Edit12Exit
     end
     object Edit13: TEdit
-      Left = 514
-      Height = 25
-      Top = 46
-      Width = 80
+      Left = 595
+      Height = 29
+      Top = 53
+      Width = 93
       Enabled = False
       TabOrder = 10
     end
     object BitBtn8: TBitBtn
-      Left = 375
-      Height = 29
+      Left = 434
+      Height = 34
       Hint = 'Con <F8> añadimos otra línea.'
-      Top = 208
-      Width = 88
+      Top = 241
+      Width = 102
       Caption = 'Aceptar'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -6465,22 +6464,22 @@
       OnClick = BitBtn8Click
     end
     object Edit6: TEdit
-      Left = 133
-      Height = 25
+      Left = 154
+      Height = 29
       Hint = 'Con doble click del ratón  o <enter> o <F11> podemos buscar por referencia.'
-      Top = 85
-      Width = 445
+      Top = 98
+      Width = 515
       CharCase = ecUppercase
       TabOrder = 1
       OnDblClick = Edit6DblClick
       OnKeyPress = Edit6KeyPress
     end
     object BitBtn11: TBitBtn
-      Left = 61
-      Height = 28
+      Left = 71
+      Height = 30
       Hint = 'Con <F12> Buscamos artículos..'
-      Top = 57
-      Width = 28
+      Top = 66
+      Width = 30
       AutoSize = True
       Glyph.Data = {
         46050000424D4605000000000000360000002800000012000000120000000100
@@ -6533,10 +6532,10 @@
       OnClick = BitBtn11Click
     end
     object ListBox2: TListBox
-      Left = 282
-      Height = 58
-      Top = 184
-      Width = 147
+      Left = 326
+      Height = 67
+      Top = 213
+      Width = 170
       Color = 14606299
       ItemHeight = 0
       ScrollWidth = 167
@@ -6547,19 +6546,19 @@
       OnKeyPress = ListBox2KeyPress
     end
     object Edit23: TEdit
-      Left = 92
-      Height = 25
-      Top = 164
-      Width = 83
+      Left = 106
+      Height = 29
+      Top = 190
+      Width = 96
       TabOrder = 3
       OnExit = Edit23Exit
     end
     object BitBtn34: TBitBtn
-      Left = 238
-      Height = 29
+      Left = 275
+      Height = 34
       Hint = 'Pulsando <F10> podemos ver el histórico de compras.'
-      Top = 208
-      Width = 99
+      Top = 241
+      Width = 115
       Caption = 'Históricos'
       Glyph.Data = {
         8E050000424D8E05000000000000360000002800000012000000130000000100
@@ -6612,18 +6611,18 @@
       OnClick = HistCliente
     end
     object lbHistoricos: TLabel
-      Left = 16
-      Height = 17
-      Top = 199
-      Width = 118
+      Left = 19
+      Height = 19
+      Top = 230
+      Width = 132
       Caption = 'Filtro para históricos :'
       ParentColor = False
     end
     object cbHistoricos: TComboBox
-      Left = 14
-      Height = 25
-      Top = 213
-      Width = 131
+      Left = 16
+      Height = 29
+      Top = 246
+      Width = 152
       ItemHeight = 0
       ItemIndex = 0
       Items.Strings = (
@@ -6643,13 +6642,13 @@
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 55
-    Top = 138
+    Left = 64
+    Top = 160
   end
   object Datasource1: TDataSource
     DataSet = dbMuestrac
-    Left = 83
-    Top = 138
+    Left = 96
+    Top = 160
   end
   object dbClientes: TZQuery
     AutoCalcFields = False
@@ -6658,8 +6657,8 @@
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 111
-    Top = 138
+    Left = 128
+    Top = 160
   end
   object dbDocuc: TZQuery
     AutoCalcFields = False
@@ -6668,8 +6667,8 @@
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 97
-    Top = 159
+    Left = 112
+    Top = 184
   end
   object dbDocud: TZQuery
     AutoCalcFields = False
@@ -6678,13 +6677,13 @@
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 208
-    Top = 187
+    Left = 241
+    Top = 216
   end
   object Datasource2: TDataSource
     DataSet = dbMuestrad
-    Left = 180
-    Top = 187
+    Left = 208
+    Top = 216
   end
   object dbMuestrad: TZQuery
     AutoCalcFields = False
@@ -6693,13 +6692,13 @@
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 55
-    Top = 166
+    Left = 64
+    Top = 192
   end
   object Datasource3: TDataSource
     DataSet = dbBusca
-    Left = 726
-    Top = 42
+    Left = 840
+    Top = 49
   end
   object dbBusca: TZQuery
     AutoCalcFields = False
@@ -6708,8 +6707,8 @@
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 699
-    Top = 42
+    Left = 808
+    Top = 49
   end
   object dbArti: TZQuery
     AutoCalcFields = False
@@ -6718,8 +6717,8 @@
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 138
-    Top = 138
+    Left = 160
+    Top = 160
   end
   object frReport1: TfrReport
     Dataset = frDBDataSet1
@@ -6729,13 +6728,13 @@
     PreviewButtons = [pbLoad, pbSave, pbPrint, pbFind, pbHelp, pbExit]
     DataType = dtDataSet
     Title = 'Albaranes de clientes'
-    Left = 553
-    Top = 509
+    Left = 640
+    Top = 589
   end
   object frDBDataSet1: TfrDBDataSet
     DataSet = dbMuestrad
-    Left = 588
-    Top = 509
+    Left = 680
+    Top = 589
   end
   object dbLista: TZQuery
     AutoCalcFields = False
@@ -6744,8 +6743,8 @@
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 671
-    Top = 42
+    Left = 776
+    Top = 49
   end
   object dbSeries: TZQuery
     AutoCalcFields = False
@@ -6754,8 +6753,8 @@
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 152
-    Top = 387
+    Left = 176
+    Top = 448
   end
   object dbTrabajo: TZQuery
     AutoCalcFields = False
@@ -6764,8 +6763,8 @@
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 235
-    Top = 187
+    Left = 272
+    Top = 216
   end
   object dbTiendas: TZQuery
     AutoCalcFields = False
@@ -6774,12 +6773,12 @@
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 194
-    Top = 138
+    Left = 224
+    Top = 160
   end
   object PopupMenu1: TPopupMenu
-    Left = 16
-    Top = 42
+    Left = 19
+    Top = 49
     object MenuItem1: TMenuItem
       Caption = 'Marcar/Desmarcar  Documento'
       OnClick = MenuItem1Click
@@ -6808,8 +6807,8 @@
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 133
-    Top = 178
+    Left = 154
+    Top = 206
   end
   object dbHisopcc: TZQuery
     AutoCalcFields = False
@@ -6818,8 +6817,8 @@
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 173
-    Top = 55
+    Left = 200
+    Top = 64
   end
   object dbHisopdd: TZQuery
     AutoCalcFields = False
@@ -6828,7 +6827,7 @@
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 201
-    Top = 55
+    Left = 232
+    Top = 64
   end
 end

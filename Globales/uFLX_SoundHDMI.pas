@@ -9,35 +9,36 @@ unit uFLX_Sound;
 
   - En Linux GUI, Beep/bell/PC speaker NO es fiable.
   - Esta unidad reproduce sonidos reales vía:
-      1) paplay (PulseAudio/PipeWire) si existe
-      2) aplay  (ALSA) si existe, con autodetección de hw:X,Y
+      1) aplay  (ALSA) si existe  <-- PRIMERO (como pediste)
+      2) paplay (PulseAudio/PipeWire) si existe
 
-  Recomendación PRODUCCIÓN:
-    - Incluye WAV propios en:
-        <carpeta_del_ejecutable>/sounds/beep.wav
-        <carpeta_del_ejecutable>/sounds/ok.wav
-        <carpeta_del_ejecutable>/sounds/error.wav
-        <carpeta_del_ejecutable>/sounds/warning.wav
+  WAV:
+    - <BaseDir>/beep.wav
+    - <BaseDir>/ok.wav
+    - <BaseDir>/error.wav
+    - <BaseDir>/warning.wav
 
   Autodetección ALSA:
     - Si NO se fija ALSADevice manualmente (o por INI),
-      la unidad ejecuta: aplay -l y obtiene candidatos:
-        - HDMI con nombre de monitor (p.ej. [MSI MP275]) -> preferido para HDMI real
-        - HDMI genérico (primer HDMI)
-        - Analog (AIO / altavoz interno)
+      la unidad ejecuta: aplay -l
+      y elige el mejor device con esta prioridad:
+        1) HDMI con ELD válido (eld_valid 1)  <-- lo más fiable (monitor conectado)
+        2) HDMI con nombre de monitor [....]
+        3) Analog (AIO / placa base)
+        4) vacío (aplay usará default)
 
-  Estrategia de reproducción (SIN BLOQUEOS):
-    - Manteniendo tu orden: primero aplay y luego paplay
-    - aplay intenta:
-        1) default (sin -D)   -> el más robusto, suele funcionar en AIO
-        2) -D HDMI detectado  -> para casos HDMI que no van por default
-        3) -D Analog detectado
-        4) -D ALSADevice (si estaba fijado)
-    - si no hay aplay, usa paplay
+  ELD:
+    - Se consulta /proc/asound/cardX/eld#Y.Z
+      buscando "eld_valid 1" y opcionalmente "monitor_name".
+
+  Orden reproducción (sin bloquear):
+    - aplay -D <detectado> file.wav
+    - aplay file.wav (default)
+    - aplay -D <analog> file.wav (si existe y es distinto)
+    - aplay -D <hdmi> file.wav (si existe y es distinto)
+    - paplay file.wav (si no hay aplay)
 
   Uso:
-    uses uFLX_Sound;
-
     FLX_Sound_Init;
     FLX_Beep;
 }
@@ -61,7 +62,10 @@ procedure FLX_Sound_SetAutoDetectALSADevice(const Enable: Boolean);
 procedure FLX_Sound_SetFiles(const InfoFile, OkFile, ErrorFile, WarningFile: string);
 procedure FLX_Sound_LoadFromIni(const IniFileName: string);
 
+// Beep "audible"
 procedure FLX_Beep(const Kind: TFLXSoundKind = skInfo);
+
+// Reproduce un fichero concreto (normalmente WAV). Devuelve True si pudo lanzarlo.
 function FLX_PlaySoundFile(const AFileName: string): Boolean;
 
 implementation
@@ -72,7 +76,7 @@ uses
 var
   GEnabled: Boolean = True;
 
-  GDebugSound: Boolean = False; // ponlo a True si quieres log
+  GDebugSound: Boolean = True; // True para diagnosticar
 
   // Backend detectado
   GDetected  : Boolean = False;
@@ -83,12 +87,12 @@ var
   GPaPlayExe: string = '';
   GAPlayExe : string = '';
 
-  // ALSA device opcional (p.ej. 'hw:1,3' si lo fijas manualmente)
+  // ALSA device elegido (final)
   GALSAAudioDevice: string = '';
 
-  // Candidatos autodetectados (para no depender de adivinar)
-  GALSADefaultHDMI  : string = ''; // hw:x,y HDMI mejor
-  GALSADefaultAnalog: string = ''; // hw:x,y Analog mejor
+  // Candidatos detectados (para fallback)
+  GALSADefaultHDMI  : string = '';
+  GALSADefaultAnalog: string = '';
 
   // Autodetección ALSA
   GAutoDetectALSADevice: Boolean = True;
@@ -117,6 +121,7 @@ begin
   // Caso 1: ejecutable en /usr/bin
   if SameText(ExeDir, '/usr/bin/') then
   begin
+    // RutaSql DEBE terminar con /
     Result := IncludeTrailingPathDelimiter(RutaSql) + 'sounds' + DirectorySeparator;
     Exit;
   end;
@@ -137,6 +142,7 @@ var
 begin
   Result := '';
 
+  // Si viene con ruta, comprobamos directo
   if (Pos(DirectorySeparator, ExeName) > 0) then
   begin
     if IsExecutableFile(ExeName) then Exit(ExeName) else Exit('');
@@ -169,9 +175,11 @@ var
   I: Integer;
   Candidate: string;
 begin
+  // 1) PATH
   Result := FindExeInPATH(ExeName);
   if Result <> '' then Exit;
 
+  // 2) rutas típicas (muy importante en apps GUI lanzadas desde menú)
   for I := Low(CommonDirs) to High(CommonDirs) do
   begin
     Candidate := IncludeTrailingPathDelimiter(CommonDirs[I]) + ExeName;
@@ -199,6 +207,7 @@ begin
       if Trim(Params[I]) <> '' then
         P.Parameters.Add(Params[I]);
 
+    // En debug, usamos pipes + wait para ver errores
     if GDebugSound then
       P.Options := [poUsePipes, poNoConsole, poWaitOnExit]
     else
@@ -316,25 +325,140 @@ begin
   end;
 end;
 
-// NUEVA autodetección: devuelve preferido y también candidatos HDMI/Analog
+function ReadSmallTextFile(const Fn: string): string;
+var
+  SL: TStringList;
+begin
+  Result := '';
+  if (Fn = '') or (not FileExists(Fn)) then Exit;
+  SL := TStringList.Create;
+  try
+    try
+      SL.LoadFromFile(Fn);
+      Result := SL.Text;
+    except
+      Result := '';
+    end;
+  finally
+    SL.Free;
+  end;
+end;
+
+function ELDFileFor(const CardN, DevN, SubN: Integer): string;
+begin
+  // /proc/asound/card1/eld#3.0
+  Result := Format('/proc/asound/card%d/eld#%d.%d', [CardN, DevN, SubN]);
+end;
+
+function ELDIsValid(const EldText: string): Boolean;
+var
+  Up: string;
+begin
+  Up := UpperCase(EldText);
+  // suele aparecer como: "eld_valid               1"
+  Result := (Pos('ELD_VALID', Up) > 0) and (Pos('ELD_VALID', Up) < Pos('1', Up) + 100) and (Pos('ELD_VALID', Up) > 0) and (Pos('ELD_VALID', Up) > 0);
+  // Mejor comprobación exacta:
+  Result := (Pos('ELD_VALID', Up) > 0) and (Pos('ELD_VALID', Up) > 0) and (Pos('ELD_VALID', Up) > 0);
+  // (La comprobación robusta va abajo, sin depender del formato)
+  Result := (Pos('ELD_VALID', Up) > 0) and (Pos('ELD_VALID', Up) > 0);
+  // Reemplazo por parse simple fiable:
+  Result := (Pos('ELD_VALID', Up) > 0) and (Pos('ELD_VALID', Up) > 0);
+end;
+
+function ELDHasValid1(const EldText: string): Boolean;
+var
+  Up: string;
+begin
+  Up := UpperCase(EldText);
+  // buscamos "ELD_VALID" y luego un "1" en la misma línea aprox.
+  Result := (Pos('ELD_VALID', Up) > 0) and (Pos('ELD_VALID               1', Up) > 0);
+  if Result then Exit;
+
+  // fallback: "eld_valid 1"
+  Result := (Pos('ELD_VALID 1', Up) > 0);
+end;
+
+function ELDMonitorName(const EldText: string): string;
+var
+  SL: TStringList;
+  I: Integer;
+  S, Key: string;
+begin
+  Result := '';
+  Key := 'monitor_name';
+
+  SL := TStringList.Create;
+  try
+    SL.Text := EldText;
+    for I := 0 to SL.Count - 1 do
+    begin
+      S := Trim(SL[I]);
+      if (Length(S) >= Length(Key)) and (Pos(Key, LowerCase(S)) = 1) then
+      begin
+        // "monitor_name            MSI MP275"
+        Result := Trim(Copy(S, Length(Key) + 1, MaxInt));
+        Exit;
+      end;
+    end;
+  finally
+    SL.Free;
+  end;
+end;
+
+function HDMIHasValidELD(const CardN, DevN: Integer; out MonitorName: string): Boolean;
+var
+  EldFn, Txt: string;
+  SubN: Integer;
+begin
+  Result := False;
+  MonitorName := '';
+
+  // Normalmente .0, pero probamos 0..3 por si el driver expone otra sub
+  for SubN := 0 to 3 do
+  begin
+    EldFn := ELDFileFor(CardN, DevN, SubN);
+    if not FileExists(EldFn) then Continue;
+
+    Txt := ReadSmallTextFile(EldFn);
+    if Trim(Txt) = '' then Continue;
+
+    if ELDHasValid1(Txt) then
+    begin
+      MonitorName := ELDMonitorName(Txt);
+      Result := True;
+      Exit;
+    end;
+  end;
+end;
+
 function AutoDetectALSAHwFromAplayList(const AplayExe: string; out DevHDMI, DevAnalog: string): string;
 var
   Txt: string;
   SL: TStringList;
   I: Integer;
   CardN, DevN: Integer;
-  Line, LTrim, Up: string;
+  Line, LTrim: string;
+
   CurCard: Integer;
 
+  Up: string;
   HasHDMI, HasMonitorName, IsAnalog: Boolean;
 
+  BestHDMIValid: string;
+  BestHDMIValidName: string;
   FirstHDMI: string;
   BestHDMIWithName: string;
   BestAnalog: string;
+
+  MonName: string;
+  HasELD: Boolean;
 begin
   Result := '';
   DevHDMI := '';
   DevAnalog := '';
+
+  BestHDMIValid := '';
+  BestHDMIValidName := '';
   FirstHDMI := '';
   BestHDMIWithName := '';
   BestAnalog := '';
@@ -345,6 +469,7 @@ begin
   SL := TStringList.Create;
   try
     SL.Text := Txt;
+
     CurCard := -1;
 
     for I := 0 to SL.Count - 1 do
@@ -366,30 +491,63 @@ begin
 
           HasMonitorName := HasHDMI and (Pos('[', LTrim) > 0) and (Pos(']', LTrim) > Pos('[', LTrim));
 
+          // Guardar Analog (primer analog encontrado)
           if IsAnalog and (BestAnalog = '') then
             BestAnalog := 'hw:' + IntToStr(CurCard) + ',' + IntToStr(DevN);
 
           if HasHDMI then
           begin
-            if (FirstHDMI = '') then
+            if FirstHDMI = '' then
               FirstHDMI := 'hw:' + IntToStr(CurCard) + ',' + IntToStr(DevN);
 
             if HasMonitorName and (BestHDMIWithName = '') then
               BestHDMIWithName := 'hw:' + IntToStr(CurCard) + ',' + IntToStr(DevN);
+
+            // ---- CLAVE: ELD válido (monitor conectado con audio real)
+            MonName := '';
+            HasELD := HDMIHasValidELD(CurCard, DevN, MonName);
+            if HasELD and (BestHDMIValid = '') then
+            begin
+              BestHDMIValid := 'hw:' + IntToStr(CurCard) + ',' + IntToStr(DevN);
+              BestHDMIValidName := MonName; // puede venir vacío
+            end;
+
+            // Si hay varios ELD válidos (raro), priorizamos el que tenga nombre
+            if HasELD and (MonName <> '') and (BestHDMIValidName = '') then
+            begin
+              BestHDMIValid := 'hw:' + IntToStr(CurCard) + ',' + IntToStr(DevN);
+              BestHDMIValidName := MonName;
+            end;
           end;
         end;
       end;
     end;
 
-    if BestHDMIWithName <> '' then DevHDMI := BestHDMIWithName
-    else DevHDMI := FirstHDMI;
+    // Exportar candidatos
+    if BestHDMIValid <> '' then
+      DevHDMI := BestHDMIValid
+    else if BestHDMIWithName <> '' then
+      DevHDMI := BestHDMIWithName
+    else
+      DevHDMI := FirstHDMI;
 
     DevAnalog := BestAnalog;
 
-    // Preferencia final (para tu casa: HDMI con nombre manda)
-    if BestHDMIWithName <> '' then Result := BestHDMIWithName
-    else if BestAnalog <> '' then Result := BestAnalog
-    else Result := FirstHDMI;
+    // Elección final (prioridad)
+    if BestHDMIValid <> '' then
+      Result := BestHDMIValid
+    else if BestHDMIWithName <> '' then
+      Result := BestHDMIWithName
+    else if BestAnalog <> '' then
+      Result := BestAnalog
+    else
+      Result := FirstHDMI;
+
+    if GDebugSound then
+    begin
+      SoundLog('AutoDetect detail: HDMI_ELD="' + BestHDMIValid + '" MonName="' + BestHDMIValidName + '"');
+      SoundLog('AutoDetect detail: HDMI_Name="' + BestHDMIWithName + '" HDMI_First="' + FirstHDMI + '" Analog="' + BestAnalog + '"');
+    end;
 
   finally
     SL.Free;
@@ -400,9 +558,6 @@ procedure DetectBackend;
 begin
   if GDetected then Exit;
   GDetected := True;
-
-  GPaPlayExe := FindExeSmart('paplay');
-  GHavePaPlay := (GPaPlayExe <> '');
 
   GAPlayExe := FindExeSmart('aplay');
   GHaveAPlay := (GAPlayExe <> '');
@@ -416,7 +571,10 @@ begin
     end;
   end;
 
-  // Autodetección ALSA
+  GPaPlayExe := FindExeSmart('paplay');
+  GHavePaPlay := (GPaPlayExe <> '');
+
+  // Autodetección ALSA hw:X,Y si NO lo han fijado manualmente/INI
   if GHaveAPlay and GAutoDetectALSADevice and (Trim(GALSAAudioDevice) = '') then
   begin
     GALSAAudioDevice := AutoDetectALSAHwFromAplayList(GAPlayExe, GALSADefaultHDMI, GALSADefaultAnalog);
@@ -459,6 +617,7 @@ end;
 
 procedure FLX_Sound_SetALSADevice(const Dev: string);
 begin
+  // si fijas manualmente, se usa tal cual
   GALSAAudioDevice := Trim(Dev);
 end;
 
@@ -522,10 +681,10 @@ begin
   SoundLog('Play request. Enabled=' + BoolToStr(GEnabled, True) +
            ' File="' + AFileName + '" Exists=' + BoolToStr(FileExists(AFileName), True));
 
-  SoundLog('Backend: HavePaPlay=' + BoolToStr(GHavePaPlay, True) +
-           ' PaPlayExe="' + GPaPlayExe + '"' +
-           ' HaveAPlay=' + BoolToStr(GHaveAPlay, True) +
+  SoundLog('Backend: HaveAPlay=' + BoolToStr(GHaveAPlay, True) +
            ' APlayExe="' + GAPlayExe + '"' +
+           ' HavePaPlay=' + BoolToStr(GHavePaPlay, True) +
+           ' PaPlayExe="' + GPaPlayExe + '"' +
            ' ALSADevice="' + GALSAAudioDevice + '"' +
            ' HDMI="' + GALSADefaultHDMI + '"' +
            ' Analog="' + GALSADefaultAnalog + '"' +
@@ -536,28 +695,31 @@ begin
   // aplay primero (como pediste)
   if GHaveAPlay then
   begin
-    // 1) DEFAULT (sin -D): lo más robusto y lo que te funciona en AIO desde terminal
-    Result := LaunchProcess(GAPlayExe, [AFileName]);
-    if Result then Exit;
-
-    // 2) HDMI detectado (si existe)
-    if Trim(GALSADefaultHDMI) <> '' then
+    // 1) Si tenemos device elegido (por ELD/HDMI/Analog), lo probamos primero
+    if Trim(GALSAAudioDevice) <> '' then
     begin
-      Result := LaunchProcess(GAPlayExe, ['-D', GALSADefaultHDMI, AFileName]);
+      SoundLog('Launching aplay -D "' + GALSAAudioDevice + '"');
+      Result := LaunchProcess(GAPlayExe, ['-D', GALSAAudioDevice, AFileName]);
       if Result then Exit;
     end;
 
-    // 3) Analog detectado (si existe)
-    if Trim(GALSADefaultAnalog) <> '' then
+    // 2) Default (sin -D): en AIO suele ser lo correcto
+    SoundLog('Launching aplay default');
+    Result := LaunchProcess(GAPlayExe, [AFileName]);
+    if Result then Exit;
+
+    // 3) Fallbacks: analog y hdmi detectados (si existen y son distintos)
+    if (Trim(GALSADefaultAnalog) <> '') and (not SameText(Trim(GALSADefaultAnalog), Trim(GALSAAudioDevice))) then
     begin
+      SoundLog('Launching aplay -D Analog "' + GALSADefaultAnalog + '"');
       Result := LaunchProcess(GAPlayExe, ['-D', GALSADefaultAnalog, AFileName]);
       if Result then Exit;
     end;
 
-    // 4) Compatibilidad: el ALSADevice calculado o fijado manualmente
-    if Trim(GALSAAudioDevice) <> '' then
+    if (Trim(GALSADefaultHDMI) <> '') and (not SameText(Trim(GALSADefaultHDMI), Trim(GALSAAudioDevice))) then
     begin
-      Result := LaunchProcess(GAPlayExe, ['-D', GALSAAudioDevice, AFileName]);
+      SoundLog('Launching aplay -D HDMI "' + GALSADefaultHDMI + '"');
+      Result := LaunchProcess(GAPlayExe, ['-D', GALSADefaultHDMI, AFileName]);
       if Result then Exit;
     end;
 
@@ -567,6 +729,7 @@ begin
   // paplay después
   if GHavePaPlay then
   begin
+    SoundLog('Launching paplay');
     Result := LaunchProcess(GPaPlayExe, [AFileName]);
     Exit;
   end;

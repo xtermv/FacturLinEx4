@@ -412,7 +412,8 @@ begin
   CorreoMensaje4:=  IniReader.ReadString('Correo','Mensaje4','');
   CorreoUsuario:=   IniReader.ReadString('Correo','Usuario','');
   CorreoHost:=      IniReader.ReadString('Correo','Host','');
-  CorreoClave:=     IniReader.ReadString('Correo','Clave','');
+//  CorreoClave:=     IniReader.ReadString('Correo','Clave','');
+  CorreoClave:=     FLX_IniReadPassword(IniReader, 'Correo', 'Clave', '');
   CorreoPuerto:=    IniReader.ReadString('Correo','Puerto','');
 
     //--------------- VeriFactu -----------------------------

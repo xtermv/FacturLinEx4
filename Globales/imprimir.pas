@@ -32,7 +32,20 @@ uses
   DB,
   ubarcodes,
   ZAbstractConnection, ZAbstractRODataset, ZExceptions, ZAbstractDataset, ZClasses, // ZEOS
-  Crt; // Delay()
+  Crt;
+
+// -----------------------------------------------------------------------------
+// Flag global para controlar el comportamiento al imprimir desde FACTURAR.
+// - False (por defecto): comportamiento normal (UI, export PDF, etc.)
+// - True: desde FACTURAR solo se IMPRIME (se evita ExportTo(PDF)+Delay+esperas)
+//   porque el PDF ya se genera por otro método (FPPDF).
+//   Debe activarse temporalmente antes de llamar a Imprime(), y volver a False
+//   al terminar (try/finally).
+// -----------------------------------------------------------------------------
+var
+  VF_ImprimirFromFacturar: Boolean = False;
+
+ // Delay()
 
 type
 
@@ -953,6 +966,25 @@ var
   posNombrePDF: integer;
 
 begin
+  // ------------------------------------------------------------
+  // Modo FACTURAR (facturación rápida):
+  //  - Evita ExportTo(PDF) + Delay + espera de fichero, porque el PDF ya
+  //    se genera por otro método (FPPDF).
+  //  - Si el usuario tiene seleccionado "PDF" en la UI (RadioGroup2=2),
+  //    aquí lo redirigimos a "Imprimir" (RadioGroup2=1).
+  // ------------------------------------------------------------
+  if VF_ImprimirFromFacturar and (RadioGroup2.ItemIndex = 2) then
+  begin
+    // En modo FACTURAR no necesitamos exportar a PDF con LazReport (ya existe PDF FPPDF),
+    // pero SÍ queremos poder imprimir respetando el report seleccionado.
+    // MUY IMPORTANTE: hay que cargar el .lrf antes de preparar/imprimir.
+    // Impreso debería estar ya calculado por TipoImpreso() antes de llamar a GeneraImpresion().
+    frReport.LoadFromFile(Impreso);
+    frReport.PrepareReport;
+    frReport.PrintPreparedReport('', SpinEdit1.Value);
+    Exit;
+  end;
+
 
   frReport.LoadFromFile(Impreso);
 

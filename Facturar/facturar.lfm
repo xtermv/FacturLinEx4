@@ -1,24 +1,23 @@
 object FFacturar: TFFacturar
   Left = 0
-  Height = 990
-  Top = 32
+  Height = 1022
+  Top = 0
   Width = 1920
   ActiveControl = ComboBox1
   Caption = 'Facturacion de albaranes'
-  ClientHeight = 990
+  ClientHeight = 1022
   ClientWidth = 1920
-  DesignTimePPI = 83
   KeyPreview = True
   Position = poDesktopCenter
-  LCLVersion = '4.4.0.0'
+  LCLVersion = '4.2.0.0'
   WindowState = wsMaximized
   OnClose = FormClose
   OnCreate = FormCreate
   object Label1: TLabel
-    Left = 22
-    Height = 22
-    Top = 48
-    Width = 76
+    Left = 25
+    Height = 25
+    Top = 56
+    Width = 88
     AutoSize = False
     Caption = 'Desde cliente'
     Layout = tlCenter
@@ -26,10 +25,10 @@ object FFacturar: TFFacturar
     ParentFont = False
   end
   object Label2: TLabel
-    Left = 22
-    Height = 19
-    Top = 83
-    Width = 73
+    Left = 25
+    Height = 22
+    Top = 96
+    Width = 84
     AutoSize = False
     Caption = 'Hasta cliente'
     Layout = tlCenter
@@ -37,10 +36,10 @@ object FFacturar: TFFacturar
     ParentFont = False
   end
   object Label3: TLabel
-    Left = 22
-    Height = 19
-    Top = 188
-    Width = 83
+    Left = 25
+    Height = 22
+    Top = 217
+    Width = 96
     AutoSize = False
     Caption = 'Desde fecha'
     Layout = tlCenter
@@ -48,10 +47,10 @@ object FFacturar: TFFacturar
     ParentFont = False
   end
   object Label4: TLabel
-    Left = 22
-    Height = 19
-    Top = 16
-    Width = 95
+    Left = 25
+    Height = 22
+    Top = 19
+    Width = 110
     AutoSize = False
     Caption = 'Tienda a facturar'
     Layout = tlCenter
@@ -59,10 +58,10 @@ object FFacturar: TFFacturar
     ParentFont = False
   end
   object Label5: TLabel
-    Left = 22
-    Height = 22
-    Top = 154
-    Width = 90
+    Left = 25
+    Height = 25
+    Top = 178
+    Width = 104
     AutoSize = False
     Caption = 'Serie albaranes'
     Layout = tlCenter
@@ -70,10 +69,10 @@ object FFacturar: TFFacturar
     ParentFont = False
   end
   object Label6: TLabel
-    Left = 256
-    Height = 19
-    Top = 188
-    Width = 79
+    Left = 296
+    Height = 22
+    Top = 217
+    Width = 91
     AutoSize = False
     Caption = 'Hasta fecha'
     Layout = tlCenter
@@ -81,10 +80,10 @@ object FFacturar: TFFacturar
     ParentFont = False
   end
   object Label14: TLabel
-    Left = 22
-    Height = 19
-    Top = 118
-    Width = 73
+    Left = 25
+    Height = 22
+    Top = 136
+    Width = 84
     AutoSize = False
     Caption = 'Ruta'
     Layout = tlCenter
@@ -95,13 +94,13 @@ object FFacturar: TFFacturar
     AnchorSideRight.Control = Owner
     AnchorSideRight.Side = asrBottom
     AnchorSideBottom.Control = Panel2
-    Left = 1742
-    Height = 73
-    Top = 220
-    Width = 162
+    Left = 1714
+    Height = 85
+    Top = 254
+    Width = 187
     Anchors = [akTop, akRight, akBottom]
-    BorderSpacing.Right = 16
-    BorderSpacing.Bottom = 14
+    BorderSpacing.Right = 19
+    BorderSpacing.Bottom = 16
     Caption = 'Salir'
     Glyph.Data = {
       C6070000424DC607000000000000360000002800000016000000160000000100
@@ -173,10 +172,10 @@ object FFacturar: TFFacturar
     OnClick = BitBtn1Click
   end
   object Edit1: TEdit
-    Left = 124
-    Height = 25
-    Top = 48
-    Width = 71
+    Left = 143
+    Height = 29
+    Top = 56
+    Width = 82
     CharCase = ecUppercase
     ParentFont = False
     TabOrder = 8
@@ -185,10 +184,10 @@ object FFacturar: TFFacturar
     OnExit = Edit1Exit
   end
   object Edit2: TEdit
-    Left = 124
-    Height = 25
-    Top = 81
-    Width = 71
+    Left = 143
+    Height = 29
+    Top = 94
+    Width = 82
     CharCase = ecUppercase
     ParentFont = False
     TabOrder = 9
@@ -197,10 +196,10 @@ object FFacturar: TFFacturar
     OnExit = Edit2Exit
   end
   object Button1: TButton
-    Left = 195
-    Height = 22
-    Top = 48
-    Width = 22
+    Left = 226
+    Height = 25
+    Top = 56
+    Width = 25
     Caption = '...'
     ParentFont = False
     TabOrder = 3
@@ -208,10 +207,10 @@ object FFacturar: TFFacturar
     OnClick = Button1Click
   end
   object Button2: TButton
-    Left = 195
-    Height = 22
-    Top = 81
-    Width = 22
+    Left = 226
+    Height = 25
+    Top = 94
+    Width = 25
     Caption = '...'
     ParentFont = False
     TabOrder = 4
@@ -219,10 +218,10 @@ object FFacturar: TFFacturar
     OnClick = Button2Click
   end
   object Edit3: TEdit
-    Left = 220
-    Height = 25
-    Top = 48
-    Width = 332
+    Left = 254
+    Height = 29
+    Top = 56
+    Width = 384
     CharCase = ecUppercase
     ParentFont = False
     TabStop = False
@@ -230,10 +229,10 @@ object FFacturar: TFFacturar
     OnKeyPress = Edit3KeyPress
   end
   object Edit4: TEdit
-    Left = 220
-    Height = 25
-    Top = 83
-    Width = 332
+    Left = 254
+    Height = 29
+    Top = 96
+    Width = 384
     CharCase = ecUppercase
     ParentFont = False
     TabStop = False
@@ -241,10 +240,10 @@ object FFacturar: TFFacturar
     OnKeyPress = Edit4KeyPress
   end
   object ComboBox4: TComboBox
-    Left = 124
-    Height = 18
-    Top = 154
-    Width = 334
+    Left = 143
+    Height = 21
+    Top = 178
+    Width = 386
     AutoComplete = True
     AutoCompleteText = [cbactEnabled, cbactEndOfLineComplete, cbactSearchAscending]
     AutoSize = False
@@ -254,19 +253,19 @@ object FFacturar: TFFacturar
     TabOrder = 11
   end
   object Edit7: TEdit
-    Left = 124
-    Height = 25
-    Top = 188
-    Width = 83
+    Left = 143
+    Height = 29
+    Top = 217
+    Width = 96
     CharCase = ecUppercase
     ParentFont = False
     TabOrder = 12
   end
   object Button3: TButton
-    Left = 208
-    Height = 19
-    Top = 188
-    Width = 22
+    Left = 241
+    Height = 22
+    Top = 217
+    Width = 25
     Caption = '...'
     ParentFont = False
     TabOrder = 2
@@ -274,19 +273,19 @@ object FFacturar: TFFacturar
     OnClick = Button3Click
   end
   object Edit8: TEdit
-    Left = 354
-    Height = 25
-    Top = 188
-    Width = 83
+    Left = 409
+    Height = 29
+    Top = 217
+    Width = 96
     CharCase = ecUppercase
     ParentFont = False
     TabOrder = 13
   end
   object Button4: TButton
-    Left = 437
-    Height = 19
-    Top = 188
-    Width = 22
+    Left = 505
+    Height = 22
+    Top = 217
+    Width = 25
     Caption = '...'
     ParentFont = False
     TabOrder = 1
@@ -294,10 +293,10 @@ object FFacturar: TFFacturar
     OnClick = Button4Click
   end
   object ComboBox1: TComboBox
-    Left = 124
-    Height = 18
-    Top = 12
-    Width = 427
+    Left = 143
+    Height = 21
+    Top = 14
+    Width = 494
     AutoComplete = True
     AutoCompleteText = [cbactEnabled, cbactEndOfLineComplete, cbactSearchAscending]
     AutoSize = False
@@ -309,12 +308,12 @@ object FFacturar: TFFacturar
   end
   object BitBtn2: TBitBtn
     AnchorSideBottom.Control = Panel2
-    Left = 1088
-    Height = 73
-    Top = 220
-    Width = 127
+    Left = 1085
+    Height = 85
+    Top = 254
+    Width = 147
     Anchors = [akTop, akBottom]
-    BorderSpacing.Bottom = 14
+    BorderSpacing.Bottom = 16
     Caption = 'Aplicar filto'
     Glyph.Data = {
       36100000424D3610000000000000360000002800000020000000200000000100
@@ -455,21 +454,21 @@ object FFacturar: TFFacturar
   object Panel1: TPanel
     AnchorSideRight.Control = Owner
     AnchorSideRight.Side = asrBottom
-    Left = 574
-    Height = 159
-    Top = 22
-    Width = 1330
+    Left = 664
+    Height = 184
+    Top = 25
+    Width = 1237
     Anchors = [akTop, akLeft, akRight]
-    BorderSpacing.Right = 16
-    ClientHeight = 159
-    ClientWidth = 1330
+    BorderSpacing.Right = 19
+    ClientHeight = 184
+    ClientWidth = 1237
     ParentFont = False
     TabOrder = 15
     object Label7: TLabel
-      Left = 7
-      Height = 22
-      Top = 7
-      Width = 278
+      Left = 8
+      Height = 25
+      Top = 8
+      Width = 322
       Alignment = taCenter
       AutoSize = False
       Caption = 'ALBARANES MARACADOS/SIN MARCAR'
@@ -478,10 +477,10 @@ object FFacturar: TFFacturar
       ParentFont = False
     end
     object RadioButton1: TRadioButton
-      Left = 12
-      Height = 21
-      Top = 48
-      Width = 260
+      Left = 14
+      Height = 23
+      Top = 56
+      Width = 291
       Caption = 'Todos los albaranes, marcados y sin marcar'
       Checked = True
       ParentFont = False
@@ -489,19 +488,19 @@ object FFacturar: TFFacturar
       TabStop = True
     end
     object RadioButton2: TRadioButton
-      Left = 12
-      Height = 21
-      Top = 83
-      Width = 177
+      Left = 14
+      Height = 23
+      Top = 96
+      Width = 199
       Caption = 'Solo los albaranes marcados'
       ParentFont = False
       TabOrder = 1
     end
     object RadioButton3: TRadioButton
-      Left = 12
-      Height = 21
-      Top = 118
-      Width = 181
+      Left = 14
+      Height = 23
+      Top = 136
+      Width = 203
       Caption = 'Solo los albaranes sin marcar'
       ParentFont = False
       TabOrder = 2
@@ -509,12 +508,12 @@ object FFacturar: TFFacturar
   end
   object BitBtn3: TBitBtn
     AnchorSideBottom.Control = Panel2
-    Left = 1437
-    Height = 73
-    Top = 220
-    Width = 127
+    Left = 1434
+    Height = 85
+    Top = 254
+    Width = 147
     Anchors = [akTop, akBottom]
-    BorderSpacing.Bottom = 14
+    BorderSpacing.Bottom = 16
     Caption = 'Fact.Albaranes'
     Enabled = False
     Glyph.Data = {
@@ -659,8 +658,8 @@ object FFacturar: TFFacturar
     AnchorSideBottom.Control = Panel2
     AnchorSideBottom.Side = asrBottom
     Left = 0
-    Height = 614
-    Top = 376
+    Height = 587
+    Top = 435
     Width = 1920
     ActivePage = TabSheet1
     Align = alBottom
@@ -670,75 +669,75 @@ object FFacturar: TFFacturar
     TabOrder = 19
     object TabSheet1: TTabSheet
       Caption = '  Albaranes a facturar  '
-      ClientHeight = 583
-      ClientWidth = 1916
+      ClientHeight = 550
+      ClientWidth = 1914
       ParentFont = False
       object DBGrid2: TDBGrid
         Left = 0
-        Height = 583
+        Height = 550
         Top = 0
-        Width = 1916
+        Width = 1914
         Align = alClient
         Color = clWindow
         Columns = <        
           item
             Alignment = taCenter
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Alignment = taCenter
             Title.Caption = 'FECHA'
-            Width = 79
+            Width = 91
             FieldName = 'AC1'
           end        
           item
             Alignment = taCenter
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Alignment = taCenter
             Title.Caption = 'SER.'
-            Width = 39
+            Width = 45
             FieldName = 'AC2'
           end        
           item
             Alignment = taRightJustify
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Alignment = taRightJustify
             Title.Caption = 'N.ALB.'
-            Width = 61
+            Width = 71
             FieldName = 'AC3'
           end        
           item
             Alignment = taRightJustify
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Alignment = taRightJustify
             Title.Caption = 'IMP. + IVA'
-            Width = 86
+            Width = 99
             FieldName = 'AC9'
             DisplayFormat = '0.00'
           end        
           item
             Alignment = taRightJustify
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Alignment = taRightJustify
             Title.Caption = 'CGO.'
-            Width = 71
+            Width = 82
             FieldName = 'AC0'
           end        
           item
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Caption = 'NOMBRE'
-            Width = 278
+            Width = 322
             FieldName = 'C1'
           end        
           item
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Caption = 'ANOTAS'
-            Width = 216
+            Width = 250
             FieldName = 'ANOTAS'
           end>
         DataSource = Datasource1
@@ -750,77 +749,77 @@ object FFacturar: TFFacturar
     end
     object TabSheet2: TTabSheet
       Caption = '  Facturas a realizar  '
-      ClientHeight = 583
-      ClientWidth = 1916
+      ClientHeight = 550
+      ClientWidth = 1914
       ParentFont = False
       object DBGrid1: TDBGrid
         Left = 0
-        Height = 583
+        Height = 550
         Top = 0
-        Width = 1916
+        Width = 1914
         Align = alClient
         Color = clWindow
         Columns = <        
           item
             Alignment = taRightJustify
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Alignment = taRightJustify
             Title.Caption = 'CGO.'
-            Width = 71
+            Width = 82
             FieldName = 'AC0'
           end        
           item
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Caption = 'NOMBRE'
-            Width = 344
+            Width = 398
             FieldName = 'C1'
           end        
           item
             Alignment = taRightJustify
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Alignment = taRightJustify
             Title.Caption = 'N.ALB.'
-            Width = 71
+            Width = 82
             FieldName = 'COUNT(AC3)'
           end        
           item
             Alignment = taRightJustify
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Alignment = taRightJustify
             Title.Caption = 'N. LIN.'
-            Width = 71
+            Width = 82
             FieldName = 'SUM(AC4)'
           end        
           item
             Alignment = taRightJustify
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Alignment = taRightJustify
             Title.Caption = 'N. ART.'
-            Width = 71
+            Width = 82
             FieldName = 'SUM(AC5)'
           end        
           item
             Alignment = taRightJustify
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Alignment = taRightJustify
             Title.Caption = 'IMPORTE'
-            Width = 95
+            Width = 110
             FieldName = 'SUM(AC8)'
             DisplayFormat = '0.00'
           end        
           item
             Alignment = taRightJustify
-            MinSize = 9
-            MaxSize = 173
+            MinSize = 10
+            MaxSize = 200
             Title.Alignment = taRightJustify
             Title.Caption = 'IMP. + IVA'
-            Width = 95
+            Width = 110
             FieldName = 'SUM(AC9)'
             DisplayFormat = '0.00'
           end>
@@ -837,19 +836,19 @@ object FFacturar: TFFacturar
     AnchorSideBottom.Control = PageControl1
     AnchorSideBottom.Side = asrCenter
     Left = 0
-    Height = 69
-    Top = 307
+    Height = 80
+    Top = 355
     Width = 1920
     Align = alBottom
-    ClientHeight = 69
+    ClientHeight = 80
     ClientWidth = 1920
     ParentFont = False
     TabOrder = 20
     object Label8: TLabel
-      Left = 463
-      Height = 16
-      Top = 12
-      Width = 71
+      Left = 536
+      Height = 19
+      Top = 14
+      Width = 82
       AutoSize = False
       Caption = 'N. Lineas'
       Layout = tlCenter
@@ -857,10 +856,10 @@ object FFacturar: TFFacturar
       ParentFont = False
     end
     object Label9: TLabel
-      Left = 463
-      Height = 16
-      Top = 42
-      Width = 71
+      Left = 536
+      Height = 19
+      Top = 49
+      Width = 82
       AutoSize = False
       Caption = 'N. Articulos'
       Layout = tlCenter
@@ -868,10 +867,10 @@ object FFacturar: TFFacturar
       ParentFont = False
     end
     object Label10: TLabel
-      Left = 629
-      Height = 16
-      Top = 12
-      Width = 85
+      Left = 728
+      Height = 19
+      Top = 14
+      Width = 98
       AutoSize = False
       Caption = 'Importe '
       Layout = tlCenter
@@ -879,10 +878,10 @@ object FFacturar: TFFacturar
       ParentFont = False
     end
     object Label11: TLabel
-      Left = 629
-      Height = 16
-      Top = 42
-      Width = 85
+      Left = 728
+      Height = 19
+      Top = 49
+      Width = 98
       AutoSize = False
       Caption = 'Importe + Imp.'
       Layout = tlCenter
@@ -890,10 +889,10 @@ object FFacturar: TFFacturar
       ParentFont = False
     end
     object Label12: TLabel
-      Left = 297
-      Height = 16
-      Top = 12
-      Width = 71
+      Left = 344
+      Height = 19
+      Top = 14
+      Width = 82
       AutoSize = False
       Caption = 'N. Albaranes'
       Layout = tlCenter
@@ -901,10 +900,10 @@ object FFacturar: TFFacturar
       ParentFont = False
     end
     object Label13: TLabel
-      Left = 297
-      Height = 16
-      Top = 42
-      Width = 71
+      Left = 344
+      Height = 19
+      Top = 49
+      Width = 82
       AutoSize = False
       Caption = 'N. Facturas'
       Layout = tlCenter
@@ -912,10 +911,10 @@ object FFacturar: TFFacturar
       ParentFont = False
     end
     object StaticText2: TStaticText
-      Left = 540
-      Height = 16
-      Top = 12
-      Width = 71
+      Left = 625
+      Height = 19
+      Top = 14
+      Width = 82
       Alignment = taRightJustify
       BorderStyle = sbsSingle
       Caption = '0'
@@ -923,10 +922,10 @@ object FFacturar: TFFacturar
       TabOrder = 0
     end
     object StaticText3: TStaticText
-      Left = 540
-      Height = 16
-      Top = 42
-      Width = 71
+      Left = 625
+      Height = 19
+      Top = 49
+      Width = 82
       Alignment = taRightJustify
       BorderStyle = sbsSingle
       Caption = '0'
@@ -934,10 +933,10 @@ object FFacturar: TFFacturar
       TabOrder = 1
     end
     object StaticText7: TStaticText
-      Left = 718
-      Height = 16
-      Top = 12
-      Width = 105
+      Left = 830
+      Height = 19
+      Top = 14
+      Width = 121
       Alignment = taRightJustify
       BorderStyle = sbsSingle
       Caption = '0.00'
@@ -945,10 +944,10 @@ object FFacturar: TFFacturar
       TabOrder = 2
     end
     object StaticText8: TStaticText
-      Left = 718
-      Height = 16
-      Top = 42
-      Width = 105
+      Left = 830
+      Height = 19
+      Top = 49
+      Width = 121
       Alignment = taRightJustify
       BorderStyle = sbsSingle
       Caption = '0.00'
@@ -956,10 +955,10 @@ object FFacturar: TFFacturar
       TabOrder = 3
     end
     object StaticText4: TStaticText
-      Left = 374
-      Height = 16
-      Top = 12
-      Width = 71
+      Left = 433
+      Height = 19
+      Top = 14
+      Width = 82
       Alignment = taRightJustify
       BorderStyle = sbsSingle
       Caption = '0'
@@ -967,10 +966,10 @@ object FFacturar: TFFacturar
       TabOrder = 4
     end
     object StaticText5: TStaticText
-      Left = 374
-      Height = 16
-      Top = 42
-      Width = 71
+      Left = 433
+      Height = 19
+      Top = 49
+      Width = 82
       Alignment = taRightJustify
       BorderStyle = sbsSingle
       Caption = '0'
@@ -979,12 +978,12 @@ object FFacturar: TFFacturar
     end
   end
   object Panel8: TPanel
-    Left = 208
-    Height = 354
-    Top = 131
-    Width = 403
-    ClientHeight = 354
-    ClientWidth = 403
+    Left = 241
+    Height = 409
+    Top = 152
+    Width = 466
+    ClientHeight = 409
+    ClientWidth = 466
     Color = clSkyBlue
     ParentBackground = False
     ParentColor = False
@@ -992,17 +991,17 @@ object FFacturar: TFFacturar
     TabOrder = 17
     Visible = False
     object Bevel2: TBevel
-      Left = 7
-      Height = 184
-      Top = 124
-      Width = 386
+      Left = 8
+      Height = 213
+      Top = 143
+      Width = 446
       Style = bsRaised
     end
     object Label33: TLabel
-      Left = 12
-      Height = 19
-      Top = 140
-      Width = 67
+      Left = 14
+      Height = 22
+      Top = 162
+      Width = 77
       AutoSize = False
       Caption = 'N. Factura'
       Layout = tlCenter
@@ -1010,10 +1009,10 @@ object FFacturar: TFFacturar
       ParentFont = False
     end
     object Label34: TLabel
-      Left = 195
-      Height = 19
-      Top = 140
-      Width = 92
+      Left = 226
+      Height = 22
+      Top = 162
+      Width = 106
       AutoSize = False
       Caption = 'Fecha Factura'
       Layout = tlCenter
@@ -1021,10 +1020,10 @@ object FFacturar: TFFacturar
       ParentFont = False
     end
     object Label35: TLabel
-      Left = 14
-      Height = 19
-      Top = 175
-      Width = 101
+      Left = 16
+      Height = 22
+      Top = 202
+      Width = 117
       AutoSize = False
       Caption = 'Observaciones'
       Layout = tlCenter
@@ -1033,9 +1032,9 @@ object FFacturar: TFFacturar
     end
     object Label36: TLabel
       Left = 1
-      Height = 19
+      Height = 22
       Top = 1
-      Width = 401
+      Width = 464
       Align = alTop
       Alignment = taCenter
       AutoSize = False
@@ -1047,28 +1046,28 @@ object FFacturar: TFFacturar
       Transparent = False
     end
     object Label15: TLabel
-      Left = 14
+      Left = 16
       Height = 1
-      Top = 194
+      Top = 224
       Width = 1
       ParentColor = False
       ParentFont = False
     end
     object Label16: TLabel
-      Left = 16
-      Height = 17
-      Top = 256
-      Width = 159
+      Left = 19
+      Height = 19
+      Top = 296
+      Width = 180
       Caption = 'Procesando documentos . . .  '
       Enabled = False
       ParentColor = False
       ParentFont = False
     end
     object BitBtn20: TBitBtn
-      Left = 303
-      Height = 29
-      Top = 316
-      Width = 88
+      Left = 350
+      Height = 34
+      Top = 365
+      Width = 102
       Caption = 'Cancelar'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -1140,20 +1139,20 @@ object FFacturar: TFFacturar
       OnClick = BitBtn20Click
     end
     object Edit21: TEdit
-      Left = 95
-      Height = 25
-      Top = 140
-      Width = 76
+      Left = 110
+      Height = 29
+      Top = 162
+      Width = 88
       CharCase = ecUppercase
       Enabled = False
       ParentFont = False
       TabOrder = 1
     end
     object ListBox1: TListBox
-      Left = 7
-      Height = 94
-      Top = 29
-      Width = 386
+      Left = 8
+      Height = 109
+      Top = 34
+      Width = 446
       Color = clCream
       ItemHeight = 0
       ParentFont = False
@@ -1163,19 +1162,19 @@ object FFacturar: TFFacturar
       OnClick = ListBox1Click
     end
     object Memo1: TMemo
-      Left = 12
-      Height = 50
+      Left = 14
+      Height = 58
       Hint = 'En caso de tratarse de una Factura para un '#10'Organismo publico que requiera unidad tramitadora'#10'Organo Gestor, etc, rogamos se escriba del siguiente modo:'#10'OG : XXXXXX'#10'UT : XXXXX'#10'OC : XXXXX'#10'(El orden es indiferente), tambien podemos '#10'sustituir OG, UT y OC por los nombres completos'#10'Organo Gestor, Unidad Tramitadora u Oficina Contable'#10#10'Gracias'
-      Top = 195
-      Width = 375
+      Top = 226
+      Width = 434
       ParentFont = False
       TabOrder = 2
     end
     object BitBtn23: TBitBtn
-      Left = 9
-      Height = 29
-      Top = 316
-      Width = 88
+      Left = 10
+      Height = 34
+      Top = 365
+      Width = 102
       Caption = 'Aceptar'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
@@ -1247,13 +1246,13 @@ object FFacturar: TFFacturar
       OnClick = BitBtn23Click
     end
     object DateEdit1: TDateEdit
-      Left = 284
-      Height = 25
-      Top = 140
-      Width = 85
+      Left = 328
+      Height = 29
+      Top = 162
+      Width = 98
       CalendarDisplaySettings = [dsShowHeadings, dsShowDayNames]
       DateOrder = doNone
-      ButtonWidth = 19
+      ButtonWidth = 22
       Glyph.Data = {
         36040000424D3604000000000000360000002800000010000000100000000100
         2000000000000004000064000000640000000000000000000000000000000000
@@ -1296,10 +1295,10 @@ object FFacturar: TFFacturar
       TabOrder = 5
     end
     object ProgressBar1: TProgressBar
-      Left = 14
-      Height = 16
-      Top = 278
-      Width = 374
+      Left = 16
+      Height = 19
+      Top = 322
+      Width = 433
       Enabled = False
       ParentFont = False
       Step = 1
@@ -1307,10 +1306,10 @@ object FFacturar: TFFacturar
       BarShowText = True
     end
     object CheckBox1: TCheckBox
-      Left = 201
-      Height = 21
-      Top = 169
-      Width = 158
+      Left = 232
+      Height = 23
+      Top = 195
+      Width = 179
       Caption = 'Mostrar TODAS las series'
       ParentFont = False
       TabOrder = 7
@@ -1318,10 +1317,10 @@ object FFacturar: TFFacturar
     end
   end
   object Edit5: TEdit
-    Left = 124
-    Height = 25
-    Top = 118
-    Width = 71
+    Left = 143
+    Height = 29
+    Top = 136
+    Width = 82
     CharCase = ecUppercase
     ParentFont = False
     TabOrder = 10
@@ -1329,10 +1328,10 @@ object FFacturar: TFFacturar
     OnExit = Edit5Exit
   end
   object Button5: TButton
-    Left = 195
-    Height = 22
-    Top = 118
-    Width = 22
+    Left = 226
+    Height = 25
+    Top = 136
+    Width = 25
     Caption = '...'
     ParentFont = False
     TabOrder = 0
@@ -1340,10 +1339,10 @@ object FFacturar: TFFacturar
     OnClick = Button5Click
   end
   object Edit6: TEdit
-    Left = 220
-    Height = 25
-    Top = 119
-    Width = 332
+    Left = 254
+    Height = 29
+    Top = 138
+    Width = 384
     CharCase = ecUppercase
     ParentFont = False
     TabStop = False
@@ -1351,11 +1350,11 @@ object FFacturar: TFFacturar
     OnKeyPress = Edit6KeyPress
   end
   object ChkBoxVisualiza: TCheckBox
-    Left = 22
-    Height = 21
+    Left = 25
+    Height = 23
     Hint = 'Selecciona si es el ordenador quien procesa la facturación.'
-    Top = 230
-    Width = 210
+    Top = 266
+    Width = 235
     Caption = 'Imprimir facturas sin previsualizar.'
     Checked = True
     ParentFont = False
@@ -1369,16 +1368,16 @@ object FFacturar: TFFacturar
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 42
-    Top = 7
+    Left = 49
+    Top = 8
   end
   object CalendarDialog1: TCalendarDialog
     Title = 'Fechas de albaranes'
     Date = 39808
     OKCaption = 'Aceptar'
     CancelCaption = 'Cancelar'
-    Left = 237
-    Top = 178
+    Left = 274
+    Top = 206
   end
   object dbTiendas: TZQuery
     AutoCalcFields = False
@@ -1387,8 +1386,8 @@ object FFacturar: TFFacturar
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 71
-    Top = 7
+    Left = 82
+    Top = 8
   end
   object dbSeries: TZQuery
     AutoCalcFields = False
@@ -1397,8 +1396,8 @@ object FFacturar: TFFacturar
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 95
-    Top = 7
+    Left = 110
+    Top = 8
   end
   object dbAlbacc: TZQuery
     AutoCalcFields = False
@@ -1407,8 +1406,8 @@ object FFacturar: TFFacturar
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 12
-    Top = 297
+    Left = 14
+    Top = 344
   end
   object dbAlbadd: TZQuery
     AutoCalcFields = False
@@ -1417,13 +1416,13 @@ object FFacturar: TFFacturar
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 42
-    Top = 297
+    Left = 49
+    Top = 344
   end
   object Datasource1: TDataSource
     DataSet = dbAlbacc
-    Left = 71
-    Top = 297
+    Left = 82
+    Top = 344
   end
   object dbSumas: TZQuery
     AutoCalcFields = False
@@ -1432,13 +1431,13 @@ object FFacturar: TFFacturar
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 830
-    Top = 533
+    Left = 960
+    Top = 616
   end
   object Datasource2: TDataSource
     DataSet = dbMuestraf
-    Left = 214
-    Top = 297
+    Left = 248
+    Top = 344
   end
   object dbMuestraf: TZQuery
     AutoCalcFields = False
@@ -1447,8 +1446,8 @@ object FFacturar: TFFacturar
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 188
-    Top = 297
+    Left = 217
+    Top = 344
   end
   object dbFactud: TZQuery
     AutoCalcFields = False
@@ -1457,8 +1456,8 @@ object FFacturar: TFFacturar
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 159
-    Top = 297
+    Left = 184
+    Top = 344
   end
   object dbFactuc: TZQuery
     AutoCalcFields = False
@@ -1467,8 +1466,8 @@ object FFacturar: TFFacturar
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 131
-    Top = 297
+    Left = 152
+    Top = 344
   end
   object dbHisopcc: TZQuery
     AutoCalcFields = False
@@ -1477,8 +1476,8 @@ object FFacturar: TFFacturar
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 125
-    Top = 7
+    Left = 145
+    Top = 8
   end
   object dbHisopdd: TZQuery
     AutoCalcFields = False
@@ -1487,8 +1486,8 @@ object FFacturar: TFFacturar
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 154
-    Top = 7
+    Left = 178
+    Top = 8
   end
   object frReport1: TfrReport
     Dataset = frDBDataSet1
@@ -1498,13 +1497,13 @@ object FFacturar: TFFacturar
     PreviewButtons = [pbLoad, pbSave, pbPrint, pbFind, pbHelp, pbExit]
     DataType = dtDataSet
     Title = 'Proformas de clientes'
-    Left = 125
-    Top = 540
+    Left = 145
+    Top = 625
   end
   object frDBDataSet1: TfrDBDataSet
     DataSet = dbMuestrad
-    Left = 154
-    Top = 540
+    Left = 178
+    Top = 625
   end
   object dbTrabajo: TZQuery
     AutoCalcFields = False
@@ -1513,8 +1512,8 @@ object FFacturar: TFFacturar
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 178
-    Top = 7
+    Left = 206
+    Top = 8
   end
   object dbRutas: TZQuery
     AutoCalcFields = False
@@ -1523,8 +1522,8 @@ object FFacturar: TFFacturar
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 208
-    Top = 7
+    Left = 241
+    Top = 8
   end
   object dbBusca: TZQuery
     AutoCalcFields = False
@@ -1533,8 +1532,8 @@ object FFacturar: TFFacturar
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 237
-    Top = 7
+    Left = 274
+    Top = 8
   end
   object dbMuestrad: TZQuery
     AutoCalcFields = False
@@ -1543,8 +1542,8 @@ object FFacturar: TFFacturar
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 261
-    Top = 7
+    Left = 302
+    Top = 8
   end
   object dbIva: TZQuery
     AutoCalcFields = False
@@ -1553,7 +1552,7 @@ object FFacturar: TFFacturar
     Properties.Strings = (
       'ValidateUpdateCount=False'
     )
-    Left = 42
-    Top = 361
+    Left = 49
+    Top = 418
   end
 end

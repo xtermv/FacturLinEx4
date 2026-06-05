@@ -348,12 +348,37 @@ var
   TxtQ: String;
   ok: boolean;
   pdf, Err: string;
+  T0, TPrev: QWord;
+
+  // -------------------------------------------------------------
+  // PERF / DIAG: marcas de tiempo y consumos (ms) para acotar bloqueos
+  // -------------------------------------------------------------
+  procedure VF_PerfMark(const ATag: string);
+  var
+    Dt: QWord;
+    Stamp: string;
+  begin
+    // GetTickCount64 es monotónico (ms desde arranque). Ideal para tiempos.
+    Dt := GetTickCount64 - TPrev;
+    Stamp := FormatDateTime('yyyy-mm-dd hh:nn:ss.zzz', Now);
+    FLX_WriteLog('FACTURAR', Stamp + ' | +' + IntToStr(Dt) + ' ms | ' + ATag);
+    TPrev := GetTickCount64;
+  end;
+
 begin
+
+
+T0 := GetTickCount64;
+TPrev := T0;
+FLX_WriteLog('FACTURAR', FormatDateTime('yyyy-mm-dd hh:nn:ss.zzz', Now) +
+  ' | +0 ms | Inicio facturación (BitBtn23Click). Tienda=' + tienda);
+
   label16.Enabled:=True; ProgressBar1.Enabled:=True; ProgressBar1.Max:=dbAlbacc.RecordCount;
   SFACTURA:=dbSeries.FieldByName('SF0').AsString;
   if SFACTURA='' then begin showmessage('DEBE SELECCIONAR UNA SERIE PARA FACTURAR'); Exit; end;
   vfTipoFactura:='F1';
   Hora:=Time; NumeroFactura(); NLinea:=1;
+  VF_PerfMark('NumeroFactura()');
   dbAlbacc.First; AntCliente:=dbAlbacc.Fields[0].Value;
   While not dbAlbacc.Eof do
    begin
@@ -362,10 +387,19 @@ begin
       //---------- Si el cliente cambia, sacar nuevo n. factura.
       if AntCliente<>dbAlbacc.Fields[0].Value then
         begin
-          Imprimir();
+          VF_PerfMark('Antes Imprimir() (cambio de cliente)');
+          try
+            VF_ImprimirFromFacturar := True;
+            Imprimir();
+          finally
+            VF_ImprimirFromFacturar := False;
+          end;
+          VF_PerfMark('Después Imprimir() (cambio de cliente)');
           //showmessage(IncludeTrailingPathDelimiter(RutaPdf) + 'QR.png');
           //==================================================
           //-- Inserción de la llamada a generación de PDF
+          FLX_WriteLog('PDF', 'Generando PDF factura ' + SFACTURA + '-' + IntToStr(NFACTURA) + ' cliente=' + IntToStr(AntCliente));
+
           ok := FLX_GenerateInvoicePDF_FromDB(
                                               tienda,          // tienda
                                               SFACTURA,        // serie
@@ -376,7 +410,17 @@ begin
                                               IncludeTrailingPathDelimiter(RutaIni) + 'barcode.png', // ejemplo para barcode, o el que uses
                                               pdf
                                               );
-          //-- ShowMessage('El fichero se creará en : ' + RutaPdf);
+          
+
+                    VF_PerfMark('Después FLX_GenerateInvoicePDF_FromDB(): ok=' + BoolToStr(ok, True) + ' pdf=' + pdf);
+if ok then
+
+            FLX_WriteLog('PDF', 'PDF generado: ' + pdf)
+
+          else
+
+            FLX_WriteLog('PDF', 'ERROR al generar PDF (pdf=' + pdf + ')');
+//-- ShowMessage('El fichero se creará en : ' + RutaPdf);
 
           if not ok then
             ShowMessage('Error al generar PDF')
@@ -388,7 +432,8 @@ begin
                   //=============== Envio Pdf por e-mail =============
                   //==================================================
                   try
-                  Ok := FLX_SendFacturaPDFMail(
+                                    VF_PerfMark('Antes FLX_SendFacturaPDFMail()');
+Ok := FLX_SendFacturaPDFMail(
                                               dbClientes.FieldByName('C40').AsString,
                                               CorreoCopia,
                                               ('Factura Mes Actual / Cliente # '+ dbClientes.FieldByName('C0').AsString),
@@ -396,7 +441,17 @@ begin
                                               pdf,
                                               Err
                                               );
-                  except
+                  
+
+                                    VF_PerfMark('Después FLX_SendFacturaPDFMail(): Ok=' + BoolToStr(Ok, True) + ' Err=' + Err);
+if Ok then
+
+                    FLX_WriteLog('EMAIL', 'Email enviado OK (pdf=' + pdf + ')')
+
+                  else
+
+                    FLX_WriteLog('EMAIL', 'Email NO enviado: ' + Err + ' (pdf=' + pdf + ')');
+except
                     on E: Exception do
                     begin
                        FLX_WriteLog('EMAIL', 'Error al conectar al servidor SMTP: ' + E.Message);
@@ -413,7 +468,8 @@ begin
           // === Veri*Factu: Encolar factura (DB/Archivos) ===
           // =================================================
           try
-            VeriFactu_QueueFactura(
+              VF_PerfMark('Antes VeriFactu_QueueFactura()');
+VeriFactu_QueueFactura(
               SFACTURA,
               NFACTURA,
               DateEdit1.Date,
@@ -421,7 +477,8 @@ begin
               // *** IMPORTANTE: TotalConIVA = FC9 (cabecera factura) ***
               dbFactuc.FieldByName('FC9').AsFloat
             );
-          except
+            VF_PerfMark('Después VeriFactu_QueueFactura()');
+except
                 on E: Exception do
                  begin
                    Writeln('ERROR CAPTURADO: ' + E.Message);
@@ -468,12 +525,21 @@ begin
       dbAlbacc.Next;
    end;
   ProgressBar1.Position:=0;label16.Enabled:=False; ProgressBar1.Enabled:=False;
-  Imprimir();
+  VF_PerfMark('Antes Imprimir() (flush final)');
+  try
+    VF_ImprimirFromFacturar := True;
+    Imprimir();
+  finally
+    VF_ImprimirFromFacturar := False;
+  end;
+  VF_PerfMark('Después Imprimir() (flush final)');
 
   //==================================================
   //-- ULTIMA VEZ O SI SOLO ES UNO (SE REPITE EN DOS PUNTOS )
   //-- Inserción de la llamada a generación de PDF
-  ok := FLX_GenerateInvoicePDF_FromDB(
+    FLX_WriteLog('PDF', 'Generando PDF factura ' + SFACTURA + '-' + IntToStr(NFACTURA) + ' cliente=' + IntToStr(AntCliente) + ' (flush final)');
+  VF_PerfMark('Antes FLX_GenerateInvoicePDF_FromDB() (flush final)');
+ok := FLX_GenerateInvoicePDF_FromDB(
                                       tienda,          // tienda
                                       SFACTURA,        // serie
                                       NFACTURA,        // número
@@ -483,11 +549,14 @@ begin
                                       IncludeTrailingPathDelimiter(RutaIni) + 'barcode.png', // ejemplo para barcode, o el que uses
                                       pdf
                                       );
+  VF_PerfMark('Después FLX_GenerateInvoicePDF_FromDB() (flush final): ok=' + BoolToStr(ok, True) + ' pdf=' + pdf);
+
   // ShowMessage('El fichero se creará en : ' + RutaPdf);
   // =========================================================
   // === Veri*Factu: Encolar PRIMERA factura (DB/Archivos) ===
   // =========================================================
   try
+        VF_PerfMark('Antes VeriFactu_QueueFactura() (flush final)');
     VeriFactu_QueueFactura(
                            SFACTURA,
                            NFACTURA,
@@ -496,6 +565,8 @@ begin
                            // *** IMPORTANTE: TotalConIVA = FC9 (cabecera factura) ***
                            dbFactuc.FieldByName('FC9').AsFloat
                           );
+    VF_PerfMark('Después VeriFactu_QueueFactura() (flush final)');
+
   except
         on E: Exception do
          begin
@@ -516,7 +587,8 @@ begin
          if dbClientes.FieldByName('C55').AsBoolean then
           begin 
            try
-             Ok := FLX_SendFacturaPDFMail(
+                               VF_PerfMark('Antes FLX_SendFacturaPDFMail() (flush final)');
+Ok := FLX_SendFacturaPDFMail(
                                           dbClientes.FieldByName('C40').AsString,
                                           CorreoCopia,
                                           ('Factura Mes Actual / Cliente # '+ dbClientes.FieldByName('C0').AsString),
@@ -524,6 +596,8 @@ begin
                                           pdf,
                                           Err
                                           );
+                  VF_PerfMark('Después FLX_SendFacturaPDFMail() (flush final): Ok=' + BoolToStr(Ok, True) + ' Err=' + Err);
+
            except
              on E: Exception do
                begin
@@ -588,6 +662,8 @@ begin
   DataModule1.Mensaje('Información','La facturación ha sido CORRECTA ', 3000 , clGreen);
   
   vfTipoFactura:='F2'; //-- Devolvemos la variable GLOBAL a F2 - Factura Simplificada
+
+  VF_PerfMark('Fin facturación: total=' + IntToStr(GetTickCount64 - T0) + ' ms');
 
   Close();
 
@@ -1072,25 +1148,51 @@ end;
 
 //================= N. DE FACTURA ===========================
 procedure TFFacturar.NumeroFactura();
+var
+  TStart, TStep: QWord;
 begin
+  TStart := GetTickCount64;
+  TStep  := TStart;
+  FLX_WriteLog('FACTURAR', FormatDateTime('yyyy-mm-dd hh:nn:ss.zzz', Now) +
+    ' | NumeroFactura(): inicio. Serie=' + SFACTURA);
+
   if SFACTURA='' then begin SFACTURA:='';NFACTURA:=0; Exit; end;
+
   dbSeries.Active:=False;
   dbSeries.SQL.Text:='UPDATE seriesfactu SET SF2=SF2+1 WHERE SF0="'+SFACTURA+'"';
   try
     dbSeries.ExecSQL;
+    FLX_WriteLog('FACTURAR', FormatDateTime('yyyy-mm-dd hh:nn:ss.zzz', Now) +
+      ' | NumeroFactura(): UPDATE seriesfactu OK. +' + IntToStr(GetTickCount64 - TStep) + ' ms');
+    TStep := GetTickCount64;
   except
     on EDB: EDatabaseError do
     begin
+      FLX_WriteLog('FACTURAR', FormatDateTime('yyyy-mm-dd hh:nn:ss.zzz', Now) +
+        ' | NumeroFactura(): ERROR UPDATE seriesfactu: ' + EDB.Message);
       Showmessage('Error : ' + EDB.Message);
     end;
   end;
+
   dbSeries.Active:=False;
   dbSeries.SQL.Text:='SELECT * FROM seriesfactu WHERE SF0="'+SFACTURA+'"';
   dbSeries.Active:=True;
+
+  FLX_WriteLog('FACTURAR', FormatDateTime('yyyy-mm-dd hh:nn:ss.zzz', Now) +
+    ' | NumeroFactura(): SELECT seriesfactu. +' + IntToStr(GetTickCount64 - TStep) +
+    ' ms rc=' + IntToStr(dbSeries.Recordcount));
+  TStep := GetTickCount64;
+
   if dbSeries.Recordcount=0 then exit;
   NFACTURA:=dbSeries.Fields[2].AsInteger;
+
+  FLX_WriteLog('FACTURAR', FormatDateTime('yyyy-mm-dd hh:nn:ss.zzz', Now) +
+    ' | NumeroFactura(): NFACTURA=' + IntToStr(NFACTURA) +
+    ' total=+' + IntToStr(GetTickCount64 - TStart) + ' ms');
+
   dbSeries.Active:=False;
 end;
+
 
 //==============================================================
 //==================== IMPRIMIR FACTURA ========================
