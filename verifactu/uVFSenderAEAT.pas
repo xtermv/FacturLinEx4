@@ -625,6 +625,32 @@ var
     Result := FormatFloat('0.00', V);
   end;
 
+  function StrToFloatDotDef(const S: string; ADefault: Double): Double;
+  var
+    Tmp: string;
+    FSDot: TFormatSettings;
+  begin
+    FSDot := DefaultFormatSettings;
+    FSDot.DecimalSeparator := '.';
+    Tmp := Trim(S);
+    Tmp := StringReplace(Tmp, ',', '.', [rfReplaceAll]);
+    Result := StrToFloatDef(Tmp, ADefault, FSDot);
+  end;
+
+  function FloatTo2DecDot(const V: Double): string;
+  var
+    FSDot: TFormatSettings;
+  begin
+    FSDot := DefaultFormatSettings;
+    FSDot.DecimalSeparator := '.';
+    Result := FormatFloat('0.00', V, FSDot);
+  end;
+
+  function To2DecDot(const S: string): string;
+  begin
+    Result := FloatTo2DecDot(StrToFloatDotDef(S, 0));
+  end;
+
   function FechaToAEAT(const S: string): string;
   begin
   	// Esto no lo tengo claro, depende de donde obtengamos la información es así o al revés
@@ -825,8 +851,10 @@ begin
 
   FechaAEAT := FechaToAEAT(FechaRaw);
 
-  ImporteTotal := JsonGetField(PayloadJSON, 'cabecera.totalConIVA');
-  ImporteTotal := To2Dec(ImporteTotal); // 2 decimales
+  // Total del JSON normalizado con punto decimal.
+  // En F2/R5 se usará este valor real del ticket; en F1/R1 se mantiene
+  // el cálculo desde desglose más abajo.
+  ImporteTotal := To2DecDot(JsonGetField(PayloadJSON, 'cabecera.totalConIVA'));
 
   // Fecha/hora generación registro con huso local real.
   // Se calcula justo al construir el XML, no desde la fecha/hora de la venta.
@@ -957,31 +985,49 @@ begin
     '          </sum1:Desglose>' + LineEnding +
     '          <sum1:CuotaTotal>' + CuotaTotal + '</sum1:CuotaTotal>' + LineEnding;
 
-  // --- Recalcular ImporteTotal a partir del desglose (Bases + Cuotas) ---
-  SumBaseD := StrToFloatDef(
-               StringReplace(SumBaseStr, ',', '.', [rfReplaceAll]),
-               0
-             );
-  CuotaTotalD := StrToFloatDef(
-                  StringReplace(CuotaTotal, ',', '.', [rfReplaceAll]),
-                  0
-                );
-  TotalCalc := SumBaseD + CuotaTotalD;
-  ImporteTotal := FormatFloat('0.00', TotalCalc);
+  // --- ImporteTotal ---
+  // F1/R1: se mantiene la lógica existente, calculando desde desglose
+  //        de bases + cuotas, porque las facturas completas llevan desglose real.
+  // F2/R5: se usa el total real del ticket guardado en cabecera.totalConIVA.
+  //        En facturas simplificadas el JSON puede venir sin líneas/impuestos
+  //        detallados y, si recalculamos desde ese desglose vacío, se pisa el
+  //        importe correcto con 0.00. Eso provocaba que el QR con 4.25 no
+  //        cotejara contra un XML enviado con ImporteTotal=0.00.
+  SumBaseD    := StrToFloatDotDef(SumBaseStr, 0);
+  CuotaTotalD := StrToFloatDotDef(CuotaTotal, 0);
+  TotalCalc   := SumBaseD + CuotaTotalD;
 
-  // (Opcional) comparar con el JSON original y dejarlo en log
   OrigTotalStr := JsonGetField(PayloadJSON, 'cabecera.totalConIVA');
-  if OrigTotalStr <> '' then
+  ImporteTotalD := StrToFloatDotDef(OrigTotalStr, 0);
+
+  if SameText(TipoFacturaXML, 'F2') or SameText(TipoFacturaXML, 'R5') then
   begin
-    ImporteTotalD := StrToFloatDef(
-                       StringReplace(OrigTotalStr, ',', '.', [rfReplaceAll]),
-                       0
-                     );
-    if Abs(ImporteTotalD - TotalCalc) > 0.01 then
-      VF_WriteDiag(Format(
-        'Aviso: ImporteTotal JSON=%s, calculado=%s (se usa el calculado)',
-        [OrigTotalStr, ImporteTotal]
-      ));
+    ImporteTotal := FloatTo2DecDot(ImporteTotalD);
+
+    // Seguridad: si algún día una F2/R5 trae desglose real y falta totalConIVA,
+    // usamos el calculado para no enviar 0.00 por ausencia del campo de cabecera.
+    if (Abs(ImporteTotalD) < 0.005) and (Abs(TotalCalc) >= 0.005) then
+      ImporteTotal := FloatTo2DecDot(TotalCalc);
+
+    VF_WriteDiag(Format(
+      'ImporteTotal %s: JSON=%s, calculado=%s (se usa JSON/formato ticket)',
+      [TipoFacturaXML, OrigTotalStr, FloatTo2DecDot(TotalCalc)]
+    ));
+  end
+  else
+  begin
+    ImporteTotal := FloatTo2DecDot(TotalCalc);
+
+    // Comparar con el JSON original y dejarlo en log, pero para F1/R1
+    // seguimos usando el calculado como hasta ahora.
+    if OrigTotalStr <> '' then
+    begin
+      if Abs(ImporteTotalD - TotalCalc) > 0.01 then
+        VF_WriteDiag(Format(
+          'Aviso: ImporteTotal JSON=%s, calculado=%s (se usa el calculado)',
+          [OrigTotalStr, ImporteTotal]
+        ));
+    end;
   end;
 
   Result := Result +
@@ -995,8 +1041,8 @@ begin
   // Pasamos CuotaTotal e ImporteTotal (texto) a Double de forma neutra
   FS := DefaultFormatSettings;
   FS.DecimalSeparator := '.';
-  CuotaTotalD    := StrToFloatDef(StringReplace(CuotaTotal, ',', '.', [rfReplaceAll]), 0);
-  ImporteTotalD  := StrToFloatDef(StringReplace(ImporteTotal, ',', '.', [rfReplaceAll]), 0);
+  CuotaTotalD    := StrToFloatDotDef(CuotaTotal, 0);
+  ImporteTotalD  := StrToFloatDotDef(ImporteTotal, 0);
 
   HashAEAT := VF_CalcSIFHashAEAT(
     NIFEmisor,
