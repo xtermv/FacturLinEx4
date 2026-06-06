@@ -6956,7 +6956,7 @@ begin
    S += ESC + 'a' + #1;
 
    // Definir tamaño QR a 30x30 mm
-   S += GS + '(k' + #3#0 + #49#67#8;       // #5
+   S += GS + '(k' + #3#0 + #49#67#6;       // tamano QR aprox. 30x30 mm
 
    // Imprimir el QR
    S += GS + '(k' + #3#0 + #49#81#48;

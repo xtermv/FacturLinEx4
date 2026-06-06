@@ -189,6 +189,7 @@ Type
     procedure CabeceraTicket();
     procedure TotalTicket(n1,n2,n3,ti1,ti2,ti3,i1,i2,i3: Double);
     procedure PieTicket();
+    procedure ImprimeQRTicket();
 
     procedure Corte();
 
@@ -213,6 +214,48 @@ Implementation
 
 uses
   Global, Funciones, Imprimir, Ventas, busquedas;
+
+const
+  HOP_GS = #29;
+  HOP_ESC = #27;
+  // En el comando de tamaño QR usamos #6 para quedar alrededor de 30x30 mm.
+  // Antes estaba en #8 y se iba por encima de 4 cm en muchas ticketadoras.
+
+function HOP_EsModoProduccion: Boolean;
+var
+  M: string;
+begin
+  M := UpperCase(Trim(vfMode));
+  Result := (M = 'PRODUCCION') or (Copy(M, 1, 4) = 'PROD');
+end;
+
+function HOP_QRImporte(const AImporte: Double): string;
+begin
+  Result := StringReplace(FormatFloat('0.00', AImporte), ',', '.', [rfReplaceAll]);
+end;
+
+function HOP_NormalizaSerieFS(const ASerie: string): string;
+var
+  S: string;
+begin
+  S := Trim(ASerie);
+  if Copy(UpperCase(S), 1, 3) = 'FS-' then
+    Result := S
+  else
+    Result := 'FS-' + S;
+end;
+
+function HOP_BuildQRTributario(const ASerie, ANumero: string;
+  const AFecha: TDateTime; const AImporte: Double): string;
+begin
+  // En histórico la serie queda guardada como A26/B26/R26/etc.
+  // Para el QR tributario de tickets se informa como FS-serie-numero,
+  // sin modificar la BBDD ni ampliar campos.
+  Result := vfUrl + 'nif=' + NIF +
+            '&numserie=' + HOP_NormalizaSerieFS(ASerie) + '-' + Trim(ANumero) +
+            '&fecha=' + FormatDateTime('dd-mm-yyyy', AFecha) +
+            '&importe=' + HOP_QRImporte(AImporte);
+end;
 
 //=============== Crea el formulario ================
 procedure ShowFormHistoop;
@@ -835,6 +878,7 @@ var
   Texto: String;
   Precio, SubTotal: Double;
   b1,b2,b3,tiva1,tiva2,tiva3,iiva1,iiva2,iiva3: Double;
+  LeyendaCabeceraQR, LeyendaPieQR: string;
 begin
   b1:=0;
   b2:=0;
@@ -845,9 +889,34 @@ begin
   iiva1:=0;
   iiva2:=0;
   iiva3:=0;
+
+  if HOP_EsModoProduccion then
+    begin
+      LeyendaCabeceraQR := ' QR Tributario : ';
+      LeyendaPieQR := ' VERI*FACTU ';
+    end
+  else
+    begin
+      LeyendaCabeceraQR := LeyendaSuperiorQR;
+      LeyendaPieQR := LeyendaInferiorQR;
+    end;
+
   OpenDialog1.FileName:=DevTicket;
   AssignFile(PrintText, OpenDialog1.FileName);
   Rewrite(PrintText);
+
+  Write(PrintText, #27#97#1); // Centrar
+  Writeln(PrintText, LeyendaCabeceraQR);
+  Write(PrintText, #27#97#0); // Volver a izquierda
+  CloseFile(PrintText);
+
+  ImprimeQRTicket();
+
+  AssignFile(PrintText, OpenDialog1.FileName);
+  Rewrite(PrintText);
+  Write(PrintText, #27#97#1); // Centrar
+  Writeln(PrintText, LeyendaPieQR);
+  Write(PrintText, #27#97#0); // Volver a izquierda
 
 // -- Añadidio por Ticket Regalo
   if Checkbox2.Checked then
@@ -936,6 +1005,63 @@ begin
   PieTicket();
   Corte();
   CloseFile(PrintText);
+end;
+
+
+//=============== QR DEL TICKET REIMPRESO ===============================
+Procedure TFLHistoop.ImprimeQRTicket();
+var
+  Ticketera: TLCLHandle;
+  S: RawByteString;
+  LeyendaTextoQR: string;
+  NumOperacion: string;
+begin
+  NumOperacion := FormatFloat('0', dbOperaciones.FieldByName('HO3').AsFloat);
+
+  if HOP_EsModoProduccion then
+    LeyendaTextoQR := HOP_BuildQRTributario(
+      dbOperaciones.FieldByName('HO4').AsString,
+      NumOperacion,
+      dbOperaciones.FieldByName('HO0').AsDateTime,
+      dbOperaciones.FieldByName('HO11').AsFloat)
+  else
+    LeyendaTextoQR := TextoCodigoQR;
+
+  try
+    S := HOP_ESC + '@'; // Resetear impresora
+
+    // Modelo QR
+    S += HOP_GS + '(k' + #4#0 + #49#65#50#0;
+
+    // Contenido QR
+    S += HOP_GS + '(k';
+    S += Char(Length(LeyendaTextoQR) + 3);
+    S += #0;
+    S += #49#80#48;
+    S += LeyendaTextoQR;
+
+    // Centrar QR
+    S += HOP_ESC + 'a' + #1;
+
+    // Tamaño QR aprox. 30x30 mm
+    S += HOP_GS + '(k' + #3#0 + #49#67#6;
+
+    // Imprimir QR
+    S += HOP_GS + '(k' + #3#0 + #49#81#48;
+
+    Ticketera := FileCreate(DevTicket);
+    if Ticketera = feInvalidHandle then
+      raise Exception.Create('No se puede abrir la impresora de ticket para QR en: ' + DevTicket);
+
+    try
+      FileWrite(Ticketera, Pointer(S)^, Length(S));
+    finally
+      FileClose(Ticketera);
+    end;
+
+  except
+    // No bloqueamos la reimpresión por fallo del QR.
+  end;
 end;
 
 
