@@ -440,6 +440,129 @@ begin
   end;
 end;
 
+
+// -----------------------------------------------------------------------------
+// F2/R5: carga de desglose real desde ivaNNNN
+// -----------------------------------------------------------------------------
+// ventas.pas llama a ActualizaIva() antes de encolar Veri*Factu. Ahí deja una fila
+// por línea en ivaNNNN con Serie interna (A26/R26, sin prefijo FS-), Operacion,
+// Base, Iva, TIva y Total. Las facturas F1/R1 siguen usando factuc/factud.
+
+function VF_InternalSerieForIva(const SerieAEAT: string): string;
+begin
+  Result := Trim(UpperCase(SerieAEAT));
+  if Copy(Result, 1, 3) = 'FS-' then
+    Delete(Result, 1, 3);
+end;
+
+function DetectIvaTableExact(Conn: TZConnection; out TableName: string): boolean;
+var
+  q: TZQuery;
+  t: string;
+begin
+  Result := False;
+  TableName := '';
+  q := TZQuery.Create(nil);
+  try
+    q.Connection := Conn;
+    q.SQL.Text :=
+      'SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES ' +
+      'WHERE TABLE_SCHEMA=:db AND TABLE_NAME REGEXP ''^iva[0-9]{4}$'' ORDER BY TABLE_NAME';
+    q.ParamByName('db').AsString := CurrentDatabase(Conn);
+    q.Open;
+    while not q.EOF do
+    begin
+      t := q.Fields[0].AsString;
+      if TableHasColumns(Conn, t, ['Operacion','Serie','Base','Iva','TIva','Total']) then
+      begin
+        TableName := t;
+        Result := True;
+        Exit;
+      end;
+      q.Next;
+    end;
+  finally
+    q.Free;
+  end;
+end;
+
+procedure LoadTaxesFromIvaTable(Conn: TZConnection; const Serie: string; Numero: Integer;
+  out IvasJSON: string);
+var
+  tname, SerieInt, ivaKey: string;
+  q: TZQuery;
+  i: Integer;
+  baseV, ivaV: Double;
+
+  function ReadF(const F: string): Double;
+  begin
+    try
+      Result := q.FieldByName(F).AsFloat;
+    except
+      Result := 0;
+    end;
+  end;
+
+begin
+  IvasJSON := '[]';
+
+  if not DetectIvaTableExact(Conn, tname) then
+  begin
+    WriteDiag('FIX_F2_IVA_PAYLOAD_V2: no se detectó tabla ivaNNNN con columnas Operacion,Serie,Base,Iva,TIva,Total.');
+    Exit;
+  end;
+
+  SerieInt := VF_InternalSerieForIva(Serie);
+
+  q := TZQuery.Create(nil);
+  try
+    q.Connection := Conn;
+    q.SQL.Text :=
+      'SELECT ' + QuoteIdent('TIva') + ' AS TIva, ' +
+      'SUM(' + QuoteIdent('Base') + ') AS BaseSum, ' +
+      'SUM(' + QuoteIdent('Iva') + ') AS IvaSum, ' +
+      'SUM(' + QuoteIdent('Total') + ') AS TotalSum ' +
+      'FROM ' + QuoteIdent(tname) + ' ' +
+      'WHERE ' + QuoteIdent('Serie') + '=:serie AND ' + QuoteIdent('Operacion') + '=:num ' +
+      'GROUP BY ' + QuoteIdent('TIva') + ' ORDER BY ' + QuoteIdent('TIva');
+    q.ParamByName('serie').AsString := SerieInt;
+    q.ParamByName('num').AsInteger := Numero;
+    q.Open;
+
+    IvasJSON := '[';
+    i := 0;
+    while not q.EOF do
+    begin
+      ivaKey := F2(ReadF('TIva'));
+      baseV := ReadF('BaseSum');
+      ivaV  := ReadF('IvaSum');
+
+      if i > 0 then
+        IvasJSON := IvasJSON + ',';
+
+      IvasJSON := IvasJSON + '{' +
+        '"tipo":"' + JsonEscape(ivaKey) + '",' +
+        '"base":' + F2(baseV) + ',' +
+        '"cuota":' + F2(ivaV) +
+      '}';
+
+      Inc(i);
+      q.Next;
+    end;
+    IvasJSON := IvasJSON + ']';
+
+    if i = 0 then
+      WriteDiag('FIX_F2_IVA_PAYLOAD_V2: sin filas en ' + tname +
+        ' para serie interna=' + SerieInt + ' numero=' + IntToStr(Numero))
+    else
+      WriteDiag('FIX_F2_IVA_PAYLOAD_V2: IVA cargado desde ' + tname +
+        ' serie interna=' + SerieInt + ' numero=' + IntToStr(Numero) +
+        ' grupos=' + IntToStr(i) + ' json=' + IvasJSON);
+  finally
+    q.Free;
+  end;
+end;
+
 // ---------- Creación robusta de tablas (con log detallado) ----------
 
 procedure DumpDDLToFile;
@@ -1360,6 +1483,15 @@ begin
     try
       LoadHeaderFromCab(GConn, Serie, Numero, NIFCliente, CodCliente, TSin, TCon, nLineas, nArt);
       LoadLinesAndTaxes(GConn, Serie, Numero, lines, ivas);
+
+      // F2/R5 (tickets y rectificativas simplificadas): no viven en factudNNNN.
+      // Si no hay desglose por factud, cargamos el IVA real desde ivaNNNN.
+      // F1/R1 no se toca: siguen usando factuc/factud como hasta ahora.
+      if ((VF_DetectTipoFacturaFromSerie(Serie) = 'F2') or
+          (VF_DetectTipoFacturaFromSerie(Serie) = 'R5')) and
+         (ivas = '[]') then
+        LoadTaxesFromIvaTable(GConn, Serie, Numero, ivas);
+
       // NUEVO: intentamos cargar el nombre del cliente desde la tabla clientesNNNN
       NombreCliente := LoadClienteNombreFromDB(GConn, CodCliente);
       
@@ -1375,6 +1507,14 @@ begin
     try
       LoadHeaderFromCab(temp, Serie, Numero, NIFCliente, CodCliente, TSin, TCon, nLineas, nArt);
       LoadLinesAndTaxes(temp, Serie, Numero, lines, ivas);
+
+      // F2/R5: cargar desglose real desde ivaNNNN si no hay factud.
+      // F1/R1 se dejan exactamente como estaban.
+      if ((VF_DetectTipoFacturaFromSerie(Serie) = 'F2') or
+          (VF_DetectTipoFacturaFromSerie(Serie) = 'R5')) and
+         (ivas = '[]') then
+        LoadTaxesFromIvaTable(temp, Serie, Numero, ivas);
+
       // NUEVO: nombre cliente usando conexión temporal
       NombreCliente := LoadClienteNombreFromDB(temp, CodCliente);
       
