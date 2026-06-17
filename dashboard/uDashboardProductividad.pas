@@ -5,7 +5,7 @@ unit uDashboardProductividad;
 interface
 
 uses
-  Classes, SysUtils, DateUtils, Math, Forms, Controls, Graphics, Dialogs, ExtCtrls,
+  Classes, SysUtils, DateUtils, Math, IniFiles, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   StdCtrls, ComCtrls, DBGrids, DB, ZConnection, ZDataset, LCLIntf;
 
 procedure ShowFormDashboardProductividad(AOwner: TComponent; AConnection: TZConnection; const ATienda: string);
@@ -107,6 +107,7 @@ type
     btnRefrescar: TButton;
     btnExportCSV: TButton;
     btnInformeHTML: TButton;
+    btnInformePDF: TButton;
     btnCerrar: TButton;
     btnHoy: TButton;
     btnAyer: TButton;
@@ -396,6 +397,7 @@ type
     btnLibreEjecutarSQL: TButton;
     btnLibreGuardarSQL: TButton;
     btnLibreAbrirSQL: TButton;
+    btnLibreAbrirCarpetaSQL: TButton;
     lblLibreInfo: TLabel;
 
     pbGraficoPagos: TPaintBox;
@@ -479,6 +481,13 @@ type
     procedure AplicarFormatoYAnchos;
     function TextoCSV(const S: string): string;
     function TextoHTML(const S: string): string;
+    function TextoPDF(const S: string): AnsiString;
+    function TextoPlanoPDF(const S: string): string;
+    function TituloGridPDF(Grid: TDBGrid): string;
+    procedure RecogerGridsPDF(AControl: TWinControl; AList: TList);
+    procedure AnyadirDataSetPDF(L: TStringList; const Titulo: string; DS: TDataSet);
+    procedure GuardarLineasPDF(L: TStringList; const AFichero: string);
+    procedure ExportarPestanaPDF(const AFichero: string);
     function NombreFicheroSeguro(const S: string): string;
     procedure AnyadirDataSetCSV(L: TStringList; const Titulo: string; DS: TDataSet);
     procedure AnyadirDataSetHTML(L: TStringList; const Titulo: string; DS: TDataSet);
@@ -488,6 +497,7 @@ type
     procedure RefrescarTodo(Sender: TObject);
     procedure ExportarCSVClick(Sender: TObject);
     procedure InformeHTMLClick(Sender: TObject);
+    procedure InformePDFClick(Sender: TObject);
     procedure CerrarClick(Sender: TObject);
     procedure CalendarioDesdeClick(Sender: TObject);
     procedure CalendarioHastaClick(Sender: TObject);
@@ -637,6 +647,11 @@ type
     procedure ConsultaLibreEjecutarSQLClick(Sender: TObject);
     procedure ConsultaLibreGuardarSQLClick(Sender: TObject);
     procedure ConsultaLibreAbrirSQLClick(Sender: TObject);
+    procedure ConsultaLibreAbrirCarpetaSQLClick(Sender: TObject);
+    function DashboardCarpetaConfig: string;
+    function DashboardEstadoIni: string;
+    procedure CargarEstadoVisual;
+    procedure GuardarEstadoVisual;
     function ConsultaLibreCarpetaSQL: string;
     procedure ConsultaLibreCampoMemoGetText(Sender: TField; var AText: string; DisplayText: Boolean);
     procedure ConsultaLibreAplicarTextoBlob;
@@ -667,6 +682,7 @@ begin
     F.Inicializar(AConnection, ATienda);
     F.WindowState := wsMaximized;
     F.ShowModal;
+    F.GuardarEstadoVisual;
   finally
     F.Free;
   end;
@@ -976,9 +992,22 @@ begin
 
   WindowState := wsMaximized;
   CargarConsultaLibreTablas;
+
+  // La pestaña principal al abrir Productividad debe ser siempre Dashboard.
+  // CargarEstadoVisual solo recupera las fechas; no debe reabrir Alertas u otra pestaña.
+  pcPrincipal.ActivePage := tsDashboard;
+  CargarEstadoVisual;
+  pcPrincipal.ActivePage := tsDashboard;
+
   CargarDashboard;
   CargarAlerta(daStockBajo);
-  pcPrincipal.ActivePage := tsDashboard;
+
+  // CargarAlerta prepara los datos de la pestaña Alertas y, por diseño,
+  // cambia a esa pestaña cuando se pulsa un botón de alerta.
+  // Durante la apertura del formulario queremos dejarla cargada, pero
+  // la pestaña visible inicial debe ser siempre Dashboard.
+  if pcPrincipal <> nil then
+    pcPrincipal.ActivePage := tsDashboard;
 end;
 
 procedure TFDashboardProductividad.ConstruirPantalla;
@@ -1202,6 +1231,16 @@ begin
   btnInformeHTML.Hint := 'Genera un informe imprimible de la pestaÃ±a activa';
   btnInformeHTML.ShowHint := True;
   btnInformeHTML.OnClick := @InformeHTMLClick;
+
+  btnInformePDF := TButton.Create(Self);
+  btnInformePDF.Parent := pnlFiltro;
+  btnInformePDF.Left := 1118;
+  btnInformePDF.Top := 7;
+  btnInformePDF.Width := 115;
+  btnInformePDF.Caption := 'PDF directo';
+  btnInformePDF.Hint := 'Genera directamente un PDF simple de la pestaña activa';
+  btnInformePDF.ShowHint := True;
+  btnInformePDF.OnClick := @InformePDFClick;
 
   btnCerrar := TButton.Create(Self);
   btnCerrar.Parent := pnlFiltro;
@@ -3632,7 +3671,9 @@ begin
   memoLibreSQL.BorderSpacing.Left := 8;
   memoLibreSQL.BorderSpacing.Right := 8;
   memoLibreSQL.BorderSpacing.Top := 28;
-  memoLibreSQL.BorderSpacing.Bottom := 42;
+  // Dejar solo un pequeño margen hasta el panel de botones.
+  // Antes estaba en 76 y hacía demasiado pequeña la zona de SQL manual.
+  memoLibreSQL.BorderSpacing.Bottom := 8;
   memoLibreSQL.ScrollBars := ssBoth;
   memoLibreSQL.WordWrap := False;
   memoLibreSQL.Lines.Text := 'SELECT * FROM ' + Tabla('hisopcc') + ' LIMIT 100';
@@ -3640,7 +3681,7 @@ begin
   pnlBotones := TPanel.Create(Self);
   pnlBotones.Parent := pnlSQL;
   pnlBotones.Align := alBottom;
-  pnlBotones.Height := 38;
+  pnlBotones.Height := 72;
   pnlBotones.BevelOuter := bvNone;
 
   btnLibreEjecutarSQL := TButton.Create(Self);
@@ -3670,10 +3711,21 @@ begin
   btnLibreAbrirSQL.Caption := 'Abrir SQL';
   btnLibreAbrirSQL.OnClick := @ConsultaLibreAbrirSQLClick;
 
+  btnLibreAbrirCarpetaSQL := TButton.Create(Self);
+  btnLibreAbrirCarpetaSQL.Parent := pnlBotones;
+  btnLibreAbrirCarpetaSQL.Left := 8;
+  btnLibreAbrirCarpetaSQL.Top := 39;
+  btnLibreAbrirCarpetaSQL.Width := 120;
+  btnLibreAbrirCarpetaSQL.Height := 28;
+  btnLibreAbrirCarpetaSQL.Caption := 'Carpeta SQL';
+  btnLibreAbrirCarpetaSQL.Hint := 'Abrir la carpeta donde se guardan las consultas SQL del dashboard';
+  btnLibreAbrirCarpetaSQL.ShowHint := True;
+  btnLibreAbrirCarpetaSQL.OnClick := @ConsultaLibreAbrirCarpetaSQLClick;
+
   lblLibreInfo := TLabel.Create(Self);
   lblLibreInfo.Parent := pnlBotones;
-  lblLibreInfo.Left := 400;
-  lblLibreInfo.Top := 10;
+  lblLibreInfo.Left := 138;
+  lblLibreInfo.Top := 45;
   lblLibreInfo.Caption := 'SQL solo lectura. Puedes guardar y abrir consultas .sql seguras.';
 
   qLibreTablas := CrearQuery;
@@ -4017,6 +4069,72 @@ begin
   end;
 end;
 
+function TFDashboardProductividad.DashboardCarpetaConfig: string;
+begin
+  Result := IncludeTrailingPathDelimiter(GetUserDir) + '.local' + DirectorySeparator +
+            'share' + DirectorySeparator + 'facturlinex' + DirectorySeparator +
+            'dashboard';
+  try
+    ForceDirectories(Result);
+  except
+    Result := ExtractFilePath(ParamStr(0));
+  end;
+end;
+
+function TFDashboardProductividad.DashboardEstadoIni: string;
+begin
+  Result := IncludeTrailingPathDelimiter(DashboardCarpetaConfig) + 'dashboard_estado.ini';
+end;
+
+procedure TFDashboardProductividad.CargarEstadoVisual;
+var
+  INI: TIniFile;
+  S: string;
+begin
+  if not FileExists(DashboardEstadoIni) then
+    Exit;
+
+  INI := TIniFile.Create(DashboardEstadoIni);
+  try
+    S := INI.ReadString('Filtro', 'Desde', '');
+    if S <> '' then
+      dtDesde.Text := S;
+
+    S := INI.ReadString('Filtro', 'Hasta', '');
+    if S <> '' then
+      dtHasta.Text := S;
+
+    // No recuperamos la ultima pestana usada: al abrir, Dashboard debe ser siempre
+    // la pestana principal activa. Solo se recupera el rango de fechas.
+  finally
+    INI.Free;
+  end;
+end;
+
+procedure TFDashboardProductividad.GuardarEstadoVisual;
+var
+  INI: TIniFile;
+begin
+  INI := TIniFile.Create(DashboardEstadoIni);
+  try
+    INI.WriteString('Filtro', 'Desde', dtDesde.Text);
+    INI.WriteString('Filtro', 'Hasta', dtHasta.Text);
+    if (pcPrincipal <> nil) and (pcPrincipal.ActivePage <> nil) then
+      INI.WriteString('Vista', 'Pestana', pcPrincipal.ActivePage.Caption);
+  finally
+    INI.Free;
+  end;
+end;
+
+procedure TFDashboardProductividad.ConsultaLibreAbrirCarpetaSQLClick(Sender: TObject);
+var
+  Dir: string;
+begin
+  Dir := ConsultaLibreCarpetaSQL;
+  if not OpenDocument(Dir) then
+    ShowMessage('Carpeta de consultas SQL:' + LineEnding + Dir);
+end;
+
 function TFDashboardProductividad.ConsultaLibreCarpetaSQL: string;
 begin
   Result := IncludeTrailingPathDelimiter(GetUserDir) + '.local' + DirectorySeparator +
@@ -4259,8 +4377,12 @@ begin
   N := LowerCase(Campo);
   Result := FLXContiene(N, 'pct') or
             FLXContiene(N, 'porcentaje') or
-            (N = 'dto') or FLXContiene(N, 'dto_') or
-            FLXContiene(N, 'variacion');
+            FLXContiene(N, 'porc') or
+            FLXContiene(N, 'percent') or
+            (N = 'dto') or FLXContiene(N, 'dto_') or FLXContiene(N, '_dto') or
+            FLXContiene(N, 'variacion') or FLXContiene(N, 'variacion_pct') or
+            FLXContiene(N, 'margen_pct') or FLXContiene(N, 'dif_ventas_pct') or
+            FLXContiene(N, 'dif_caja_pct');
 end;
 
 function FLXEsCampoConteoONoImporte(const Campo: string): Boolean;
@@ -4313,6 +4435,8 @@ begin
     TCurrencyField(F).DisplayFormat := Formato
   else if F is TBCDField then
     TBCDField(F).DisplayFormat := Formato
+  else if F is TFMTBCDField then
+    TFMTBCDField(F).DisplayFormat := Formato
   else if F is TIntegerField then
     TIntegerField(F).DisplayFormat := Formato;
 end;
@@ -4332,7 +4456,7 @@ begin
     if FLXEsCampoMoneda(F.FieldName) then
       FLXAsignarFormatoNumerico(F, '#,##0.00 â‚¬')
     else if FLXEsCampoPorcentaje(F.FieldName) then
-      FLXAsignarFormatoNumerico(F, '#,##0.00')
+      FLXAsignarFormatoNumerico(F, '#,##0.00 %')
     else if (F.DataType in [ftInteger, ftSmallint, ftWord, ftLargeint]) then
       FLXAsignarFormatoNumerico(F, '#,##0')
     else if (F.DataType in [ftFloat, ftCurrency, ftBCD, ftFMTBcd]) and
@@ -4458,7 +4582,9 @@ begin
   else if F is TCurrencyField then
     TCurrencyField(F).DisplayFormat := '#,##0.00 â‚¬'
   else if F is TBCDField then
-    TBCDField(F).DisplayFormat := '#,##0.00 â‚¬';
+    TBCDField(F).DisplayFormat := '#,##0.00 â‚¬'
+  else if F is TFMTBCDField then
+    TFMTBCDField(F).DisplayFormat := '#,##0.00 â‚¬';
 end;
 
 procedure TFDashboardProductividad.AjustarCampoNumero(Q: TZQuery; const Campo, Titulo: string; Ancho: Integer; const Formato: string);
@@ -4471,7 +4597,9 @@ begin
   if F is TFloatField then
     TFloatField(F).DisplayFormat := Formato
   else if F is TBCDField then
-    TBCDField(F).DisplayFormat := Formato;
+    TBCDField(F).DisplayFormat := Formato
+  else if F is TFMTBCDField then
+    TFMTBCDField(F).DisplayFormat := Formato;
 end;
 
 procedure TFDashboardProductividad.AplicarFormatoYAnchos;
@@ -4514,6 +4642,350 @@ begin
   Result := StringReplace(Result, #13#10, '<br>', [rfReplaceAll]);
   Result := StringReplace(Result, #10, '<br>', [rfReplaceAll]);
   Result := StringReplace(Result, #13, '<br>', [rfReplaceAll]);
+end;
+
+
+function TFDashboardProductividad.TextoPDF(const S: string): AnsiString;
+var
+  W: WideString;
+  I: Integer;
+  C: Word;
+
+  procedure AddByte(B: Byte);
+  begin
+    case B of
+      40, 41, 92:
+        Result := Result + '\' + AnsiChar(B);
+      32..39, 42..91, 93..126:
+        Result := Result + AnsiChar(B);
+    else
+      Result := Result + '\' + Format('%.3d', [B]);
+    end;
+  end;
+
+begin
+  Result := '(';
+  W := UTF8Decode(S);
+  for I := 1 to Length(W) do
+  begin
+    C := Ord(W[I]);
+    case C of
+      9, 10, 13:
+        AddByte(32);
+      8364: // Euro: lo dejamos como texto para evitar problemas de fuentes/encoding.
+        begin
+          AddByte(32);
+          AddByte(69); AddByte(85); AddByte(82);
+        end;
+      0..8, 11..12, 14..255:
+        AddByte(Byte(C));
+    else
+      AddByte(Ord('?'));
+    end;
+  end;
+  Result := Result + ')';
+end;
+
+function TFDashboardProductividad.TextoPlanoPDF(const S: string): string;
+begin
+  Result := Trim(S);
+  Result := StringReplace(Result, #13#10, ' ', [rfReplaceAll]);
+  Result := StringReplace(Result, #10, ' ', [rfReplaceAll]);
+  Result := StringReplace(Result, #13, ' ', [rfReplaceAll]);
+  Result := StringReplace(Result, #9, ' ', [rfReplaceAll]);
+  while Pos('  ', Result) > 0 do
+    Result := StringReplace(Result, '  ', ' ', [rfReplaceAll]);
+end;
+
+function TFDashboardProductividad.TituloGridPDF(Grid: TDBGrid): string;
+var
+  C: TControl;
+begin
+  Result := 'Listado';
+  if Grid = nil then
+    Exit;
+
+  C := Grid.Parent;
+  while C <> nil do
+  begin
+    if C is TGroupBox then
+    begin
+      Result := TGroupBox(C).Caption;
+      Exit;
+    end;
+    C := C.Parent;
+  end;
+end;
+
+procedure TFDashboardProductividad.RecogerGridsPDF(AControl: TWinControl; AList: TList);
+var
+  I: Integer;
+begin
+  if (AControl = nil) or (AList = nil) then
+    Exit;
+
+  for I := 0 to AControl.ControlCount - 1 do
+  begin
+    if AControl.Controls[I] is TDBGrid then
+      AList.Add(AControl.Controls[I]);
+
+    if AControl.Controls[I] is TWinControl then
+      RecogerGridsPDF(TWinControl(AControl.Controls[I]), AList);
+  end;
+end;
+
+procedure TFDashboardProductividad.AnyadirDataSetPDF(L: TStringList; const Titulo: string; DS: TDataSet);
+var
+  I: Integer;
+  Widths: array of Integer;
+
+  function Recortar(const S: string; W: Integer): string;
+  begin
+    Result := TextoPlanoPDF(S);
+    if Length(Result) > W then
+    begin
+      if W > 1 then
+        Result := Copy(Result, 1, W - 1) + '~'
+      else
+        Result := Copy(Result, 1, W);
+    end;
+  end;
+
+  function PadR(const S: string; W: Integer): string;
+  begin
+    Result := Recortar(S, W);
+    while Length(Result) < W do
+      Result := Result + ' ';
+  end;
+
+  function LineaCampos(EsCabecera: Boolean): string;
+  var
+    J: Integer;
+    S: string;
+  begin
+    Result := '';
+    for J := 0 to DS.FieldCount - 1 do
+    begin
+      if J > 0 then
+        Result := Result + ' | ';
+      if EsCabecera then
+        S := DS.Fields[J].DisplayLabel
+      else
+        S := DS.Fields[J].DisplayText;
+      Result := Result + PadR(S, Widths[J]);
+    end;
+  end;
+
+begin
+  L.Add('');
+  L.Add('[' + Titulo + ']');
+
+  if (DS = nil) or (not DS.Active) then
+  begin
+    L.Add('Sin datos disponibles.');
+    Exit;
+  end;
+
+  if DS.FieldCount = 0 then
+  begin
+    L.Add('Sin columnas.');
+    Exit;
+  end;
+
+  SetLength(Widths, DS.FieldCount);
+  for I := 0 to DS.FieldCount - 1 do
+  begin
+    Widths[I] := Length(TextoPlanoPDF(DS.Fields[I].DisplayLabel));
+    if Widths[I] < 8 then
+      Widths[I] := 8;
+    if Pos('DESCRIP', UpperCase(DS.Fields[I].FieldName)) > 0 then
+    begin
+      if Widths[I] < 30 then
+        Widths[I] := 30;
+      if Widths[I] > 42 then
+        Widths[I] := 42;
+    end
+    else if Pos('OBSERV', UpperCase(DS.Fields[I].FieldName)) > 0 then
+    begin
+      if Widths[I] < 26 then
+        Widths[I] := 26;
+      if Widths[I] > 36 then
+        Widths[I] := 36;
+    end
+    else if Widths[I] > 18 then
+      Widths[I] := 18;
+  end;
+
+  DS.DisableControls;
+  try
+    DS.First;
+    if DS.EOF then
+    begin
+      L.Add('Sin registros.');
+      Exit;
+    end;
+
+    L.Add(LineaCampos(True));
+    L.Add(StringOfChar('-', Length(L[L.Count - 1])));
+
+    while not DS.EOF do
+    begin
+      L.Add(LineaCampos(False));
+      DS.Next;
+    end;
+    DS.First;
+  finally
+    DS.EnableControls;
+  end;
+end;
+
+procedure TFDashboardProductividad.GuardarLineasPDF(L: TStringList; const AFichero: string);
+const
+  PageW = 842;
+  PageH = 595;
+  MarginL = 30;
+  StartY = 560;
+  LineStep = 10;
+  LinesPerPage = 53;
+var
+  FS: TFileStream;
+  Offsets: array of Int64;
+  PageCount: Integer;
+  FontObj: Integer;
+  I, P, ObjNum, LineIndex, StartLine, EndLine: Integer;
+  StartXRef: Int64;
+  Kids, StreamData, S: AnsiString;
+
+  procedure WriteA(const A: AnsiString);
+  begin
+    if Length(A) > 0 then
+      FS.WriteBuffer(A[1], Length(A));
+  end;
+
+  procedure StartObj(Num: Integer);
+  begin
+    Offsets[Num] := FS.Position;
+    WriteA(AnsiString(IntToStr(Num) + ' 0 obj' + #10));
+  end;
+
+  procedure EndObj;
+  begin
+    WriteA('endobj' + #10);
+  end;
+
+begin
+  if L = nil then
+    Exit;
+
+  PageCount := (L.Count + LinesPerPage - 1) div LinesPerPage;
+  if PageCount < 1 then
+    PageCount := 1;
+
+  FontObj := 3 + (PageCount * 2);
+  SetLength(Offsets, FontObj + 1);
+
+  FS := TFileStream.Create(AFichero, fmCreate);
+  try
+    WriteA('%PDF-1.4' + #10);
+    WriteA('% Dashboard FacturLinEx' + #10);
+
+    StartObj(1);
+    WriteA('<< /Type /Catalog /Pages 2 0 R >>' + #10);
+    EndObj;
+
+    Kids := '';
+    for P := 0 to PageCount - 1 do
+      Kids := Kids + AnsiString(IntToStr(3 + (P * 2)) + ' 0 R ');
+
+    StartObj(2);
+    WriteA('<< /Type /Pages /Kids [' + Kids + '] /Count ' + AnsiString(IntToStr(PageCount)) + ' >>' + #10);
+    EndObj;
+
+    for P := 0 to PageCount - 1 do
+    begin
+      ObjNum := 3 + (P * 2);
+      StartObj(ObjNum);
+      WriteA('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' +
+             AnsiString(IntToStr(PageW)) + ' ' + AnsiString(IntToStr(PageH)) +
+             '] /Resources << /Font << /F1 ' + AnsiString(IntToStr(FontObj)) +
+             ' 0 R >> >> /Contents ' + AnsiString(IntToStr(ObjNum + 1)) + ' 0 R >>' + #10);
+      EndObj;
+
+      StartLine := P * LinesPerPage;
+      EndLine := StartLine + LinesPerPage - 1;
+      if EndLine >= L.Count then
+        EndLine := L.Count - 1;
+
+      StreamData := 'BT' + #10 + '/F1 8 Tf' + #10 +
+                    AnsiString(IntToStr(MarginL) + ' ' + IntToStr(StartY) + ' Td' + #10);
+      for LineIndex := StartLine to EndLine do
+        StreamData := StreamData + TextoPDF(L[LineIndex]) + ' Tj' + #10 + '0 -' + AnsiString(IntToStr(LineStep)) + ' Td' + #10;
+      StreamData := StreamData + 'ET' + #10;
+
+      StartObj(ObjNum + 1);
+      WriteA('<< /Length ' + AnsiString(IntToStr(Length(StreamData))) + ' >>' + #10 + 'stream' + #10);
+      WriteA(StreamData);
+      WriteA('endstream' + #10);
+      EndObj;
+    end;
+
+    StartObj(FontObj);
+    WriteA('<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>' + #10);
+    EndObj;
+
+    StartXRef := FS.Position;
+    WriteA('xref' + #10);
+    WriteA('0 ' + AnsiString(IntToStr(FontObj + 1)) + #10);
+    WriteA('0000000000 65535 f ' + #10);
+    for P := 1 to FontObj do
+    begin
+      S := AnsiString(Format('%.10d 00000 n ', [Offsets[P]]));
+      WriteA(S + #10);
+    end;
+    WriteA('trailer' + #10);
+    WriteA('<< /Size ' + AnsiString(IntToStr(FontObj + 1)) + ' /Root 1 0 R >>' + #10);
+    WriteA('startxref' + #10);
+    WriteA(AnsiString(IntToStr(StartXRef)) + #10);
+    WriteA('%%EOF' + #10);
+  finally
+    FS.Free;
+  end;
+end;
+
+procedure TFDashboardProductividad.ExportarPestanaPDF(const AFichero: string);
+var
+  L: TStringList;
+  Grids: TList;
+  I: Integer;
+  G: TDBGrid;
+  DS: TDataSet;
+begin
+  L := TStringList.Create;
+  Grids := TList.Create;
+  try
+    L.Add('FacturLinEx - Productividad / Dashboard');
+    L.Add('Pestana: ' + pcPrincipal.ActivePage.Caption);
+    L.Add('Desde: ' + dtDesde.Text + '   Hasta: ' + dtHasta.Text);
+    L.Add('Generado: ' + FormatDateTime('dd/mm/yyyy hh:nn:ss', Now));
+
+    RecogerGridsPDF(pcPrincipal.ActivePage, Grids);
+    if Grids.Count = 0 then
+      L.Add('La pestana activa no contiene rejillas exportables a PDF directo.');
+
+    for I := 0 to Grids.Count - 1 do
+    begin
+      G := TDBGrid(Grids[I]);
+      DS := nil;
+      if (G.DataSource <> nil) and (G.DataSource.DataSet <> nil) then
+        DS := G.DataSource.DataSet;
+      AnyadirDataSetPDF(L, TituloGridPDF(G), DS);
+    end;
+
+    GuardarLineasPDF(L, AFichero);
+  finally
+    Grids.Free;
+    L.Free;
+  end;
 end;
 
 function TFDashboardProductividad.NombreFicheroSeguro(const S: string): string;
@@ -5025,6 +5497,37 @@ begin
   end;
 end;
 
+
+procedure TFDashboardProductividad.InformePDFClick(Sender: TObject);
+var
+  SD: TSaveDialog;
+  D1, D2: TDateTime;
+begin
+  if not FechasValidas(D1, D2) then
+    Exit;
+
+  SD := TSaveDialog.Create(Self);
+  try
+    SD.Title := 'Generar PDF directo';
+    SD.Filter := 'Ficheros PDF (*.pdf)|*.pdf|Todos los ficheros (*.*)|*.*';
+    SD.DefaultExt := 'pdf';
+    SD.FileName := 'productividad_' +
+                   NombreFicheroSeguro(pcPrincipal.ActivePage.Caption) + '_' +
+                   FormatDateTime('yyyymmdd', D1) + '_' +
+                   FormatDateTime('yyyymmdd', D2) + '.pdf';
+    if SD.Execute then
+    begin
+      ExportarPestanaPDF(SD.FileName);
+      if not OpenDocument(SD.FileName) then
+        ShowMessage('PDF generado:' + LineEnding + SD.FileName)
+      else
+        ShowMessage('PDF generado y abierto:' + LineEnding + SD.FileName);
+    end;
+  finally
+    SD.Free;
+  end;
+end;
+
 procedure TFDashboardProductividad.RefrescarTodo(Sender: TObject);
 begin
   CargarDashboard;
@@ -5377,9 +5880,9 @@ begin
     Q.ParamByName('tickets' + Suf).AsInteger := ARows[I].Tickets;
     Q.ParamByName('docs' + Suf).AsInteger := ARows[I].DocsCaja;
     Q.ParamByName('difventas' + Suf).AsFloat := ARows[I].DifVentas;
-    Q.ParamByName('pctventas' + Suf).AsFloat := ARows[I].DifVentasPct;
+    Q.ParamByName('pctventas' + Suf).AsString := FormatFloat('#,##0.00', ARows[I].DifVentasPct) + ' %';
     Q.ParamByName('difcaja' + Suf).AsFloat := ARows[I].DifCaja;
-    Q.ParamByName('pctcaja' + Suf).AsFloat := ARows[I].DifCajaPct;
+    Q.ParamByName('pctcaja' + Suf).AsString := FormatFloat('#,##0.00', ARows[I].DifCajaPct) + ' %';
   end;
   Q.Open;
 
@@ -5391,9 +5894,9 @@ begin
   AjustarCampo(Q, 'tickets', 'Tickets', 8);
   AjustarCampo(Q, 'docs_caja', 'Docs. caja', 8);
   AjustarCampoMoneda(Q, 'dif_ventas', 'Dif. ventas', 13);
-  AjustarCampoNumero(Q, 'dif_ventas_pct', 'Dif. ventas %', 10, '#,##0.00');
+  AjustarCampo(Q, 'dif_ventas_pct', 'Dif. ventas %', 12);
   AjustarCampoMoneda(Q, 'dif_caja', 'Dif. caja', 13);
-  AjustarCampoNumero(Q, 'dif_caja_pct', 'Dif. caja %', 10, '#,##0.00');
+  AjustarCampo(Q, 'dif_caja_pct', 'Dif. caja %', 12);
 end;
 
 procedure TFDashboardProductividad.GuardarDatosGraficaComparativa(const ARows: array of TComparativaAvRow);
@@ -6715,7 +7218,7 @@ begin
   AjustarCampoMoneda(qEstMargen, 'total_sin_iva', 'Base', 12);
   AjustarCampoMoneda(qEstMargen, 'coste_estimado', 'Coste est.', 12);
   AjustarCampoMoneda(qEstMargen, 'margen_estimado', 'Margen est.', 12);
-  AjustarCampoNumero(qEstMargen, 'margen_pct', 'Margen %', 9, '#,##0.00');
+  AjustarCampoNumero(qEstMargen, 'margen_pct', 'Margen %', 10, '#,##0.00 %');
 end;
 
 procedure TFDashboardProductividad.CargarEstProblemas;
@@ -7034,7 +7537,7 @@ begin
   AjustarCampoMoneda(qTendAnual, 'actual', 'AÃ±o actual', 12);
   AjustarCampoMoneda(qTendAnual, 'anterior', 'AÃ±o anterior', 12);
   AjustarCampoMoneda(qTendAnual, 'diferencia', 'Diferencia', 12);
-  AjustarCampoNumero(qTendAnual, 'variacion_pct', '% Var.', 8, '#,##0.00');
+  AjustarCampoNumero(qTendAnual, 'variacion_pct', '% Var.', 10, '#,##0.00 %');
 end;
 
 procedure TFDashboardProductividad.CargarTendSemana;
@@ -7074,7 +7577,7 @@ begin
   AjustarCampoMoneda(qTendAlza, 'actual', 'Actual', 11);
   AjustarCampoMoneda(qTendAlza, 'anterior', 'Anterior', 11);
   AjustarCampoMoneda(qTendAlza, 'diferencia', 'Diferencia', 11);
-  AjustarCampoNumero(qTendAlza, 'variacion_pct', '% Var.', 8, '#,##0.00');
+  AjustarCampoNumero(qTendAlza, 'variacion_pct', '% Var.', 10, '#,##0.00 %');
 end;
 
 procedure TFDashboardProductividad.CargarTendBaja;
@@ -7096,7 +7599,7 @@ begin
   AjustarCampoMoneda(qTendBaja, 'actual', 'Actual', 11);
   AjustarCampoMoneda(qTendBaja, 'anterior', 'Anterior', 11);
   AjustarCampoMoneda(qTendBaja, 'diferencia', 'Diferencia', 11);
-  AjustarCampoNumero(qTendBaja, 'variacion_pct', '% Var.', 8, '#,##0.00');
+  AjustarCampoNumero(qTendBaja, 'variacion_pct', '% Var.', 10, '#,##0.00 %');
 end;
 
 
@@ -7744,7 +8247,7 @@ begin
   AjustarCampo(qPromoDescuentos, 'descripcion', 'DescripciÃ³n', 30);
   AjustarCampoNumero(qPromoDescuentos, 'unidades', 'Uds.', 8, '#,##0.##');
   AjustarCampoMoneda(qPromoDescuentos, 'pvp', 'PVP', 10);
-  AjustarCampoNumero(qPromoDescuentos, 'dto', 'Dto %', 8, '#,##0.##');
+  AjustarCampoNumero(qPromoDescuentos, 'dto', 'Dto %', 10, '#,##0.00 %');
   AjustarCampoMoneda(qPromoDescuentos, 'total', 'Total', 11);
   AjustarCampoMoneda(qPromoDescuentos, 'ahorro_estimado', 'Ahorro est.', 12);
 end;
@@ -7768,8 +8271,8 @@ begin
   AjustarCampo(qPromoArticulos, 'descripcion', 'DescripciÃ³n', 30);
   AjustarCampo(qPromoArticulos, 'lineas', 'LÃ­neas', 8);
   AjustarCampoNumero(qPromoArticulos, 'unidades', 'Uds.', 9, '#,##0.##');
-  AjustarCampoNumero(qPromoArticulos, 'dto_medio', 'Dto medio', 10, '#,##0.##');
-  AjustarCampoNumero(qPromoArticulos, 'dto_max', 'Dto mÃ¡x.', 9, '#,##0.##');
+  AjustarCampoNumero(qPromoArticulos, 'dto_medio', 'Dto medio %', 10, '#,##0.00 %');
+  AjustarCampoNumero(qPromoArticulos, 'dto_max', 'Dto mÃ¡x. %', 10, '#,##0.00 %');
   AjustarCampoMoneda(qPromoArticulos, 'importe', 'Importe', 11);
   AjustarCampoMoneda(qPromoArticulos, 'ahorro_estimado', 'Ahorro est.', 12);
 end;
@@ -7795,7 +8298,7 @@ begin
   AjustarCampo(qPromoFamilias, 'nombre_familia', 'Familia', 24);
   AjustarCampo(qPromoFamilias, 'lineas', 'LÃ­neas', 8);
   AjustarCampoNumero(qPromoFamilias, 'unidades', 'Uds.', 9, '#,##0.##');
-  AjustarCampoNumero(qPromoFamilias, 'dto_medio', 'Dto medio', 10, '#,##0.##');
+  AjustarCampoNumero(qPromoFamilias, 'dto_medio', 'Dto medio %', 10, '#,##0.00 %');
   AjustarCampoMoneda(qPromoFamilias, 'importe', 'Importe', 11);
   AjustarCampoMoneda(qPromoFamilias, 'ahorro_estimado', 'Ahorro est.', 12);
 end;
@@ -7829,7 +8332,7 @@ begin
   AjustarCampoMoneda(qPromoBajoCoste, 'base_linea', 'Base', 11);
   AjustarCampoMoneda(qPromoBajoCoste, 'coste_linea', 'Coste lÃ­nea', 12);
   AjustarCampoMoneda(qPromoBajoCoste, 'margen_estimado', 'Margen est.', 12);
-  AjustarCampoNumero(qPromoBajoCoste, 'dto', 'Dto %', 8, '#,##0.##');
+  AjustarCampoNumero(qPromoBajoCoste, 'dto', 'Dto %', 10, '#,##0.00 %');
 end;
 
 procedure TFDashboardProductividad.CargarPromoRevision;
@@ -7862,7 +8365,7 @@ begin
   AjustarCampo(qPromoRevision, 'descripcion', 'DescripciÃ³n', 28);
   AjustarCampoNumero(qPromoRevision, 'unidades', 'Uds.', 8, '#,##0.##');
   AjustarCampoMoneda(qPromoRevision, 'pvp', 'PVP', 10);
-  AjustarCampoNumero(qPromoRevision, 'dto', 'Dto %', 8, '#,##0.##');
+  AjustarCampoNumero(qPromoRevision, 'dto', 'Dto %', 10, '#,##0.00 %');
   AjustarCampoMoneda(qPromoRevision, 'total', 'Total', 11);
   AjustarCampo(qPromoRevision, 'incidencia', 'Incidencia', 18);
 end;
@@ -7917,7 +8420,7 @@ begin
   AjustarCampoMoneda(qRentResumen, 'base_sin_iva', 'Base', 12);
   AjustarCampoMoneda(qRentResumen, 'coste_estimado', 'Coste est.', 12);
   AjustarCampoMoneda(qRentResumen, 'margen_estimado', 'Margen est.', 12);
-  AjustarCampoNumero(qRentResumen, 'margen_pct', 'Margen %', 9, '#,##0.00');
+  AjustarCampoNumero(qRentResumen, 'margen_pct', 'Margen %', 10, '#,##0.00 %');
 end;
 
 procedure TFDashboardProductividad.CargarRentArticulos;
@@ -7945,7 +8448,7 @@ begin
   AjustarCampoMoneda(qRentArticulos, 'base_sin_iva', 'Base', 11);
   AjustarCampoMoneda(qRentArticulos, 'coste_estimado', 'Coste', 11);
   AjustarCampoMoneda(qRentArticulos, 'margen_estimado', 'Margen', 11);
-  AjustarCampoNumero(qRentArticulos, 'margen_pct', '%', 7, '#,##0.00');
+  AjustarCampoNumero(qRentArticulos, 'margen_pct', '%', 9, '#,##0.00 %');
 end;
 
 procedure TFDashboardProductividad.CargarRentFamilias;
@@ -7974,7 +8477,7 @@ begin
   AjustarCampoMoneda(qRentFamilias, 'base_sin_iva', 'Base', 11);
   AjustarCampoMoneda(qRentFamilias, 'coste_estimado', 'Coste', 11);
   AjustarCampoMoneda(qRentFamilias, 'margen_estimado', 'Margen', 11);
-  AjustarCampoNumero(qRentFamilias, 'margen_pct', '%', 7, '#,##0.00');
+  AjustarCampoNumero(qRentFamilias, 'margen_pct', '%', 9, '#,##0.00 %');
 end;
 
 procedure TFDashboardProductividad.CargarRentProveedores;
@@ -8004,7 +8507,7 @@ begin
   AjustarCampoMoneda(qRentProveedores, 'base_sin_iva', 'Base', 11);
   AjustarCampoMoneda(qRentProveedores, 'coste_estimado', 'Coste', 11);
   AjustarCampoMoneda(qRentProveedores, 'margen_estimado', 'Margen', 11);
-  AjustarCampoNumero(qRentProveedores, 'margen_pct', '%', 7, '#,##0.00');
+  AjustarCampoNumero(qRentProveedores, 'margen_pct', '%', 9, '#,##0.00 %');
 end;
 
 procedure TFDashboardProductividad.CargarRentDias;
@@ -8031,7 +8534,7 @@ begin
   AjustarCampoMoneda(qRentDias, 'base_sin_iva', 'Base', 11);
   AjustarCampoMoneda(qRentDias, 'coste_estimado', 'Coste', 11);
   AjustarCampoMoneda(qRentDias, 'margen_estimado', 'Margen', 11);
-  AjustarCampoNumero(qRentDias, 'margen_pct', '%', 7, '#,##0.00');
+  AjustarCampoNumero(qRentDias, 'margen_pct', '%', 9, '#,##0.00 %');
 end;
 
 procedure TFDashboardProductividad.CargarRentRevision;
@@ -8070,7 +8573,7 @@ begin
   AjustarCampoMoneda(qRentRevision, 'base_linea', 'Base', 10);
   AjustarCampoMoneda(qRentRevision, 'coste_linea', 'Coste', 10);
   AjustarCampoMoneda(qRentRevision, 'margen_estimado', 'Margen', 10);
-  AjustarCampoNumero(qRentRevision, 'margen_pct', '%', 7, '#,##0.00');
+  AjustarCampoNumero(qRentRevision, 'margen_pct', '%', 9, '#,##0.00 %');
   AjustarCampoNumero(qRentRevision, 'coste_actual', 'Coste act.', 10, '#,##0.000');
 end;
 
@@ -8826,7 +9329,7 @@ begin
   AjustarCampoMoneda(qCalPrecios, 'pvp', 'PVP', 9);
   AjustarCampoMoneda(qCalPrecios, 'precio_sin_iva', 'P. s/IVA', 9);
   AjustarCampoMoneda(qCalPrecios, 'coste', 'Coste', 9);
-  AjustarCampoNumero(qCalPrecios, 'margen_pct', 'Margen %', 9, '#,##0.00');
+  AjustarCampoNumero(qCalPrecios, 'margen_pct', 'Margen %', 10, '#,##0.00 %');
   AjustarCampo(qCalPrecios, 'problema', 'Problema', 34);
 end;
 
