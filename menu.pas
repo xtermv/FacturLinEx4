@@ -283,6 +283,8 @@ Type
     procedure BitBtnMonitorClick(Sender: TObject);
     procedure PedidoProvVentasClick(Sender: TObject);
     procedure AddPedidoProvVentasButton;
+    procedure DashboardProductividadClick(Sender: TObject);
+    procedure AddDashboardProductividadButton;
     procedure btnEnviarAhoraClick(Sender: TObject);
     procedure btnVFReenviarErroresClick(Sender: TObject);
     procedure Edit26Enter(Sender: TObject);
@@ -366,7 +368,7 @@ uses
    uVF_Integration, uVeriChain, uVeriChainCheck, uVF_QueueResult, uvfqueuemonitor,
    uVF_Stub, uVFSenderAEAT, uVeriSIFForm, uFLX_Log, uFLX_Backup, uFLX_CryptoIni,
    uBackupFTPConfig, uRestoreBackup, uBackupUnpackHelper, uFLXRestoreRemote,
-   uFLX_PedidoProveedorVentasPDF, Types, BaseUnix;
+   uFLX_PedidoProveedorVentasPDF, uDashboardProductividad, Types, BaseUnix;
 
 //====================================================================
 // ==== CONSTANTE PARA TRABAJAR EN LA BARRA DE ESTADO VERI*FACTU =====
@@ -833,6 +835,7 @@ Begin
   if vfMode = 'PRUEBAS' then IniciarVerifactuLocal;
 
      AddPedidoProvVentasButton;
+     AddDashboardProductividadButton;
      UpdateVFStatusBar;
 
 End;
@@ -1251,6 +1254,144 @@ begin
   timer1.enabled := false;
   try
     ShowFormFLXPedidoProveedorVentas(Self, TZConnection(dbQuery.Connection), Tienda, RutaPdf);
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+
+
+procedure TFMenu.AddDashboardProductividadButton;
+var
+  B: TBitBtn;
+  Png: TPortableNetworkGraphic;
+  Icono: string;
+  I, MaxRight: Integer;
+  C: TControl;
+  Rutas: TStringList;
+
+  procedure AddIconPath(const APath: string);
+  var
+    S: string;
+  begin
+    S := Trim(APath);
+    if S <> '' then
+      if Rutas.IndexOf(S) < 0 then
+        Rutas.Add(S);
+  end;
+
+  procedure AddIconPathsFromBase(const ABase: string);
+  var
+    BDir: string;
+  begin
+    BDir := IncludeTrailingPathDelimiter(ABase);
+
+    // Ruta solicitada por el usuario.
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'utiles.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'Utiles.png');
+
+    // Ruta solicitada por el usuario.
+    //AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'utiles.png');
+    //AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'Utiles.png');
+
+    // Compatibilidad con RutaIconos cuando ya apunta directamente a Imagenes/.
+    //AddIconPath(BDir + '30x30' + DirectorySeparator + 'utiles.png');
+    //AddIconPath(BDir + '30x30' + DirectorySeparator + 'Utiles.png');
+
+    // Fallback 18x18.
+    //AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '18x18' + DirectorySeparator + 'utiles.png');
+    //AddIconPath(BDir + '18x18' + DirectorySeparator + 'utiles.png');
+  end;
+
+begin
+  if FindComponent('BitBtnDashboardProductividad') <> nil then Exit;
+
+  // Pestaña principal VENTAS: usamos el mismo padre que el botón Ventas.
+  B := TBitBtn.Create(Self);
+  B.Name := 'BitBtnDashboardProductividad';
+  B.Parent := BitBtn1.Parent;
+  B.Top := BitBtn1.Top;
+  B.Height := BitBtn1.Height;
+  B.Width := BitBtn1.Width + 35;
+  if B.Width < 115 then
+    B.Width := 115;
+  B.Caption := 'Productividad';
+  B.Hint := 'Centro de control, dashboard y alertas de FacturLinEx';
+  B.ShowHint := True;
+  B.Layout := blGlyphTop;
+  B.Spacing := 4;
+  B.NumGlyphs := 1;
+  B.OnClick := @DashboardProductividadClick;
+
+  // Lo colocamos justo después del último botón visible de la pestaña Ventas
+  // para que quede al lado de Proforma.
+  MaxRight := 0;
+  for I := 0 to B.Parent.ControlCount - 1 do
+  begin
+    C := B.Parent.Controls[I];
+    if (C is TBitBtn) and C.Visible and (C <> B) then
+      if Abs(C.Top - BitBtn1.Top) <= 4 then
+        if (C.Left + C.Width) > MaxRight then
+          MaxRight := C.Left + C.Width;
+  end;
+  B.Left := MaxRight + 8;
+
+  // Carga robusta del PNG. Usamos TPortableNetworkGraphic, igual que el
+  // cargador original de módulos extra de FacturLinEx, porque TPicture/TBitmap
+  // no siempre muestran PNG correctamente en todos los entornos LCL/GTK.
+  Icono := '';
+  Rutas := TStringList.Create;
+  try
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'utiles.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'Utiles.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'utiles.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'Utiles.png');
+
+    AddIconPathsFromBase(RutaBin);
+    AddIconPathsFromBase(RutaIni);
+    AddIconPathsFromBase(RutaSql);
+    AddIconPathsFromBase(ExtractFilePath(ParamStr(0)));
+    AddIconPathsFromBase(ExtractFilePath(Application.ExeName));
+    AddIconPathsFromBase(GetCurrentDir);
+    AddIconPathsFromBase(ExpandFileName(ExtractFilePath(ParamStr(0)) + '..' + DirectorySeparator));
+    AddIconPathsFromBase(ExpandFileName(GetCurrentDir + DirectorySeparator + '..' + DirectorySeparator));
+
+    for I := 0 to Rutas.Count - 1 do
+      if FileExists(Rutas[I]) then
+      begin
+        Icono := Rutas[I];
+        Break;
+      end;
+  finally
+    Rutas.Free;
+  end;
+
+  if FileExists(Icono) then
+  begin
+    Png := TPortableNetworkGraphic.Create;
+    try
+      Png.LoadFromFile(Icono);
+      B.Glyph.Assign(Png);
+      B.NumGlyphs := 1;
+      B.Invalidate;
+    finally
+      Png.Free;
+    end;
+  end
+  else
+  begin
+    // Sin mensaje emergente para no molestar al arrancar: si no se encuentra,
+    // el botón sigue funcionando con texto.
+    B.Hint := B.Hint + ' (icono no encontrado: Imagenes/30x30/utiles.png)';
+  end;
+
+  B.Repaint;
+end;
+
+procedure TFMenu.DashboardProductividadClick(Sender: TObject);
+begin
+  timer1.enabled := false;
+  try
+    ShowFormDashboardProductividad(Self, TZConnection(dbQuery.Connection), Tienda);
   finally
     Timer1Timer(nil);
   end;
