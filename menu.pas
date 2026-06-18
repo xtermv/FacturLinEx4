@@ -283,6 +283,8 @@ Type
     procedure BitBtnMonitorClick(Sender: TObject);
     procedure PedidoProvVentasClick(Sender: TObject);
     procedure AddPedidoProvVentasButton;
+    procedure PedidoProveedorAutoClick(Sender: TObject);
+    procedure AddPedidoProveedorAutoButton;
     procedure DashboardProductividadClick(Sender: TObject);
     procedure AddDashboardProductividadButton;
     procedure btnEnviarAhoraClick(Sender: TObject);
@@ -368,7 +370,7 @@ uses
    uVF_Integration, uVeriChain, uVeriChainCheck, uVF_QueueResult, uvfqueuemonitor,
    uVF_Stub, uVFSenderAEAT, uVeriSIFForm, uFLX_Log, uFLX_Backup, uFLX_CryptoIni,
    uBackupFTPConfig, uRestoreBackup, uBackupUnpackHelper, uFLXRestoreRemote,
-   uFLX_PedidoProveedorVentasPDF, uDashboardProductividad, Types, BaseUnix;
+   uFLX_PedidoProveedorVentasPDF, uPedidoProveedorAuto, uDashboardProductividad, Types, BaseUnix;
 
 //====================================================================
 // ==== CONSTANTE PARA TRABAJAR EN LA BARRA DE ESTADO VERI*FACTU =====
@@ -835,6 +837,7 @@ Begin
   if vfMode = 'PRUEBAS' then IniciarVerifactuLocal;
 
      AddPedidoProvVentasButton;
+     AddPedidoProveedorAutoButton;
      AddDashboardProductividadButton;
      UpdateVFStatusBar;
 
@@ -1254,6 +1257,144 @@ begin
   timer1.enabled := false;
   try
     ShowFormFLXPedidoProveedorVentas(Self, TZConnection(dbQuery.Connection), Tienda, RutaPdf);
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+
+
+procedure TFMenu.AddPedidoProveedorAutoButton;
+var
+  B: TBitBtn;
+  Png: TPortableNetworkGraphic;
+  Icono: string;
+  I, MaxTop, MaxRight: Integer;
+  C: TControl;
+  Rutas: TStringList;
+
+  procedure AddIconPath(const APath: string);
+  var
+    S: string;
+  begin
+    S := Trim(APath);
+    if S <> '' then
+      if Rutas.IndexOf(S) < 0 then
+        Rutas.Add(S);
+  end;
+
+  procedure AddIconPathsFromBase(const ABase: string);
+  var
+    BDir: string;
+  begin
+    BDir := IncludeTrailingPathDelimiter(ABase);
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'klpq.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'KLPQ.png');
+  end;
+
+begin
+  if FindComponent('BitBtnPedidoProveedorAuto') <> nil then Exit;
+
+  B := TBitBtn.Create(Self);
+  B.Name := 'BitBtnPedidoProveedorAuto';
+
+  // Pestaña PEDIDOS: usamos el mismo padre que los botones de pedidos.
+  B.Parent := BitBtn57.Parent;
+  B.Width := BitBtn57.Width;
+  if B.Width < 115 then
+    B.Width := 115;
+  B.Height := BitBtn57.Height;
+  B.Caption := 'Pedido auto';
+  B.Hint := 'Propuesta automática de pedido por proveedor basada en ventas';
+  B.ShowHint := True;
+  B.Layout := blGlyphTop;
+  B.Spacing := 4;
+  B.NumGlyphs := 1;
+  B.OnClick := @PedidoProveedorAutoClick;
+
+  if ColorBotones <> '' then
+    B.Color := StringToColor(ColorBotones);
+
+  // Colocarlo al final de la pestaña Pedidos.
+  MaxTop := -1;
+  for I := 0 to B.Parent.ControlCount - 1 do
+  begin
+    C := B.Parent.Controls[I];
+    if (C is TBitBtn) and C.Visible and (C <> B) then
+      if C.Top > MaxTop then
+        MaxTop := C.Top;
+  end;
+
+  if MaxTop < 0 then
+    MaxTop := BitBtn57.Top;
+
+  B.Top := MaxTop;
+  MaxRight := 0;
+
+  for I := 0 to B.Parent.ControlCount - 1 do
+  begin
+    C := B.Parent.Controls[I];
+    if (C is TBitBtn) and C.Visible and (C <> B) then
+      if Abs(C.Top - B.Top) <= 4 then
+        if (C.Left + C.Width) > MaxRight then
+          MaxRight := C.Left + C.Width;
+  end;
+
+  if MaxRight > 0 then
+    B.Left := MaxRight + 8
+  else
+    B.Left := BitBtn57.Left + BitBtn57.Width + 8;
+
+  // Carga robusta del PNG solicitado: ./Imagenes/klpq.png.
+  Icono := '';
+  Rutas := TStringList.Create;
+  try
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'klpq.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'KLPQ.png');
+
+    AddIconPathsFromBase(RutaBin);
+    AddIconPathsFromBase(RutaIni);
+    AddIconPathsFromBase(RutaSql);
+    AddIconPathsFromBase(ExtractFilePath(ParamStr(0)));
+    AddIconPathsFromBase(ExtractFilePath(Application.ExeName));
+    AddIconPathsFromBase(GetCurrentDir);
+    AddIconPathsFromBase(ExpandFileName(ExtractFilePath(ParamStr(0)) + '..' + DirectorySeparator));
+    AddIconPathsFromBase(ExpandFileName(GetCurrentDir + DirectorySeparator + '..' + DirectorySeparator));
+
+    for I := 0 to Rutas.Count - 1 do
+      if FileExists(Rutas[I]) then
+      begin
+        Icono := Rutas[I];
+        Break;
+      end;
+  finally
+    Rutas.Free;
+  end;
+
+  if FileExists(Icono) then
+  begin
+    Png := TPortableNetworkGraphic.Create;
+    try
+      Png.LoadFromFile(Icono);
+      B.Glyph.Assign(Png);
+      B.NumGlyphs := 1;
+      B.Invalidate;
+    finally
+      Png.Free;
+    end;
+  end
+  else
+  begin
+    B.Hint := B.Hint + ' (icono no encontrado: Imagenes/klpq.png)';
+  end;
+
+  B.Repaint;
+end;
+
+procedure TFMenu.PedidoProveedorAutoClick(Sender: TObject);
+begin
+  timer1.enabled := false;
+  try
+    MostrarPedidoProveedorAuto(Self, TZConnection(dbQuery.Connection), Tienda);
   finally
     Timer1Timer(nil);
   end;
