@@ -82,6 +82,8 @@ type
     pnlFiltro: TPanel;
     pcPrincipal: TPageControl;
     tsDashboard: TTabSheet;
+    tsHoy: TTabSheet;
+    tsVentasAbiertas: TTabSheet;
     tsAlertas: TTabSheet;
     tsEstudios: TTabSheet;
     tsComparativa: TTabSheet;
@@ -121,10 +123,27 @@ type
     lblBaseHoy: TLabel;
     lblIvaHoy: TLabel;
 
+    lblHoyFecha: TLabel;
+    lblHoyVentas: TLabel;
+    lblHoyTickets: TLabel;
+    lblHoyTicketMedio: TLabel;
+    lblHoyBase: TLabel;
+    lblHoyIva: TLabel;
+    lblHoyHoraPico: TLabel;
+    lblHoyImportePico: TLabel;
+
     qPagos: TZQuery;
     qTopArticulos: TZQuery;
     qTopFamilias: TZQuery;
     qHoras: TZQuery;
+    qHoyResumen: TZQuery;
+    qHoyHoras: TZQuery;
+    qHoyPagos: TZQuery;
+    qVNAResumen: TZQuery;
+    qVNATickets: TZQuery;
+    qVNADetalle: TZQuery;
+    qVNAHoras: TZQuery;
+    qVNARevision: TZQuery;
     qAlertas: TZQuery;
     qEstVentasDia: TZQuery;
     qEstVentasHora: TZQuery;
@@ -216,6 +235,13 @@ type
     dsTopArticulos: TDataSource;
     dsTopFamilias: TDataSource;
     dsHoras: TDataSource;
+    dsHoyHoras: TDataSource;
+    dsHoyPagos: TDataSource;
+    dsVNAResumen: TDataSource;
+    dsVNATickets: TDataSource;
+    dsVNADetalle: TDataSource;
+    dsVNAHoras: TDataSource;
+    dsVNARevision: TDataSource;
     dsAlertas: TDataSource;
     dsEstVentasDia: TDataSource;
     dsEstVentasHora: TDataSource;
@@ -305,6 +331,13 @@ type
     gridTopArticulos: TDBGrid;
     gridTopFamilias: TDBGrid;
     gridHoras: TDBGrid;
+    gridHoyHoras: TDBGrid;
+    gridHoyPagos: TDBGrid;
+    gridVNAResumen: TDBGrid;
+    gridVNATickets: TDBGrid;
+    gridVNADetalle: TDBGrid;
+    gridVNAHoras: TDBGrid;
+    gridVNARevision: TDBGrid;
     gridAlertas: TDBGrid;
     gridEstVentasDia: TDBGrid;
     gridEstVentasHora: TDBGrid;
@@ -402,6 +435,9 @@ type
 
     pbGraficoPagos: TPaintBox;
     pbGraficoHoras: TPaintBox;
+    pbHoyTicketsHora: TPaintBox;
+    pbHoyImportesHora: TPaintBox;
+    pbHoyPagos: TPaintBox;
     pbGrafAnoActualAnterior: TPaintBox;
     pbGrafTicketMedioHora: TPaintBox;
     pbGrafTicketsHora: TPaintBox;
@@ -416,6 +452,12 @@ type
     FPagoImportes: array[0..19] of Double;
     FHoraImportes: array[0..23] of Double;
     FHoraTickets: array[0..23] of Integer;
+
+    FHoyPagoCount: Integer;
+    FHoyPagoNombres: array[0..19] of string;
+    FHoyPagoImportes: array[0..19] of Double;
+    FHoyHoraImportes: array[0..23] of Double;
+    FHoyHoraTickets: array[0..23] of Integer;
 
     FGAnoActualYear: Integer;
     FGAnoAnteriorYear: Integer;
@@ -442,6 +484,8 @@ type
     procedure ConstruirPantalla;
     procedure CrearFiltro;
     procedure CrearTabDashboard;
+    procedure CrearTabHoy;
+    procedure CrearTabVentasAbiertas;
     procedure CrearTabAlertas;
     procedure CrearTabEstudios;
     procedure CrearTabComparativa;
@@ -463,6 +507,9 @@ type
     function CrearQuery: TZQuery;
     function Tabla(const Base: string): string;
     function TablaExiste(const ANombre: string): Boolean;
+    function ColumnaExiste(const ANombreTabla, ANombreCampo: string): Boolean;
+    function CampoHoraVentas(const ANombreTabla: string): string;
+    function SQLUnionVentasAbiertas: string;
     function FechaDesde: TDateTime;
     function FechaHasta: TDateTime;
     function FechaSQL(const ADate: TDateTime): string;
@@ -507,6 +554,16 @@ type
     procedure Rango30Dias(Sender: TObject);
 
     procedure CargarDashboard;
+    procedure CargarHoy;
+    procedure CargarHoyResumen;
+    procedure CargarHoyHoras;
+    procedure CargarHoyPagos;
+    procedure CargarVentasAbiertas;
+    procedure CargarVNAResumen;
+    procedure CargarVNATickets;
+    procedure CargarVNADetalle;
+    procedure CargarVNAHoras;
+    procedure CargarVNARevision;
     procedure CargarResumen;
     procedure CargarPagos;
     procedure CargarTopArticulos;
@@ -638,6 +695,9 @@ type
     procedure ActualizarDatosGraficoHoras;
     procedure GraficoPagosPaint(Sender: TObject);
     procedure GraficoHorasPaint(Sender: TObject);
+    procedure HoyTicketsPaint(Sender: TObject);
+    procedure HoyImportesPaint(Sender: TObject);
+    procedure HoyPagosPaint(Sender: TObject);
 
     procedure CargarConsultaLibreTablas;
     procedure CargarConsultaLibreCampos;
@@ -903,6 +963,14 @@ begin
   qTopArticulos.Connection := FConn;
   qTopFamilias.Connection := FConn;
   qHoras.Connection := FConn;
+  qHoyResumen.Connection := FConn;
+  qHoyHoras.Connection := FConn;
+  qHoyPagos.Connection := FConn;
+  qVNAResumen.Connection := FConn;
+  qVNATickets.Connection := FConn;
+  qVNADetalle.Connection := FConn;
+  qVNAHoras.Connection := FConn;
+  qVNARevision.Connection := FConn;
   qAlertas.Connection := FConn;
   qEstVentasDia.Connection := FConn;
   qEstVentasHora.Connection := FConn;
@@ -1022,6 +1090,14 @@ begin
   tsDashboard.PageControl := pcPrincipal;
   tsDashboard.Caption := 'Dashboard';
 
+  tsHoy := TTabSheet.Create(Self);
+  tsHoy.PageControl := pcPrincipal;
+  tsHoy.Caption := 'Hoy';
+
+  tsVentasAbiertas := TTabSheet.Create(Self);
+  tsVentasAbiertas.PageControl := pcPrincipal;
+  tsVentasAbiertas.Caption := 'Ventas abiertas';
+
   tsAlertas := TTabSheet.Create(Self);
   tsAlertas.PageControl := pcPrincipal;
   tsAlertas.Caption := 'Alertas';
@@ -1091,6 +1167,8 @@ begin
   tsConsultaLibre.Caption := 'Consulta libre';
 
   CrearTabDashboard;
+  CrearTabHoy;
+  CrearTabVentasAbiertas;
   CrearTabAlertas;
   CrearTabEstudios;
   CrearTabComparativa;
@@ -1426,6 +1504,295 @@ begin
   pbGraficoPagos.Parent := gbGraficoPagos;
   pbGraficoPagos.Align := alClient;
   pbGraficoPagos.OnPaint := @GraficoPagosPaint;
+end;
+
+
+procedure TFDashboardProductividad.CrearTabHoy;
+var
+  pnlCards, pnlBody, pnlTop, pnlBottom: TPanel;
+  gbHoras, gbPagos, gbTicketsGraf, gbImporteGraf, gbPagosGraf: TGroupBox;
+  spTop, spBottom1, spBottom2, spFilas: TSplitter;
+
+  procedure CrearTarjeta(var LValor: TLabel; const Titulo: string; ALeft: Integer);
+  var
+    P: TPanel;
+    LTit: TLabel;
+  begin
+    P := TPanel.Create(Self);
+    P.Parent := pnlCards;
+    P.Left := ALeft;
+    P.Top := 8;
+    P.Width := 175;
+    P.Height := 74;
+    P.BevelOuter := bvLowered;
+
+    LTit := TLabel.Create(Self);
+    LTit.Parent := P;
+    LTit.Caption := Titulo;
+    LTit.Left := 8;
+    LTit.Top := 8;
+    LTit.Font.Style := [fsBold];
+
+    LValor := TLabel.Create(Self);
+    LValor.Parent := P;
+    LValor.Caption := '-';
+    LValor.Left := 8;
+    LValor.Top := 34;
+    LValor.Font.Size := 13;
+    LValor.Font.Style := [fsBold];
+  end;
+
+begin
+  pnlCards := TPanel.Create(Self);
+  pnlCards.Parent := tsHoy;
+  pnlCards.Align := alTop;
+  pnlCards.Height := 142;
+  pnlCards.BevelOuter := bvNone;
+
+  lblHoyFecha := TLabel.Create(Self);
+  lblHoyFecha.Parent := pnlCards;
+  lblHoyFecha.Left := 8;
+  lblHoyFecha.Top := 90;
+  lblHoyFecha.Caption := 'Analisis del dia actual';
+  lblHoyFecha.Font.Style := [fsBold];
+
+  CrearTarjeta(lblHoyVentas, 'Ventas hoy', 8);
+  CrearTarjeta(lblHoyTickets, 'Tickets hoy', 190);
+  CrearTarjeta(lblHoyTicketMedio, 'Ticket medio', 372);
+  CrearTarjeta(lblHoyBase, 'Base sin IVA', 554);
+  CrearTarjeta(lblHoyIva, 'IVA estimado', 736);
+  CrearTarjeta(lblHoyHoraPico, 'Hora pico tickets', 918);
+
+  lblHoyImportePico := TLabel.Create(Self);
+  lblHoyImportePico.Parent := pnlCards;
+  lblHoyImportePico.Left := 8;
+  lblHoyImportePico.Top := 112;
+  lblHoyImportePico.Caption := 'Hora pico importe: -';
+  lblHoyImportePico.Font.Style := [fsBold];
+
+  pnlBody := TPanel.Create(Self);
+  pnlBody.Parent := tsHoy;
+  pnlBody.Align := alClient;
+  pnlBody.BevelOuter := bvNone;
+
+  pnlTop := TPanel.Create(Self);
+  pnlTop.Parent := pnlBody;
+  pnlTop.Align := alTop;
+  pnlTop.Height := 270;
+  pnlTop.BevelOuter := bvNone;
+
+  gbHoras := TGroupBox.Create(Self);
+  gbHoras.Parent := pnlTop;
+  gbHoras.Align := alLeft;
+  gbHoras.Width := 620;
+  gbHoras.Caption := 'Numero de tickets e importe por horas';
+
+  qHoyResumen := CrearQuery;
+  qHoyHoras := CrearQuery;
+  dsHoyHoras := TDataSource.Create(Self);
+  dsHoyHoras.DataSet := qHoyHoras;
+
+  gridHoyHoras := TDBGrid.Create(Self);
+  gridHoyHoras.Parent := gbHoras;
+  gridHoyHoras.Align := alClient;
+  gridHoyHoras.DataSource := dsHoyHoras;
+  gridHoyHoras.ReadOnly := True;
+  gridHoyHoras.Options := gridHoyHoras.Options + [dgDisplayMemoText];
+
+  spTop := TSplitter.Create(Self);
+  spTop.Parent := pnlTop;
+  spTop.Align := alLeft;
+  spTop.Width := 5;
+
+  gbPagos := TGroupBox.Create(Self);
+  gbPagos.Parent := pnlTop;
+  gbPagos.Align := alClient;
+  gbPagos.Caption := 'Formas de pago hoy';
+
+  qHoyPagos := CrearQuery;
+  dsHoyPagos := TDataSource.Create(Self);
+  dsHoyPagos.DataSet := qHoyPagos;
+
+  gridHoyPagos := TDBGrid.Create(Self);
+  gridHoyPagos.Parent := gbPagos;
+  gridHoyPagos.Align := alClient;
+  gridHoyPagos.DataSource := dsHoyPagos;
+  gridHoyPagos.ReadOnly := True;
+  gridHoyPagos.Options := gridHoyPagos.Options + [dgDisplayMemoText];
+
+  spFilas := TSplitter.Create(Self);
+  spFilas.Parent := pnlBody;
+  spFilas.Align := alTop;
+  spFilas.Height := 5;
+
+  pnlBottom := TPanel.Create(Self);
+  pnlBottom.Parent := pnlBody;
+  pnlBottom.Align := alClient;
+  pnlBottom.BevelOuter := bvNone;
+
+  gbTicketsGraf := TGroupBox.Create(Self);
+  gbTicketsGraf.Parent := pnlBottom;
+  gbTicketsGraf.Align := alLeft;
+  gbTicketsGraf.Width := 390;
+  gbTicketsGraf.Caption := 'Grafico: numero de tickets por hora';
+
+  pbHoyTicketsHora := TPaintBox.Create(Self);
+  pbHoyTicketsHora.Parent := gbTicketsGraf;
+  pbHoyTicketsHora.Align := alClient;
+  pbHoyTicketsHora.OnPaint := @HoyTicketsPaint;
+
+  spBottom1 := TSplitter.Create(Self);
+  spBottom1.Parent := pnlBottom;
+  spBottom1.Align := alLeft;
+  spBottom1.Width := 5;
+
+  gbImporteGraf := TGroupBox.Create(Self);
+  gbImporteGraf.Parent := pnlBottom;
+  gbImporteGraf.Align := alLeft;
+  gbImporteGraf.Width := 430;
+  gbImporteGraf.Caption := 'Grafico: importe de tickets por hora';
+
+  pbHoyImportesHora := TPaintBox.Create(Self);
+  pbHoyImportesHora.Parent := gbImporteGraf;
+  pbHoyImportesHora.Align := alClient;
+  pbHoyImportesHora.OnPaint := @HoyImportesPaint;
+
+  spBottom2 := TSplitter.Create(Self);
+  spBottom2.Parent := pnlBottom;
+  spBottom2.Align := alLeft;
+  spBottom2.Width := 5;
+
+  gbPagosGraf := TGroupBox.Create(Self);
+  gbPagosGraf.Parent := pnlBottom;
+  gbPagosGraf.Align := alClient;
+  gbPagosGraf.Caption := 'Grafico: formas de pago hoy';
+
+  pbHoyPagos := TPaintBox.Create(Self);
+  pbHoyPagos.Parent := gbPagosGraf;
+  pbHoyPagos.Align := alClient;
+  pbHoyPagos.OnPaint := @HoyPagosPaint;
+end;
+
+
+procedure TFDashboardProductividad.CrearTabVentasAbiertas;
+var
+  pnlTop, pnlMiddle, pnlBottom: TPanel;
+  gbResumen, gbTickets, gbDetalle, gbHoras, gbRevision: TGroupBox;
+  spTop, spBottom, spRows1, spRows2: TSplitter;
+begin
+  pnlTop := TPanel.Create(Self);
+  pnlTop.Parent := tsVentasAbiertas;
+  pnlTop.Align := alTop;
+  pnlTop.Height := 190;
+  pnlTop.BevelOuter := bvNone;
+
+  gbResumen := TGroupBox.Create(Self);
+  gbResumen.Parent := pnlTop;
+  gbResumen.Align := alLeft;
+  gbResumen.Width := 430;
+  gbResumen.Caption := 'Resumen por caja';
+
+  qVNAResumen := CrearQuery;
+  dsVNAResumen := TDataSource.Create(Self);
+  dsVNAResumen.DataSet := qVNAResumen;
+  gridVNAResumen := TDBGrid.Create(Self);
+  gridVNAResumen.Parent := gbResumen;
+  gridVNAResumen.Align := alClient;
+  gridVNAResumen.DataSource := dsVNAResumen;
+  gridVNAResumen.ReadOnly := True;
+  gridVNAResumen.Options := gridVNAResumen.Options + [dgDisplayMemoText];
+
+  spTop := TSplitter.Create(Self);
+  spTop.Parent := pnlTop;
+  spTop.Align := alLeft;
+  spTop.Width := 5;
+
+  gbTickets := TGroupBox.Create(Self);
+  gbTickets.Parent := pnlTop;
+  gbTickets.Align := alClient;
+  gbTickets.Caption := 'Ventas / tickets abiertos';
+
+  qVNATickets := CrearQuery;
+  dsVNATickets := TDataSource.Create(Self);
+  dsVNATickets.DataSet := qVNATickets;
+  gridVNATickets := TDBGrid.Create(Self);
+  gridVNATickets.Parent := gbTickets;
+  gridVNATickets.Align := alClient;
+  gridVNATickets.DataSource := dsVNATickets;
+  gridVNATickets.ReadOnly := True;
+  gridVNATickets.Options := gridVNATickets.Options + [dgDisplayMemoText];
+
+  spRows1 := TSplitter.Create(Self);
+  spRows1.Parent := tsVentasAbiertas;
+  spRows1.Align := alTop;
+  spRows1.Height := 5;
+
+  pnlMiddle := TPanel.Create(Self);
+  pnlMiddle.Parent := tsVentasAbiertas;
+  pnlMiddle.Align := alTop;
+  pnlMiddle.Height := 290;
+  pnlMiddle.BevelOuter := bvNone;
+
+  gbDetalle := TGroupBox.Create(Self);
+  gbDetalle.Parent := pnlMiddle;
+  gbDetalle.Align := alClient;
+  gbDetalle.Caption := 'Detalle de lineas abiertas para comprobar en video-vigilancia';
+
+  qVNADetalle := CrearQuery;
+  dsVNADetalle := TDataSource.Create(Self);
+  dsVNADetalle.DataSet := qVNADetalle;
+  gridVNADetalle := TDBGrid.Create(Self);
+  gridVNADetalle.Parent := gbDetalle;
+  gridVNADetalle.Align := alClient;
+  gridVNADetalle.DataSource := dsVNADetalle;
+  gridVNADetalle.ReadOnly := True;
+  gridVNADetalle.Options := gridVNADetalle.Options + [dgDisplayMemoText];
+
+  spRows2 := TSplitter.Create(Self);
+  spRows2.Parent := tsVentasAbiertas;
+  spRows2.Align := alTop;
+  spRows2.Height := 5;
+
+  pnlBottom := TPanel.Create(Self);
+  pnlBottom.Parent := tsVentasAbiertas;
+  pnlBottom.Align := alClient;
+  pnlBottom.BevelOuter := bvNone;
+
+  gbHoras := TGroupBox.Create(Self);
+  gbHoras.Parent := pnlBottom;
+  gbHoras.Align := alLeft;
+  gbHoras.Width := 500;
+  gbHoras.Caption := 'Lineas por hora y caja';
+
+  qVNAHoras := CrearQuery;
+  dsVNAHoras := TDataSource.Create(Self);
+  dsVNAHoras.DataSet := qVNAHoras;
+  gridVNAHoras := TDBGrid.Create(Self);
+  gridVNAHoras.Parent := gbHoras;
+  gridVNAHoras.Align := alClient;
+  gridVNAHoras.DataSource := dsVNAHoras;
+  gridVNAHoras.ReadOnly := True;
+  gridVNAHoras.Options := gridVNAHoras.Options + [dgDisplayMemoText];
+
+  spBottom := TSplitter.Create(Self);
+  spBottom.Parent := pnlBottom;
+  spBottom.Align := alLeft;
+  spBottom.Width := 5;
+
+  gbRevision := TGroupBox.Create(Self);
+  gbRevision.Parent := pnlBottom;
+  gbRevision.Align := alClient;
+  gbRevision.Caption := 'Revision rapida';
+
+  qVNARevision := CrearQuery;
+  dsVNARevision := TDataSource.Create(Self);
+  dsVNARevision.DataSet := qVNARevision;
+  gridVNARevision := TDBGrid.Create(Self);
+  gridVNARevision.Parent := gbRevision;
+  gridVNARevision.Align := alClient;
+  gridVNARevision.DataSource := dsVNARevision;
+  gridVNARevision.ReadOnly := True;
+  gridVNARevision.Options := gridVNARevision.Options + [dgDisplayMemoText];
 end;
 
 procedure TFDashboardProductividad.CrearTabAlertas;
@@ -5127,6 +5494,20 @@ begin
       AnyadirDataSetCSV(L, 'Dashboard - Top familias', qTopFamilias);
       AnyadirDataSetCSV(L, 'Dashboard - Ventas entre horas', qHoras);
     end
+    else if pcPrincipal.ActivePage = tsHoy then
+    begin
+      AnyadirDataSetCSV(L, 'Hoy - Resumen actual', qHoyResumen);
+      AnyadirDataSetCSV(L, 'Hoy - Tickets e importes por hora', qHoyHoras);
+      AnyadirDataSetCSV(L, 'Hoy - Formas de pago', qHoyPagos);
+    end
+    else if pcPrincipal.ActivePage = tsVentasAbiertas then
+    begin
+      AnyadirDataSetCSV(L, 'Ventas abiertas - Resumen por caja', qVNAResumen);
+      AnyadirDataSetCSV(L, 'Ventas abiertas - Tickets abiertos', qVNATickets);
+      AnyadirDataSetCSV(L, 'Ventas abiertas - Detalle de lineas', qVNADetalle);
+      AnyadirDataSetCSV(L, 'Ventas abiertas - Lineas por hora y caja', qVNAHoras);
+      AnyadirDataSetCSV(L, 'Ventas abiertas - Revision video-vigilancia', qVNARevision);
+    end
     else if pcPrincipal.ActivePage = tsAlertas then
       AnyadirDataSetCSV(L, 'Alertas - ' + lblAlertaTitulo.Caption, qAlertas)
     else if pcPrincipal.ActivePage = tsEstudios then
@@ -5300,6 +5681,20 @@ begin
       AnyadirDataSetHTML(L, 'Dashboard - Top artículos', qTopArticulos);
       AnyadirDataSetHTML(L, 'Dashboard - Top familias', qTopFamilias);
       AnyadirDataSetHTML(L, 'Dashboard - Ventas entre horas', qHoras);
+    end
+    else if pcPrincipal.ActivePage = tsHoy then
+    begin
+      AnyadirDataSetHTML(L, 'Hoy - Resumen actual', qHoyResumen);
+      AnyadirDataSetHTML(L, 'Hoy - Tickets e importes por hora', qHoyHoras);
+      AnyadirDataSetHTML(L, 'Hoy - Formas de pago', qHoyPagos);
+    end
+    else if pcPrincipal.ActivePage = tsVentasAbiertas then
+    begin
+      AnyadirDataSetHTML(L, 'Ventas abiertas - Resumen por caja', qVNAResumen);
+      AnyadirDataSetHTML(L, 'Ventas abiertas - Tickets abiertos', qVNATickets);
+      AnyadirDataSetHTML(L, 'Ventas abiertas - Detalle de lineas', qVNADetalle);
+      AnyadirDataSetHTML(L, 'Ventas abiertas - Lineas por hora y caja', qVNAHoras);
+      AnyadirDataSetHTML(L, 'Ventas abiertas - Revision video-vigilancia', qVNARevision);
     end
     else if pcPrincipal.ActivePage = tsAlertas then
       AnyadirDataSetHTML(L, 'Alertas - ' + lblAlertaTitulo.Caption, qAlertas)
@@ -5584,6 +5979,8 @@ begin
     Exit;
 
   CargarResumen;
+  CargarHoy;
+  CargarVentasAbiertas;
   CargarPagos;
   CargarTopArticulos;
   CargarTopFamilias;
@@ -5604,6 +6001,415 @@ begin
   CargarGraficas;
   CargarComparativaAvanzada;
   AplicarFormatoYAnchos;
+end;
+
+
+procedure TFDashboardProductividad.CargarHoy;
+begin
+  CargarHoyResumen;
+  CargarHoyHoras;
+  CargarHoyPagos;
+
+  if pbHoyTicketsHora <> nil then pbHoyTicketsHora.Invalidate;
+  if pbHoyImportesHora <> nil then pbHoyImportesHora.Invalidate;
+  if pbHoyPagos <> nil then pbHoyPagos.Invalidate;
+end;
+
+procedure TFDashboardProductividad.CargarHoyResumen;
+begin
+  if qHoyResumen = nil then Exit;
+
+  qHoyResumen.Close;
+  qHoyResumen.SQL.Text :=
+    'SELECT CURDATE() AS fecha, ' +
+    '  (SELECT COUNT(*) FROM ' + Tabla('hisopcc') + ' C ' +
+    '   WHERE C.HO0 = CURDATE() AND C.HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(C.HO16, '''') <> ''A'') AS tickets, ' +
+    '  (SELECT ROUND(COALESCE(SUM(IF(COALESCE(C.HO11,0) <> 0, C.HO11, C.HO9)),0),2) FROM ' + Tabla('hisopcc') + ' C ' +
+    '   WHERE C.HO0 = CURDATE() AND C.HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(C.HO16, '''') <> ''A'') AS ventas, ' +
+    '  (SELECT ROUND(COALESCE(AVG(IF(COALESCE(C.HO11,0) <> 0, C.HO11, C.HO9)),0),2) FROM ' + Tabla('hisopcc') + ' C ' +
+    '   WHERE C.HO0 = CURDATE() AND C.HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(C.HO16, '''') <> ''A'') AS ticket_medio, ' +
+    '  (SELECT ROUND(COALESCE(SUM(D.HOD12),0),2) FROM ' + Tabla('hisopdd') + ' D JOIN ' + Tabla('hisopcc') + ' C ' +
+    '    ON C.HO0=D.HOD0 AND C.HO1=D.HOD1 AND C.HO2=D.HOD2 AND C.HO3=D.HOD3 AND C.HO4=D.HOD4 ' +
+    '   WHERE C.HO0 = CURDATE() AND C.HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(C.HO16, '''') <> ''A'') AS base, ' +
+    '  (SELECT ROUND(COALESCE(SUM(D.HOD14 - D.HOD12),0),2) FROM ' + Tabla('hisopdd') + ' D JOIN ' + Tabla('hisopcc') + ' C ' +
+    '    ON C.HO0=D.HOD0 AND C.HO1=D.HOD1 AND C.HO2=D.HOD2 AND C.HO3=D.HOD3 AND C.HO4=D.HOD4 ' +
+    '   WHERE C.HO0 = CURDATE() AND C.HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(C.HO16, '''') <> ''A'') AS iva';
+  qHoyResumen.Open;
+
+  if lblHoyFecha <> nil then
+    lblHoyFecha.Caption := 'Analisis del dia actual - ' + FormatDateTime('dd/mm/yyyy hh:nn', Now);
+  if lblHoyVentas <> nil then lblHoyVentas.Caption := Dinero(CampoDouble(qHoyResumen, 'ventas'));
+  if lblHoyTickets <> nil then lblHoyTickets.Caption := IntToStr(CampoInteger(qHoyResumen, 'tickets'));
+  if lblHoyTicketMedio <> nil then lblHoyTicketMedio.Caption := Dinero(CampoDouble(qHoyResumen, 'ticket_medio'));
+  if lblHoyBase <> nil then lblHoyBase.Caption := Dinero(CampoDouble(qHoyResumen, 'base'));
+  if lblHoyIva <> nil then lblHoyIva.Caption := Dinero(CampoDouble(qHoyResumen, 'iva'));
+end;
+
+procedure TFDashboardProductividad.CargarHoyHoras;
+var
+  H, MaxTicketsHora, MaxImporteHora: Integer;
+  MaxTickets: Integer;
+  MaxImporte: Double;
+begin
+  FillChar(FHoyHoraImportes, SizeOf(FHoyHoraImportes), 0);
+  FillChar(FHoyHoraTickets, SizeOf(FHoyHoraTickets), 0);
+  MaxTickets := 0;
+  MaxImporte := 0;
+  MaxTicketsHora := -1;
+  MaxImporteHora := -1;
+
+  qHoyHoras.Close;
+  qHoyHoras.SQL.Text :=
+    'SELECT HOUR(HO1) AS hora, ' +
+    '       CONCAT(LPAD(HOUR(HO1),2,''0''), '':00 - '', LPAD(HOUR(HO1),2,''0''), '':59'') AS franja, ' +
+    '       COUNT(*) AS tickets, ' +
+    '       ROUND(COALESCE(SUM(IF(COALESCE(HO11,0) <> 0, HO11, HO9)),0),2) AS importe, ' +
+    '       ROUND(COALESCE(AVG(IF(COALESCE(HO11,0) <> 0, HO11, HO9)),0),2) AS ticket_medio ' +
+    'FROM ' + Tabla('hisopcc') + ' ' +
+    'WHERE HO0 = CURDATE() ' +
+    '  AND HO5 IN (''NS'',''NT'',''FA'') ' +
+    '  AND COALESCE(HO16, '''') <> ''A'' ' +
+    'GROUP BY HOUR(HO1) ' +
+    'ORDER BY hora';
+  qHoyHoras.Open;
+
+  qHoyHoras.DisableControls;
+  try
+    qHoyHoras.First;
+    while not qHoyHoras.EOF do
+    begin
+      H := CampoInteger(qHoyHoras, 'hora');
+      if (H >= 0) and (H <= 23) then
+      begin
+        FHoyHoraTickets[H] := CampoInteger(qHoyHoras, 'tickets');
+        FHoyHoraImportes[H] := CampoDouble(qHoyHoras, 'importe');
+        if FHoyHoraTickets[H] > MaxTickets then
+        begin
+          MaxTickets := FHoyHoraTickets[H];
+          MaxTicketsHora := H;
+        end;
+        if FHoyHoraImportes[H] > MaxImporte then
+        begin
+          MaxImporte := FHoyHoraImportes[H];
+          MaxImporteHora := H;
+        end;
+      end;
+      qHoyHoras.Next;
+    end;
+    qHoyHoras.First;
+  finally
+    qHoyHoras.EnableControls;
+  end;
+
+  if lblHoyHoraPico <> nil then
+  begin
+    if MaxTicketsHora >= 0 then
+      lblHoyHoraPico.Caption := Format('%.2d:00 (%d)', [MaxTicketsHora, MaxTickets])
+    else
+      lblHoyHoraPico.Caption := '-';
+  end;
+
+  if lblHoyImportePico <> nil then
+  begin
+    if MaxImporteHora >= 0 then
+      lblHoyImportePico.Caption := Format('Hora pico importe: %.2d:00 (%s)', [MaxImporteHora, Dinero(MaxImporte)])
+    else
+      lblHoyImportePico.Caption := 'Hora pico importe: -';
+  end;
+end;
+
+procedure TFDashboardProductividad.CargarHoyPagos;
+var
+  F: TField;
+  I: Integer;
+begin
+  for I := Low(FHoyPagoNombres) to High(FHoyPagoNombres) do
+  begin
+    FHoyPagoNombres[I] := '';
+    FHoyPagoImportes[I] := 0;
+  end;
+  FHoyPagoCount := 0;
+
+  qHoyPagos.Close;
+  qHoyPagos.SQL.Text :=
+    'SELECT forma_pago, SUM(documentos) AS documentos, ROUND(SUM(importe),2) AS total ' +
+    'FROM ( ' +
+    '  SELECT CASE WHEN (UPPER(TRIM(HO6)) IN (''CONT.+TARJ'',''TARJETA+CO'',''CONT+TARJ'',''TARJ+CONT'') ' +
+    '                    OR (COALESCE(HO12,0) <> 0 AND COALESCE(HO14,0) <> 0)) ' +
+    '              THEN ''CONTADO'' ' +
+    '              ELSE COALESCE(NULLIF(TRIM(HO6), ''''), ''SIN FORMA'') END AS forma_pago, ' +
+    '         1 AS documentos, ' +
+    '         CASE ' +
+    '           WHEN (UPPER(TRIM(HO6)) IN (''CONT.+TARJ'',''TARJETA+CO'',''CONT+TARJ'',''TARJ+CONT'') ' +
+    '                 OR (COALESCE(HO12,0) <> 0 AND COALESCE(HO14,0) <> 0)) ' +
+    '             THEN GREATEST(COALESCE(HO12,0) - COALESCE(HO13,0), 0) ' +
+    '           WHEN UPPER(TRIM(HO6)) = ''CONTADO'' ' +
+    '             THEN CASE WHEN COALESCE(HO12,0) <> 0 THEN GREATEST(COALESCE(HO12,0) - COALESCE(HO13,0), 0) ' +
+    '                       ELSE IF(COALESCE(HO11,0) <> 0, HO11, HO9) END ' +
+    '           WHEN UPPER(TRIM(HO6)) IN (''VISA'',''MASTER CARD'',''MASTER'',''4-B'',''RED 6000'',''TARJETA'') ' +
+    '             THEN CASE WHEN COALESCE(HO14,0) <> 0 THEN COALESCE(HO14,0) ' +
+    '                       ELSE IF(COALESCE(HO11,0) <> 0, HO11, HO9) END ' +
+    '           ELSE IF(COALESCE(HO11,0) <> 0, HO11, HO9) ' +
+    '         END AS importe ' +
+    '  FROM ' + Tabla('hisopcc') + ' ' +
+    '  WHERE HO0 = CURDATE() ' +
+    '    AND HO5 IN (''NS'',''NT'',''FA'') ' +
+    '    AND COALESCE(HO16, '''') <> ''A'' ' +
+    '  UNION ALL ' +
+    '  SELECT ''TARJETA'' AS forma_pago, 0 AS documentos, COALESCE(HO14,0) AS importe ' +
+    '  FROM ' + Tabla('hisopcc') + ' ' +
+    '  WHERE HO0 = CURDATE() ' +
+    '    AND HO5 IN (''NS'',''NT'',''FA'') ' +
+    '    AND COALESCE(HO16, '''') <> ''A'' ' +
+    '    AND (UPPER(TRIM(HO6)) IN (''CONT.+TARJ'',''TARJETA+CO'',''CONT+TARJ'',''TARJ+CONT'') ' +
+    '         OR (COALESCE(HO12,0) <> 0 AND COALESCE(HO14,0) <> 0)) ' +
+    '    AND COALESCE(HO14,0) <> 0 ' +
+    ') X ' +
+    'GROUP BY forma_pago ' +
+    'HAVING ABS(total) > 0.0001 OR SUM(documentos) > 0 ' +
+    'ORDER BY total DESC';
+  qHoyPagos.Open;
+
+  qHoyPagos.DisableControls;
+  try
+    qHoyPagos.First;
+    while (not qHoyPagos.EOF) and (FHoyPagoCount < 20) do
+    begin
+      F := qHoyPagos.FindField('forma_pago');
+      if F <> nil then FHoyPagoNombres[FHoyPagoCount] := F.AsString;
+      F := qHoyPagos.FindField('total');
+      if F <> nil then FHoyPagoImportes[FHoyPagoCount] := F.AsFloat;
+      Inc(FHoyPagoCount);
+      qHoyPagos.Next;
+    end;
+    qHoyPagos.First;
+  finally
+    qHoyPagos.EnableControls;
+  end;
+end;
+
+
+function TFDashboardProductividad.ColumnaExiste(const ANombreTabla, ANombreCampo: string): Boolean;
+var
+  Q: TZQuery;
+begin
+  Result := False;
+  Q := CrearQuery;
+  try
+    Q.SQL.Text :=
+      'SELECT COUNT(*) AS existe ' +
+      'FROM information_schema.columns ' +
+      'WHERE table_schema = DATABASE() AND table_name = :tabla AND column_name = :campo';
+    Q.ParamByName('tabla').AsString := ANombreTabla;
+    Q.ParamByName('campo').AsString := ANombreCampo;
+    Q.Open;
+    Result := CampoInteger(Q, 'existe') > 0;
+    Q.Close;
+  except
+    on E: Exception do
+      Result := False;
+  end;
+  Q.Free;
+end;
+
+function TFDashboardProductividad.CampoHoraVentas(const ANombreTabla: string): string;
+const
+  // En las tablas activas ventasXXXXA-H de FacturLinEx:
+  //   V14 = Fecha de creacion de la linea
+  //   V15 = Hora de creacion de la linea
+  // V15 se pone el primero para que la pestaña Ventas abiertas tenga hora real
+  // y no termine mostrando "NO DISPONIBLE".
+  Candidatos: array[0..14] of string = (
+    'V15',
+    'VHORA', 'V_HORA', 'HORA', 'hora', 'Hora',
+    'VFECHAHORA', 'FECHAHORA', 'FECHA_HORA',
+    'created_at', 'CREATED_AT', 'timestamp', 'TIMESTAMP',
+    'V21', 'V22'
+  );
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := Low(Candidatos) to High(Candidatos) do
+    if ColumnaExiste(ANombreTabla, Candidatos[I]) then
+    begin
+      Result := Candidatos[I];
+      Exit;
+    end;
+end;
+
+function TFDashboardProductividad.SQLUnionVentasAbiertas: string;
+var
+  C: Char;
+  T, FechaExpr, HoraCampo, HoraExpr, Sep: string;
+begin
+  Result := '';
+  Sep := '';
+  for C := 'A' to 'H' do
+  begin
+    T := 'ventas' + FTienda + C;
+    if not TablaExiste(T) then
+      Continue;
+
+    if ColumnaExiste(T, 'V14') then
+      FechaExpr := 'COALESCE(NULLIF(TRIM(CAST(`V14` AS CHAR(30))), ''''), ''NO DISPONIBLE'')'
+    else
+      FechaExpr := '''NO DISPONIBLE''';
+
+    // Hora real de creacion de linea: V15. Si en alguna instalacion antigua no existe,
+    // mantenemos la deteccion flexible como respaldo.
+    HoraCampo := CampoHoraVentas(T);
+    if HoraCampo <> '' then
+      HoraExpr := 'COALESCE(NULLIF(TRIM(CAST(`' + HoraCampo + '` AS CHAR(30))), ''''), ''NO DISPONIBLE'')'
+    else
+      HoraExpr := '''NO DISPONIBLE''';
+
+    Result := Result + Sep +
+      'SELECT ' +
+      QuotedStr(String(C)) + ' AS caja, ' +
+      QuotedStr(T) + ' AS tabla, ' +
+      FechaExpr + ' AS fecha_linea, ' +
+      HoraExpr + ' AS hora_linea, ' +
+      'COALESCE(`V0`,0) AS ticket0, ' +
+      'COALESCE(`V1`,0) AS ticket, ' +
+      'COALESCE(`V2`,0) AS linea, ' +
+      'COALESCE(NULLIF(TRIM(`V3`),''''),'''') AS codigo, ' +
+      'CAST(`V4` AS CHAR(255)) AS descripcion, ' +
+      'COALESCE(`V5`,0) AS unidades, ' +
+      'COALESCE(`V6`,0) AS pvp, ' +
+      'COALESCE(`V8`,0) AS dto, ' +
+      'COALESCE(`V9`,0) AS importe, ' +
+      'COALESCE(`V10`,0) AS iva, ' +
+      'COALESCE(`V11`,0) AS total_linea, ' +
+      'COALESCE(`V12`,0) AS cliente, ' +
+      'COALESCE(`V13`,'''') AS marcada ' +
+      'FROM `' + T + '` ' +
+      'WHERE COALESCE(`V2`,0) >= 0';
+    Sep := ' UNION ALL ';
+  end;
+end;
+
+procedure TFDashboardProductividad.CargarVentasAbiertas;
+begin
+  CargarVNAResumen;
+  CargarVNATickets;
+  CargarVNADetalle;
+  CargarVNAHoras;
+  CargarVNARevision;
+end;
+
+procedure TFDashboardProductividad.CargarVNAResumen;
+var
+  U: string;
+begin
+  U := SQLUnionVentasAbiertas;
+  qVNAResumen.Close;
+  if U = '' then
+    qVNAResumen.SQL.Text := 'SELECT ''No se han encontrado tablas ventas' + FTienda + 'A-H'' AS aviso'
+  else
+    qVNAResumen.SQL.Text :=
+      'SELECT caja, tabla, ' +
+      'COUNT(DISTINCT CONCAT(ticket0,''/'',ticket)) AS ventas_abiertas, ' +
+      'COUNT(*) AS lineas, ' +
+      'SUM(unidades) AS unidades, ' +
+      'SUM(total_linea) AS importe_total, ' +
+      'MIN(fecha_linea) AS primera_fecha, ' +
+      'MAX(fecha_linea) AS ultima_fecha, ' +
+      'MIN(hora_linea) AS primera_hora, ' +
+      'MAX(hora_linea) AS ultima_hora, ' +
+      'SUM(CASE WHEN hora_linea = ''NO DISPONIBLE'' THEN 1 ELSE 0 END) AS lineas_sin_hora ' +
+      'FROM (' + U + ') X ' +
+      'GROUP BY caja, tabla ' +
+      'ORDER BY caja';
+  qVNAResumen.Open;
+end;
+
+procedure TFDashboardProductividad.CargarVNATickets;
+var
+  U: string;
+begin
+  U := SQLUnionVentasAbiertas;
+  qVNATickets.Close;
+  if U = '' then
+    qVNATickets.SQL.Text := 'SELECT ''No se han encontrado ventas abiertas'' AS aviso'
+  else
+    qVNATickets.SQL.Text :=
+      'SELECT caja, ticket0, ticket, ' +
+      'COUNT(*) AS lineas, ' +
+      'SUM(unidades) AS unidades, ' +
+      'SUM(total_linea) AS importe_total, ' +
+      'MIN(fecha_linea) AS primera_fecha, ' +
+      'MAX(fecha_linea) AS ultima_fecha, ' +
+      'MIN(hora_linea) AS primera_hora, ' +
+      'MAX(hora_linea) AS ultima_hora, ' +
+      'SUM(CASE WHEN hora_linea = ''NO DISPONIBLE'' THEN 1 ELSE 0 END) AS lineas_sin_hora ' +
+      'FROM (' + U + ') X ' +
+      'GROUP BY caja, ticket0, ticket ' +
+      'ORDER BY caja, primera_fecha, primera_hora, ticket0, ticket';
+  qVNATickets.Open;
+end;
+
+procedure TFDashboardProductividad.CargarVNADetalle;
+var
+  U: string;
+begin
+  U := SQLUnionVentasAbiertas;
+  qVNADetalle.Close;
+  if U = '' then
+    qVNADetalle.SQL.Text := 'SELECT ''No se han encontrado ventas abiertas'' AS aviso'
+  else
+    qVNADetalle.SQL.Text :=
+      'SELECT caja, fecha_linea, hora_linea, ticket0, ticket, linea, codigo, descripcion, ' +
+      'unidades, pvp, dto, importe, iva, total_linea, cliente, marcada ' +
+      'FROM (' + U + ') X ' +
+      'ORDER BY caja, fecha_linea, CASE WHEN hora_linea = ''NO DISPONIBLE'' THEN 1 ELSE 0 END, hora_linea, ticket0, ticket, linea';
+  qVNADetalle.Open;
+end;
+
+procedure TFDashboardProductividad.CargarVNAHoras;
+var
+  U: string;
+begin
+  U := SQLUnionVentasAbiertas;
+  qVNAHoras.Close;
+  if U = '' then
+    qVNAHoras.SQL.Text := 'SELECT ''No se han encontrado ventas abiertas'' AS aviso'
+  else
+    qVNAHoras.SQL.Text :=
+      'SELECT caja, fecha_linea, ' +
+      'CASE WHEN hora_linea = ''NO DISPONIBLE'' THEN ''NO DISPONIBLE'' ELSE LEFT(hora_linea,2) END AS hora, ' +
+      'COUNT(DISTINCT CONCAT(ticket0,''/'',ticket)) AS ventas_abiertas, ' +
+      'COUNT(*) AS lineas, ' +
+      'SUM(unidades) AS unidades, ' +
+      'SUM(total_linea) AS importe_total ' +
+      'FROM (' + U + ') X ' +
+      'GROUP BY caja, fecha_linea, CASE WHEN hora_linea = ''NO DISPONIBLE'' THEN ''NO DISPONIBLE'' ELSE LEFT(hora_linea,2) END ' +
+      'ORDER BY caja, fecha_linea, hora';
+  qVNAHoras.Open;
+end;
+
+procedure TFDashboardProductividad.CargarVNARevision;
+var
+  U: string;
+begin
+  U := SQLUnionVentasAbiertas;
+  qVNARevision.Close;
+  if U = '' then
+    qVNARevision.SQL.Text := 'SELECT ''No se han encontrado ventas abiertas'' AS aviso'
+  else
+    qVNARevision.SQL.Text :=
+      'SELECT caja, fecha_linea, hora_linea, ticket0, ticket, linea, codigo, descripcion, unidades, total_linea, ' +
+      'CASE ' +
+      'WHEN hora_linea = ''NO DISPONIBLE'' THEN ''Sin hora de linea'' ' +
+      'WHEN codigo = '''' THEN ''Sin codigo'' ' +
+      'WHEN total_linea < 0 THEN ''Importe negativo'' ' +
+      'WHEN total_linea = 0 THEN ''Importe cero'' ' +
+      'WHEN dto <> 0 THEN ''Con descuento'' ' +
+      'ELSE ''Revisar'' END AS motivo ' +
+      'FROM (' + U + ') X ' +
+      'WHERE hora_linea = ''NO DISPONIBLE'' OR codigo = '''' OR total_linea <= 0 OR dto <> 0 ' +
+      'ORDER BY caja, fecha_linea, CASE WHEN hora_linea = ''NO DISPONIBLE'' THEN 1 ELSE 0 END, hora_linea, ticket0, ticket, linea';
+  qVNARevision.Open;
 end;
 
 procedure TFDashboardProductividad.CargarResumen;
@@ -6512,7 +7318,7 @@ begin
   C.TextOut(22, 22, ALeg1);
   C.TextOut(119, 22, ALeg2);
 
-  TextoMax := 'Máx.: ' + APrefijo + FormatFloat('#,##0.##', MaxV) + ASufijo;
+  TextoMax := 'Max.: ' + APrefijo + FormatFloat('#,##0.##', MaxV) + ASufijo;
   C.TextOut(Max(8, W - C.TextWidth(TextoMax) - 8), 22, TextoMax);
 end;
 
@@ -6521,7 +7327,7 @@ var
   C: TCanvas;
   W, H, I, X, YBase, TopY, PlotW, PlotH, StepX, BarW, BarH: Integer;
   MaxV: Double;
-  TextoMax: string;
+  TextoMax, TextoValor: string;
 begin
   if APaintBox = nil then Exit;
 
@@ -6563,11 +7369,25 @@ begin
     C.Brush.Color := clSkyBlue;
     C.Pen.Color := clBlue;
     C.Rectangle(X, YBase - BarH, X + BarW, YBase);
+
+    if Abs(A[I]) > 0.0001 then
+    begin
+      TextoValor := APrefijo + FormatFloat('#,##0.##', A[I]) + ASufijo;
+      C.Brush.Style := bsClear;
+      C.Font.Size := 7;
+      C.Font.Orientation := 900;
+      C.Font.Color := clBlack;
+      C.TextOut(X + BarW - 1, YBase - BarH - 4, TextoValor);
+      C.Font.Orientation := 0;
+      C.Font.Size := 8;
+      C.Brush.Style := bsSolid;
+    end;
+
     if (I mod 2) = 0 then
       C.TextOut(X - 2, YBase + 4, Format('%.2d', [I]));
   end;
 
-  TextoMax := 'Máx.: ' + APrefijo + FormatFloat('#,##0.##', MaxV) + ASufijo;
+  TextoMax := 'Max.: ' + APrefijo + FormatFloat('#,##0.##', MaxV) + ASufijo;
   C.TextOut(42, TopY + 2, TextoMax);
 end;
 
@@ -6575,7 +7395,7 @@ procedure TFDashboardProductividad.PintarBarrasHorasEntero(APaintBox: TPaintBox;
 var
   C: TCanvas;
   W, H, I, X, YBase, TopY, PlotW, PlotH, StepX, BarW, BarH, MaxV: Integer;
-  TextoMax: string;
+  TextoMax, TextoValor: string;
 begin
   if APaintBox = nil then Exit;
 
@@ -6617,11 +7437,25 @@ begin
     C.Brush.Color := clMoneyGreen;
     C.Pen.Color := clGreen;
     C.Rectangle(X, YBase - BarH, X + BarW, YBase);
+
+    if A[I] > 0 then
+    begin
+      TextoValor := IntToStr(A[I]);
+      C.Brush.Style := bsClear;
+      C.Font.Size := 7;
+      C.Font.Orientation := 900;
+      C.Font.Color := clBlack;
+      C.TextOut(X + BarW - 1, YBase - BarH - 4, TextoValor);
+      C.Font.Orientation := 0;
+      C.Font.Size := 8;
+      C.Brush.Style := bsSolid;
+    end;
+
     if (I mod 2) = 0 then
       C.TextOut(X - 2, YBase + 4, Format('%.2d', [I]));
   end;
 
-  TextoMax := 'Máx.: ' + IntToStr(MaxV) + ' tickets';
+  TextoMax := 'Max.: ' + IntToStr(MaxV) + ' tickets';
   C.TextOut(42, TopY + 2, TextoMax);
 end;
 
@@ -6807,6 +7641,83 @@ begin
   end;
 end;
 
+
+procedure TFDashboardProductividad.HoyTicketsPaint(Sender: TObject);
+begin
+  PintarBarrasHorasEntero(pbHoyTicketsHora, 'Numero de tickets por hora - hoy', FHoyHoraTickets);
+end;
+
+procedure TFDashboardProductividad.HoyImportesPaint(Sender: TObject);
+begin
+  PintarBarrasHorasDouble(pbHoyImportesHora, 'Importe de tickets por hora - hoy', FHoyHoraImportes, '', ' €');
+end;
+
+procedure TFDashboardProductividad.HoyPagosPaint(Sender: TObject);
+var
+  C: TCanvas;
+  W, H, I, BarW, BarH, X0, X1, Y, MaxW: Integer;
+  MaxV, V: Double;
+  Texto: string;
+begin
+  if pbHoyPagos = nil then Exit;
+
+  C := pbHoyPagos.Canvas;
+  W := pbHoyPagos.Width;
+  H := pbHoyPagos.Height;
+
+  C.Brush.Color := clWhite;
+  C.FillRect(Rect(0, 0, W, H));
+  C.Font.Color := clBlack;
+  C.Font.Style := [fsBold];
+  C.TextOut(8, 6, 'Formas de pago hoy');
+  C.Font.Style := [];
+
+  if FHoyPagoCount = 0 then
+  begin
+    C.TextOut(8, 30, 'Sin datos de pago hoy.');
+    Exit;
+  end;
+
+  MaxV := 0;
+  for I := 0 to FHoyPagoCount - 1 do
+    if Abs(FHoyPagoImportes[I]) > MaxV then
+      MaxV := Abs(FHoyPagoImportes[I]);
+
+  if MaxV <= 0 then
+  begin
+    C.TextOut(8, 30, 'Sin importes para dibujar.');
+    Exit;
+  end;
+
+  X0 := 115;
+  X1 := W - 85;
+  if X1 <= X0 then X1 := X0 + 10;
+  MaxW := X1 - X0;
+  BarH := Max(16, (H - 46) div Max(1, FHoyPagoCount));
+  Y := 32;
+
+  for I := 0 to FHoyPagoCount - 1 do
+  begin
+    V := Abs(FHoyPagoImportes[I]);
+    BarW := Round((V / MaxV) * MaxW);
+    C.Font.Color := clBlack;
+    C.TextOut(8, Y + 2, Copy(FHoyPagoNombres[I], 1, 16));
+
+    C.Brush.Color := clMoneyGreen;
+    C.Pen.Color := clGreen;
+    C.Rectangle(X0, Y, X0 + BarW, Y + BarH - 4);
+
+    Texto := Dinero(FHoyPagoImportes[I]);
+    C.Brush.Style := bsClear;
+    C.Font.Color := clBlack;
+    C.TextOut(X0 + BarW + 6, Y + 2, Texto);
+    C.Brush.Style := bsSolid;
+
+    Inc(Y, BarH);
+    if Y > H - 18 then Break;
+  end;
+end;
+
 procedure TFDashboardProductividad.GraficoPagosPaint(Sender: TObject);
 var
   C: TCanvas;
@@ -6932,7 +7843,7 @@ begin
     end;
   end;
 
-  Texto := 'Máx.: ' + Dinero(MaxV);
+  Texto := 'Max.: ' + Dinero(MaxV);
   C.Font.Color := clBlack;
   C.TextOut(44, TopY + 2, Texto);
 end;
