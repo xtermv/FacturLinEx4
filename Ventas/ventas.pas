@@ -367,6 +367,7 @@ type
     procedure BitBtn9Exit(Sender: TObject);
     procedure btCodigoClick(Sender: TObject);
     procedure btHistoricosClick(Sender: TObject);
+    procedure btBuscarAbonoClick(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure cbUsuarioChange(Sender: TObject);
@@ -505,6 +506,7 @@ type
 
   private
     { private declarations }
+    btBuscarAbono: TBitBtn;
     ChkTodosAniosPrePro: TCheckBox;
     VF_PrevTotalEdit11: Double; // Total línea antes de editar con F7 (para calcular descuento)
     LblPromoActiva: TLabel;
@@ -530,11 +532,13 @@ type
       out AOrigNumero: Integer): Boolean;
     function VF_ValidarSaldosRectifTemporal: Boolean;
     procedure VF_RegistrarRectifDefinitiva(const ARectifTag: string);
+    function VF_HayLineaNegativaArticulo(const ACodigo: string): Boolean;
     function VF_PrepararRectifManualTemporal(const AOrigIsFS: Boolean; const AOrigSerie: string;
-      const AOrigNumero: Integer; out ARectifTag: string): Boolean;
+      const AOrigNumero: Integer; out ARectifTag: string; const AIgnorarFiltroCliente: Boolean = False): Boolean;
     function VF_PedirMotivoRectif(out AMotivo: string): Boolean;
     procedure VF_ConfigurarControlesCobro;
     function VF_NormalizarCamposCobro(const AFijarEntregaSiVacia: Boolean = True): Boolean;
+    procedure VF_PosicionarBotonBuscarAbono;
   public
     { public declarations }
     procedure VF_RegistrarLineaRectifTemporal(const AOrigTipo: string;
@@ -591,7 +595,8 @@ var
 implementation
 
 uses
-  Global, Funciones, creditos, Busquedas, Imprimir, uVeriFactu, uVeriHash, uFLX_Log, uFLX_Sound;
+  Global, Funciones, creditos, Busquedas, Imprimir, uVeriFactu, uVeriHash, uFLX_Log, uFLX_Sound,
+  uBuscarVentaArticuloAbonoV13;
 
 
 // -----------------------------------------------------------------------------
@@ -1844,7 +1849,7 @@ begin
 end;
 
 function TFVentas.VF_PrepararRectifManualTemporal(const AOrigIsFS: Boolean; const AOrigSerie: string;
-  const AOrigNumero: Integer; out ARectifTag: string): Boolean;
+  const AOrigNumero: Integer; out ARectifTag: string; const AIgnorarFiltroCliente: Boolean): Boolean;
 var
   SQLTxt, TipoFiltro, CliFiltro, CodArt, DescArt, OCaja, OSerie, OTipo: string;
   OFechaStr, OHoraStr, NifActual, ClienteActual: string;
@@ -1890,17 +1895,20 @@ begin
   ClienteActual := Trim(Edit1.Text);
   NifActual := Trim(Label21.Caption);
   CliFiltro := '';
-  if ClienteActual <> '' then
-    CliFiltro := CliFiltro + ' AND (HO8=' + ClienteActual;
-  if NifActual <> '' then
+  if not AIgnorarFiltroCliente then
   begin
-    if CliFiltro = '' then
-      CliFiltro := ' AND (HO19="' + VF_SQLEscapeDbl(NifActual) + '"'
-    else
-      CliFiltro := CliFiltro + ' OR HO19="' + VF_SQLEscapeDbl(NifActual) + '"';
+    if ClienteActual <> '' then
+      CliFiltro := CliFiltro + ' AND (HO8=' + ClienteActual;
+    if NifActual <> '' then
+    begin
+      if CliFiltro = '' then
+        CliFiltro := ' AND (HO19="' + VF_SQLEscapeDbl(NifActual) + '"'
+      else
+        CliFiltro := CliFiltro + ' OR HO19="' + VF_SQLEscapeDbl(NifActual) + '"';
+    end;
+    if CliFiltro <> '' then
+      CliFiltro := CliFiltro + ')';
   end;
-  if CliFiltro <> '' then
-    CliFiltro := CliFiltro + ')';
 
   try
     // 1) Resolver cabecera original en histórico con serie/número/tipo y, si existe, cliente/NIF.
@@ -2223,6 +2231,54 @@ begin
 end;
 
 
+procedure TFVentas.VF_PosicionarBotonBuscarAbono;
+var
+  L, T: Integer;
+begin
+  if not Assigned(btBuscarAbono) then
+    Exit;
+
+  // Preferimos la misma zona del texto "FILTRO HISTORICOS".
+  // Asi el boton no queda a la derecha de btHistoricos, que en algunas
+  // pantallas se solapaba con otros controles existentes.
+  if Assigned(lbHistorico) then
+  begin
+    btBuscarAbono.Parent := lbHistorico.Parent;
+
+    btBuscarAbono.Width := 100;
+    if Assigned(cbHistoricos) and (cbHistoricos.Height > 0) then
+      btBuscarAbono.Height := cbHistoricos.Height
+    else if Assigned(btHistoricos) and (btHistoricos.Height > 0) then
+      btBuscarAbono.Height := btHistoricos.Height
+    else
+      btBuscarAbono.Height := 25;
+
+    L := lbHistorico.Left - btBuscarAbono.Width - 8;
+    if L < 4 then
+      L := 4;
+
+    T := lbHistorico.Top + ((lbHistorico.Height - btBuscarAbono.Height) div 2);
+    if T < 0 then
+      T := lbHistorico.Top;
+
+    btBuscarAbono.Left := L;
+    btBuscarAbono.Top := T;
+  end
+  else if Assigned(btHistoricos) then
+  begin
+    // Seguridad por si alguna version del LFM no tuviera lbHistorico.
+    btBuscarAbono.Parent := btHistoricos.Parent;
+    btBuscarAbono.Width := 100;
+    btBuscarAbono.Height := btHistoricos.Height;
+    btBuscarAbono.Left := btHistoricos.Left - btBuscarAbono.Width - 8;
+    if btBuscarAbono.Left < 4 then
+      btBuscarAbono.Left := 4;
+    btBuscarAbono.Top := btHistoricos.Top;
+  end;
+
+  btBuscarAbono.Visible := True;
+end;
+
 procedure TFVentas.FormCreate(Sender: TObject);
 var
   T1: QWord;
@@ -2245,6 +2301,17 @@ LblPromoActiva.Top := Edit6.Top + 4;
   // Controles seguros del panel de cobro/totalizar.
   VF_ConfigurarControlesCobro;
   DBGrid2.OnMouseWheel := @DBGrid2MouseWheel;
+
+  // Boton creado por codigo: no requiere modificar LFM ni abrir Lazarus grafico.
+  // Busca ventas del articulo en los ultimos 3 meses para preparar el origen del abono.
+  // v1.1: se posiciona junto al texto "FILTRO HISTORICOS" para no tapar botones
+  // existentes en resoluciones o escalados distintos.
+  btBuscarAbono := TBitBtn.Create(Self);
+  btBuscarAbono.Caption := 'Buscar abono';
+  btBuscarAbono.ShowHint := True;
+  btBuscarAbono.Hint := 'Busca en historico las ventas de este articulo para preparar un abono VeriFactu';
+  btBuscarAbono.OnClick := @btBuscarAbonoClick;
+  VF_PosicionarBotonBuscarAbono;
 
   //--------- Conectar con la bbdd e inicializar datos globales
   //Conectate(dbConnect);   // Utilizamos datamodule1.dbConexión para toda la aplicación.
@@ -2343,6 +2410,210 @@ end;
 procedure TFVentas.btCodigoClick(Sender: TObject);
 begin
    Edit1.Text:=VerUltimoCliente; Edit1.SetFocus;
+end;
+
+function TFVentas.VF_HayLineaNegativaArticulo(const ACodigo: string): Boolean;
+var
+  Bmk: TBookmark;
+  TieneBookmark: Boolean;
+  Cod: string;
+begin
+  Result := False;
+  Cod := Trim(ACodigo);
+  if Cod = '' then Exit;
+  if (dbVentas = nil) or (not dbVentas.Active) or dbVentas.IsEmpty then Exit;
+
+  TieneBookmark := False;
+  Bmk := nil;
+  dbVentas.DisableControls;
+  try
+    try
+      Bmk := dbVentas.GetBookmark;
+      TieneBookmark := True;
+    except
+      TieneBookmark := False;
+    end;
+
+    dbVentas.First;
+    while not dbVentas.EOF do
+    begin
+      if (Trim(dbVentas.FieldByName('V3').AsString) = Cod) and
+         (dbVentas.FieldByName('V5').AsFloat < 0) then
+      begin
+        Result := True;
+        Break;
+      end;
+      dbVentas.Next;
+    end;
+
+    if TieneBookmark and dbVentas.BookmarkValid(Bmk) then
+      dbVentas.GotoBookmark(Bmk);
+  finally
+    if TieneBookmark then
+      dbVentas.FreeBookmark(Bmk);
+    dbVentas.EnableControls;
+  end;
+end;
+
+function VF_CrearOConvertirLineaAbonoDesdeOrigen(AForm: TFVentas;
+  const R: TAbonoVentaOrigen; out AQtyReq, AImpReq: Double): Boolean;
+var
+  QtySel, QtyUsar, Factor, TotalUsar, ImporteUsar: Double;
+  UsarLineaActual: Boolean;
+begin
+  Result := False;
+  AQtyReq := 0;
+  AImpReq := 0;
+
+  if (AForm = nil) or (AForm.dbVentas = nil) or (not AForm.dbVentas.Active) then Exit;
+  if R.CantidadDisponible <= 0.0001 then
+  begin
+    MessageDlg('Control de abonos',
+      'Esta linea ya no tiene cantidad disponible para abonar.',
+      mtWarning, [mbOK], 0);
+    Exit;
+  end;
+
+  // Si ya hay una linea seleccionada del mismo articulo, la convertimos en abono.
+  // Si no la hay, creamos una linea nueva tomada directamente del historico.
+  UsarLineaActual := (not AForm.dbVentas.IsEmpty) and
+    (Trim(AForm.dbVentas.FieldByName('V3').AsString) = R.Codigo);
+
+  QtySel := 0;
+  if UsarLineaActual then
+    QtySel := Abs(AForm.dbVentas.FieldByName('V5').AsFloat);
+
+  if QtySel <= 0.0001 then
+    QtySel := 1;
+
+  if QtySel > R.CantidadDisponible then
+    QtyUsar := R.CantidadDisponible
+  else
+    QtyUsar := QtySel;
+
+  if QtyUsar <= 0.0001 then Exit;
+
+  if R.CantidadOriginal > 0.0001 then
+    Factor := QtyUsar / R.CantidadOriginal
+  else
+    Factor := 1;
+
+  TotalUsar := -Abs(R.Total * Factor);
+  ImporteUsar := -Abs(R.ImporteSinIVA * Factor);
+
+  try
+    if UsarLineaActual then
+      AForm.dbVentas.Edit
+    else
+    begin
+      AForm.dbVentas.Append;
+      AForm.dbVentas.FieldByName('V0').AsString := '0';
+      AForm.dbVentas.FieldByName('V1').AsString := TICKET;
+      AForm.dbVentas.FieldByName('V2').AsInteger := AForm.VerUltimaLineaV;
+      if AForm.dbVentas.FindField('V13') <> nil then
+        AForm.dbVentas.FieldByName('V13').AsString := 'N';
+    end;
+
+    AForm.dbVentas.FieldByName('V3').AsString := R.Codigo;
+    AForm.dbVentas.FieldByName('V4').AsString := R.Descripcion;
+    AForm.dbVentas.FieldByName('V5').AsFloat := -Abs(QtyUsar);
+    AForm.dbVentas.FieldByName('V6').AsFloat := R.PVP;
+    AForm.dbVentas.FieldByName('V7').AsFloat := R.PrecioSinIVA;
+    AForm.dbVentas.FieldByName('V8').AsFloat := R.Dto;
+    AForm.dbVentas.FieldByName('V9').AsFloat := ImporteUsar;
+    AForm.dbVentas.FieldByName('V10').AsFloat := R.IVA;
+    AForm.dbVentas.FieldByName('V11').AsFloat := TotalUsar;
+    AForm.dbVentas.FieldByName('V12').AsString := AForm.Edit1.Text;
+    AForm.dbVentas.FieldByName('V14').AsDateTime := Date;
+    AForm.dbVentas.FieldByName('V15').AsDateTime := Time;
+    AForm.dbVentas.Post;
+
+    AQtyReq := Abs(QtyUsar);
+    AImpReq := Abs(TotalUsar);
+    Result := True;
+  except
+    on E: Exception do
+    begin
+      try
+        if AForm.dbVentas.State in [dsEdit, dsInsert] then
+          AForm.dbVentas.Cancel;
+      except
+      end;
+      ShowMessage('No se pudo preparar la linea negativa del abono: ' + E.Message);
+      Result := False;
+    end;
+  end;
+end;
+
+procedure TFVentas.btBuscarAbonoClick(Sender: TObject);
+var
+  R: TAbonoVentaOrigen;
+  Codigo, Descripcion, RectifTag, DummyTipo, DummySerie: string;
+  DummyNum: Integer;
+  QtyReq, ImpReq: Double;
+begin
+  Codigo := '';
+  Descripcion := '';
+
+  // Si hay una linea seleccionada, usamos su articulo. Aunque sea positiva,
+  // al elegir el origen se convertira en negativa automaticamente.
+  if (dbVentas <> nil) and dbVentas.Active and (not dbVentas.IsEmpty) then
+  begin
+    Codigo := Trim(dbVentas.FieldByName('V3').AsString);
+    Descripcion := Trim(dbVentas.FieldByName('V4').AsString);
+  end;
+
+  // Si no hay linea seleccionada, usamos el codigo escrito/escaneado.
+  if Codigo = '' then
+    Codigo := Trim(Edit3.Text);
+
+  if Codigo = '' then
+  begin
+    ShowMessage('Indique o seleccione primero un articulo para buscar sus ventas.');
+    Edit3.SetFocus;
+    Exit;
+  end;
+
+  if not BuscarVentaArticuloAbono(Self, dbVentas.Connection, Tienda, Codigo,
+    Descripcion, Trim(Edit1.Text), Trim(Label21.Caption), 3, R) then
+  begin
+    Edit8.SetFocus;
+    Exit;
+  end;
+
+  // Crea o convierte la linea de venta actual en una linea negativa de abono.
+  // Tambien deja posicionada la linea correcta para registrar su V2 en ventasrectif.
+  if not VF_CrearOConvertirLineaAbonoDesdeOrigen(Self, R, QtyReq, ImpReq) then
+    Exit;
+
+  if QtyReq > (R.CantidadDisponible + 0.0001) then
+  begin
+    MessageDlg('Control de abonos',
+      'La cantidad negativa supera la cantidad disponible de la venta origen.' + LineEnding + LineEnding +
+      'Cantidad solicitada: ' + FormatFloat('0.###', QtyReq) + LineEnding +
+      'Disponible: ' + FormatFloat('0.###', R.CantidadDisponible),
+      mtWarning, [mbOK], 0);
+    Exit;
+  end;
+
+  // Registro exacto de la linea seleccionada del historico en ventasrectif+Tienda+Puesto.
+  VF_RegistrarLineaRectifTemporal(R.OrigTipo, R.OrigFechaDT, R.OrigHoraDT,
+    R.OrigCaja, R.OrigSerie, R.OrigNumero, R.OrigLinea,
+    R.CantidadOriginal, QtyReq, R.Total, ImpReq);
+
+  PintarTotalGeneral;
+  RefrescaTicketsAbiertos;
+
+  if not VF_ValidarSaldosRectifTemporal then Exit;
+
+  if VF_ObtenerRectifTagTemporal(RectifTag, DummyTipo, DummySerie, DummyNum) then
+    DataModule1.Mensaje('Informacion',
+      'Origen de abono preparado: ' + R.OrigTipo + ' ' + R.OrigSerie + '-' +
+      IntToStr(R.OrigNumero), 4500, clGray)
+  else
+    DataModule1.Mensaje('Informacion',
+      'Linea de abono registrada. Si hay mas lineas negativas, prepare tambien su origen antes de totalizar.',
+      5500, clGray);
 end;
 
 
@@ -8624,6 +8895,7 @@ end;
 
 procedure TFVentas.FormShow(Sender: TObject);
 begin
+  VF_PosicionarBotonBuscarAbono;
   Edit3.SetFocus;
 
   BitBtn24Click(BitBtn24);
