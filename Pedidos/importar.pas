@@ -241,6 +241,8 @@ type
     procedure InsertarLinea(Linea: RLineaPedido; VerUltimaLinea: integer );
     procedure SumaPendientes(CodiPen, UniPen: String);
     function SeleccionarArticuloExistentePorDescripcion(const TextoBusqueda: string; out ACodigo, ANombre: string): Boolean;
+    function SeleccionarArticuloSimilarOAltaNueva(const TextoBusqueda: string; out ACodigo, ANombre: string; out ACrearNuevo: Boolean): Boolean;
+    function IntentarVincularArticuloSimilarAntesAlta(var Linea: RLineaPedido; const CodigoNuevo, NombreNuevo, EanNuevo: string): Boolean;
     function PrepararArticuloExistenteParaEan(var Linea: RLineaPedido): Boolean;
     procedure NuevoEan(const nuevoEan: string; var linea: RLineaPedido);
 
@@ -868,6 +870,135 @@ var
 begin
   Aux := Trim(S);
   Result := (Aux <> '') and (Aux <> '0000000000000');
+end;
+
+function FLX_NormalizaParaSimilitud(const S: string): string;
+var
+  I: Integer;
+  C: Char;
+  T: string;
+begin
+  T:=UpperCase(FLX_NormalizaDescripcionImportada(S));
+  Result:='';
+
+  for I:=1 to Length(T) do
+  begin
+    C:=T[I];
+    if (((C>='A') and (C<='Z')) or ((C>='0') and (C<='9'))) then
+      Result:=Result+C
+    else
+      Result:=Result+' ';
+  end;
+
+  while Pos('  ', Result)>0 do
+    Result:=StringReplace(Result, '  ', ' ', [rfReplaceAll]);
+  Result:=Trim(Result);
+end;
+
+function FLX_PalabraUtilParaSimilitud(const S: string): Boolean;
+var
+  P: string;
+begin
+  P:=UpperCase(Trim(S));
+  Result:=Length(P)>=3;
+  if not Result then Exit;
+
+  // Palabras muy comunes que no ayudan a distinguir artículos.
+  if (P='CON') or (P='SIN') or (P='DEL') or (P='LOS') or
+     (P='LAS') or (P='UNA') or (P='UNO') or (P='PAR') or
+     (P='UND') or (P='UDS') or (P='UNID') or (P='PACK') then
+    Result:=False;
+end;
+
+procedure FLX_ExtraerPalabrasSimilares(const S: string; Palabras: TStringList);
+var
+  I: Integer;
+  T, P: string;
+begin
+  if Palabras=nil then Exit;
+  Palabras.Clear;
+  T:=FLX_NormalizaParaSimilitud(S);
+  P:='';
+
+  for I:=1 to Length(T) do
+  begin
+    if T[I]<>' ' then
+      P:=P+T[I]
+    else
+    begin
+      if FLX_PalabraUtilParaSimilitud(P) and (Palabras.IndexOf(P)<0) then
+        Palabras.Add(P);
+      P:='';
+    end;
+  end;
+
+  if FLX_PalabraUtilParaSimilitud(P) and (Palabras.IndexOf(P)<0) then
+    Palabras.Add(P);
+end;
+
+function FLX_ScoreDescripcionSimilar(const DescImportada, DescBD: string): Integer;
+var
+  Palabras: TStringList;
+  I: Integer;
+  P, TImp, TBD: string;
+begin
+  Result:=0;
+  TImp:=FLX_NormalizaParaSimilitud(DescImportada);
+  TBD:=FLX_NormalizaParaSimilitud(DescBD);
+
+  if (TImp='') or (TBD='') then Exit;
+
+  if TImp=TBD then
+    Inc(Result, 500)
+  else
+  begin
+    if Pos(TImp, TBD)>0 then Inc(Result, 180);
+    if Pos(TBD, TImp)>0 then Inc(Result, 120);
+  end;
+
+  Palabras:=TStringList.Create;
+  try
+    FLX_ExtraerPalabrasSimilares(TImp, Palabras);
+    for I:=0 to Palabras.Count-1 do
+    begin
+      P:=Palabras[I];
+      if Pos(' '+P+' ', ' '+TBD+' ')>0 then
+        Inc(Result, 30+(Length(P)*2))
+      else if Pos(P, TBD)>0 then
+        Inc(Result, 15+Length(P));
+
+      if Copy(TBD, 1, Length(P))=P then
+        Inc(Result, 10);
+    end;
+  finally
+    Palabras.Free;
+  end;
+end;
+
+procedure FLX_InsertarCandidatoSimilar(Codigos, Nombres, Lineas: TStringList;
+  const Codigo, Nombre: string; const Score: Integer);
+var
+  I: Integer;
+begin
+  if (Codigos=nil) or (Nombres=nil) or (Lineas=nil) then Exit;
+  if (Trim(Codigo)='') or (Trim(Nombre)='') then Exit;
+  if Score<=0 then Exit;
+  if Codigos.IndexOf(Codigo)>=0 then Exit;
+
+  I:=0;
+  while (I<Lineas.Count) and (StrToIntDef(Copy(Lineas[I],1,4),0)>=Score) do
+    Inc(I);
+
+  Codigos.Insert(I, Codigo);
+  Nombres.Insert(I, Nombre);
+  Lineas.Insert(I, Format('%.4d  %s  -  %s', [Score, Codigo, Nombre]));
+
+  while Lineas.Count>25 do
+  begin
+    Lineas.Delete(Lineas.Count-1);
+    Codigos.Delete(Codigos.Count-1);
+    Nombres.Delete(Nombres.Count-1);
+  end;
 end;
 
 function FLX_PedirIVAArticuloNuevo(const ACodigo, ANombre: string; var AIva: Double): Boolean;
@@ -2368,6 +2499,234 @@ begin
   until False;
 end;
 
+function TfImportar.SeleccionarArticuloSimilarOAltaNueva(const TextoBusqueda: string; out ACodigo, ANombre: string; out ACrearNuevo: Boolean): Boolean;
+var
+  FormSel: TForm;
+  Lista: TListBox;
+  LInfo: TLabel;
+  BtnUsar, BtnNuevo, BtnCancel: TButton;
+  Codigos, Nombres, Lineas, Palabras: TStringList;
+  Condicion, Busqueda: string;
+  I, Modal: Integer;
+  Score: Integer;
+begin
+  Result:=False;
+  ACodigo:='';
+  ANombre:='';
+  ACrearNuevo:=False;
+  Busqueda:=Trim(TextoBusqueda);
+
+  if Busqueda='' then
+  begin
+    ACrearNuevo:=True;
+    Result:=True;
+    Exit;
+  end;
+
+  Codigos:=TStringList.Create;
+  Nombres:=TStringList.Create;
+  Lineas:=TStringList.Create;
+  Palabras:=TStringList.Create;
+  try
+    FLX_ExtraerPalabrasSimilares(Busqueda, Palabras);
+
+    Condicion:='';
+    for I:=0 to Palabras.Count-1 do
+    begin
+      if I>=6 then Break; // No saturar la consulta en bases grandes.
+      if Condicion<>'' then Condicion:=Condicion+' OR ';
+      Condicion:=Condicion+'A1 LIKE "%'+FLX_SQLTexto(Palabras[I])+'%"';
+    end;
+
+    if Condicion='' then
+      Condicion:='A1 LIKE "%'+FLX_SQLTexto(FLX_NormalizaParaSimilitud(Busqueda))+'%"';
+
+    dbArti.Active:=False;
+    dbArti.SQL.Text:=
+      'SELECT A0,A1 FROM artitien'+Tienda+
+      ' WHERE '+Condicion+
+      ' ORDER BY A1 LIMIT 200';
+    dbArti.Active:=True;
+
+    dbArti.First;
+    while not dbArti.EOF do
+    begin
+      Score:=FLX_ScoreDescripcionSimilar(Busqueda, dbArti.FieldByName('A1').AsString);
+      FLX_InsertarCandidatoSimilar(
+        Codigos, Nombres, Lineas,
+        dbArti.FieldByName('A0').AsString,
+        dbArti.FieldByName('A1').AsString,
+        Score);
+      dbArti.Next;
+    end;
+
+    // Si no hay candidatos razonables, no molestamos: se continúa con el alta nueva.
+    if Lineas.Count=0 then
+    begin
+      ACrearNuevo:=True;
+      Result:=True;
+      Exit;
+    end;
+
+    FormSel:=TForm.Create(Self);
+    try
+      FormSel.Caption:='Artículos similares encontrados';
+      FormSel.Position:=poScreenCenter;
+      FormSel.BorderStyle:=bsSizeable;
+      FormSel.Width:=850;
+      FormSel.Height:=480;
+
+      LInfo:=TLabel.Create(FormSel);
+      LInfo.Parent:=FormSel;
+      LInfo.Left:=8;
+      LInfo.Top:=8;
+      LInfo.Width:=FormSel.ClientWidth-16;
+      LInfo.Height:=48;
+      LInfo.Anchors:=[akLeft, akTop, akRight];
+      LInfo.Caption:=
+        'Antes de crear un artículo nuevo, se han encontrado posibles coincidencias.' + LineEnding +
+        'Línea importada: ' + Busqueda + LineEnding +
+        'Puede usar uno de estos artículos o continuar con el alta nueva.';
+
+      Lista:=TListBox.Create(FormSel);
+      Lista.Parent:=FormSel;
+      Lista.Left:=8;
+      Lista.Top:=64;
+      Lista.Width:=FormSel.ClientWidth-16;
+      Lista.Height:=FormSel.ClientHeight-112;
+      Lista.Anchors:=[akLeft, akTop, akRight, akBottom];
+      Lista.Items.Assign(Lineas);
+      if Lista.Items.Count>0 then Lista.ItemIndex:=0;
+
+      BtnUsar:=TButton.Create(FormSel);
+      BtnUsar.Parent:=FormSel;
+      BtnUsar.Caption:='Usar seleccionado';
+      BtnUsar.ModalResult:=mrOk;
+      BtnUsar.Left:=FormSel.ClientWidth-370;
+      BtnUsar.Top:=FormSel.ClientHeight-40;
+      BtnUsar.Width:=130;
+      BtnUsar.Anchors:=[akRight, akBottom];
+
+      BtnNuevo:=TButton.Create(FormSel);
+      BtnNuevo.Parent:=FormSel;
+      BtnNuevo.Caption:='Alta nueva';
+      BtnNuevo.ModalResult:=mrYes;
+      BtnNuevo.Left:=FormSel.ClientWidth-232;
+      BtnNuevo.Top:=FormSel.ClientHeight-40;
+      BtnNuevo.Width:=100;
+      BtnNuevo.Anchors:=[akRight, akBottom];
+
+      BtnCancel:=TButton.Create(FormSel);
+      BtnCancel.Parent:=FormSel;
+      BtnCancel.Caption:='Cancelar';
+      BtnCancel.ModalResult:=mrCancel;
+      BtnCancel.Left:=FormSel.ClientWidth-124;
+      BtnCancel.Top:=FormSel.ClientHeight-40;
+      BtnCancel.Width:=116;
+      BtnCancel.Anchors:=[akRight, akBottom];
+
+      Modal:=FormSel.ShowModal;
+      if Modal=mrOk then
+      begin
+        I:=Lista.ItemIndex;
+        if (I>=0) and (I<Codigos.Count) then
+        begin
+          ACodigo:=Codigos[I];
+          ANombre:=Nombres[I];
+          ACrearNuevo:=False;
+          Result:=True;
+        end;
+      end
+      else if Modal=mrYes then
+      begin
+        ACrearNuevo:=True;
+        Result:=True;
+      end;
+    finally
+      FormSel.Free;
+    end;
+  finally
+    Codigos.Free;
+    Nombres.Free;
+    Lineas.Free;
+    Palabras.Free;
+  end;
+end;
+
+function TfImportar.IntentarVincularArticuloSimilarAntesAlta(var Linea: RLineaPedido; const CodigoNuevo, NombreNuevo, EanNuevo: string): Boolean;
+var
+  CodBD, NomBD, Aux: string;
+  CrearNuevo, InsertoAux: Boolean;
+begin
+  // Devuelve True si la acción ya queda resuelta o cancelada.
+  // Devuelve False si el usuario decide continuar con el alta nueva normal.
+  Result:=False;
+
+  if not SeleccionarArticuloSimilarOAltaNueva(NombreNuevo, CodBD, NomBD, CrearNuevo) then
+  begin
+    Result:=True; // Cancelado por el usuario.
+    Exit;
+  end;
+
+  if CrearNuevo then
+    Exit; // Continúa el alta nueva existente.
+
+  EditBDCodigo.Text:=CodBD;
+  EditBDNombre.Text:=NomBD;
+  EditBDEan.Text:='';
+
+  Linea.Codigo:=CodBD;
+  Linea.Descripcion:=NomBD;
+  Linea.CoinCod:=1;
+  Linea.CoinDes:=1;
+  InsertoAux:=False;
+
+  // Si el proveedor trae EAN válido, lo añadimos como auxiliar del artículo seleccionado.
+  if FLX_TextoValidoEAN(EanNuevo) then
+  begin
+    Aux:=FLX_NormalizaEANImportado(EanNuevo, CodigoNuevo, NombreNuevo);
+    EditPenEan.Text:=Aux;
+    NuevoEan(Aux, Linea);
+    InsertoAux:=True;
+  end
+  else if (Trim(CodigoNuevo)<>'') and (Trim(CodigoNuevo)<>Trim(CodBD)) then
+  begin
+    // Si no hay EAN, se ofrece guardar el código del proveedor como auxiliar.
+    if MessageDlg(
+         'Ha elegido usar un artículo existente:' + LineEnding + LineEnding +
+         CodBD + ' - ' + NomBD + LineEnding + LineEnding +
+         'La línea no trae un EAN válido.' + LineEnding +
+         '¿Desea añadir el código del proveedor como código auxiliar?' + LineEnding + LineEnding +
+         'Código proveedor: ' + CodigoNuevo,
+         mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+    begin
+      NuevoEan(CodigoNuevo, Linea);
+      InsertoAux:=True;
+    end;
+  end;
+
+  if not InsertoAux then
+  begin
+    Linea.Codigo:=CodBD;
+    Linea.Descripcion:=NomBD;
+    Linea.CodigoEAN:='';
+    Linea.CoinCod:=1;
+    Linea.CoinDes:=1;
+    Linea.CoinEan:=0;
+  end;
+
+  BuscarCoincidencias(Linea);
+  ArrayDeLineasPedido[Linea.Pos-1]:=Linea;
+  DistribuirLineasPedido(ArrayDeLineasPedido);
+
+  BitBtnDAltaCod.Enabled:=False;
+  BitBtnAltaEan.Enabled:=False;
+  BitBtnAceptarDatosBD.Enabled:=False;
+  PanelEdicion.Visible:=False;
+
+  Result:=True;
+end;
+
 function TfImportar.PrepararArticuloExistenteParaEan(var Linea: RLineaPedido): Boolean;
 var
   CodBD, NomBD: string;
@@ -3145,12 +3504,6 @@ var
   MargenAlta, MargenSobrePvpAlta: Double;
   IvaPorDefecto: Boolean;
 begin
-  ShowMessage(
-    'UN ARTÍCULO PUEDE TENER OTRAS MUCHAS CARACTERISTICAS QUE NO ESTÁN RECOGIDAS EN ESTA CREACIÓN' + LineEnding +
-    'SE RECOMIENDA VISITAR LA FICHA DEL ARTÍCULO' + LineEnding + LineEnding +
-    'Se creará con PVP provisional 999,00 para localizarlo fácilmente.'
-  );
-
   CodigoNuevo:=Trim(EditPenCodigo.Text);
   NombreNuevo:=FLX_NormalizaDescripcionImportada(EditPenNombre.Text);
   EanNuevo:=Trim(EditPenEan.Text);
@@ -3172,6 +3525,17 @@ begin
   linea.Codigo:=CodigoNuevo;
   linea.Descripcion:=NombreNuevo;
   linea.CodigoEAN:=EanNuevo;
+
+  // Antes de crear una ficha nueva, ofrecemos posibles artículos similares.
+  // Si el usuario elige uno, la línea queda vinculada al existente y no se crea duplicado.
+  if IntentarVincularArticuloSimilarAntesAlta(linea, CodigoNuevo, NombreNuevo, EanNuevo) then
+    Exit;
+
+  ShowMessage(
+    'UN ARTÍCULO PUEDE TENER OTRAS MUCHAS CARACTERISTICAS QUE NO ESTÁN RECOGIDAS EN ESTA CREACIÓN' + LineEnding +
+    'SE RECOMIENDA VISITAR LA FICHA DEL ARTÍCULO' + LineEnding + LineEnding +
+    'Se creará con PVP provisional 999,00 para localizarlo fácilmente.'
+  );
 
   IvaAlta:=FLX_StrToFloatDefSeguro(linea.IVA, -1);
   IvaPorDefecto:=(IvaAlta <= 0);
