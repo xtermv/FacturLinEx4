@@ -84,6 +84,7 @@ type
     tsDashboard: TTabSheet;
     tsHoy: TTabSheet;
     tsVentasAbiertas: TTabSheet;
+    tsCierreTarde: TTabSheet;
     tsAlertas: TTabSheet;
     tsEstudios: TTabSheet;
     tsComparativa: TTabSheet;
@@ -144,6 +145,11 @@ type
     qVNADetalle: TZQuery;
     qVNAHoras: TZQuery;
     qVNARevision: TZQuery;
+    qCTResumen: TZQuery;
+    qCTDias: TZQuery;
+    qCTCandidatos: TZQuery;
+    qCTSemana: TZQuery;
+    qCTHoras: TZQuery;
     qAlertas: TZQuery;
     qEstVentasDia: TZQuery;
     qEstVentasHora: TZQuery;
@@ -242,6 +248,11 @@ type
     dsVNADetalle: TDataSource;
     dsVNAHoras: TDataSource;
     dsVNARevision: TDataSource;
+    dsCTResumen: TDataSource;
+    dsCTDias: TDataSource;
+    dsCTCandidatos: TDataSource;
+    dsCTSemana: TDataSource;
+    dsCTHoras: TDataSource;
     dsAlertas: TDataSource;
     dsEstVentasDia: TDataSource;
     dsEstVentasHora: TDataSource;
@@ -338,6 +349,12 @@ type
     gridVNADetalle: TDBGrid;
     gridVNAHoras: TDBGrid;
     gridVNARevision: TDBGrid;
+    gridCTResumen: TDBGrid;
+    gridCTDias: TDBGrid;
+    gridCTCandidatos: TDBGrid;
+    gridCTSemana: TDBGrid;
+    gridCTHoras: TDBGrid;
+    memoCTSugerencia: TMemo;
     gridAlertas: TDBGrid;
     gridEstVentasDia: TDBGrid;
     gridEstVentasHora: TDBGrid;
@@ -486,6 +503,7 @@ type
     procedure CrearTabDashboard;
     procedure CrearTabHoy;
     procedure CrearTabVentasAbiertas;
+    procedure CrearTabCierreTarde;
     procedure CrearTabAlertas;
     procedure CrearTabEstudios;
     procedure CrearTabComparativa;
@@ -564,6 +582,13 @@ type
     procedure CargarVNADetalle;
     procedure CargarVNAHoras;
     procedure CargarVNARevision;
+    procedure CargarCierreTarde;
+    procedure CargarCTSugerencia;
+    procedure CargarCTResumen;
+    procedure CargarCTDias;
+    procedure CargarCTCandidatos;
+    procedure CargarCTSemana;
+    procedure CargarCTHoras;
     procedure CargarResumen;
     procedure CargarPagos;
     procedure CargarTopArticulos;
@@ -971,6 +996,11 @@ begin
   qVNADetalle.Connection := FConn;
   qVNAHoras.Connection := FConn;
   qVNARevision.Connection := FConn;
+  qCTResumen.Connection := FConn;
+  qCTDias.Connection := FConn;
+  qCTCandidatos.Connection := FConn;
+  qCTSemana.Connection := FConn;
+  qCTHoras.Connection := FConn;
   qAlertas.Connection := FConn;
   qEstVentasDia.Connection := FConn;
   qEstVentasHora.Connection := FConn;
@@ -1061,8 +1091,8 @@ begin
   WindowState := wsMaximized;
   CargarConsultaLibreTablas;
 
-  // La pestaña principal al abrir Productividad debe ser siempre Dashboard.
-  // CargarEstadoVisual solo recupera las fechas; no debe reabrir Alertas u otra pestaña.
+  // La pestaï¿½a principal al abrir Productividad debe ser siempre Dashboard.
+  // CargarEstadoVisual solo recupera las fechas; no debe reabrir Alertas u otra pestaï¿½a.
   pcPrincipal.ActivePage := tsDashboard;
   CargarEstadoVisual;
   pcPrincipal.ActivePage := tsDashboard;
@@ -1070,10 +1100,10 @@ begin
   CargarDashboard;
   CargarAlerta(daStockBajo);
 
-  // CargarAlerta prepara los datos de la pestaña Alertas y, por diseño,
-  // cambia a esa pestaña cuando se pulsa un botón de alerta.
+  // CargarAlerta prepara los datos de la pestaï¿½a Alertas y, por diseï¿½o,
+  // cambia a esa pestaï¿½a cuando se pulsa un botï¿½n de alerta.
   // Durante la apertura del formulario queremos dejarla cargada, pero
-  // la pestaña visible inicial debe ser siempre Dashboard.
+  // la pestaï¿½a visible inicial debe ser siempre Dashboard.
   if pcPrincipal <> nil then
     pcPrincipal.ActivePage := tsDashboard;
 end;
@@ -1097,6 +1127,10 @@ begin
   tsVentasAbiertas := TTabSheet.Create(Self);
   tsVentasAbiertas.PageControl := pcPrincipal;
   tsVentasAbiertas.Caption := 'Ventas abiertas';
+
+  tsCierreTarde := TTabSheet.Create(Self);
+  tsCierreTarde.PageControl := pcPrincipal;
+  tsCierreTarde.Caption := 'Cierre tardes';
 
   tsAlertas := TTabSheet.Create(Self);
   tsAlertas.PageControl := pcPrincipal;
@@ -1169,6 +1203,7 @@ begin
   CrearTabDashboard;
   CrearTabHoy;
   CrearTabVentasAbiertas;
+  CrearTabCierreTarde;
   CrearTabAlertas;
   CrearTabEstudios;
   CrearTabComparativa;
@@ -1316,7 +1351,7 @@ begin
   btnInformePDF.Top := 7;
   btnInformePDF.Width := 115;
   btnInformePDF.Caption := 'PDF directo';
-  btnInformePDF.Hint := 'Genera directamente un PDF simple de la pestaña activa';
+  btnInformePDF.Hint := 'Genera directamente un PDF simple de la pestaï¿½a activa';
   btnInformePDF.ShowHint := True;
   btnInformePDF.OnClick := @InformePDFClick;
 
@@ -1793,6 +1828,151 @@ begin
   gridVNARevision.DataSource := dsVNARevision;
   gridVNARevision.ReadOnly := True;
   gridVNARevision.Options := gridVNARevision.Options + [dgDisplayMemoText];
+end;
+
+procedure TFDashboardProductividad.CrearTabCierreTarde;
+var
+  pnlIdea, pnlTop, pnlMiddle, pnlBottom: TPanel;
+  gbIdea, gbResumen, gbCandidatos, gbDias, gbSemana, gbHoras: TGroupBox;
+  spTop, spRowsIdea, spRows1, spRows2, spBottom: TSplitter;
+begin
+  pnlIdea := TPanel.Create(Self);
+  pnlIdea.Parent := tsCierreTarde;
+  pnlIdea.Align := alTop;
+  pnlIdea.Height := 112;
+  pnlIdea.BevelOuter := bvNone;
+
+  gbIdea := TGroupBox.Create(Self);
+  gbIdea.Parent := pnlIdea;
+  gbIdea.Align := alClient;
+  gbIdea.Caption := 'Sugerencia inteligente para cierres de tarde en Agosto';
+
+  memoCTSugerencia := TMemo.Create(Self);
+  memoCTSugerencia.Parent := gbIdea;
+  memoCTSugerencia.Align := alClient;
+  memoCTSugerencia.ReadOnly := True;
+  memoCTSugerencia.ScrollBars := ssVertical;
+  memoCTSugerencia.WordWrap := True;
+  memoCTSugerencia.Lines.Text := 'La sugerencia inteligente se calcula sobre Agosto, comparando con Agosto del ano anterior.';
+
+  spRowsIdea := TSplitter.Create(Self);
+  spRowsIdea.Parent := tsCierreTarde;
+  spRowsIdea.Align := alTop;
+  spRowsIdea.Height := 5;
+
+  pnlTop := TPanel.Create(Self);
+  pnlTop.Parent := tsCierreTarde;
+  pnlTop.Align := alTop;
+  pnlTop.Height := 190;
+  pnlTop.BevelOuter := bvNone;
+
+  gbResumen := TGroupBox.Create(Self);
+  gbResumen.Parent := pnlTop;
+  gbResumen.Align := alLeft;
+  gbResumen.Width := 520;
+  gbResumen.Caption := 'Resumen del periodo - tarde desde las 15:00';
+
+  qCTResumen := CrearQuery;
+  dsCTResumen := TDataSource.Create(Self);
+  dsCTResumen.DataSet := qCTResumen;
+  gridCTResumen := TDBGrid.Create(Self);
+  gridCTResumen.Parent := gbResumen;
+  gridCTResumen.Align := alClient;
+  gridCTResumen.DataSource := dsCTResumen;
+  gridCTResumen.ReadOnly := True;
+  gridCTResumen.Options := gridCTResumen.Options + [dgDisplayMemoText];
+
+  spTop := TSplitter.Create(Self);
+  spTop.Parent := pnlTop;
+  spTop.Align := alLeft;
+  spTop.Width := 5;
+
+  gbCandidatos := TGroupBox.Create(Self);
+  gbCandidatos.Parent := pnlTop;
+  gbCandidatos.Align := alClient;
+  gbCandidatos.Caption := 'Top 15 candidatos a cerrar por la tarde';
+
+  qCTCandidatos := CrearQuery;
+  dsCTCandidatos := TDataSource.Create(Self);
+  dsCTCandidatos.DataSet := qCTCandidatos;
+  gridCTCandidatos := TDBGrid.Create(Self);
+  gridCTCandidatos.Parent := gbCandidatos;
+  gridCTCandidatos.Align := alClient;
+  gridCTCandidatos.DataSource := dsCTCandidatos;
+  gridCTCandidatos.ReadOnly := True;
+  gridCTCandidatos.Options := gridCTCandidatos.Options + [dgDisplayMemoText];
+
+  spRows1 := TSplitter.Create(Self);
+  spRows1.Parent := tsCierreTarde;
+  spRows1.Align := alTop;
+  spRows1.Height := 5;
+
+  pnlMiddle := TPanel.Create(Self);
+  pnlMiddle.Parent := tsCierreTarde;
+  pnlMiddle.Align := alTop;
+  pnlMiddle.Height := 300;
+  pnlMiddle.BevelOuter := bvNone;
+
+  gbDias := TGroupBox.Create(Self);
+  gbDias.Parent := pnlMiddle;
+  gbDias.Align := alClient;
+  gbDias.Caption := 'Dia a dia del periodo seleccionado';
+
+  qCTDias := CrearQuery;
+  dsCTDias := TDataSource.Create(Self);
+  dsCTDias.DataSet := qCTDias;
+  gridCTDias := TDBGrid.Create(Self);
+  gridCTDias.Parent := gbDias;
+  gridCTDias.Align := alClient;
+  gridCTDias.DataSource := dsCTDias;
+  gridCTDias.ReadOnly := True;
+  gridCTDias.Options := gridCTDias.Options + [dgDisplayMemoText];
+
+  spRows2 := TSplitter.Create(Self);
+  spRows2.Parent := tsCierreTarde;
+  spRows2.Align := alTop;
+  spRows2.Height := 5;
+
+  pnlBottom := TPanel.Create(Self);
+  pnlBottom.Parent := tsCierreTarde;
+  pnlBottom.Align := alClient;
+  pnlBottom.BevelOuter := bvNone;
+
+  gbSemana := TGroupBox.Create(Self);
+  gbSemana.Parent := pnlBottom;
+  gbSemana.Align := alLeft;
+  gbSemana.Width := 560;
+  gbSemana.Caption := 'Resumen por dia de la semana';
+
+  qCTSemana := CrearQuery;
+  dsCTSemana := TDataSource.Create(Self);
+  dsCTSemana.DataSet := qCTSemana;
+  gridCTSemana := TDBGrid.Create(Self);
+  gridCTSemana.Parent := gbSemana;
+  gridCTSemana.Align := alClient;
+  gridCTSemana.DataSource := dsCTSemana;
+  gridCTSemana.ReadOnly := True;
+  gridCTSemana.Options := gridCTSemana.Options + [dgDisplayMemoText];
+
+  spBottom := TSplitter.Create(Self);
+  spBottom.Parent := pnlBottom;
+  spBottom.Align := alLeft;
+  spBottom.Width := 5;
+
+  gbHoras := TGroupBox.Create(Self);
+  gbHoras.Parent := pnlBottom;
+  gbHoras.Align := alClient;
+  gbHoras.Caption := 'Actividad por horas de tarde';
+
+  qCTHoras := CrearQuery;
+  dsCTHoras := TDataSource.Create(Self);
+  dsCTHoras.DataSet := qCTHoras;
+  gridCTHoras := TDBGrid.Create(Self);
+  gridCTHoras.Parent := gbHoras;
+  gridCTHoras.Align := alClient;
+  gridCTHoras.DataSource := dsCTHoras;
+  gridCTHoras.ReadOnly := True;
+  gridCTHoras.Options := gridCTHoras.Options + [dgDisplayMemoText];
 end;
 
 procedure TFDashboardProductividad.CrearTabAlertas;
@@ -4038,8 +4218,8 @@ begin
   memoLibreSQL.BorderSpacing.Left := 8;
   memoLibreSQL.BorderSpacing.Right := 8;
   memoLibreSQL.BorderSpacing.Top := 28;
-  // Dejar solo un pequeño margen hasta el panel de botones.
-  // Antes estaba en 76 y hacía demasiado pequeña la zona de SQL manual.
+  // Dejar solo un pequeï¿½o margen hasta el panel de botones.
+  // Antes estaba en 76 y hacï¿½a demasiado pequeï¿½a la zona de SQL manual.
   memoLibreSQL.BorderSpacing.Bottom := 8;
   memoLibreSQL.ScrollBars := ssBoth;
   memoLibreSQL.WordWrap := False;
@@ -4454,28 +4634,16 @@ begin
 end;
 
 procedure TFDashboardProductividad.CargarEstadoVisual;
-var
-  INI: TIniFile;
-  S: string;
 begin
-  if not FileExists(DashboardEstadoIni) then
-    Exit;
+  // Por rendimiento, al abrir Productividad NO recuperamos el ultimo periodo usado.
+  // Si se quedo guardado un mes completo (por ejemplo agosto), la entrada al panel
+  // puede ser muy lenta porque el Dashboard carga demasiadas consultas al iniciar.
+  // El periodo inicial debe ser siempre el dia actual.
+  SetEditFecha(dtDesde, SysUtils.Date);
+  SetEditFecha(dtHasta, SysUtils.Date);
 
-  INI := TIniFile.Create(DashboardEstadoIni);
-  try
-    S := INI.ReadString('Filtro', 'Desde', '');
-    if S <> '' then
-      dtDesde.Text := S;
-
-    S := INI.ReadString('Filtro', 'Hasta', '');
-    if S <> '' then
-      dtHasta.Text := S;
-
-    // No recuperamos la ultima pestana usada: al abrir, Dashboard debe ser siempre
-    // la pestana principal activa. Solo se recupera el rango de fechas.
-  finally
-    INI.Free;
-  end;
+  // Tampoco recuperamos la ultima pestana usada: al abrir, Dashboard debe ser siempre
+  // la pestana principal activa.
 end;
 
 procedure TFDashboardProductividad.GuardarEstadoVisual;
@@ -5508,6 +5676,14 @@ begin
       AnyadirDataSetCSV(L, 'Ventas abiertas - Lineas por hora y caja', qVNAHoras);
       AnyadirDataSetCSV(L, 'Ventas abiertas - Revision video-vigilancia', qVNARevision);
     end
+    else if pcPrincipal.ActivePage = tsCierreTarde then
+    begin
+      AnyadirDataSetCSV(L, 'Cierre tardes - Resumen', qCTResumen);
+      AnyadirDataSetCSV(L, 'Cierre tardes - Top 15 candidatos', qCTCandidatos);
+      AnyadirDataSetCSV(L, 'Cierre tardes - Dia a dia', qCTDias);
+      AnyadirDataSetCSV(L, 'Cierre tardes - Dia de la semana', qCTSemana);
+      AnyadirDataSetCSV(L, 'Cierre tardes - Horas de tarde', qCTHoras);
+    end
     else if pcPrincipal.ActivePage = tsAlertas then
       AnyadirDataSetCSV(L, 'Alertas - ' + lblAlertaTitulo.Caption, qAlertas)
     else if pcPrincipal.ActivePage = tsEstudios then
@@ -5695,6 +5871,14 @@ begin
       AnyadirDataSetHTML(L, 'Ventas abiertas - Detalle de lineas', qVNADetalle);
       AnyadirDataSetHTML(L, 'Ventas abiertas - Lineas por hora y caja', qVNAHoras);
       AnyadirDataSetHTML(L, 'Ventas abiertas - Revision video-vigilancia', qVNARevision);
+    end
+    else if pcPrincipal.ActivePage = tsCierreTarde then
+    begin
+      AnyadirDataSetHTML(L, 'Cierre tardes - Resumen', qCTResumen);
+      AnyadirDataSetHTML(L, 'Cierre tardes - Top 15 candidatos', qCTCandidatos);
+      AnyadirDataSetHTML(L, 'Cierre tardes - Dia a dia', qCTDias);
+      AnyadirDataSetHTML(L, 'Cierre tardes - Dia de la semana', qCTSemana);
+      AnyadirDataSetHTML(L, 'Cierre tardes - Horas de tarde', qCTHoras);
     end
     else if pcPrincipal.ActivePage = tsAlertas then
       AnyadirDataSetHTML(L, 'Alertas - ' + lblAlertaTitulo.Caption, qAlertas)
@@ -5981,6 +6165,7 @@ begin
   CargarResumen;
   CargarHoy;
   CargarVentasAbiertas;
+  CargarCierreTarde;
   CargarPagos;
   CargarTopArticulos;
   CargarTopFamilias;
@@ -6410,6 +6595,471 @@ begin
       'WHERE hora_linea = ''NO DISPONIBLE'' OR codigo = '''' OR total_linea <= 0 OR dto <> 0 ' +
       'ORDER BY caja, fecha_linea, CASE WHEN hora_linea = ''NO DISPONIBLE'' THEN 1 ELSE 0 END, hora_linea, ticket0, ticket, linea';
   qVNARevision.Open;
+end;
+
+procedure TFDashboardProductividad.CargarCierreTarde;
+begin
+  CargarCTSugerencia;
+  CargarCTResumen;
+  CargarCTDias;
+  CargarCTCandidatos;
+  CargarCTSemana;
+  CargarCTHoras;
+end;
+
+procedure TFDashboardProductividad.CargarCTSugerencia;
+type
+  TDiaCierre = record
+    FechaHist: TDateTime;
+    FechaObjetivo: TDateTime;
+    DiaSemana: string;
+    TicketsTotal: Integer;
+    VentasTotal: Double;
+    TicketsTarde: Integer;
+    VentasTarde: Double;
+    PctTarde: Double;
+    Score: Double;
+  end;
+var
+  ADesde, AHasta: TDateTime;
+  HistDesde, HistHasta, ObjDesde, ObjHasta: TDateTime;
+  HoySistema, ProgDesde, ProgHasta: TDateTime;
+  AnyoActual, AnyoSel, AnyoHist, AnyoObj: Integer;
+  Q: TZQuery;
+  Dias: array of TDiaCierre;
+  I, J, N, WindowLen: Integer;
+  WorkDays, BestWorkDays, TotalDiasAgosto: Integer;
+  SumVentasTarde, SumTicketsTarde, SumPctTarde: Double;
+  AvgVentasTarde, AvgTicketsTarde, AvgPctTarde: Double;
+  VentasProgAct, VentasProgAnt, TicketsProgAct, TicketsProgAnt: Double;
+  FactorVentas, FactorTickets, BestScore, S, ScoreBloque: Double;
+  DiasHastaInicio, DiasAgostoTranscurridos, Fiabilidad: Integer;
+  BestDesde, BestHasta, CandDesde, CandHasta: TDateTime;
+  TopTxt, Linea, Motivo, TextoProg: string;
+begin
+  if memoCTSugerencia = nil then Exit;
+  memoCTSugerencia.Clear;
+
+  ADesde := FechaDesde;
+  AHasta := FechaHasta;
+  HoySistema := SysUtils.Date;
+  AnyoActual := YearOf(HoySistema);
+  AnyoSel := YearOf(ADesde);
+
+  // Esta pestaÃ±a esta pensada para decidir cierres de tarde de AGOSTO.
+  // Aunque el filtro general tenga otro periodo o un ano completo, la sugerencia inteligente
+  // se centra siempre en Agosto para evitar que sabados/domingos de todo el ano falseen el resultado.
+  if AnyoSel < AnyoActual then
+  begin
+    AnyoHist := AnyoSel;
+    AnyoObj := AnyoActual;
+  end
+  else
+  begin
+    AnyoObj := AnyoSel;
+    AnyoHist := AnyoObj - 1;
+  end;
+
+  HistDesde := EncodeDate(AnyoHist, 8, 1);
+  HistHasta := EncodeDate(AnyoHist, 8, 31);
+  ObjDesde := EncodeDate(AnyoObj, 8, 1);
+  ObjHasta := EncodeDate(AnyoObj, 8, 31);
+
+  Q := CrearQuery;
+  try
+    Q.SQL.Text :=
+      'SELECT HO0 AS fecha0, ' +
+      '       ELT(WEEKDAY(HO0)+1,''Lunes'',''Martes'',''Miercoles'',''Jueves'',''Viernes'',''Sabado'',''Domingo'') AS dia_semana, ' +
+      '       COUNT(*) AS tickets_total, ' +
+      '       ROUND(COALESCE(SUM(IF(COALESCE(HO11,0) <> 0, HO11, HO9)),0),2) AS ventas_total, ' +
+      '       SUM(IF(HOUR(HO1) >= 15, 1, 0)) AS tickets_tarde, ' +
+      '       ROUND(COALESCE(SUM(IF(HOUR(HO1) >= 15, IF(COALESCE(HO11,0) <> 0, HO11, HO9), 0)),0),2) AS ventas_tarde, ' +
+      '       ROUND((COALESCE(SUM(IF(HOUR(HO1) >= 15, IF(COALESCE(HO11,0) <> 0, HO11, HO9), 0)),0) / NULLIF(COALESCE(SUM(IF(COALESCE(HO11,0) <> 0, HO11, HO9)),0),0)) * 100, 2) AS pct_tarde ' +
+      'FROM ' + Tabla('hisopcc') + ' ' +
+      'WHERE HO0 BETWEEN :desde AND :hasta ' +
+      '  AND WEEKDAY(HO0) BETWEEN 0 AND 4 ' +
+      '  AND HO5 IN (''NS'',''NT'',''FA'') ' +
+      '  AND COALESCE(HO16, '''') <> ''A'' ' +
+      'GROUP BY HO0 ORDER BY HO0';
+    Q.ParamByName('desde').AsDateTime := HistDesde;
+    Q.ParamByName('hasta').AsDateTime := HistHasta;
+    Q.Open;
+
+    while not Q.EOF do
+    begin
+      N := Length(Dias);
+      SetLength(Dias, N + 1);
+      Dias[N].FechaHist := Trunc(Q.FieldByName('fecha0').AsDateTime);
+      Dias[N].FechaObjetivo := IncYear(Dias[N].FechaHist, AnyoObj - YearOf(Dias[N].FechaHist));
+      Dias[N].DiaSemana := Q.FieldByName('dia_semana').AsString;
+      Dias[N].TicketsTotal := CampoInteger(Q, 'tickets_total');
+      Dias[N].VentasTotal := CampoDouble(Q, 'ventas_total');
+      Dias[N].TicketsTarde := CampoInteger(Q, 'tickets_tarde');
+      Dias[N].VentasTarde := CampoDouble(Q, 'ventas_tarde');
+      Dias[N].PctTarde := CampoDouble(Q, 'pct_tarde');
+      Q.Next;
+    end;
+    Q.Close;
+
+    if Length(Dias) = 0 then
+    begin
+      memoCTSugerencia.Lines.Add('No hay datos de Agosto laborable para calcular la sugerencia.');
+      memoCTSugerencia.Lines.Add('La sugerencia IA usa Agosto y dias de lunes a viernes. Revisa que haya ventas historicas en Agosto del ano anterior.');
+      Exit;
+    end;
+
+    SumVentasTarde := 0;
+    SumTicketsTarde := 0;
+    SumPctTarde := 0;
+    for I := 0 to High(Dias) do
+    begin
+      SumVentasTarde := SumVentasTarde + Dias[I].VentasTarde;
+      SumTicketsTarde := SumTicketsTarde + Dias[I].TicketsTarde;
+      SumPctTarde := SumPctTarde + Dias[I].PctTarde;
+    end;
+
+    AvgVentasTarde := SumVentasTarde / Length(Dias);
+    AvgTicketsTarde := SumTicketsTarde / Length(Dias);
+    AvgPctTarde := SumPctTarde / Length(Dias);
+    if AvgVentasTarde <= 0 then AvgVentasTarde := 1;
+    if AvgTicketsTarde <= 0 then AvgTicketsTarde := 1;
+    if AvgPctTarde <= 0 then AvgPctTarde := 1;
+
+    // Factor de progresion:
+    // - Si ya estamos en Agosto del ano objetivo, compara Agosto real transcurrido contra Agosto anterior.
+    // - Antes de Agosto, usa los ultimos 60 dias laborables como tendencia aproximada.
+    // - Despues de Agosto, usa todo Agosto real del ano objetivo.
+    FactorVentas := 1;
+    FactorTickets := 1;
+    TextoProg := 'Tendencia aplicada: x1.00';
+
+    if (AnyoActual = AnyoObj) and (HoySistema >= ObjDesde) then
+    begin
+      ProgDesde := ObjDesde;
+      if HoySistema <= ObjHasta then
+        ProgHasta := IncDay(HoySistema, -1)
+      else
+        ProgHasta := ObjHasta;
+      TextoProg := 'Progresion Agosto real';
+    end
+    else
+    begin
+      ProgHasta := IncDay(HoySistema, -1);
+      ProgDesde := IncDay(ProgHasta, -60);
+      if ProgDesde < EncodeDate(AnyoActual, 1, 1) then
+        ProgDesde := EncodeDate(AnyoActual, 1, 1);
+      TextoProg := 'Progresion ultimos 60 dias laborables';
+    end;
+
+    if ProgDesde <= ProgHasta then
+    begin
+      Q.SQL.Text :=
+        'SELECT ROUND(COALESCE(SUM(IF(HOUR(HO1) >= 15, IF(COALESCE(HO11,0) <> 0, HO11, HO9), 0)),0),2) AS ventas_tarde, ' +
+        '       SUM(IF(HOUR(HO1) >= 15, 1, 0)) AS tickets_tarde ' +
+        'FROM ' + Tabla('hisopcc') + ' ' +
+        'WHERE HO0 BETWEEN :desde AND :hasta ' +
+        '  AND WEEKDAY(HO0) BETWEEN 0 AND 4 ' +
+        '  AND HO5 IN (''NS'',''NT'',''FA'') ' +
+        '  AND COALESCE(HO16, '''') <> ''A''';
+      Q.ParamByName('desde').AsDateTime := ProgDesde;
+      Q.ParamByName('hasta').AsDateTime := ProgHasta;
+      Q.Open;
+      VentasProgAct := CampoDouble(Q, 'ventas_tarde');
+      TicketsProgAct := CampoDouble(Q, 'tickets_tarde');
+      Q.Close;
+
+      Q.ParamByName('desde').AsDateTime := IncYear(ProgDesde, -1);
+      Q.ParamByName('hasta').AsDateTime := IncYear(ProgHasta, -1);
+      Q.Open;
+      VentasProgAnt := CampoDouble(Q, 'ventas_tarde');
+      TicketsProgAnt := CampoDouble(Q, 'tickets_tarde');
+      Q.Close;
+
+      if VentasProgAnt > 0 then
+        FactorVentas := EnsureRange(VentasProgAct / VentasProgAnt, 0.60, 1.60);
+      if TicketsProgAnt > 0 then
+        FactorTickets := EnsureRange(TicketsProgAct / TicketsProgAnt, 0.60, 1.60);
+    end;
+
+    for I := 0 to High(Dias) do
+    begin
+      Dias[I].Score :=
+        ((Dias[I].VentasTarde * FactorVentas) / AvgVentasTarde) * 0.55 +
+        ((Dias[I].TicketsTarde * FactorTickets) / AvgTicketsTarde) * 0.30 +
+        (Dias[I].PctTarde / AvgPctTarde) * 0.15;
+      if Dias[I].TicketsTarde = 0 then
+        Dias[I].Score := Dias[I].Score * 0.65;
+    end;
+
+    // No buscar ya "dias sueltos" ni 15 laborables saltando fines de semana,
+    // porque eso puede dejar lunes aislados abiertos dentro de una quincena floja.
+    // Para decisiones reales de horario es mejor proponer un TRAMO CONTINUO
+    // de calendario de Agosto y cerrar todas las tardes laborables incluidas.
+    WindowLen := 15; // dias naturales de calendario, no 15 dias laborables sueltos
+    TotalDiasAgosto := DaysBetween(ObjDesde, ObjHasta) + 1;
+    BestScore := 1.0E308;
+    BestDesde := ObjDesde;
+    BestHasta := IncDay(ObjDesde, WindowLen - 1);
+    BestWorkDays := 0;
+
+    for I := 0 to TotalDiasAgosto - 1 do
+    begin
+      CandDesde := IncDay(ObjDesde, I);
+      CandHasta := IncDay(CandDesde, WindowLen - 1);
+      if CandHasta > ObjHasta then
+        CandHasta := ObjHasta;
+
+      S := 0;
+      WorkDays := 0;
+      for J := 0 to High(Dias) do
+      begin
+        if (Dias[J].FechaObjetivo >= CandDesde) and (Dias[J].FechaObjetivo <= CandHasta) then
+        begin
+          S := S + Dias[J].Score;
+          Inc(WorkDays);
+        end;
+      end;
+
+      // Evitar tramos demasiado cortos a final de mes o bloques poco representativos.
+      if WorkDays < 8 then
+        Continue;
+
+      ScoreBloque := S / WorkDays;
+
+      // Preferencia ligera por bloques naturales que empiezan en lunes.
+      // No manda sobre la venta, solo desempata para que la sugerencia sea mas coherente.
+      if DayOfTheWeek(CandDesde) <> 1 then
+        ScoreBloque := ScoreBloque * 1.03;
+
+      if ScoreBloque < BestScore then
+      begin
+        BestScore := ScoreBloque;
+        BestDesde := CandDesde;
+        BestHasta := CandHasta;
+        BestWorkDays := WorkDays;
+      end;
+    end;
+
+    TopTxt := '';
+    // Mostrar las tardes laborables incluidas dentro del bloque recomendado,
+    // no una lista de dias sueltos que pueda inducir a abrir un lunes aislado.
+    for N := 0 to High(Dias) do
+    begin
+      if (Dias[N].FechaObjetivo >= BestDesde) and (Dias[N].FechaObjetivo <= BestHasta) then
+      begin
+        if TopTxt <> '' then TopTxt := TopTxt + ', ';
+        TopTxt := TopTxt + FormatDateTime('dd/mm', Dias[N].FechaObjetivo) + ' ' + Dias[N].DiaSemana;
+      end;
+    end;
+
+    DiasHastaInicio := DaysBetween(HoySistema, ObjDesde);
+    if (AnyoActual = AnyoObj) and (HoySistema >= ObjDesde) and (HoySistema <= ObjHasta) then
+    begin
+      DiasAgostoTranscurridos := DaysBetween(ObjDesde, HoySistema);
+      Fiabilidad := Round(EnsureRange(70.0 + (DiasAgostoTranscurridos * 0.8), 70.0, 92.0));
+    end
+    else if ObjDesde < HoySistema then
+      Fiabilidad := 90
+    else
+      Fiabilidad := Round(EnsureRange(55.0 + ((60.0 - EnsureRange(DiasHastaInicio, 0, 60)) * 0.5), 55.0, 85.0));
+
+    memoCTSugerencia.Lines.Add('Modo Agosto: la IA usa SOLO Agosto y solo dias de lunes a viernes. Sabados y domingos se excluyen para no falsear la recomendacion.');
+    memoCTSugerencia.Lines.Add('Base historica: Agosto ' + IntToStr(AnyoHist) + '  |  Periodo objetivo: Agosto ' + IntToStr(AnyoObj));
+    memoCTSugerencia.Lines.Add(TextoProg + ': ventas tarde x' + FormatFloat('0.00', FactorVentas) +
+      ', tickets tarde x' + FormatFloat('0.00', FactorTickets) + '  |  Fiabilidad orientativa: ' + IntToStr(Fiabilidad) + '%');
+
+    if BestWorkDays > 0 then
+    begin
+      Linea := 'Sugerencia principal: cerrar por la tarde el tramo continuo del ' +
+        FormatDateTime('dd/mm/yyyy', BestDesde) + ' al ' +
+        FormatDateTime('dd/mm/yyyy', BestHasta) +
+        ' (' + IntToStr(BestWorkDays) + ' tardes laborables incluidas).';
+      memoCTSugerencia.Lines.Add(Linea);
+    end;
+
+    Motivo := 'Motivo: se prioriza un bloque continuo de Agosto, no dias sueltos. Si una quincena sale floja, es mas coherente cerrar tambien los lunes laborables incluidos en ese tramo.';
+    memoCTSugerencia.Lines.Add(Motivo);
+    if TopTxt <> '' then
+      memoCTSugerencia.Lines.Add('Tardes laborables incluidas en el bloque: ' + TopTxt + '.');
+    memoCTSugerencia.Lines.Add('Revisar antes de decidir: festivos locales, personal, proveedores, promociones, climatologia, turismo y video-vigilancia.');
+  finally
+    Q.Free;
+  end;
+end;
+
+procedure TFDashboardProductividad.CargarCTResumen;
+begin
+  qCTResumen.Close;
+  qCTResumen.SQL.Text :=
+    'SELECT DATE_FORMAT(MIN(HO0), ''%d/%m/%Y'') AS primera_fecha, ' +
+    '       DATE_FORMAT(MAX(HO0), ''%d/%m/%Y'') AS ultima_fecha, ' +
+    '       COUNT(*) AS tickets_total, ' +
+    '       ROUND(COALESCE(SUM(IF(COALESCE(HO11,0) <> 0, HO11, HO9)),0),2) AS ventas_total, ' +
+    '       SUM(IF(HOUR(HO1) >= 15, 1, 0)) AS tickets_tarde, ' +
+    '       ROUND(COALESCE(SUM(IF(HOUR(HO1) >= 15, IF(COALESCE(HO11,0) <> 0, HO11, HO9), 0)),0),2) AS ventas_tarde, ' +
+    '       ROUND((COALESCE(SUM(IF(HOUR(HO1) >= 15, IF(COALESCE(HO11,0) <> 0, HO11, HO9), 0)),0) / NULLIF(COALESCE(SUM(IF(COALESCE(HO11,0) <> 0, HO11, HO9)),0),0)) * 100, 2) AS pct_importe_tarde, ' +
+    '       ROUND((SUM(IF(HOUR(HO1) >= 15, 1, 0)) / NULLIF(COUNT(*),0)) * 100, 2) AS pct_tickets_tarde, ' +
+    '       ROUND(COALESCE(SUM(IF(HOUR(HO1) >= 15, IF(COALESCE(HO11,0) <> 0, HO11, HO9), 0)),0) / NULLIF(COUNT(DISTINCT HO0),0),2) AS media_tarde_dia, ' +
+    '       ''Tarde desde las 15:00. Para estudiar Agosto, selecciona 01/08 a 31/08 del ano anterior.'' AS criterio ' +
+    'FROM ' + Tabla('hisopcc') + ' ' +
+    'WHERE HO0 BETWEEN :desde AND :hasta ' +
+    '  AND HO5 IN (''NS'',''NT'',''FA'') ' +
+    '  AND COALESCE(HO16, '''') <> ''A''';
+  qCTResumen.ParamByName('desde').AsDateTime := FechaDesde;
+  qCTResumen.ParamByName('hasta').AsDateTime := FechaHasta;
+  qCTResumen.Open;
+
+  AjustarCampo(qCTResumen, 'primera_fecha', 'Primera fecha', 12);
+  AjustarCampo(qCTResumen, 'ultima_fecha', 'Ultima fecha', 12);
+  AjustarCampo(qCTResumen, 'tickets_total', 'Tickets total', 10);
+  AjustarCampoMoneda(qCTResumen, 'ventas_total', 'Ventas total', 13);
+  AjustarCampo(qCTResumen, 'tickets_tarde', 'Tickets tarde', 10);
+  AjustarCampoMoneda(qCTResumen, 'ventas_tarde', 'Ventas tarde', 13);
+  AjustarCampoNumero(qCTResumen, 'pct_importe_tarde', '% imp. tarde', 11, '#,##0.00 %');
+  AjustarCampoNumero(qCTResumen, 'pct_tickets_tarde', '% tickets tarde', 12, '#,##0.00 %');
+  AjustarCampoMoneda(qCTResumen, 'media_tarde_dia', 'Media tarde/dia', 13);
+  AjustarCampo(qCTResumen, 'criterio', 'Criterio', 55);
+end;
+
+procedure TFDashboardProductividad.CargarCTDias;
+begin
+  qCTDias.Close;
+  qCTDias.SQL.Text :=
+    'SELECT DATE_FORMAT(fecha0, ''%d/%m/%Y'') AS fecha, dia_semana, ' +
+    '       tickets_total, ventas_total, tickets_manana, ventas_manana, ' +
+    '       tickets_tarde, ventas_tarde, ticket_medio_tarde, pct_tarde, ' +
+    '       CASE ' +
+    '         WHEN tickets_tarde = 0 THEN ''Cierre tarde muy claro'' ' +
+    '         WHEN tickets_tarde <= 3 AND pct_tarde <= 10 THEN ''Candidato fuerte'' ' +
+    '         WHEN pct_tarde <= 15 THEN ''Candidato posible'' ' +
+    '         ELSE ''Mantener / revisar'' END AS sugerencia ' +
+    'FROM ( ' +
+    '  SELECT HO0 AS fecha0, ' +
+    '         ELT(WEEKDAY(HO0)+1,''Lunes'',''Martes'',''Miercoles'',''Jueves'',''Viernes'',''Sabado'',''Domingo'') AS dia_semana, ' +
+    '         COUNT(*) AS tickets_total, ' +
+    '         ROUND(COALESCE(SUM(IF(COALESCE(HO11,0) <> 0, HO11, HO9)),0),2) AS ventas_total, ' +
+    '         SUM(IF(HOUR(HO1) < 15, 1, 0)) AS tickets_manana, ' +
+    '         ROUND(COALESCE(SUM(IF(HOUR(HO1) < 15, IF(COALESCE(HO11,0) <> 0, HO11, HO9), 0)),0),2) AS ventas_manana, ' +
+    '         SUM(IF(HOUR(HO1) >= 15, 1, 0)) AS tickets_tarde, ' +
+    '         ROUND(COALESCE(SUM(IF(HOUR(HO1) >= 15, IF(COALESCE(HO11,0) <> 0, HO11, HO9), 0)),0),2) AS ventas_tarde, ' +
+    '         ROUND(COALESCE(AVG(IF(HOUR(HO1) >= 15, IF(COALESCE(HO11,0) <> 0, HO11, HO9), NULL)),0),2) AS ticket_medio_tarde, ' +
+    '         ROUND((COALESCE(SUM(IF(HOUR(HO1) >= 15, IF(COALESCE(HO11,0) <> 0, HO11, HO9), 0)),0) / NULLIF(COALESCE(SUM(IF(COALESCE(HO11,0) <> 0, HO11, HO9)),0),0)) * 100, 2) AS pct_tarde ' +
+    '  FROM ' + Tabla('hisopcc') + ' ' +
+    '  WHERE HO0 BETWEEN :desde AND :hasta ' +
+    '    AND HO5 IN (''NS'',''NT'',''FA'') ' +
+    '    AND COALESCE(HO16, '''') <> ''A'' ' +
+    '  GROUP BY HO0 ' +
+    ') D ORDER BY fecha0';
+  qCTDias.ParamByName('desde').AsDateTime := FechaDesde;
+  qCTDias.ParamByName('hasta').AsDateTime := FechaHasta;
+  qCTDias.Open;
+
+  AjustarCampo(qCTDias, 'fecha', 'Fecha', 11);
+  AjustarCampo(qCTDias, 'dia_semana', 'Dia', 10);
+  AjustarCampo(qCTDias, 'tickets_total', 'Tickets total', 10);
+  AjustarCampoMoneda(qCTDias, 'ventas_total', 'Ventas total', 12);
+  AjustarCampo(qCTDias, 'tickets_manana', 'Tickets manana', 11);
+  AjustarCampoMoneda(qCTDias, 'ventas_manana', 'Ventas manana', 12);
+  AjustarCampo(qCTDias, 'tickets_tarde', 'Tickets tarde', 10);
+  AjustarCampoMoneda(qCTDias, 'ventas_tarde', 'Ventas tarde', 12);
+  AjustarCampoMoneda(qCTDias, 'ticket_medio_tarde', 'Ticket medio tarde', 14);
+  AjustarCampoNumero(qCTDias, 'pct_tarde', '% tarde', 9, '#,##0.00 %');
+  AjustarCampo(qCTDias, 'sugerencia', 'Sugerencia', 18);
+end;
+
+procedure TFDashboardProductividad.CargarCTCandidatos;
+begin
+  qCTCandidatos.Close;
+  qCTCandidatos.SQL.Text :=
+    'SELECT DATE_FORMAT(fecha0, ''%d/%m/%Y'') AS fecha, dia_semana, ' +
+    '       tickets_tarde, ventas_tarde, pct_tarde, tickets_total, ventas_total, ' +
+    '       ''Revisar video, personal y eventos antes de decidir'' AS observacion ' +
+    'FROM ( ' +
+    '  SELECT HO0 AS fecha0, ' +
+    '         ELT(WEEKDAY(HO0)+1,''Lunes'',''Martes'',''Miercoles'',''Jueves'',''Viernes'',''Sabado'',''Domingo'') AS dia_semana, ' +
+    '         COUNT(*) AS tickets_total, ' +
+    '         ROUND(COALESCE(SUM(IF(COALESCE(HO11,0) <> 0, HO11, HO9)),0),2) AS ventas_total, ' +
+    '         SUM(IF(HOUR(HO1) >= 15, 1, 0)) AS tickets_tarde, ' +
+    '         ROUND(COALESCE(SUM(IF(HOUR(HO1) >= 15, IF(COALESCE(HO11,0) <> 0, HO11, HO9), 0)),0),2) AS ventas_tarde, ' +
+    '         ROUND((COALESCE(SUM(IF(HOUR(HO1) >= 15, IF(COALESCE(HO11,0) <> 0, HO11, HO9), 0)),0) / NULLIF(COALESCE(SUM(IF(COALESCE(HO11,0) <> 0, HO11, HO9)),0),0)) * 100, 2) AS pct_tarde ' +
+    '  FROM ' + Tabla('hisopcc') + ' ' +
+    '  WHERE HO0 BETWEEN :desde AND :hasta ' +
+    '    AND HO5 IN (''NS'',''NT'',''FA'') ' +
+    '    AND COALESCE(HO16, '''') <> ''A'' ' +
+    '  GROUP BY HO0 ' +
+    ') D ORDER BY ventas_tarde, tickets_tarde, pct_tarde, fecha0 LIMIT 15';
+  qCTCandidatos.ParamByName('desde').AsDateTime := FechaDesde;
+  qCTCandidatos.ParamByName('hasta').AsDateTime := FechaHasta;
+  qCTCandidatos.Open;
+
+  AjustarCampo(qCTCandidatos, 'fecha', 'Fecha', 11);
+  AjustarCampo(qCTCandidatos, 'dia_semana', 'Dia', 10);
+  AjustarCampo(qCTCandidatos, 'tickets_tarde', 'Tickets tarde', 10);
+  AjustarCampoMoneda(qCTCandidatos, 'ventas_tarde', 'Ventas tarde', 12);
+  AjustarCampoNumero(qCTCandidatos, 'pct_tarde', '% tarde', 9, '#,##0.00 %');
+  AjustarCampo(qCTCandidatos, 'tickets_total', 'Tickets total', 10);
+  AjustarCampoMoneda(qCTCandidatos, 'ventas_total', 'Ventas total', 12);
+  AjustarCampo(qCTCandidatos, 'observacion', 'Observacion', 36);
+end;
+
+procedure TFDashboardProductividad.CargarCTSemana;
+begin
+  qCTSemana.Close;
+  qCTSemana.SQL.Text :=
+    'SELECT dia_semana, dias, tickets_total, ventas_total, tickets_tarde, ventas_tarde, ' +
+    '       ROUND(ventas_tarde / NULLIF(dias,0),2) AS media_tarde_dia, pct_tarde ' +
+    'FROM ( ' +
+    '  SELECT WEEKDAY(HO0) AS orden_dia, ' +
+    '         ELT(WEEKDAY(HO0)+1,''Lunes'',''Martes'',''Miercoles'',''Jueves'',''Viernes'',''Sabado'',''Domingo'') AS dia_semana, ' +
+    '         COUNT(DISTINCT HO0) AS dias, COUNT(*) AS tickets_total, ' +
+    '         ROUND(COALESCE(SUM(IF(COALESCE(HO11,0) <> 0, HO11, HO9)),0),2) AS ventas_total, ' +
+    '         SUM(IF(HOUR(HO1) >= 15, 1, 0)) AS tickets_tarde, ' +
+    '         ROUND(COALESCE(SUM(IF(HOUR(HO1) >= 15, IF(COALESCE(HO11,0) <> 0, HO11, HO9), 0)),0),2) AS ventas_tarde, ' +
+    '         ROUND((COALESCE(SUM(IF(HOUR(HO1) >= 15, IF(COALESCE(HO11,0) <> 0, HO11, HO9), 0)),0) / NULLIF(COALESCE(SUM(IF(COALESCE(HO11,0) <> 0, HO11, HO9)),0),0)) * 100, 2) AS pct_tarde ' +
+    '  FROM ' + Tabla('hisopcc') + ' ' +
+    '  WHERE HO0 BETWEEN :desde AND :hasta ' +
+    '    AND HO5 IN (''NS'',''NT'',''FA'') ' +
+    '    AND COALESCE(HO16, '''') <> ''A'' ' +
+    '  GROUP BY WEEKDAY(HO0) ' +
+    ') D ORDER BY orden_dia';
+  qCTSemana.ParamByName('desde').AsDateTime := FechaDesde;
+  qCTSemana.ParamByName('hasta').AsDateTime := FechaHasta;
+  qCTSemana.Open;
+
+  AjustarCampo(qCTSemana, 'dia_semana', 'Dia', 10);
+  AjustarCampo(qCTSemana, 'dias', 'Dias', 5);
+  AjustarCampo(qCTSemana, 'tickets_total', 'Tickets total', 10);
+  AjustarCampoMoneda(qCTSemana, 'ventas_total', 'Ventas total', 12);
+  AjustarCampo(qCTSemana, 'tickets_tarde', 'Tickets tarde', 10);
+  AjustarCampoMoneda(qCTSemana, 'ventas_tarde', 'Ventas tarde', 12);
+  AjustarCampoMoneda(qCTSemana, 'media_tarde_dia', 'Media tarde/dia', 13);
+  AjustarCampoNumero(qCTSemana, 'pct_tarde', '% tarde', 9, '#,##0.00 %');
+end;
+
+procedure TFDashboardProductividad.CargarCTHoras;
+begin
+  qCTHoras.Close;
+  qCTHoras.SQL.Text :=
+    'SELECT HOUR(HO1) AS hora, ' +
+    '       CONCAT(LPAD(HOUR(HO1),2,''0''), '':00 - '', LPAD((HOUR(HO1)+1) MOD 24,2,''0''), '':00'') AS franja, ' +
+    '       COUNT(*) AS tickets, ' +
+    '       ROUND(COALESCE(SUM(IF(COALESCE(HO11,0) <> 0, HO11, HO9)),0),2) AS importe, ' +
+    '       ROUND(COALESCE(AVG(IF(COALESCE(HO11,0) <> 0, HO11, HO9)),0),2) AS ticket_medio ' +
+    'FROM ' + Tabla('hisopcc') + ' ' +
+    'WHERE HO0 BETWEEN :desde AND :hasta ' +
+    '  AND HOUR(HO1) >= 15 ' +
+    '  AND HO5 IN (''NS'',''NT'',''FA'') ' +
+    '  AND COALESCE(HO16, '''') <> ''A'' ' +
+    'GROUP BY HOUR(HO1) ORDER BY hora';
+  qCTHoras.ParamByName('desde').AsDateTime := FechaDesde;
+  qCTHoras.ParamByName('hasta').AsDateTime := FechaHasta;
+  qCTHoras.Open;
+
+  AjustarCampo(qCTHoras, 'hora', 'Hora', 5);
+  AjustarCampo(qCTHoras, 'franja', 'Franja', 14);
+  AjustarCampo(qCTHoras, 'tickets', 'Tickets', 7);
+  AjustarCampoMoneda(qCTHoras, 'importe', 'Importe', 12);
+  AjustarCampoMoneda(qCTHoras, 'ticket_medio', 'Ticket medio', 12);
 end;
 
 procedure TFDashboardProductividad.CargarResumen;
