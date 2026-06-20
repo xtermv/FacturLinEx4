@@ -539,6 +539,7 @@ type
     procedure VF_ConfigurarControlesCobro;
     function VF_NormalizarCamposCobro(const AFijarEntregaSiVacia: Boolean = True): Boolean;
     procedure VF_PosicionarBotonBuscarAbono;
+    procedure VF_FocoBotonNuevoAsync(Data: PtrInt);
   public
     { public declarations }
     procedure VF_RegistrarLineaRectifTemporal(const AOrigTipo: string;
@@ -2308,6 +2309,7 @@ LblPromoActiva.Top := Edit6.Top + 4;
   // existentes en resoluciones o escalados distintos.
   btBuscarAbono := TBitBtn.Create(Self);
   btBuscarAbono.Caption := 'Buscar abono';
+  btBuscarAbono.TabStop := False; // No debe robar el foco del flujo normal de ventas.
   btBuscarAbono.ShowHint := True;
   btBuscarAbono.Hint := 'Busca en historico las ventas de este articulo para preparar un abono VeriFactu';
   btBuscarAbono.OnClick := @btBuscarAbonoClick;
@@ -2602,18 +2604,21 @@ begin
     R.CantidadOriginal, QtyReq, R.Total, ImpReq);
 
   PintarTotalGeneral;
-  RefrescaTicketsAbiertos;
 
-  if not VF_ValidarSaldosRectifTemporal then Exit;
+  // v1.8: no refrescamos tickets abiertos ni revalidamos saldos aquí.
+  // Esa doble comprobación se mantiene al totalizar/cerrar la venta, que es el punto crítico.
+  // Evitamos varios SELECT/Refresh síncronos justo al aceptar el origen del abono.
+  DataModule1.Mensaje('Informacion',
+    'Origen de abono preparado: ' + R.OrigTipo + ' ' + R.OrigSerie + '-' +
+    IntToStr(R.OrigNumero), 3500, clGray);
 
-  if VF_ObtenerRectifTagTemporal(RectifTag, DummyTipo, DummySerie, DummyNum) then
-    DataModule1.Mensaje('Informacion',
-      'Origen de abono preparado: ' + R.OrigTipo + ' ' + R.OrigSerie + '-' +
-      IntToStr(R.OrigNumero), 4500, clGray)
-  else
-    DataModule1.Mensaje('Informacion',
-      'Linea de abono registrada. Si hay mas lineas negativas, prepare tambien su origen antes de totalizar.',
-      5500, clGray);
+  try
+    if Assigned(BitBtn14) and BitBtn14.Visible and BitBtn14.Enabled and BitBtn14.CanFocus then
+      BitBtn14.SetFocus
+    else if Assigned(Edit3) and Edit3.Visible and Edit3.Enabled and Edit3.CanFocus then
+      Edit3.SetFocus;
+  except
+  end;
 end;
 
 
@@ -2980,6 +2985,18 @@ begin
   Edit3.SetFocus;
 end;
 
+procedure TFVentas.VF_FocoBotonNuevoAsync(Data: PtrInt);
+begin
+  try
+    if Assigned(BitBtn14) and BitBtn14.Visible and BitBtn14.Enabled and BitBtn14.CanFocus then
+      BitBtn14.SetFocus
+    else if Assigned(Edit3) and Edit3.Visible and Edit3.Enabled and Edit3.CanFocus then
+      Edit3.SetFocus;
+  except
+    // Nunca debe bloquear ventas por un simple cambio de foco.
+  end;
+end;
+
 procedure TFVentas.BitBtn5Click(Sender: TObject);
 begin
   if Edit4.Text='' then begin DataModule1.Mensaje('Información','Teclee artículo a buscar', 2000 , clGray); Edit4.SetFocus; Exit; end;
@@ -3045,7 +3062,10 @@ begin
     end;
 
     PanelBuscaArticulos.Visible:=False;
-  BitBtn14.SetFocus;
+
+  // Al ocultar el panel, algunos gestores de ventanas/LCL recolocan el foco al control anterior.
+  // Lo diferimos un ciclo para recuperar el comportamiento cl�sico: aceptar con NUEVO.
+  Application.QueueAsyncCall(@VF_FocoBotonNuevoAsync, 0);
 end;
 
 procedure TFVentas.ListBox3KeyPress(Sender: TObject; var Key: char);

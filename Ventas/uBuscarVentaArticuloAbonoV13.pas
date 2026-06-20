@@ -205,7 +205,7 @@ begin
   Grid := TDBGrid.Create(Self);
   Grid.Parent := Self;
   Grid.Align := alClient;
-  Grid.Options := Grid.Options + [dgRowSelect, dgAlwaysShowSelection] - [dgEditing];
+  Grid.Options := Grid.Options + [dgRowSelect, dgAlwaysShowSelection, dgDisplayMemoText] - [dgEditing];
   Grid.OnDblClick := @GridDblClick;
 
   Q := TZQuery.Create(Self);
@@ -256,8 +256,21 @@ end;
 
 procedure TFBuscarVentaArticuloAbono.ExecBuscar;
 var
-  SQLTxt, ClienteCond, FechaMin: string;
-  N: Integer;
+  SQLTxt, ClienteCond, FechaMin, ListaParams: string;
+  N, i: Integer;
+  Codigos: TStringList;
+  QCod: TZQuery;
+
+  procedure AddCodigo(const S: string);
+  var
+    T: string;
+  begin
+    T := Trim(S);
+    if T = '' then Exit;
+    if Codigos.IndexOf(T) < 0 then
+      Codigos.Add(T);
+  end;
+
 begin
   if FConnection = nil then
   begin
@@ -288,10 +301,76 @@ begin
 
   FechaMin := FormatDateTime('yyyy-mm-dd', IncMonth(Date, -FMeses));
 
+  // Construimos una lista de códigos equivalentes para buscar la venta real:
+  // - código tecleado/escaneado
+  // - si es EAN/auxiliar (EAN0), su principal (EAN1)
+  // - si es principal (A0/EAN1), todos sus EAN/auxiliares (EAN0)
+  // - si era un EAN, también el resto de EAN del mismo principal
+  Codigos := TStringList.Create;
+  QCod := TZQuery.Create(nil);
+  try
+    AddCodigo(FCodigo);
+    QCod.Connection := FConnection;
+
+    // Caso 1: FCodigo es auxiliar/EAN. Obtenemos principal.
+    try
+      QCod.Close;
+      QCod.SQL.Text := 'SELECT EAN1 FROM eans WHERE EAN0=:CODIGO LIMIT 1';
+      QCod.ParamByName('CODIGO').AsString := FCodigo;
+      QCod.Open;
+      if not QCod.IsEmpty then
+        AddCodigo(QCod.FieldByName('EAN1').AsString);
+    except
+      // Si la tabla eans no existe o falla, continuamos buscando por código original.
+    end;
+
+    // Caso 2: FCodigo es principal. Obtenemos auxiliares directos.
+    try
+      QCod.Close;
+      QCod.SQL.Text := 'SELECT EAN0 FROM eans WHERE EAN1=:CODIGO';
+      QCod.ParamByName('CODIGO').AsString := FCodigo;
+      QCod.Open;
+      while not QCod.EOF do
+      begin
+        AddCodigo(QCod.FieldByName('EAN0').AsString);
+        QCod.Next;
+      end;
+    except
+      // Si falla, continuamos con los códigos ya disponibles.
+    end;
+
+    // Caso 3: si FCodigo era EAN, buscamos otros EAN del mismo principal.
+    if Codigos.Count > 1 then
+    begin
+      try
+        QCod.Close;
+        QCod.SQL.Text :=
+          'SELECT EAN0 FROM eans WHERE EAN1 IN (' +
+          'SELECT EAN1 FROM eans WHERE EAN0=:CODIGO)';
+        QCod.ParamByName('CODIGO').AsString := FCodigo;
+        QCod.Open;
+        while not QCod.EOF do
+        begin
+          AddCodigo(QCod.FieldByName('EAN0').AsString);
+          QCod.Next;
+        end;
+      except
+      end;
+    end;
+
+    ListaParams := '';
+    for i := 0 to Codigos.Count - 1 do
+    begin
+      if ListaParams <> '' then ListaParams := ListaParams + ',';
+      ListaParams := ListaParams + ':CODIGO' + IntToStr(i);
+    end;
+    if ListaParams = '' then
+      ListaParams := ':CODIGO0';
+
   SQLTxt :=
     'SELECT c.HO0 AS FECHA, c.HO1 AS HORA, c.HO2 AS CAJA, c.HO5 AS TIPO, ' +
     'c.HO4 AS SERIE, c.HO3 AS NUMERO, c.HO8 AS CLIENTE, c.HO19 AS NIF, ' +
-    'd.HOD5 AS LINEA, d.HOD6 AS CODIGO, CONVERT(d.HOD7 USING UTF8) AS DESCRIPCION, ' +
+    'd.HOD5 AS LINEA, d.HOD6 AS CODIGO, CAST(CONVERT(d.HOD7 USING UTF8) AS CHAR(255)) AS DESCRIPCION, ' +
     'd.HOD8 AS CANTIDAD, ' +
     'ABS(COALESCE((SELECT SUM(l.RL_QTY_RECTIFICADA) FROM rectiflin' + FTienda + ' l ' +
     ' WHERE l.RL_ORIG_TIPO=c.HO5 ' +
@@ -314,7 +393,7 @@ begin
     'FROM hisopdd' + FTienda + ' d ' +
     'JOIN hisopcc' + FTienda + ' c ON c.HO0=d.HOD0 AND c.HO1=d.HOD1 ' +
     ' AND c.HO2=d.HOD2 AND c.HO3=d.HOD3 AND c.HO4=d.HOD4 ' +
-    'WHERE d.HOD6=:CODIGO ' +
+    'WHERE d.HOD6 IN (' + ListaParams + ') ' +
     ' AND d.HOD8>0 ' +
     ' AND d.HOD14>0 ' +
     ' AND c.HO5 IN ("NS","NT","FA") ' +
@@ -326,7 +405,8 @@ begin
     Q.Close;
     Q.Connection := FConnection;
     Q.SQL.Text := SQLTxt;
-    Q.ParamByName('CODIGO').AsString := FCodigo;
+    for i := 0 to Codigos.Count - 1 do
+      Q.ParamByName('CODIGO' + IntToStr(i)).AsString := Codigos[i];
     Q.ParamByName('FECHAMIN').AsString := FechaMin;
     if HayFiltroCliente then
     begin
@@ -347,9 +427,9 @@ begin
     end;
 
     if N = 0 then
-      LblInfo.Caption := 'Sin ventas encontradas desde ' + FechaMin + '. Revise codigo o quite filtro de cliente.'
+      LblInfo.Caption := 'Sin ventas encontradas desde ' + FechaMin + '. Revise codigo/EAN o quite filtro de cliente.'
     else
-      LblInfo.Caption := 'Resultados: ' + IntToStr(N) +
+      LblInfo.Caption := 'Resultados: ' + IntToStr(N) + '  |  Códigos buscados: ' + IntToStr(Codigos.Count) +
         '  |  Doble clic o "Usar origen". Solo se permite si hay cantidad disponible.';
   except
     on E: Exception do
@@ -359,6 +439,10 @@ begin
         'No se pudo consultar el historico.' + LineEnding + LineEnding + E.Message,
         mtWarning, [mbOK], 0);
     end;
+  end;
+  finally
+    QCod.Free;
+    Codigos.Free;
   end;
 end;
 
