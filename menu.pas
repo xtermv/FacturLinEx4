@@ -287,6 +287,8 @@ Type
     procedure AddPedidoProveedorAutoButton;
     procedure DashboardProductividadClick(Sender: TObject);
     procedure AddDashboardProductividadButton;
+    procedure FLXUpdateConfigClick(Sender: TObject);
+    procedure AddFLXUpdateConfigButton;
     procedure btnEnviarAhoraClick(Sender: TObject);
     procedure btnVFReenviarErroresClick(Sender: TObject);
     procedure Edit26Enter(Sender: TObject);
@@ -370,7 +372,7 @@ uses
    uVF_Integration, uVeriChain, uVeriChainCheck, uVF_QueueResult, uvfqueuemonitor,
    uVF_Stub, uVFSenderAEAT, uVeriSIFForm, uFLX_Log, uFLX_Backup, uFLX_CryptoIni,
    uBackupFTPConfig, uRestoreBackup, uBackupUnpackHelper, uFLXRestoreRemote,
-   uFLX_PedidoProveedorVentasPDF, uPedidoProveedorAuto, uDashboardProductividad, Types, BaseUnix;
+   uFLX_PedidoProveedorVentasPDF, uPedidoProveedorAuto, uDashboardProductividad, uFLXUpdater, uFLXUpdateConfig, Types, BaseUnix;
 
 //====================================================================
 // ==== CONSTANTE PARA TRABAJAR EN LA BARRA DE ESTADO VERI*FACTU =====
@@ -820,6 +822,13 @@ Begin
      Exit;
     end;
 
+  //===========================================================
+  // Actualizador FacturLinEx - fase 1 segura/reversible
+  // Solo comprueba versi√≥n/requisitos y avisa. No sustituye ejecutables.
+  // Se controla desde [Actualizaciones] en FacturConf.ini.
+  //===========================================================
+  FLX_UpdateCheckAtStartup(RutaIni+'FacturConf.ini', ParamStr(0));
+
   Iniciar();
 
   //=============================================
@@ -839,6 +848,7 @@ Begin
      AddPedidoProvVentasButton;
      AddPedidoProveedorAutoButton;
      AddDashboardProductividadButton;
+     AddFLXUpdateConfigButton;
      UpdateVFStatusBar;
 
 End;
@@ -1533,6 +1543,135 @@ begin
   timer1.enabled := false;
   try
     ShowFormDashboardProductividad(Self, TZConnection(dbQuery.Connection), Tienda);
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+
+
+procedure TFMenu.AddFLXUpdateConfigButton;
+var
+  B: TBitBtn;
+  Png: TPortableNetworkGraphic;
+  Icono: string;
+  I: Integer;
+  Rutas: TStringList;
+  GapPx: Integer;
+
+  procedure AddIconPath(const APath: string);
+  var
+    S: string;
+  begin
+    S := Trim(APath);
+    if S <> '' then
+      if Rutas.IndexOf(S) < 0 then
+        Rutas.Add(S);
+  end;
+
+  procedure AddIconPathsFromBase(const ABase: string);
+  var
+    BDir: string;
+  begin
+    BDir := IncludeTrailingPathDelimiter(ABase);
+
+    // Ruta solicitada: Imagenes/totalizar.png dentro de la carpeta facturlinex2.
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'totalizar.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'Totalizar.png');
+
+    // Compatibilidad si RutaIconos ya apunta directamente a Imagenes/.
+    AddIconPath(BDir + 'totalizar.png');
+    AddIconPath(BDir + 'Totalizar.png');
+  end;
+
+begin
+  if FindComponent('BitBtnFLXUpdateConfig') <> nil then Exit;
+
+  B := TBitBtn.Create(Self);
+  B.Name := 'BitBtnFLXUpdateConfig';
+
+  // El actualizador es una herramienta de mantenimiento, por eso queda en
+  // la pesta√±a Utilidades, situado a la derecha del todo.
+  B.Parent := TabSheet9;
+  B.Top := BitBtn13.Top;
+  B.Height := BitBtn13.Height;
+  B.Width := BitBtn13.Width + 35;
+  if B.Width < 115 then B.Width := 115;
+  B.Caption := 'Actualizar';
+  B.Hint := 'Configurar actualizador autom√°tico y generar version.ini';
+  B.ShowHint := True;
+  B.Layout := blGlyphTop;
+  B.Spacing := 4;
+  B.NumGlyphs := 1;
+  B.OnClick := @FLXUpdateConfigClick;
+
+  // ColocaciÛn en Utilidades:
+  // a unos 10 cm hacia la derecha del botÛn ROLES.
+  // Aproximamos 10 cm a 360 px en pantallas normales.
+  GapPx := 360;
+  B.Left := BitBtn54.Left + BitBtn54.Width + GapPx;
+
+  // Si en alg˙n terminal no cupiese, lo acercamos un poco pero nunca lo
+  // mandamos a Ventas. La referencia visual siempre es ROLES.
+  if (B.Left + B.Width) > (B.Parent.ClientWidth - 8) then
+    B.Left := B.Parent.ClientWidth - B.Width - 8;
+  if B.Left < (BitBtn54.Left + BitBtn54.Width + 20) then
+    B.Left := BitBtn54.Left + BitBtn54.Width + 20;
+
+  B.Anchors := [akTop, akLeft];
+  B.Visible := True;
+  B.Enabled := True;
+  B.BringToFront;
+
+  // Carga robusta del icono totalizar.png. Si no existe, el bot√≥n queda
+  // funcional con texto y se a√±ade nota al Hint, sin molestar al arrancar.
+  Icono := '';
+  Rutas := TStringList.Create;
+  try
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'totalizar.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'Totalizar.png');
+
+    AddIconPathsFromBase(RutaBin);
+    AddIconPathsFromBase(RutaIni);
+    AddIconPathsFromBase(RutaSql);
+    AddIconPathsFromBase(ExtractFilePath(ParamStr(0)));
+    AddIconPathsFromBase(ExtractFilePath(Application.ExeName));
+    AddIconPathsFromBase(GetCurrentDir);
+    AddIconPathsFromBase(ExpandFileName(ExtractFilePath(ParamStr(0)) + '..' + DirectorySeparator));
+    AddIconPathsFromBase(ExpandFileName(GetCurrentDir + DirectorySeparator + '..' + DirectorySeparator));
+
+    for I := 0 to Rutas.Count - 1 do
+      if FileExists(Rutas[I]) then
+      begin
+        Icono := Rutas[I];
+        Break;
+      end;
+  finally
+    Rutas.Free;
+  end;
+
+  if FileExists(Icono) then
+  begin
+    Png := TPortableNetworkGraphic.Create;
+    try
+      Png.LoadFromFile(Icono);
+      B.Glyph.Assign(Png);
+      B.NumGlyphs := 1;
+      B.Invalidate;
+    finally
+      Png.Free;
+    end;
+  end
+  else
+    B.Hint := B.Hint + ' (icono no encontrado: Imagenes/totalizar.png)';
+
+  B.Repaint;
+end;
+
+procedure TFMenu.FLXUpdateConfigClick(Sender: TObject);
+begin
+  timer1.enabled := false;
+  try
+    MostrarConfigActualizacionesFLX(RutaIni + 'FacturConf.ini', ParamStr(0));
   finally
     Timer1Timer(nil);
   end;
