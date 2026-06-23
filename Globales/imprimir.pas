@@ -179,6 +179,36 @@ implementation
 uses
   Global, Funciones, uFacturaE_Generator, uFacturaE_Signer;
 
+{ Helpers QR Veri*Factu -------------------------------------------------------
+  Se dejan en Imprimir para que el QR de FACTURAS use la misma lógica
+  que ventas.pas: modo producción tolerante, numserie con guiones
+  y el importe siempre con punto decimal.
+}
+function VF_Imprimir_EsModoProduccion: Boolean;
+var
+  M: string;
+begin
+  M := UpperCase(Trim(vfMode));
+  Result := (M = 'PRODUCCION') or (Copy(M, 1, 4) = 'PROD');
+end;
+
+function VF_Imprimir_QRImporte(const AImporte: Double): string;
+begin
+  // AEAT/QR espera punto decimal aunque el sistema esté en locale español.
+  Result := StringReplace(FormatFloat('0.00', AImporte), ',', '.', [rfReplaceAll]);
+end;
+
+function VF_Imprimir_BuildQRTributarioFactura(const ASerie, ANumero: string;
+  const AFecha: TDateTime; const AImporte: Double): string;
+begin
+  // Facturas completas: NO añadimos FS-.  La serie ya debe venir preparada
+  // por el proceso que genera la factura (A26/B26/R26/etc.).
+  Result := vfUrl + 'nif=' + NIF +
+            '&numserie=' + Trim(ASerie) + '-' + Trim(ANumero) +
+            '&fecha=' + FormatDateTime('dd-mm-yyyy', AFecha) +
+            '&importe=' + VF_Imprimir_QRImporte(AImporte);
+end;
+
 { TFImpresion }
 
 function TFImpresion.Imprime(dbMuestrad: TZQuery; dbMuestrac: TZQuery; dbCliente: TZQuery;
@@ -192,7 +222,7 @@ begin
     begin
        xml:= 0;
 
-       txtQR:=vfUrl+'nif='+NIF+'&';
+       txtQR := '';
 
        ImpresionDirecta:= directo;
        dbDatosCliente:= dbCliente;
@@ -210,17 +240,21 @@ begin
 
  //      BarcodeQR1.Text:= TextoCodigoQR;                    // ' FacturLinEx Veri*factu 4.0 ';
 
-       if (UpperCase(vfMode) = 'PRODUCCION') and (Documento= 'FACTURA') then
-         BarcodeQR1.Text:=txtQR+'numserie='+dbCabecera.Fields[2].AsString+'-'+dbCabecera.Fields[3].AsString
-                           +'&fecha='+FormatDateTime('dd-mm-yyyy',dbCabecera.Fields[1].AsDateTime)
-                           +'&importe='+FormatFloat('0.00',dbCabecera.Fields[9].AsFloat)
+       if VF_Imprimir_EsModoProduccion and (UpperCase(Trim(Documento)) = 'FACTURA') then
+         BarcodeQR1.Text := VF_Imprimir_BuildQRTributarioFactura(
+                            dbCabecera.Fields[2].AsString,
+                            dbCabecera.Fields[3].AsString,
+                            dbCabecera.Fields[1].AsDateTime,
+                            dbCabecera.Fields[9].AsFloat)
        else
          BarcodeQR1.Text := TextoCodigoQR;
+
+       txtQR := BarcodeQR1.Text;
 
        DirectorioQR:='';
 
        if DirectoryExists(RutaPdf) then DirectorioQR:=RutaPdf+'/QR.png'
-                                else DirectorioQR:= RutaIni+'QR.png';
+                                else DirectorioQR:= IncludeTrailingPathDelimiter(RutaIni)+'QR.png';
 
        if FileExists(DirectorioQR) then DeleteFile(DirectorioQR);
                                                                 // Creamos el fichero QR para incluir en el report.
@@ -1128,7 +1162,7 @@ var
 
 begin
 
-     if UpperCase(vfMode) = 'PRODUCCION' then
+     if VF_Imprimir_EsModoProduccion and (UpperCase(Trim(Documento)) = 'FACTURA') then
      begin
       LeyendaCabeceraQR := ' QR Tributario : ';
       LeyendaPieQR := ' VERI*FACTU ';
