@@ -211,7 +211,7 @@ begin
  //      BarcodeQR1.Text:= TextoCodigoQR;                    // ' FacturLinEx Veri*factu 4.0 ';
 
        if (UpperCase(vfMode) = 'PRODUCCION') and (Documento= 'FACTURA') then
-         BarcodeQR1.Text:=txtQR+'numserie='+dbCabecera.Fields[2].AsString+'%2F'+dbCabecera.Fields[3].AsString
+         BarcodeQR1.Text:=txtQR+'numserie='+dbCabecera.Fields[2].AsString+'-'+dbCabecera.Fields[3].AsString
                            +'&fecha='+FormatDateTime('dd-mm-yyyy',dbCabecera.Fields[1].AsDateTime)
                            +'&importe='+FormatFloat('0.00',dbCabecera.Fields[9].AsFloat)
        else
