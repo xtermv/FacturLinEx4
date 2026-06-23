@@ -468,6 +468,8 @@ type
     procedure DesactivaArticulos();
     procedure Edit64KeyPress(Sender: TObject; var Key: char);
     procedure Edit70Change(Sender: TObject);
+    procedure VeriFactuChange(Sender: TObject);
+    procedure AplicarDefaultsVeriFactuEnBlanco;
     procedure EditCambiableCodigo1Change(Sender: TObject);
     procedure Edit57Exit(Sender: TObject);
     procedure Edit1Change(Sender: TObject);
@@ -505,12 +507,36 @@ implementation
 
 uses
     Global, Funciones, Menu, uFLX_CryptoIni;
+
+const
+  VF_DEFAULT_URL_QR     = 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?';
+  VF_DEFAULT_URL_SOAP   = 'https://prewww10.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP';
+  VF_DEFAULT_URL_LOCAL  = 'http://127.0.0.1:8080/verifactu/test';
+  VF_DEFAULT_MODE       = 'PRODUCCION';
+//--------------- Valores por defecto VeriFactu ----------------
+procedure TFConfig.AplicarDefaultsVeriFactuEnBlanco;
+begin
+  if Trim(Edit71.Text)='' then
+    Edit71.Text := VF_DEFAULT_URL_QR;
+
+  if Trim(Edit72.Text)='' then
+    Edit72.Text := VF_DEFAULT_URL_SOAP;
+
+  if Trim(Edit73.Text)='' then
+    Edit73.Text := VF_DEFAULT_URL_LOCAL;
+
+  if Trim(vfMode)='' then
+    vfMode := VF_DEFAULT_MODE;
+end;
+
 //---------------CARGA DE VALORES EN LAS VARIABLES
 //Recoge los valores introducidos en la página y se cargan las variables Globales
 procedure TFConfig.CargaValoresEnGlobales();
 var
   contador: integer;
 begin
+    AplicarDefaultsVeriFactuEnBlanco;
+
     //---------- Sección Empresa ---------
     Empresa:=Edit1.Text;
     Representante:=Edit2.Text;
@@ -1042,6 +1068,7 @@ begin
 
 
       //--------------- VeriFactu ---------------------
+    AplicarDefaultsVeriFactuEnBlanco;
     IniReader.WriteString('VeriFactu','vfUrl',edit71.Text);
     IniReader.WriteString('VeriFactu','vfUrlTP',edit72.Text);
     IniReader.WriteString('VeriFactu','vfUrlTLocal',edit73.Text);
@@ -1084,7 +1111,9 @@ begin
 
   EditAbrirArchivo.Text:=AbrirAchivo;
 
-  IniForm:=true;
+  // La carga inicial ya ha terminado. A partir de aquí,
+  // el primer cambio del usuario debe activar Guardar/Recuperar.
+  IniForm:=False;
 
   fechaiva.Date:=Date;
 
@@ -1094,6 +1123,19 @@ begin
   lbImagenes.Caption:='Imágenes guardadas en ' + RutaIconos;
   lbReport.Caption:='Plantillas de informes y documentos en ' + RutaReports ;
   lbModulos.Caption:='Módulos instalados en ' + RutaModulos;
+
+  // Los controles de VeriFactu no tenían evento OnChange.
+  // Se asignan aquí, DESPUÉS de RestaurarIni, para que la carga inicial
+  // no marque la configuración como modificada.
+  Edit71.OnChange      := @VeriFactuChange;
+  Edit72.OnChange      := @VeriFactuChange;
+  Edit73.OnChange      := @VeriFactuChange;
+  vfCheckTest.OnChange := @VeriFactuChange;
+
+  // Estado inicial limpio: no hay cambios pendientes al abrir configuración.
+  BitBtn1.Enabled := False;
+  BitBtn2.Enabled := False;
+  IniForm := False;
 
   If rutaBin='/usr/bin/' then
        begin
@@ -1417,8 +1459,9 @@ begin
      Edit71.Text:=      IniReader.ReadString('VeriFactu','vfUrl','');
      Edit72.Text:=      IniReader.ReadString('VeriFactu','vfUrlTP','');
      Edit73.Text:=      IniReader.ReadString('VeriFactu','vfUrlTLocal','');
-     if IniReader.ReadString('VeriFactu','vfMode','')='PRUEBAS' then vfCheckTest.Checked:=true;
      vfMode:=           IniReader.ReadString('VeriFactu','vfMode','');
+     AplicarDefaultsVeriFactuEnBlanco;
+     vfCheckTest.Checked := (vfMode='PRUEBAS');
      // if vfMode = 'PRUEBAS' then vfCheckTest.Checked:= True else vfCheckTest.Checked:=False;
 
      tmpBoolean:=  IniReader.ReadString('Correo','SSL','');
@@ -1606,6 +1649,16 @@ begin
        IniForm:=False;
        exit;
     end;
+  if BitBtn1.Enabled=True then exit;
+  BitBtn1.Enabled := True;
+  BitBtn2.Enabled := True;
+end;
+
+//=============== Si cambia algún dato de VeriFactu ============
+procedure TFConfig.VeriFactuChange(Sender: TObject);
+begin
+  // No tocamos IniForm aquí. Este evento se asigna después de RestaurarIni,
+  // así evitamos que la carga inicial active Guardar/Recuperar.
   if BitBtn1.Enabled=True then exit;
   BitBtn1.Enabled := True;
   BitBtn2.Enabled := True;
