@@ -25,6 +25,12 @@ type
     NIF:  string;
   end;
 
+const
+  // Límite conservador para que vf_hashchain.log no crezca sin control.
+  HC_LOG_MAX_LINES      = 2000;
+  HC_LOG_TRIM_AT_BYTES  = 512 * 1024; // recorta cuando supera 512 KB
+  HC_LOG_MAX_LINE_CHARS = 4000;
+
 {==============================================================================
                               LOG LOCAL (DEBUG)
 ==============================================================================}
@@ -49,20 +55,87 @@ begin
     ForceDirectories(APath);
 end;
 
+function HC_LimitLogLine(const S: string): string;
+begin
+  Result := S;
+  if Length(Result) > HC_LOG_MAX_LINE_CHARS then
+    Result := Copy(Result, 1, HC_LOG_MAX_LINE_CHARS) +
+              ' ... [TRUNCADO, longitud original=' + IntToStr(Length(S)) + ' caracteres]';
+end;
+
+function HC_GetFileSizeBytes(const FileName: string): Int64;
+var
+  FS: TFileStream;
+begin
+  Result := 0;
+  if not FileExists(FileName) then
+    Exit;
+
+  FS := TFileStream.Create(FileName, fmOpenRead or fmShareDenyNone);
+  try
+    Result := FS.Size;
+  finally
+    FS.Free;
+  end;
+end;
+
+procedure HC_TrimLogFile(const FileName: string);
+var
+  SL, LastLines: TStringList;
+  I, StartIdx: Integer;
+begin
+  try
+    if (HC_LOG_MAX_LINES <= 0) or (not FileExists(FileName)) then
+      Exit;
+
+    // Para no penalizar cada escritura, solo recortamos cuando el fichero ya pesa.
+    if HC_GetFileSizeBytes(FileName) < HC_LOG_TRIM_AT_BYTES then
+      Exit;
+
+    SL := TStringList.Create;
+    LastLines := TStringList.Create;
+    try
+      SL.LoadFromFile(FileName);
+      if SL.Count <= HC_LOG_MAX_LINES then
+        Exit;
+
+      StartIdx := SL.Count - HC_LOG_MAX_LINES;
+      for I := StartIdx to SL.Count - 1 do
+        LastLines.Add(SL[I]);
+
+      LastLines.SaveToFile(FileName);
+    finally
+      LastLines.Free;
+      SL.Free;
+    end;
+  except
+    on E: Exception do ; // el log nunca debe romper el flujo
+  end;
+end;
+
 procedure HC_SafeAppendLine(const FileName, Line: string);
 var
-  SL: TStringList;
+  FS: TFileStream;
+  S : string;
 begin
   try
     EnsureDir(ExtractFilePath(FileName));
-    SL := TStringList.Create;
+
+    if FileExists(FileName) then
+      FS := TFileStream.Create(FileName, fmOpenReadWrite or fmShareDenyNone)
+    else
+      FS := TFileStream.Create(FileName, fmCreate or fmShareDenyNone);
+
     try
-      if FileExists(FileName) then SL.LoadFromFile(FileName);
-      SL.Add(Line);
-      SL.SaveToFile(FileName);
+      FS.Position := FS.Size;
+      S := HC_LimitLogLine(Line) + LineEnding;
+      if S <> '' then
+        FS.WriteBuffer(Pointer(S)^, Length(S));
     finally
-      SL.Free;
+      FS.Free;
     end;
+
+    HC_TrimLogFile(FileName);
   except
     on E: Exception do ; // suprime diálogo
   end;
@@ -73,22 +146,10 @@ end;
 procedure HC_WriteDiag(const S: string);
 var
   fn: string;
-  fs: TFileStream;
-  line: string;
 begin
   try
-    fn := IncludeTrailingPathDelimiter(Hc_DataPath) + 'logs' + DirectorySeparator + 'vf_hashchain.log';
-    if FileExists(fn) then
-      fs := TFileStream.Create(fn, fmOpenReadWrite or fmShareDenyNone)
-    else
-      fs := TFileStream.Create(fn, fmCreate or fmShareDenyNone);
-    try
-      fs.Position := fs.Size;
-      line := FormatDateTime('yyyy-mm-dd hh:nn:ss', Now) + '  ' + S + LineEnding;
-      fs.WriteBuffer(Pointer(line)^, Length(line));
-    finally
-      fs.Free;
-    end;
+    fn := IncludeTrailingPathDelimiter(HC_DataPath) + 'logs' + DirectorySeparator + 'vf_hashchain.log';
+    HC_SafeAppendLine(fn, FormatDateTime('yyyy-mm-dd hh:nn:ss', Now) + '  ' + S);
   except
     // Nunca romper el flujo por un problema de log
   end;
