@@ -55,6 +55,14 @@ uses
   IniFiles, ZConnection, ZDataset, uVeriHash, uVF_HashChain, uVeriChain, uVeriChainCheck,
   Global, uFLX_CryptoIni; // <-- Para tener acceso a las variables Nif, Empresa y vfUrlTP
 
+const
+  // Límite conservador para que los logs de VeriFactu no crezcan sin control.
+  // Mantiene las últimas líneas útiles para diagnóstico sin ralentizar el TPV.
+  VF_LOG_MAX_LINES      = 2000;
+  VF_LOG_TRIM_AT_BYTES  = 512 * 1024; // recorta cuando supera 512 KB
+  VF_LOG_MAX_LINE_CHARS = 4000;       // evita líneas enormes tipo XML completo
+
+
 procedure QueueToFiles(const Serie: string; Numero: Integer; const FechaISO, HoraISO: string;
   TotalConIVA: Double; const PayloadJSON: string); forward;
 
@@ -123,20 +131,87 @@ begin
   end;
 end;
 
+function VF_LimitLogLine(const S: string): string;
+begin
+  Result := S;
+  if Length(Result) > VF_LOG_MAX_LINE_CHARS then
+    Result := Copy(Result, 1, VF_LOG_MAX_LINE_CHARS) +
+              ' ... [TRUNCADO, longitud original=' + IntToStr(Length(S)) + ' caracteres]';
+end;
+
+function VF_GetFileSizeBytes(const FileName: string): Int64;
+var
+  FS: TFileStream;
+begin
+  Result := 0;
+  if not FileExists(FileName) then
+    Exit;
+
+  FS := TFileStream.Create(FileName, fmOpenRead or fmShareDenyNone);
+  try
+    Result := FS.Size;
+  finally
+    FS.Free;
+  end;
+end;
+
+procedure VF_TrimLogFile(const FileName: string);
+var
+  SL, LastLines: TStringList;
+  I, StartIdx: Integer;
+begin
+  try
+    if (VF_LOG_MAX_LINES <= 0) or (not FileExists(FileName)) then
+      Exit;
+
+    // Para no penalizar cada escritura, solo recortamos cuando el fichero ya pesa.
+    if VF_GetFileSizeBytes(FileName) < VF_LOG_TRIM_AT_BYTES then
+      Exit;
+
+    SL := TStringList.Create;
+    LastLines := TStringList.Create;
+    try
+      SL.LoadFromFile(FileName);
+      if SL.Count <= VF_LOG_MAX_LINES then
+        Exit;
+
+      StartIdx := SL.Count - VF_LOG_MAX_LINES;
+      for I := StartIdx to SL.Count - 1 do
+        LastLines.Add(SL[I]);
+
+      LastLines.SaveToFile(FileName);
+    finally
+      LastLines.Free;
+      SL.Free;
+    end;
+  except
+    on E: Exception do ; // el log nunca debe romper el flujo
+  end;
+end;
+
 procedure SafeAppendLine(const FileName, Line: string);
 var
-  SL: TStringList;
+  FS: TFileStream;
+  S : string;
 begin
   try
     EnsureDir(ExtractFilePath(FileName));
-    SL := TStringList.Create;
+
+    if FileExists(FileName) then
+      FS := TFileStream.Create(FileName, fmOpenReadWrite or fmShareDenyNone)
+    else
+      FS := TFileStream.Create(FileName, fmCreate or fmShareDenyNone);
+
     try
-      if FileExists(FileName) then SL.LoadFromFile(FileName);
-      SL.Add(Line);
-      SL.SaveToFile(FileName);
+      FS.Position := FS.Size;
+      S := VF_LimitLogLine(Line) + LineEnding;
+      if S <> '' then
+        FS.WriteBuffer(Pointer(S)^, Length(S));
     finally
-      SL.Free;
+      FS.Free;
     end;
+
+    VF_TrimLogFile(FileName);
   except
     on E: Exception do ; // evitar propagación
   end;
