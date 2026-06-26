@@ -77,7 +77,7 @@
         <MinVersion Valid="True"/>
       </Item9>
     </RequiredPackages>
-    <Units Count="87">
+    <Units Count="89">
       <Unit0>
         <Filename Value="FacturLinEx.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -94,10 +94,11 @@
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="Menu"/>
         <EditorIndex Value="4"/>
-        <TopLine Value="86"/>
-        <CursorPos X="76" Y="366"/>
+        <TopLine Value="355"/>
+        <CursorPos X="59" Y="369"/>
         <UsageCount Value="232"/>
         <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
       </Unit1>
       <Unit2>
         <Filename Value="Puestos\puestos.pas"/>
@@ -737,9 +738,10 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="Imprimir"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="20"/>
-        <CursorPos X="20" Y="30"/>
+        <TopLine Value="206"/>
+        <CursorPos X="77" Y="214"/>
         <ComponentState Value="1"/>
         <UsageCount Value="232"/>
         <Loaded Value="True"/>
@@ -810,9 +812,8 @@
         <ComponentName Value="fPromociones"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="6"/>
-        <TopLine Value="720"/>
+        <TopLine Value="721"/>
         <CursorPos X="7" Y="725"/>
         <UsageCount Value="232"/>
         <Loaded Value="True"/>
@@ -1064,12 +1065,30 @@
         <UsageCount Value="21"/>
         <Loaded Value="True"/>
       </Unit86>
+      <Unit87>
+        <Filename Value="dashboard\uDashboardProductividad.pas"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="-1"/>
+        <WindowIndex Value="-1"/>
+        <TopLine Value="-1"/>
+        <CursorPos X="-1" Y="-1"/>
+        <UsageCount Value="20"/>
+      </Unit87>
+      <Unit88>
+        <Filename Value="Pedidos\uPedidoProveedorAuto.pas"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="-1"/>
+        <WindowIndex Value="-1"/>
+        <TopLine Value="-1"/>
+        <CursorPos X="-1" Y="-1"/>
+        <UsageCount Value="20"/>
+      </Unit88>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>
     <SearchPaths>
-      <OtherUnitFiles Value="Tiendas;Facturas;Clientes;Articulos;Configuracion;Globales;Ventas;Proveedores;Familias;Usuarios;Departamentos;Varios/FormaPago;Varios/Rutas;Varios/Fabricantes;Albaranes;Historicos;Pedidos;ivas;Cajas;Comunicaciones;Puestos;Varios/Busquedas;Facturar;Etiquetas;Presupuestos;Varios;Produccion;CopiaSeg;AStock;copiaseg;Varios/Roles;Funciones;Varios/Modelo347;../../../Lazarus 3.8/mail4delphi-master/src;../../../../../.lazarus/onlinepackagemanager/packages/Indy10;../../../../../.lazarus/onlinepackagemanager/packages/Indy10/Protocols;verifactu;VFMonitor"/>
+      <OtherUnitFiles Value="Tiendas;Facturas;Clientes;Articulos;Configuracion;Globales;Ventas;Proveedores;Familias;Usuarios;Departamentos;Varios/FormaPago;Varios/Rutas;Varios/Fabricantes;Albaranes;Historicos;Pedidos;ivas;Cajas;Comunicaciones;Puestos;Varios/Busquedas;Facturar;Etiquetas;Presupuestos;Varios;Produccion;CopiaSeg;AStock;copiaseg;Varios/Roles;Funciones;Varios/Modelo347;../../../Lazarus 3.8/mail4delphi-master/src;../../../../../.lazarus/onlinepackagemanager/packages/Indy10;../../../../../.lazarus/onlinepackagemanager/packages/Indy10/Protocols;verifactu;VFMonitor;dashboard"/>
       <UnitOutputDirectory Value="Bin"/>
       <SrcPath Value="$(LazarusDir)/lcl;$(LazarusDir)/lcl/interfaces/$(LCLWidgetType)"/>
     </SearchPaths>
