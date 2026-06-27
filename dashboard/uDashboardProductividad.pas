@@ -80,11 +80,18 @@ type
     FTienda: string;
 
     pnlFiltro: TPanel;
+    cbIrAPestana: TComboBox;
+    cbGrupoArticulos: TComboBox;
+    cbGrupoCompras: TComboBox;
+    btnPestanaIzq: TButton;
+    btnPestanaDer: TButton;
+    FActualizandoSelector: Boolean;
     pcPrincipal: TPageControl;
     tsDashboard: TTabSheet;
     tsHoy: TTabSheet;
     tsVentasAbiertas: TTabSheet;
     tsCierreTarde: TTabSheet;
+    tsDiagnostico: TTabSheet;
     tsAlertas: TTabSheet;
     tsEstudios: TTabSheet;
     tsComparativa: TTabSheet;
@@ -150,6 +157,10 @@ type
     qCTCandidatos: TZQuery;
     qCTSemana: TZQuery;
     qCTHoras: TZQuery;
+    qDiagResumen: TZQuery;
+    qDiagMargen: TZQuery;
+    qDiagHoras: TZQuery;
+    qDiagProveedor: TZQuery;
     qAlertas: TZQuery;
     qEstVentasDia: TZQuery;
     qEstVentasHora: TZQuery;
@@ -253,6 +264,10 @@ type
     dsCTCandidatos: TDataSource;
     dsCTSemana: TDataSource;
     dsCTHoras: TDataSource;
+    dsDiagResumen: TDataSource;
+    dsDiagMargen: TDataSource;
+    dsDiagHoras: TDataSource;
+    dsDiagProveedor: TDataSource;
     dsAlertas: TDataSource;
     dsEstVentasDia: TDataSource;
     dsEstVentasHora: TDataSource;
@@ -355,6 +370,11 @@ type
     gridCTSemana: TDBGrid;
     gridCTHoras: TDBGrid;
     memoCTSugerencia: TMemo;
+    memoDiagnostico: TMemo;
+    gridDiagResumen: TDBGrid;
+    gridDiagMargen: TDBGrid;
+    gridDiagHoras: TDBGrid;
+    gridDiagProveedor: TDBGrid;
     gridAlertas: TDBGrid;
     gridEstVentasDia: TDBGrid;
     gridEstVentasHora: TDBGrid;
@@ -504,6 +524,7 @@ type
     procedure CrearTabHoy;
     procedure CrearTabVentasAbiertas;
     procedure CrearTabCierreTarde;
+    procedure CrearTabDiagnostico;
     procedure CrearTabAlertas;
     procedure CrearTabEstudios;
     procedure CrearTabComparativa;
@@ -521,6 +542,20 @@ type
     procedure CrearTabGraficas;
     procedure CrearTabComparativaAvanzada;
     procedure CrearTabConsultaLibre;
+    procedure OrdenarPestanasPrincipales;
+    function PestanaID(APage: TTabSheet): string;
+    function PestanaPorID(const AID: string): TTabSheet;
+    procedure CargarOrdenPestanas;
+    procedure GuardarOrdenPestanas;
+    procedure MoverPestanaActiva(Delta: Integer);
+    procedure MoverPestanaIzquierdaClick(Sender: TObject);
+    procedure MoverPestanaDerechaClick(Sender: TObject);
+    procedure RellenarSelectoresPestanas;
+    procedure SincronizarSelectoresPestanas;
+    procedure SelectorPestanaChange(Sender: TObject);
+    procedure SelectorArticulosChange(Sender: TObject);
+    procedure SelectorComprasChange(Sender: TObject);
+    procedure PaginaPrincipalChange(Sender: TObject);
 
     function CrearQuery: TZQuery;
     function Tabla(const Base: string): string;
@@ -589,6 +624,12 @@ type
     procedure CargarCTCandidatos;
     procedure CargarCTSemana;
     procedure CargarCTHoras;
+    procedure CargarDiagnostico;
+    procedure CargarDiagResumen;
+    procedure CargarDiagMargen;
+    procedure CargarDiagHoras;
+    procedure CargarDiagProveedor;
+    procedure CargarDiagInforme;
     procedure CargarResumen;
     procedure CargarPagos;
     procedure CargarTopArticulos;
@@ -1001,6 +1042,10 @@ begin
   qCTCandidatos.Connection := FConn;
   qCTSemana.Connection := FConn;
   qCTHoras.Connection := FConn;
+  qDiagResumen.Connection := FConn;
+  qDiagMargen.Connection := FConn;
+  qDiagHoras.Connection := FConn;
+  qDiagProveedor.Connection := FConn;
   qAlertas.Connection := FConn;
   qEstVentasDia.Connection := FConn;
   qEstVentasHora.Connection := FConn;
@@ -1115,6 +1160,10 @@ begin
   pcPrincipal := TPageControl.Create(Self);
   pcPrincipal.Parent := Self;
   pcPrincipal.Align := alClient;
+  pcPrincipal.MultiLine := False;
+  pcPrincipal.ShowTabs := True;
+  pcPrincipal.TabPosition := tpTop;
+  pcPrincipal.OnChange := @PaginaPrincipalChange;
 
   tsDashboard := TTabSheet.Create(Self);
   tsDashboard.PageControl := pcPrincipal;
@@ -1126,11 +1175,15 @@ begin
 
   tsVentasAbiertas := TTabSheet.Create(Self);
   tsVentasAbiertas.PageControl := pcPrincipal;
-  tsVentasAbiertas.Caption := 'Ventas abiertas';
+  tsVentasAbiertas.Caption := 'Ventas ab.';
 
   tsCierreTarde := TTabSheet.Create(Self);
   tsCierreTarde.PageControl := pcPrincipal;
   tsCierreTarde.Caption := 'Cierre tardes';
+
+  tsDiagnostico := TTabSheet.Create(Self);
+  tsDiagnostico.PageControl := pcPrincipal;
+  tsDiagnostico.Caption := 'Diagnostico';
 
   tsAlertas := TTabSheet.Create(Self);
   tsAlertas.PageControl := pcPrincipal;
@@ -1182,7 +1235,7 @@ begin
 
   tsCalidad := TTabSheet.Create(Self);
   tsCalidad.PageControl := pcPrincipal;
-  tsCalidad.Caption := 'Calidad datos';
+  tsCalidad.Caption := 'Calidad';
 
   tsVeriFactu := TTabSheet.Create(Self);
   tsVeriFactu.PageControl := pcPrincipal;
@@ -1194,16 +1247,17 @@ begin
 
   tsComparativaAvanzada := TTabSheet.Create(Self);
   tsComparativaAvanzada.PageControl := pcPrincipal;
-  tsComparativaAvanzada.Caption := 'Comparativa fechas';
+  tsComparativaAvanzada.Caption := 'Comp. fechas';
 
   tsConsultaLibre := TTabSheet.Create(Self);
   tsConsultaLibre.PageControl := pcPrincipal;
-  tsConsultaLibre.Caption := 'Consulta libre';
+  tsConsultaLibre.Caption := 'SQL libre';
 
   CrearTabDashboard;
   CrearTabHoy;
   CrearTabVentasAbiertas;
   CrearTabCierreTarde;
+  CrearTabDiagnostico;
   CrearTabAlertas;
   CrearTabEstudios;
   CrearTabComparativa;
@@ -1221,6 +1275,317 @@ begin
   CrearTabGraficas;
   CrearTabComparativaAvanzada;
   CrearTabConsultaLibre;
+
+  OrdenarPestanasPrincipales;
+  CargarOrdenPestanas;
+  RellenarSelectoresPestanas;
+end;
+
+
+procedure TFDashboardProductividad.OrdenarPestanasPrincipales;
+  procedure P(APage: TTabSheet; AIndex: Integer);
+  begin
+    if APage <> nil then
+      APage.PageIndex := AIndex;
+  end;
+begin
+  if pcPrincipal = nil then Exit;
+
+  // Orden agrupado y estable, sin ocultar pestanas ni usar popups.
+  // Evita los Access Violation de las pruebas con pestanas dinamicas en GTK.
+  P(tsDashboard, 0);
+  P(tsHoy, 1);
+  P(tsDiagnostico, 2);
+  P(tsComparativa, 3);
+  P(tsComparativaAvanzada, 4);
+  P(tsVentasAbiertas, 5);
+  P(tsCierreTarde, 6);
+  P(tsEstudios, 7);
+  P(tsRentabilidad, 8);
+  P(tsAlertas, 9);
+  P(tsRotacion, 10);
+  P(tsTendencias, 11);
+  P(tsClientes, 12);
+  P(tsPuestos, 13);
+  P(tsPromociones, 14);
+  P(tsCompras, 15);
+  P(tsReposicion, 16);
+  P(tsPicking, 17);
+  P(tsCalidad, 18);
+  P(tsVeriFactu, 19);
+  P(tsGraficas, 20);
+  P(tsConsultaLibre, 21);
+end;
+
+
+function TFDashboardProductividad.PestanaID(APage: TTabSheet): string;
+begin
+  Result := '';
+  if APage = tsDashboard then Result := 'dashboard'
+  else if APage = tsHoy then Result := 'hoy'
+  else if APage = tsDiagnostico then Result := 'diagnostico'
+  else if APage = tsComparativa then Result := 'comparativa'
+  else if APage = tsComparativaAvanzada then Result := 'comp_fechas'
+  else if APage = tsVentasAbiertas then Result := 'ventas_abiertas'
+  else if APage = tsCierreTarde then Result := 'cierre_tardes'
+  else if APage = tsEstudios then Result := 'estudios'
+  else if APage = tsRentabilidad then Result := 'rentabilidad'
+  else if APage = tsAlertas then Result := 'alertas'
+  else if APage = tsRotacion then Result := 'rotacion'
+  else if APage = tsTendencias then Result := 'tendencias'
+  else if APage = tsClientes then Result := 'clientes'
+  else if APage = tsPuestos then Result := 'puestos'
+  else if APage = tsPromociones then Result := 'promociones'
+  else if APage = tsCompras then Result := 'compras'
+  else if APage = tsReposicion then Result := 'reposicion'
+  else if APage = tsPicking then Result := 'preparacion'
+  else if APage = tsCalidad then Result := 'calidad'
+  else if APage = tsVeriFactu then Result := 'verifactu'
+  else if APage = tsGraficas then Result := 'graficas'
+  else if APage = tsConsultaLibre then Result := 'sql_libre';
+end;
+
+function TFDashboardProductividad.PestanaPorID(const AID: string): TTabSheet;
+var
+  K: string;
+begin
+  Result := nil;
+  K := LowerCase(Trim(AID));
+  if K = 'dashboard' then Result := tsDashboard
+  else if K = 'hoy' then Result := tsHoy
+  else if K = 'diagnostico' then Result := tsDiagnostico
+  else if K = 'comparativa' then Result := tsComparativa
+  else if K = 'comp_fechas' then Result := tsComparativaAvanzada
+  else if K = 'ventas_abiertas' then Result := tsVentasAbiertas
+  else if K = 'cierre_tardes' then Result := tsCierreTarde
+  else if K = 'estudios' then Result := tsEstudios
+  else if K = 'rentabilidad' then Result := tsRentabilidad
+  else if K = 'alertas' then Result := tsAlertas
+  else if K = 'rotacion' then Result := tsRotacion
+  else if K = 'tendencias' then Result := tsTendencias
+  else if K = 'clientes' then Result := tsClientes
+  else if K = 'puestos' then Result := tsPuestos
+  else if K = 'promociones' then Result := tsPromociones
+  else if K = 'compras' then Result := tsCompras
+  else if K = 'reposicion' then Result := tsReposicion
+  else if K = 'preparacion' then Result := tsPicking
+  else if K = 'calidad' then Result := tsCalidad
+  else if K = 'verifactu' then Result := tsVeriFactu
+  else if K = 'graficas' then Result := tsGraficas
+  else if K = 'sql_libre' then Result := tsConsultaLibre;
+end;
+
+procedure TFDashboardProductividad.CargarOrdenPestanas;
+var
+  INI: TIniFile;
+  S: string;
+  L: TStringList;
+  I, PosIndex: Integer;
+  APage: TTabSheet;
+begin
+  if pcPrincipal = nil then Exit;
+
+  INI := TIniFile.Create(DashboardEstadoIni);
+  L := TStringList.Create;
+  try
+    S := Trim(INI.ReadString('Pestanas', 'Orden', ''));
+    if S = '' then Exit;
+
+    ExtractStrings([','], [' '], PChar(S), L);
+    PosIndex := 0;
+    for I := 0 to L.Count - 1 do
+    begin
+      APage := PestanaPorID(L[I]);
+      if APage <> nil then
+      begin
+        APage.PageIndex := PosIndex;
+        Inc(PosIndex);
+      end;
+    end;
+  finally
+    L.Free;
+    INI.Free;
+  end;
+end;
+
+procedure TFDashboardProductividad.GuardarOrdenPestanas;
+var
+  INI: TIniFile;
+  I: Integer;
+  ID, S: string;
+begin
+  if pcPrincipal = nil then Exit;
+
+  S := '';
+  for I := 0 to pcPrincipal.PageCount - 1 do
+  begin
+    ID := PestanaID(pcPrincipal.Pages[I]);
+    if ID <> '' then
+    begin
+      if S <> '' then
+        S := S + ',';
+      S := S + ID;
+    end;
+  end;
+
+  INI := TIniFile.Create(DashboardEstadoIni);
+  try
+    INI.WriteString('Pestanas', 'Orden', S);
+  finally
+    INI.Free;
+  end;
+end;
+
+procedure TFDashboardProductividad.MoverPestanaActiva(Delta: Integer);
+var
+  APage: TTabSheet;
+  NewIndex: Integer;
+begin
+  if (pcPrincipal = nil) or (pcPrincipal.ActivePage = nil) then Exit;
+
+  APage := pcPrincipal.ActivePage;
+  NewIndex := APage.PageIndex + Delta;
+  if NewIndex < 0 then NewIndex := 0;
+  if NewIndex >= pcPrincipal.PageCount then NewIndex := pcPrincipal.PageCount - 1;
+  if NewIndex = APage.PageIndex then Exit;
+
+  APage.PageIndex := NewIndex;
+  pcPrincipal.ActivePage := APage;
+  RellenarSelectoresPestanas;
+  SincronizarSelectoresPestanas;
+  GuardarOrdenPestanas;
+end;
+
+procedure TFDashboardProductividad.MoverPestanaIzquierdaClick(Sender: TObject);
+begin
+  MoverPestanaActiva(-1);
+end;
+
+procedure TFDashboardProductividad.MoverPestanaDerechaClick(Sender: TObject);
+begin
+  MoverPestanaActiva(1);
+end;
+
+procedure TFDashboardProductividad.RellenarSelectoresPestanas;
+  procedure AddP(CB: TComboBox; const ACaption: string; APage: TTabSheet);
+  begin
+    if (CB <> nil) and (APage <> nil) then
+      CB.Items.AddObject(ACaption, TObject(APage));
+  end;
+var
+  I: Integer;
+  APage: TTabSheet;
+begin
+  FActualizandoSelector := True;
+  try
+    if cbIrAPestana <> nil then
+    begin
+      cbIrAPestana.Items.Clear;
+      if pcPrincipal <> nil then
+      begin
+        for I := 0 to pcPrincipal.PageCount - 1 do
+        begin
+          APage := pcPrincipal.Pages[I];
+          AddP(cbIrAPestana, APage.Caption, APage);
+        end;
+      end;
+    end;
+
+    // En esta version se deja un unico desplegable principal "Ir a".
+    // Se mantienen estas comprobaciones por compatibilidad si alguna prueba anterior
+    // hubiera dejado creados los combos de grupo.
+    if cbGrupoArticulos <> nil then
+    begin
+      cbGrupoArticulos.Items.Clear;
+      AddP(cbGrupoArticulos, 'Alertas', tsAlertas);
+      AddP(cbGrupoArticulos, 'Rotacion', tsRotacion);
+      AddP(cbGrupoArticulos, 'Tendencias', tsTendencias);
+    end;
+
+    if cbGrupoCompras <> nil then
+    begin
+      cbGrupoCompras.Items.Clear;
+      AddP(cbGrupoCompras, 'Compras', tsCompras);
+      AddP(cbGrupoCompras, 'Reposicion', tsReposicion);
+      AddP(cbGrupoCompras, 'Preparacion', tsPicking);
+    end;
+  finally
+    FActualizandoSelector := False;
+  end;
+
+  SincronizarSelectoresPestanas;
+end;
+
+procedure TFDashboardProductividad.SincronizarSelectoresPestanas;
+  procedure SyncCB(CB: TComboBox; APage: TTabSheet);
+  var
+    I: Integer;
+  begin
+    if CB = nil then Exit;
+    CB.ItemIndex := -1;
+    if APage = nil then Exit;
+    for I := 0 to CB.Items.Count - 1 do
+      if CB.Items.Objects[I] = TObject(APage) then
+      begin
+        CB.ItemIndex := I;
+        Break;
+      end;
+  end;
+begin
+  if (pcPrincipal = nil) or (pcPrincipal.ActivePage = nil) then Exit;
+
+  FActualizandoSelector := True;
+  try
+    SyncCB(cbIrAPestana, pcPrincipal.ActivePage);
+    SyncCB(cbGrupoArticulos, pcPrincipal.ActivePage);
+    SyncCB(cbGrupoCompras, pcPrincipal.ActivePage);
+  finally
+    FActualizandoSelector := False;
+  end;
+end;
+
+procedure TFDashboardProductividad.SelectorPestanaChange(Sender: TObject);
+var
+  APage: TTabSheet;
+begin
+  if FActualizandoSelector then Exit;
+  if (cbIrAPestana = nil) or (cbIrAPestana.ItemIndex < 0) then Exit;
+
+  APage := TTabSheet(cbIrAPestana.Items.Objects[cbIrAPestana.ItemIndex]);
+  if (pcPrincipal <> nil) and (APage <> nil) then
+    pcPrincipal.ActivePage := APage;
+  SincronizarSelectoresPestanas;
+end;
+
+procedure TFDashboardProductividad.SelectorArticulosChange(Sender: TObject);
+var
+  APage: TTabSheet;
+begin
+  if FActualizandoSelector then Exit;
+  if (cbGrupoArticulos = nil) or (cbGrupoArticulos.ItemIndex < 0) then Exit;
+
+  APage := TTabSheet(cbGrupoArticulos.Items.Objects[cbGrupoArticulos.ItemIndex]);
+  if (pcPrincipal <> nil) and (APage <> nil) then
+    pcPrincipal.ActivePage := APage;
+  SincronizarSelectoresPestanas;
+end;
+
+procedure TFDashboardProductividad.SelectorComprasChange(Sender: TObject);
+var
+  APage: TTabSheet;
+begin
+  if FActualizandoSelector then Exit;
+  if (cbGrupoCompras = nil) or (cbGrupoCompras.ItemIndex < 0) then Exit;
+
+  APage := TTabSheet(cbGrupoCompras.Items.Objects[cbGrupoCompras.ItemIndex]);
+  if (pcPrincipal <> nil) and (APage <> nil) then
+    pcPrincipal.ActivePage := APage;
+  SincronizarSelectoresPestanas;
+end;
+
+procedure TFDashboardProductividad.PaginaPrincipalChange(Sender: TObject);
+begin
+  SincronizarSelectoresPestanas;
 end;
 
 procedure TFDashboardProductividad.CrearFiltro;
@@ -1230,7 +1595,7 @@ begin
   pnlFiltro := TPanel.Create(Self);
   pnlFiltro.Parent := Self;
   pnlFiltro.Align := alTop;
-  pnlFiltro.Height := 42;
+  pnlFiltro.Height := 72;
   pnlFiltro.BevelOuter := bvNone;
 
   L := TLabel.Create(Self);
@@ -1354,6 +1719,51 @@ begin
   btnInformePDF.Hint := 'Genera directamente un PDF simple de la pesta�a activa';
   btnInformePDF.ShowHint := True;
   btnInformePDF.OnClick := @InformePDFClick;
+
+
+  L := TLabel.Create(Self);
+  L.Parent := pnlFiltro;
+  L.Caption := 'Ir a:';
+  L.Left := 10;
+  L.Top := 45;
+
+  cbIrAPestana := TComboBox.Create(Self);
+  cbIrAPestana.Parent := pnlFiltro;
+  cbIrAPestana.Left := 58;
+  cbIrAPestana.Top := 40;
+  cbIrAPestana.Width := 230;
+  cbIrAPestana.Style := csDropDownList;
+  cbIrAPestana.Hint := 'Acceso rapido a cualquier pestana del dashboard';
+  cbIrAPestana.ShowHint := True;
+  cbIrAPestana.OnChange := @SelectorPestanaChange;
+
+  L := TLabel.Create(Self);
+  L.Parent := pnlFiltro;
+  L.Caption := 'Mover pestana:';
+  L.Left := 310;
+  L.Top := 45;
+
+  btnPestanaIzq := TButton.Create(Self);
+  btnPestanaIzq.Parent := pnlFiltro;
+  btnPestanaIzq.Left := 405;
+  btnPestanaIzq.Top := 40;
+  btnPestanaIzq.Width := 34;
+  btnPestanaIzq.Height := 25;
+  btnPestanaIzq.Caption := '<';
+  btnPestanaIzq.Hint := 'Mueve la pestana activa una posicion a la izquierda y guarda el orden';
+  btnPestanaIzq.ShowHint := True;
+  btnPestanaIzq.OnClick := @MoverPestanaIzquierdaClick;
+
+  btnPestanaDer := TButton.Create(Self);
+  btnPestanaDer.Parent := pnlFiltro;
+  btnPestanaDer.Left := 443;
+  btnPestanaDer.Top := 40;
+  btnPestanaDer.Width := 34;
+  btnPestanaDer.Height := 25;
+  btnPestanaDer.Caption := '>';
+  btnPestanaDer.Hint := 'Mueve la pestana activa una posicion a la derecha y guarda el orden';
+  btnPestanaDer.ShowHint := True;
+  btnPestanaDer.OnClick := @MoverPestanaDerechaClick;
 
   btnCerrar := TButton.Create(Self);
   btnCerrar.Parent := pnlFiltro;
@@ -1974,6 +2384,133 @@ begin
   gridCTHoras.ReadOnly := True;
   gridCTHoras.Options := gridCTHoras.Options + [dgDisplayMemoText];
 end;
+
+
+procedure TFDashboardProductividad.CrearTabDiagnostico;
+var
+  pnlTop: TPanel;
+  pnlMiddle: TPanel;
+  pnlBottom: TPanel;
+  gbInforme, gbResumen, gbMargen, gbHoras, gbProveedor: TGroupBox;
+  spTop, spMiddle, spMid, spBot: TSplitter;
+begin
+  pnlTop := TPanel.Create(Self);
+  pnlTop.Parent := tsDiagnostico;
+  pnlTop.Align := alTop;
+  pnlTop.Height := 175;
+  pnlTop.BevelOuter := bvNone;
+
+  gbInforme := TGroupBox.Create(Self);
+  gbInforme.Parent := pnlTop;
+  gbInforme.Align := alClient;
+  gbInforme.Caption := 'Diagnostico inteligente del periodo';
+
+  memoDiagnostico := TMemo.Create(Self);
+  memoDiagnostico.Parent := gbInforme;
+  memoDiagnostico.Align := alClient;
+  memoDiagnostico.ReadOnly := True;
+  memoDiagnostico.ScrollBars := ssVertical;
+  memoDiagnostico.WordWrap := True;
+  memoDiagnostico.Lines.Text := 'Pendiente de cargar diagnostico...';
+
+  spTop := TSplitter.Create(Self);
+  spTop.Parent := tsDiagnostico;
+  spTop.Align := alTop;
+  spTop.Height := 5;
+
+  pnlMiddle := TPanel.Create(Self);
+  pnlMiddle.Parent := tsDiagnostico;
+  pnlMiddle.Align := alTop;
+  pnlMiddle.Height := 260;
+  pnlMiddle.BevelOuter := bvNone;
+
+  gbResumen := TGroupBox.Create(Self);
+  gbResumen.Parent := pnlMiddle;
+  gbResumen.Align := alLeft;
+  gbResumen.Width := 520;
+  gbResumen.Caption := 'Resumen de alertas y acciones';
+
+  qDiagResumen := CrearQuery;
+  dsDiagResumen := TDataSource.Create(Self);
+  dsDiagResumen.DataSet := qDiagResumen;
+
+  gridDiagResumen := TDBGrid.Create(Self);
+  gridDiagResumen.Parent := gbResumen;
+  gridDiagResumen.Align := alClient;
+  gridDiagResumen.DataSource := dsDiagResumen;
+  gridDiagResumen.ReadOnly := True;
+  gridDiagResumen.Options := gridDiagResumen.Options + [dgDisplayMemoText];
+
+  spMiddle := TSplitter.Create(Self);
+  spMiddle.Parent := pnlMiddle;
+  spMiddle.Align := alLeft;
+  spMiddle.Width := 5;
+
+  gbMargen := TGroupBox.Create(Self);
+  gbMargen.Parent := pnlMiddle;
+  gbMargen.Align := alClient;
+  gbMargen.Caption := 'Lineas con margen negativo o bajo';
+
+  qDiagMargen := CrearQuery;
+  dsDiagMargen := TDataSource.Create(Self);
+  dsDiagMargen.DataSet := qDiagMargen;
+
+  gridDiagMargen := TDBGrid.Create(Self);
+  gridDiagMargen.Parent := gbMargen;
+  gridDiagMargen.Align := alClient;
+  gridDiagMargen.DataSource := dsDiagMargen;
+  gridDiagMargen.ReadOnly := True;
+  gridDiagMargen.Options := gridDiagMargen.Options + [dgDisplayMemoText];
+
+  spMid := TSplitter.Create(Self);
+  spMid.Parent := tsDiagnostico;
+  spMid.Align := alTop;
+  spMid.Height := 5;
+
+  pnlBottom := TPanel.Create(Self);
+  pnlBottom.Parent := tsDiagnostico;
+  pnlBottom.Align := alClient;
+  pnlBottom.BevelOuter := bvNone;
+
+  gbHoras := TGroupBox.Create(Self);
+  gbHoras.Parent := pnlBottom;
+  gbHoras.Align := alLeft;
+  gbHoras.Width := 540;
+  gbHoras.Caption := 'Lectura profesional de horas';
+
+  qDiagHoras := CrearQuery;
+  dsDiagHoras := TDataSource.Create(Self);
+  dsDiagHoras.DataSet := qDiagHoras;
+
+  gridDiagHoras := TDBGrid.Create(Self);
+  gridDiagHoras.Parent := gbHoras;
+  gridDiagHoras.Align := alClient;
+  gridDiagHoras.DataSource := dsDiagHoras;
+  gridDiagHoras.ReadOnly := True;
+  gridDiagHoras.Options := gridDiagHoras.Options + [dgDisplayMemoText];
+
+  spBot := TSplitter.Create(Self);
+  spBot.Parent := pnlBottom;
+  spBot.Align := alLeft;
+  spBot.Width := 5;
+
+  gbProveedor := TGroupBox.Create(Self);
+  gbProveedor.Parent := pnlBottom;
+  gbProveedor.Align := alClient;
+  gbProveedor.Caption := 'Ventas y margen por proveedor del articulo';
+
+  qDiagProveedor := CrearQuery;
+  dsDiagProveedor := TDataSource.Create(Self);
+  dsDiagProveedor.DataSet := qDiagProveedor;
+
+  gridDiagProveedor := TDBGrid.Create(Self);
+  gridDiagProveedor.Parent := gbProveedor;
+  gridDiagProveedor.Align := alClient;
+  gridDiagProveedor.DataSource := dsDiagProveedor;
+  gridDiagProveedor.ReadOnly := True;
+  gridDiagProveedor.Options := gridDiagProveedor.Options + [dgDisplayMemoText];
+end;
+
 
 procedure TFDashboardProductividad.CrearTabAlertas;
 var
@@ -5684,6 +6221,13 @@ begin
       AnyadirDataSetCSV(L, 'Cierre tardes - Dia de la semana', qCTSemana);
       AnyadirDataSetCSV(L, 'Cierre tardes - Horas de tarde', qCTHoras);
     end
+    else if pcPrincipal.ActivePage = tsDiagnostico then
+    begin
+      AnyadirDataSetCSV(L, 'Diagnostico - Resumen inteligente', qDiagResumen);
+      AnyadirDataSetCSV(L, 'Diagnostico - Margen negativo / bajo', qDiagMargen);
+      AnyadirDataSetCSV(L, 'Diagnostico - Lectura de horas', qDiagHoras);
+      AnyadirDataSetCSV(L, 'Diagnostico - Ventas y margen por proveedor', qDiagProveedor);
+    end
     else if pcPrincipal.ActivePage = tsAlertas then
       AnyadirDataSetCSV(L, 'Alertas - ' + lblAlertaTitulo.Caption, qAlertas)
     else if pcPrincipal.ActivePage = tsEstudios then
@@ -5879,6 +6423,13 @@ begin
       AnyadirDataSetHTML(L, 'Cierre tardes - Dia a dia', qCTDias);
       AnyadirDataSetHTML(L, 'Cierre tardes - Dia de la semana', qCTSemana);
       AnyadirDataSetHTML(L, 'Cierre tardes - Horas de tarde', qCTHoras);
+    end
+    else if pcPrincipal.ActivePage = tsDiagnostico then
+    begin
+      AnyadirDataSetHTML(L, 'Diagnostico - Resumen inteligente', qDiagResumen);
+      AnyadirDataSetHTML(L, 'Diagnostico - Margen negativo / bajo', qDiagMargen);
+      AnyadirDataSetHTML(L, 'Diagnostico - Lectura de horas', qDiagHoras);
+      AnyadirDataSetHTML(L, 'Diagnostico - Ventas y margen por proveedor', qDiagProveedor);
     end
     else if pcPrincipal.ActivePage = tsAlertas then
       AnyadirDataSetHTML(L, 'Alertas - ' + lblAlertaTitulo.Caption, qAlertas)
@@ -6166,6 +6717,7 @@ begin
   CargarHoy;
   CargarVentasAbiertas;
   CargarCierreTarde;
+  CargarDiagnostico;
   CargarPagos;
   CargarTopArticulos;
   CargarTopFamilias;
@@ -7061,6 +7613,322 @@ begin
   AjustarCampoMoneda(qCTHoras, 'importe', 'Importe', 12);
   AjustarCampoMoneda(qCTHoras, 'ticket_medio', 'Ticket medio', 12);
 end;
+
+procedure TFDashboardProductividad.CargarDiagnostico;
+begin
+  CargarDiagResumen;
+  CargarDiagMargen;
+  CargarDiagHoras;
+  CargarDiagProveedor;
+  CargarDiagInforme;
+end;
+
+procedure TFDashboardProductividad.CargarDiagResumen;
+begin
+  qDiagResumen.Close;
+  qDiagResumen.SQL.Text :=
+    'SELECT ''TOTAL'' AS clave, ''Ventas del periodo'' AS indicador, COUNT(*) AS cantidad, ' +
+    '       ROUND(COALESCE(SUM(IF(COALESCE(HO11,0) <> 0, HO11, HO9)),0),2) AS importe, ' +
+    '       ''Base para comparar rendimiento, personal y horarios'' AS accion ' +
+    'FROM ' + Tabla('hisopcc') + ' ' +
+    'WHERE HO0 BETWEEN :desde1 AND :hasta1 AND HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(HO16, '''') <> ''A'' ' +
+    'UNION ALL ' +
+    'SELECT ''MARGEN_NEG'', ''Lineas con margen negativo'', COUNT(*), ' +
+    '       ROUND(COALESCE(SUM((COALESCE(D.HOD8,0)*COALESCE(A.A24,0))-COALESCE(D.HOD12,0)),0),2), ' +
+    '       ''Revisar PVP, coste, descuento, promocion o error de articulo'' ' +
+    'FROM ' + Tabla('hisopdd') + ' D JOIN ' + Tabla('hisopcc') + ' C ON C.HO0=D.HOD0 AND C.HO1=D.HOD1 AND C.HO2=D.HOD2 AND C.HO3=D.HOD3 AND C.HO4=D.HOD4 ' +
+    'LEFT JOIN ' + Tabla('artitien') + ' A ON A.A0=D.HOD6 ' +
+    'WHERE C.HO0 BETWEEN :desde2 AND :hasta2 AND C.HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(C.HO16,'''') <> ''A'' ' +
+    '  AND COALESCE(A.A24,0)>0 AND COALESCE(D.HOD8,0)>0 AND COALESCE(D.HOD12,0) < (COALESCE(D.HOD8,0)*COALESCE(A.A24,0)) ' +
+    'UNION ALL ' +
+    'SELECT ''COSTE0'', ''Lineas vendidas con coste 0'', COUNT(*), ROUND(COALESCE(SUM(D.HOD12),0),2), ' +
+    '       ''Completar coste para que el margen sea fiable'' ' +
+    'FROM ' + Tabla('hisopdd') + ' D JOIN ' + Tabla('hisopcc') + ' C ON C.HO0=D.HOD0 AND C.HO1=D.HOD1 AND C.HO2=D.HOD2 AND C.HO3=D.HOD3 AND C.HO4=D.HOD4 ' +
+    'LEFT JOIN ' + Tabla('artitien') + ' A ON A.A0=D.HOD6 ' +
+    'WHERE C.HO0 BETWEEN :desde3 AND :hasta3 AND C.HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(C.HO16,'''') <> ''A'' ' +
+    '  AND COALESCE(D.HOD8,0)>0 AND COALESCE(D.HOD6,'''')<>'''' AND COALESCE(A.A24,0)=0 ' +
+    'UNION ALL ' +
+    'SELECT ''DTO_ALTO'', ''Lineas con descuento >= 30%'', COUNT(*), ROUND(COALESCE(SUM(D.HOD14),0),2), ' +
+    '       ''Comprobar si son promociones correctas o descuentos manuales'' ' +
+    'FROM ' + Tabla('hisopdd') + ' D JOIN ' + Tabla('hisopcc') + ' C ON C.HO0=D.HOD0 AND C.HO1=D.HOD1 AND C.HO2=D.HOD2 AND C.HO3=D.HOD3 AND C.HO4=D.HOD4 ' +
+    'WHERE C.HO0 BETWEEN :desde4 AND :hasta4 AND C.HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(C.HO16,'''') <> ''A'' AND COALESCE(D.HOD11,0) >= 30 ' +
+    'UNION ALL ' +
+    'SELECT ''PVP_CERO'', ''Lineas con PVP o importe 0'', COUNT(*), ROUND(COALESCE(SUM(D.HOD14),0),2), ' +
+    '       ''Revisar errores de venta, regalos o articulos mal grabados'' ' +
+    'FROM ' + Tabla('hisopdd') + ' D JOIN ' + Tabla('hisopcc') + ' C ON C.HO0=D.HOD0 AND C.HO1=D.HOD1 AND C.HO2=D.HOD2 AND C.HO3=D.HOD3 AND C.HO4=D.HOD4 ' +
+    'WHERE C.HO0 BETWEEN :desde5 AND :hasta5 AND C.HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(C.HO16,'''') <> ''A'' ' +
+    '  AND COALESCE(D.HOD8,0)>0 AND (COALESCE(D.HOD10,0)<=0 OR COALESCE(D.HOD14,0)=0)';
+  qDiagResumen.ParamByName('desde1').AsDateTime := FechaDesde; qDiagResumen.ParamByName('hasta1').AsDateTime := FechaHasta;
+  qDiagResumen.ParamByName('desde2').AsDateTime := FechaDesde; qDiagResumen.ParamByName('hasta2').AsDateTime := FechaHasta;
+  qDiagResumen.ParamByName('desde3').AsDateTime := FechaDesde; qDiagResumen.ParamByName('hasta3').AsDateTime := FechaHasta;
+  qDiagResumen.ParamByName('desde4').AsDateTime := FechaDesde; qDiagResumen.ParamByName('hasta4').AsDateTime := FechaHasta;
+  qDiagResumen.ParamByName('desde5').AsDateTime := FechaDesde; qDiagResumen.ParamByName('hasta5').AsDateTime := FechaHasta;
+  qDiagResumen.Open;
+
+  AjustarCampo(qDiagResumen, 'indicador', 'Indicador', 28);
+  AjustarCampoNumero(qDiagResumen, 'cantidad', 'Cantidad', 10, '#,##0.##');
+  AjustarCampoMoneda(qDiagResumen, 'importe', 'Importe / impacto', 14);
+  AjustarCampo(qDiagResumen, 'accion', 'Accion recomendada', 48);
+end;
+
+procedure TFDashboardProductividad.CargarDiagMargen;
+begin
+  qDiagMargen.Close;
+  qDiagMargen.SQL.Text :=
+    'SELECT DATE_FORMAT(C.HO0,''%d/%m/%Y'') AS fecha, TIME_FORMAT(C.HO1,''%H:%i:%s'') AS hora, C.HO2 AS caja, ' +
+    '       C.HO4 AS serie, C.HO3 AS ticket, D.HOD5 AS linea, D.HOD6 AS codigo, CAST(D.HOD7 AS CHAR(255)) AS descripcion, ' +
+    '       ROUND(COALESCE(D.HOD8,0),2) AS unidades, ROUND(COALESCE(D.HOD10,0),3) AS precio_sin_iva, ' +
+    '       ROUND(COALESCE(D.HOD11,0),2) AS dto, ROUND(COALESCE(D.HOD12,0),2) AS base_linea, ' +
+    '       ROUND(COALESCE(A.A24,0),3) AS coste_actual, ROUND(COALESCE(D.HOD8,0)*COALESCE(A.A24,0),2) AS coste_linea, ' +
+    '       ROUND(COALESCE(D.HOD12,0)-(COALESCE(D.HOD8,0)*COALESCE(A.A24,0)),2) AS margen_estimado, ' +
+    '       ROUND(COALESCE((COALESCE(D.HOD12,0)-(COALESCE(D.HOD8,0)*COALESCE(A.A24,0))) / NULLIF(D.HOD12,0) * 100,0),2) AS margen_pct, ' +
+    '       CASE WHEN COALESCE(A.A24,0)=0 THEN ''Coste 0'' ' +
+    '            WHEN COALESCE(D.HOD12,0) < (COALESCE(D.HOD8,0)*COALESCE(A.A24,0)) THEN ''Margen negativo'' ' +
+    '            WHEN ROUND(COALESCE((COALESCE(D.HOD12,0)-(COALESCE(D.HOD8,0)*COALESCE(A.A24,0))) / NULLIF(D.HOD12,0) * 100,0),2) < 10 THEN ''Margen bajo <10%'' ' +
+    '            ELSE ''Revisar'' END AS motivo ' +
+    'FROM ' + Tabla('hisopdd') + ' D ' +
+    'JOIN ' + Tabla('hisopcc') + ' C ON C.HO0=D.HOD0 AND C.HO1=D.HOD1 AND C.HO2=D.HOD2 AND C.HO3=D.HOD3 AND C.HO4=D.HOD4 ' +
+    'LEFT JOIN ' + Tabla('artitien') + ' A ON A.A0=D.HOD6 ' +
+    'WHERE C.HO0 BETWEEN :desde AND :hasta AND C.HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(C.HO16,'''') <> ''A'' ' +
+    '  AND COALESCE(D.HOD8,0)>0 AND COALESCE(D.HOD6,'''')<>'''' ' +
+    '  AND (COALESCE(A.A24,0)=0 OR COALESCE(D.HOD12,0) < (COALESCE(D.HOD8,0)*COALESCE(A.A24,0)) ' +
+    '       OR ROUND(COALESCE((COALESCE(D.HOD12,0)-(COALESCE(D.HOD8,0)*COALESCE(A.A24,0))) / NULLIF(D.HOD12,0) * 100,0),2) < 10) ' +
+    'ORDER BY margen_estimado ASC, C.HO0 DESC, C.HO1 DESC LIMIT 300';
+  qDiagMargen.ParamByName('desde').AsDateTime := FechaDesde;
+  qDiagMargen.ParamByName('hasta').AsDateTime := FechaHasta;
+  qDiagMargen.Open;
+
+  AjustarCampo(qDiagMargen, 'fecha', 'Fecha', 11);
+  AjustarCampo(qDiagMargen, 'hora', 'Hora', 9);
+  AjustarCampo(qDiagMargen, 'caja', 'Caja', 5);
+  AjustarCampo(qDiagMargen, 'serie', 'Serie', 6);
+  AjustarCampo(qDiagMargen, 'ticket', 'Ticket', 8);
+  AjustarCampo(qDiagMargen, 'linea', 'Linea', 6);
+  AjustarCampo(qDiagMargen, 'codigo', 'Codigo', 13);
+  AjustarCampo(qDiagMargen, 'descripcion', 'Descripcion', 28);
+  AjustarCampoNumero(qDiagMargen, 'unidades', 'Uds.', 8, '#,##0.##');
+  AjustarCampoMoneda(qDiagMargen, 'precio_sin_iva', 'PVP s/IVA', 10);
+  AjustarCampoNumero(qDiagMargen, 'dto', 'Dto %', 8, '#,##0.00 %');
+  AjustarCampoMoneda(qDiagMargen, 'base_linea', 'Base', 10);
+  AjustarCampoMoneda(qDiagMargen, 'coste_actual', 'Coste', 10);
+  AjustarCampoMoneda(qDiagMargen, 'coste_linea', 'Coste linea', 11);
+  AjustarCampoMoneda(qDiagMargen, 'margen_estimado', 'Margen', 10);
+  AjustarCampoNumero(qDiagMargen, 'margen_pct', 'Margen %', 9, '#,##0.00 %');
+  AjustarCampo(qDiagMargen, 'motivo', 'Motivo', 18);
+end;
+
+procedure TFDashboardProductividad.CargarDiagHoras;
+begin
+  qDiagHoras.Close;
+  qDiagHoras.SQL.Text :=
+    'SELECT HOUR(HO1) AS hora, CONCAT(LPAD(HOUR(HO1),2,''0''), '':00 - '', LPAD((HOUR(HO1)+1) MOD 24,2,''0''), '':00'') AS franja, ' +
+    '       COUNT(*) AS tickets, ROUND(COALESCE(SUM(IF(COALESCE(HO11,0) <> 0, HO11, HO9)),0),2) AS importe, ' +
+    '       ROUND(COALESCE(AVG(IF(COALESCE(HO11,0) <> 0, HO11, HO9)),0),2) AS ticket_medio, ' +
+    '       ROUND((COALESCE(SUM(IF(COALESCE(HO11,0) <> 0, HO11, HO9)),0) / NULLIF((SELECT COALESCE(SUM(IF(COALESCE(H2.HO11,0) <> 0, H2.HO11, H2.HO9)),0) FROM ' + Tabla('hisopcc') + ' H2 WHERE H2.HO0 BETWEEN :desde_total AND :hasta_total AND H2.HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(H2.HO16,'''') <> ''A''),0)) * 100,2) AS peso_importe_pct, ' +
+    '       CASE WHEN COUNT(*) >= 1 AND ROUND((COALESCE(SUM(IF(COALESCE(HO11,0) <> 0, HO11, HO9)),0) / NULLIF((SELECT COALESCE(SUM(IF(COALESCE(H3.HO11,0) <> 0, H3.HO11, H3.HO9)),0) FROM ' + Tabla('hisopcc') + ' H3 WHERE H3.HO0 BETWEEN :desde_total2 AND :hasta_total2 AND H3.HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(H3.HO16,'''') <> ''A''),0)) * 100,2) >= 25 THEN ''Hora fuerte: asegurar personal y reposicion'' ' +
+    '            WHEN COUNT(*) >= 3 AND ROUND(COALESCE(AVG(IF(COALESCE(HO11,0) <> 0, HO11, HO9)),0),2) < 8 THEN ''Muchos tickets pequenos: impulsar venta complementaria'' ' +
+    '            WHEN COUNT(*) <= 1 THEN ''Hora floja: revisar si merece refuerzo'' ' +
+    '            ELSE ''Normal: seguir observando'' END AS lectura ' +
+    'FROM ' + Tabla('hisopcc') + ' ' +
+    'WHERE HO0 BETWEEN :desde AND :hasta AND HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(HO16,'''') <> ''A'' ' +
+    'GROUP BY HOUR(HO1) ORDER BY hora';
+  qDiagHoras.ParamByName('desde').AsDateTime := FechaDesde;
+  qDiagHoras.ParamByName('hasta').AsDateTime := FechaHasta;
+  qDiagHoras.ParamByName('desde_total').AsDateTime := FechaDesde;
+  qDiagHoras.ParamByName('hasta_total').AsDateTime := FechaHasta;
+  qDiagHoras.ParamByName('desde_total2').AsDateTime := FechaDesde;
+  qDiagHoras.ParamByName('hasta_total2').AsDateTime := FechaHasta;
+  qDiagHoras.Open;
+
+  AjustarCampo(qDiagHoras, 'hora', 'Hora', 5);
+  AjustarCampo(qDiagHoras, 'franja', 'Franja', 14);
+  AjustarCampo(qDiagHoras, 'tickets', 'Tickets', 8);
+  AjustarCampoMoneda(qDiagHoras, 'importe', 'Importe', 12);
+  AjustarCampoMoneda(qDiagHoras, 'ticket_medio', 'Ticket medio', 12);
+  AjustarCampoNumero(qDiagHoras, 'peso_importe_pct', 'Peso %', 9, '#,##0.00 %');
+  AjustarCampo(qDiagHoras, 'lectura', 'Lectura', 38);
+end;
+
+procedure TFDashboardProductividad.CargarDiagProveedor;
+begin
+  qDiagProveedor.Close;
+  qDiagProveedor.SQL.Text :=
+    'SELECT COALESCE(A.A32,0) AS proveedor, COALESCE(P.P1,''Sin proveedor'') AS nombre_proveedor, COUNT(DISTINCT D.HOD6) AS articulos, ' +
+    '       ROUND(COALESCE(SUM(D.HOD8),0),2) AS unidades, ROUND(COALESCE(SUM(D.HOD14),0),2) AS total_con_iva, ' +
+    '       ROUND(COALESCE(SUM(D.HOD12),0),2) AS base_sin_iva, ROUND(COALESCE(SUM(D.HOD8*COALESCE(A.A24,0)),0),2) AS coste_estimado, ' +
+    '       ROUND(COALESCE(SUM(D.HOD12-(D.HOD8*COALESCE(A.A24,0))),0),2) AS margen_estimado, ' +
+    '       ROUND(COALESCE(SUM(D.HOD12-(D.HOD8*COALESCE(A.A24,0))) / NULLIF(SUM(D.HOD12),0) * 100,0),2) AS margen_pct, ' +
+    '       CASE WHEN ROUND(COALESCE(SUM(D.HOD12-(D.HOD8*COALESCE(A.A24,0))) / NULLIF(SUM(D.HOD12),0) * 100,0),2) < 0 THEN ''Proveedor con margen negativo'' ' +
+    '            WHEN ROUND(COALESCE(SUM(D.HOD12-(D.HOD8*COALESCE(A.A24,0))) / NULLIF(SUM(D.HOD12),0) * 100,0),2) < 10 THEN ''Margen bajo: revisar costes/PVP'' ' +
+    '            WHEN COUNT(DISTINCT D.HOD6) <= 2 THEN ''Pocos articulos: revisar caso a caso'' ' +
+    '            ELSE ''Correcto / seguimiento normal'' END AS lectura ' +
+    'FROM ' + Tabla('hisopdd') + ' D ' +
+    'JOIN ' + Tabla('hisopcc') + ' C ON C.HO0=D.HOD0 AND C.HO1=D.HOD1 AND C.HO2=D.HOD2 AND C.HO3=D.HOD3 AND C.HO4=D.HOD4 ' +
+    'LEFT JOIN ' + Tabla('artitien') + ' A ON A.A0=D.HOD6 ' +
+    'LEFT JOIN `proveedores` P ON P.P0=A.A32 ' +
+    'WHERE C.HO0 BETWEEN :desde AND :hasta AND C.HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(C.HO16,'''') <> ''A'' ' +
+    '  AND COALESCE(D.HOD6,'''')<>'''' AND COALESCE(D.HOD8,0)>0 ' +
+    'GROUP BY COALESCE(A.A32,0), COALESCE(P.P1,''Sin proveedor'') ' +
+    'ORDER BY margen_pct ASC, total_con_iva DESC LIMIT 100';
+  qDiagProveedor.ParamByName('desde').AsDateTime := FechaDesde;
+  qDiagProveedor.ParamByName('hasta').AsDateTime := FechaHasta;
+  qDiagProveedor.Open;
+
+  AjustarCampo(qDiagProveedor, 'proveedor', 'Prov.', 7);
+  AjustarCampo(qDiagProveedor, 'nombre_proveedor', 'Proveedor', 26);
+  AjustarCampo(qDiagProveedor, 'articulos', 'Arts.', 7);
+  AjustarCampoNumero(qDiagProveedor, 'unidades', 'Uds.', 8, '#,##0.##');
+  AjustarCampoMoneda(qDiagProveedor, 'total_con_iva', 'Venta', 12);
+  AjustarCampoMoneda(qDiagProveedor, 'base_sin_iva', 'Base', 12);
+  AjustarCampoMoneda(qDiagProveedor, 'coste_estimado', 'Coste', 12);
+  AjustarCampoMoneda(qDiagProveedor, 'margen_estimado', 'Margen', 12);
+  AjustarCampoNumero(qDiagProveedor, 'margen_pct', 'Margen %', 9, '#,##0.00 %');
+  AjustarCampo(qDiagProveedor, 'lectura', 'Lectura', 32);
+end;
+
+procedure TFDashboardProductividad.CargarDiagInforme;
+var
+  TotalTickets, MargenNeg, Coste0, DtoAlto, PvpCero: Integer;
+  TotalVentas, ImpactoMargen, MaxImporte, MaxTicketMedio, MinTicketMedio, Imp, TM: Double;
+  H, MaxHoraImporte, MaxHoraTickets, MaxTickets, Tickets, ProveedoresRiesgo: Integer;
+  HoraTextoImp, HoraTextoTickets, ProveedorRiesgo: string;
+  Clave: string;
+begin
+  if memoDiagnostico = nil then
+    Exit;
+
+  TotalTickets := 0;
+  MargenNeg := 0;
+  Coste0 := 0;
+  DtoAlto := 0;
+  PvpCero := 0;
+  ProveedoresRiesgo := 0;
+  TotalVentas := 0;
+  ImpactoMargen := 0;
+  MaxImporte := -1;
+  MaxTicketMedio := -1;
+  MinTicketMedio := 999999999;
+  MaxHoraImporte := -1;
+  MaxHoraTickets := -1;
+  MaxTickets := -1;
+  HoraTextoImp := '';
+  HoraTextoTickets := '';
+  ProveedorRiesgo := '';
+
+  if qDiagResumen.Active then
+  begin
+    qDiagResumen.First;
+    while not qDiagResumen.EOF do
+    begin
+      Clave := qDiagResumen.FieldByName('clave').AsString;
+      if Clave = 'TOTAL' then
+      begin
+        TotalTickets := CampoInteger(qDiagResumen, 'cantidad');
+        TotalVentas := CampoDouble(qDiagResumen, 'importe');
+      end
+      else if Clave = 'MARGEN_NEG' then
+      begin
+        MargenNeg := CampoInteger(qDiagResumen, 'cantidad');
+        ImpactoMargen := CampoDouble(qDiagResumen, 'importe');
+      end
+      else if Clave = 'COSTE0' then
+        Coste0 := CampoInteger(qDiagResumen, 'cantidad')
+      else if Clave = 'DTO_ALTO' then
+        DtoAlto := CampoInteger(qDiagResumen, 'cantidad')
+      else if Clave = 'PVP_CERO' then
+        PvpCero := CampoInteger(qDiagResumen, 'cantidad');
+      qDiagResumen.Next;
+    end;
+    qDiagResumen.First;
+  end;
+
+  if qDiagHoras.Active then
+  begin
+    qDiagHoras.First;
+    while not qDiagHoras.EOF do
+    begin
+      H := CampoInteger(qDiagHoras, 'hora');
+      Tickets := CampoInteger(qDiagHoras, 'tickets');
+      Imp := CampoDouble(qDiagHoras, 'importe');
+      TM := CampoDouble(qDiagHoras, 'ticket_medio');
+      if Imp > MaxImporte then
+      begin
+        MaxImporte := Imp;
+        MaxHoraImporte := H;
+        HoraTextoImp := qDiagHoras.FieldByName('franja').AsString;
+      end;
+      if Tickets > MaxTickets then
+      begin
+        MaxTickets := Tickets;
+        MaxHoraTickets := H;
+        HoraTextoTickets := qDiagHoras.FieldByName('franja').AsString;
+      end;
+      if (Tickets > 0) and (TM > MaxTicketMedio) then
+        MaxTicketMedio := TM;
+      if (Tickets > 0) and (TM < MinTicketMedio) then
+        MinTicketMedio := TM;
+      qDiagHoras.Next;
+    end;
+    qDiagHoras.First;
+  end;
+
+  if qDiagProveedor.Active then
+  begin
+    qDiagProveedor.First;
+    while not qDiagProveedor.EOF do
+    begin
+      if CampoDouble(qDiagProveedor, 'margen_pct') < 10 then
+      begin
+        Inc(ProveedoresRiesgo);
+        if ProveedorRiesgo = '' then
+          ProveedorRiesgo := qDiagProveedor.FieldByName('nombre_proveedor').AsString;
+      end;
+      qDiagProveedor.Next;
+    end;
+    qDiagProveedor.First;
+  end;
+
+  memoDiagnostico.Lines.BeginUpdate;
+  try
+    memoDiagnostico.Clear;
+    memoDiagnostico.Lines.Add('DIAGNOSTICO PROFESIONAL DEL NEGOCIO');
+    memoDiagnostico.Lines.Add('Periodo analizado: ' + dtDesde.Text + ' - ' + dtHasta.Text);
+    memoDiagnostico.Lines.Add('');
+
+    if (MargenNeg > 0) or (Coste0 > 0) or (DtoAlto > 0) or (PvpCero > 0) then
+      memoDiagnostico.Lines.Add('Estado general: ATENCION. Hay puntos que conviene revisar antes del cierre.')
+    else
+      memoDiagnostico.Lines.Add('Estado general: correcto. No se detectan incidencias graves en las reglas principales.');
+
+    memoDiagnostico.Lines.Add('Venta: ' + Dinero(TotalVentas) + ' en ' + IntToStr(TotalTickets) + ' tickets.');
+
+    if MargenNeg > 0 then
+      memoDiagnostico.Lines.Add('Prioridad 1: hay ' + IntToStr(MargenNeg) + ' lineas con margen negativo. Impacto estimado contra coste: ' + Dinero(ImpactoMargen) + '. Revisar PVP, coste actual A24, descuento/promocion y articulo vendido.');
+    if Coste0 > 0 then
+      memoDiagnostico.Lines.Add('Prioridad 2: hay ' + IntToStr(Coste0) + ' lineas vendidas con coste 0. El margen de esos articulos no es fiable hasta completar el coste.');
+    if DtoAlto > 0 then
+      memoDiagnostico.Lines.Add('Aviso: hay ' + IntToStr(DtoAlto) + ' lineas con descuento igual o superior al 30%. Confirmar si son promociones correctas o descuentos manuales.');
+    if PvpCero > 0 then
+      memoDiagnostico.Lines.Add('Aviso: hay ' + IntToStr(PvpCero) + ' lineas con PVP/importe 0. Revisar regalos, errores o articulos mal grabados.');
+
+    if MaxHoraImporte >= 0 then
+      memoDiagnostico.Lines.Add('Hora fuerte por importe: ' + HoraTextoImp + ' con ' + Dinero(MaxImporte) + '. Conviene tener reposicion y personal preparados antes de esa franja.');
+    if MaxHoraTickets >= 0 then
+      memoDiagnostico.Lines.Add('Hora fuerte por cantidad de tickets: ' + HoraTextoTickets + ' con ' + IntToStr(MaxTickets) + ' tickets. Si el ticket medio es bajo, se puede trabajar venta complementaria o articulos de impulso.');
+    if (MaxTicketMedio > 0) and (MinTicketMedio < 999999999) and (MaxTicketMedio > MinTicketMedio * 1.8) then
+      memoDiagnostico.Lines.Add('Lectura de horarios: hay mucha diferencia entre tickets medios por hora. Revisar que se ofrece en horas flojas y que articulos se venden en horas fuertes.');
+
+    if ProveedoresRiesgo > 0 then
+      memoDiagnostico.Lines.Add('Proveedores: hay ' + IntToStr(ProveedoresRiesgo) + ' proveedores/articulos con margen inferior al 10%. Primer caso a revisar: ' + ProveedorRiesgo + '.');
+
+    memoDiagnostico.Lines.Add('');
+    memoDiagnostico.Lines.Add('Accion recomendada: revisar primero la tabla de margen negativo/bajo, despues las horas fuertes/flojas y por ultimo proveedores con margen bajo.');
+    memoDiagnostico.Lines.Add('Nota compras: esta primera version cruza ventas y margen por proveedor del articulo. En el siguiente paso revisaremos albaranes de compra, porque tus pedidos reales entran normalmente como albaranes y no como pedicc/pedidd.');
+  finally
+    memoDiagnostico.Lines.EndUpdate;
+  end;
+end;
+
 
 procedure TFDashboardProductividad.CargarResumen;
 var
