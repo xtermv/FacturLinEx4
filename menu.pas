@@ -285,6 +285,8 @@ Type
     procedure AddPedidoProvVentasButton;
     procedure PedidoProveedorAutoClick(Sender: TObject);
     procedure AddPedidoProveedorAutoButton;
+    procedure PedidoTemporadaAutoClick(Sender: TObject);
+    procedure AddPedidoTemporadaAutoButton;
     procedure DashboardProductividadClick(Sender: TObject);
     procedure AddDashboardProductividadButton;
     procedure FLXUpdateConfigClick(Sender: TObject);
@@ -372,7 +374,7 @@ uses
    uVF_Integration, uVeriChain, uVeriChainCheck, uVF_QueueResult, uvfqueuemonitor,
    uVF_Stub, uVFSenderAEAT, uVeriSIFForm, uFLX_Log, uFLX_Backup, uFLX_CryptoIni,
    uBackupFTPConfig, uRestoreBackup, uBackupUnpackHelper, uFLXRestoreRemote,
-   uFLX_PedidoProveedorVentasPDF, uPedidoProveedorAuto, uDashboardProductividad, uFLXUpdater, uFLXUpdateConfig, Types, BaseUnix;
+   uFLX_PedidoProveedorVentasPDF, uPedidoProveedorAuto, uPedidoTemporadaAuto, uDashboardProductividad, uFLXUpdater, uFLXUpdateConfig, Types, BaseUnix;
 
 //====================================================================
 // ==== CONSTANTE PARA TRABAJAR EN LA BARRA DE ESTADO VERI*FACTU =====
@@ -847,6 +849,7 @@ Begin
 
      AddPedidoProvVentasButton;
      AddPedidoProveedorAutoButton;
+     AddPedidoTemporadaAutoButton;
      AddDashboardProductividadButton;
      AddFLXUpdateConfigButton;
      UpdateVFStatusBar;
@@ -1405,6 +1408,73 @@ begin
   timer1.enabled := false;
   try
     MostrarPedidoProveedorAuto(Self, TZConnection(dbQuery.Connection), Tienda);
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+
+procedure TFMenu.AddPedidoTemporadaAutoButton;
+var
+  B: TBitBtn;
+  Ref: TControl;
+begin
+  if FindComponent('BitBtnPedidoTemporadaAuto') <> nil then Exit;
+
+  // Boton temporal/independiente para pedido automatico de temporada.
+  // Se coloca justo al lado del boton de pedido automatico normal y reutiliza su icono.
+  Ref := TControl(FindComponent('BitBtnPedidoProveedorAuto'));
+
+  B := TBitBtn.Create(Self);
+  B.Name := 'BitBtnPedidoTemporadaAuto';
+
+  if Ref <> nil then
+  begin
+    B.Parent := Ref.Parent;
+    B.Left := Ref.Left + Ref.Width + 8;
+    B.Top := Ref.Top;
+    B.Width := Ref.Width;
+    B.Height := Ref.Height;
+    if Ref is TBitBtn then
+    begin
+      B.Glyph.Assign(TBitBtn(Ref).Glyph);
+      B.Layout := TBitBtn(Ref).Layout;
+      B.Spacing := TBitBtn(Ref).Spacing;
+      B.NumGlyphs := TBitBtn(Ref).NumGlyphs;
+    end;
+  end
+  else
+  begin
+    // Fallback seguro si por cualquier motivo no existe el boton normal.
+    B.Parent := BitBtn57.Parent;
+    B.Left := BitBtn57.Left + BitBtn57.Width + 8;
+    B.Top := BitBtn57.Top;
+    B.Width := BitBtn57.Width;
+    if B.Width < 115 then
+      B.Width := 115;
+    B.Height := BitBtn57.Height;
+    B.Layout := blGlyphTop;
+    B.Spacing := 4;
+    B.NumGlyphs := 1;
+  end;
+
+  B.Caption := 'Pedido temp.';
+  B.Hint := 'Pedido automatico de temporada';
+  B.ShowHint := True;
+  B.OnClick := @PedidoTemporadaAutoClick;
+
+  if ColorBotones <> '' then
+    B.Color := StringToColor(ColorBotones);
+
+  B.Visible := True;
+  B.BringToFront;
+  B.Repaint;
+end;
+
+procedure TFMenu.PedidoTemporadaAutoClick(Sender: TObject);
+begin
+  timer1.enabled := false;
+  try
+    MostrarPedidoTemporadaAuto(Self, TZConnection(dbQuery.Connection), Tienda);
   finally
     Timer1Timer(nil);
   end;
