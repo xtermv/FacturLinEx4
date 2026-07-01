@@ -44,6 +44,7 @@ const
   VF_LOG_MAX_LINES      = 2000;
   VF_LOG_TRIM_AT_BYTES  = 512 * 1024; // recorta cuando supera 512 KB
   VF_LOG_MAX_LINE_CHARS = 4000;       // evita líneas enormes tipo XML/respuesta completa
+  VF_HTTP_TIMEOUT_MS    = 15000;      // timeout corto para que un fallo de red/AEAT no bloquee el TPV durante minutos
 
 //--- Forward para poder usar JsonGetField antes de su implementación real
 function JsonGetField(const JSON, Key: string): string; forward;
@@ -436,6 +437,38 @@ begin
   except
     on E: Exception do
       VF_WriteDiag('VF_SaveVeriFactuXML_B error: ' + E.Message);
+  end;
+end;
+
+
+function VF_SaveResponseXML(const Serie: string; Numero: Integer;
+  const XML: string): string;
+var
+  RespDir, FileName, Stamp: string;
+  SL: TStringList;
+begin
+  Result := '';
+  try
+    RespDir := IncludeTrailingPathDelimiter(VF_DataPath) +
+               'responses' + DirectorySeparator;
+    VF_EnsureDir(RespDir);
+
+    Stamp    := FormatDateTime('yyyymmdd"-"hhnnss', Now);
+    FileName := Format('%sRESP_%s_%d_%s.xml', [RespDir, Serie, Numero, Stamp]);
+
+    SL := TStringList.Create;
+    try
+      SL.Text := XML;
+      SL.SaveToFile(FileName);
+    finally
+      SL.Free;
+    end;
+
+    Result := FileName;
+    VF_WriteDiag('VF_SaveResponseXML: guardada respuesta AEAT en ' + FileName);
+  except
+    on E: Exception do
+      VF_WriteDiag('VF_SaveResponseXML error: ' + E.Message);
   end;
 end;
 
@@ -1237,12 +1270,14 @@ var
   SSL: TSSLOpenSSL;
   Prot, User, Pass, Host, Port, Path, Para, HRef: string;
   Dummy: string;
+  ResponseFile: string;
 
   //-- Variables control de errores AEAT
   AEAT_EstadoEnvio,
   AEAT_EstadoRegistro,
   AEAT_CodError,
   AEAT_DescError,
+  AEAT_EstadoDuplicado,
   AEAT_CSV: string;
   //------------------------------------
 //-- Funcion Anidada para extraer errores de la respuesta AEAT
@@ -1294,6 +1329,10 @@ begin
   // 4) Envío HTTP solo con XML B (de momento)
   Http := THTTPSend.Create;
   try
+    // Timeout corto: el dispatcher reintentará; no conviene dejar el hilo principal
+    // bloqueado durante minutos si AEAT/red/certificado no responden.
+    Http.Timeout := VF_HTTP_TIMEOUT_MS;
+
     // Crear contexto SSL (OpenSSL)
     Http.Sock.CreateWithSSL(TSSLOpenSSL);
     SSL := TSSLOpenSSL(Http.Sock.SSL);
@@ -1362,11 +1401,17 @@ begin
 
     Http.Document.Position := 0;
     Respuesta := ReadStrFromStream(Http.Document, Http.Document.Size);
+    ResponseFile := VF_SaveResponseXML(Serie, Numero, Respuesta);
 
     VF_WriteDiag(Format('VF_SendAEAT_HTTP: HTTP %d %s',
                         [Http.ResultCode, Http.ResultString]));
 
-    VF_WriteDiag('VF_SendAEAT_HTTP: cuerpo respuesta AEAT: ' + Respuesta);
+    if ResponseFile <> '' then
+      VF_WriteDiag(Format('VF_SendAEAT_HTTP: respuesta AEAT guardada. Longitud=%d fichero=%s',
+                          [Length(Respuesta), ResponseFile]))
+    else
+      VF_WriteDiag(Format('VF_SendAEAT_HTTP: respuesta AEAT recibida. Longitud=%d',
+                          [Length(Respuesta)]));
 
     // Seguridad: si AEAT devuelve el WSDL o un SOAP Fault, NO es un registro correcto.
     // Aunque el servidor responda HTTP 200, esto debe quedar como ERROR.
@@ -1388,7 +1433,8 @@ begin
 
     if Http.ResultCode <> 200 then
     begin
-      VF_WriteDiag('VF_SendAEAT_HTTP: error HTTP, cuerpo: ' + Respuesta);
+      VF_WriteDiag(Format('VF_SendAEAT_HTTP: error HTTP %d. Respuesta longitud=%d',
+                            [Http.ResultCode, Length(Respuesta)]));
       Exit(False);
     end;
 
@@ -1401,6 +1447,7 @@ begin
     AEAT_EstadoRegistro := ExtractTag(Respuesta, 'tikR:EstadoRegistro');
     AEAT_CodError       := ExtractTag(Respuesta, 'tikR:CodigoErrorRegistro');
     AEAT_DescError      := ExtractTag(Respuesta, 'tikR:DescripcionErrorRegistro');
+    AEAT_EstadoDuplicado := ExtractTag(Respuesta, 'tik:EstadoRegistroDuplicado');
     AEAT_CSV            := ExtractTag(Respuesta, 'tikR:CSV');
 
     // Fallback por si la AEAT cambia prefijos y deja solo el nombre simple
@@ -1412,12 +1459,14 @@ begin
       AEAT_CodError := ExtractTag(Respuesta, 'CodigoErrorRegistro');
     if AEAT_DescError = '' then
       AEAT_DescError := ExtractTag(Respuesta, 'DescripcionErrorRegistro');
+    if AEAT_EstadoDuplicado = '' then
+      AEAT_EstadoDuplicado := ExtractTag(Respuesta, 'EstadoRegistroDuplicado');
     if AEAT_CSV = '' then
       AEAT_CSV := ExtractTag(Respuesta, 'CSV');
 
     VF_WriteDiag(Format(
-      'AEAT -> EstadoEnvio=%s EstadoRegistro=%s CodError=%s CSV=%s Desc=%s',
-      [AEAT_EstadoEnvio, AEAT_EstadoRegistro, AEAT_CodError, AEAT_CSV, AEAT_DescError]
+      'AEAT -> EstadoEnvio=%s EstadoRegistro=%s CodError=%s EstadoDuplicado=%s CSV=%s Desc=%s',
+      [AEAT_EstadoEnvio, AEAT_EstadoRegistro, AEAT_CodError, AEAT_EstadoDuplicado, AEAT_CSV, AEAT_DescError]
     ));
 
     // ================= DECISIÓN DE "ÉXITO" O "ERROR" =================
@@ -1444,16 +1493,32 @@ begin
 
       VF_WriteDiag('VF_SendAEAT_HTTP: EstadoRegistro = AceptadoConErrores, devolviendo Result=True');
     end
+    else if SameText(AEAT_CodError, '3000') and
+            (SameText(AEAT_EstadoDuplicado, 'Correcta') or
+             SameText(AEAT_EstadoDuplicado, 'AceptadaConErrores')) then
+    begin
+      // Duplicado, pero la propia AEAT indica que el registro anterior consta
+      // como Correcta/AceptadaConErrores. No se debe reintentar en bucle.
+      Result := True;
+      Respuesta :=
+        Respuesta + LineEnding +
+        Format('[AEAT Duplicado ya registrado %s %s] %s',
+               [AEAT_CodError, AEAT_EstadoDuplicado, AEAT_DescError]);
+
+      VF_WriteDiag('VF_SendAEAT_HTTP: duplicado ya registrado en AEAT, devolviendo Result=True');
+    end
     else if (AEAT_EstadoRegistro <> '') then
     begin
-      // Cualquier otro estado explícito distinto de Correcto → lo tratamos como error
-      Result := False;
+      // Hay respuesta AEAT de registro. Aunque sea Incorrecto, NO es un fallo
+      // de transporte: el dispatcher debe marcar ERROR de datos/subsanación y
+      // no dejarlo como PENDIENTE_REINTENTO.
+      Result := True;
       Respuesta :=
         Respuesta + LineEnding +
         Format('[AEAT %s %s] %s',
                [AEAT_EstadoRegistro, AEAT_CodError, AEAT_DescError]);
 
-      VF_WriteDiag('VF_SendAEAT_HTTP: EstadoRegistro <> Correcto, devolviendo Result=False');
+      VF_WriteDiag('VF_SendAEAT_HTTP: EstadoRegistro AEAT recibido, devolviendo Result=True para no reintentar como fallo tecnico');
     end
     else
     begin

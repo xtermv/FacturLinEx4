@@ -17,6 +17,7 @@ procedure VeriFactu_QueueFactura(
 
 // Permite pasar credenciales DB desde tu propia configuración (evita .ini extra)
 procedure VeriFactu_SetDBParams(const Host, Port, DBName, UserName, Password: string);
+procedure VeriFactu_ForceTempConnectionForCurrentThread(const AForce: Boolean);
 
 // Habilita/deshabilita la escritura dual (DB + copia .json). Por defecto: True
 procedure VeriFactu_EnableDualWriteJSON(const Enable: Boolean);
@@ -40,6 +41,10 @@ procedure VeriFactu_MarkSent(const Serie: string; const Numero: Integer; const H
 // Marca una factura como ERROR (y deja el mensaje). Mantiene payload para reintentos.
 procedure VeriFactu_MarkError(const Serie: string; const Numero: Integer; const MensajeError: string; const Respuesta: string = '');
 
+// Error técnico/transitorio: queda en PENDIENTE para reintento automático continuado.
+// No depende de revisión manual; mantiene el orden porque las posteriores esperan a esta fila.
+procedure VeriFactu_MarkRetryOrError(const Serie: string; const Numero: Integer; const MensajeError: string; const Respuesta: string = '');
+
 // Devuelve una factura a estado PENDIENTE (por ejemplo tras corregir).
 procedure VeriFactu_ResetToPending(const Serie: string; const Numero: Integer);
 
@@ -61,6 +66,7 @@ const
   VF_LOG_MAX_LINES      = 2000;
   VF_LOG_TRIM_AT_BYTES  = 512 * 1024; // recorta cuando supera 512 KB
   VF_LOG_MAX_LINE_CHARS = 4000;       // evita líneas enormes tipo XML completo
+  VF_MAX_AUTO_ATTEMPTS  = 3;          // umbral informativo; los fallos técnicos siguen reintentándose automáticamente
 
 
 procedure QueueToFiles(const Serie: string; Numero: Integer; const FechaISO, HoraISO: string;
@@ -78,10 +84,15 @@ var
   GHasExtDBParams: Boolean = False;
   GExtHost, GExtPort, GExtDB, GExtUser, GExtPass: string;
 
+threadvar
+  GVFForceTempConnection: Boolean;
+
 // Escritura dual (DB + .json)
 var
   GDualWriteJSON: Boolean = True; // confirmado por el usuario
   MotorDB: String = 'MyISAM';     // motor bbdd en creación, que será sustituido por un módulo variable ARIA, MyISAM, InnoDB
+  GVFSchemaCheckedOK: Boolean = False; // estructura comprobada OK en esta ejecucion
+  GVFSchemaCheckAttempted: Boolean = False; // evita reintentar comprobaciones/migraciones en cada factura si quedaron aplazadas
 
 // ---------- Helpers de E/S seguras (evitan "File not found" emergente) ----------
 
@@ -261,8 +272,15 @@ begin
   GExtUser := UserName;
   GExtPass := Password;
   GHasExtDBParams := (GExtHost <> '') and (GExtDB <> '') and (GExtUser <> '');
+  GVFSchemaCheckedOK := False; // si cambia la conexion/BBDD, revalidamos estructura una vez
+  GVFSchemaCheckAttempted := False;
   if GHasExtDBParams then
     WriteDiag('Recibidos DB params externos para modo MIXTO.');
+end;
+
+procedure VeriFactu_ForceTempConnectionForCurrentThread(const AForce: Boolean);
+begin
+  GVFForceTempConnection := AForce;
 end;
 
 procedure VeriFactu_EnableDualWriteJSON(const Enable: Boolean);
@@ -435,6 +453,302 @@ begin
     q.Free;
   end;
 end;
+
+function ColumnExists(Conn: TZConnection; const TableName, ColumnName: string): Boolean;
+var
+  q: TZQuery;
+begin
+  Result := False;
+  if (Conn = nil) or (not Conn.Connected) then Exit;
+
+  q := TZQuery.Create(nil);
+  try
+    q.Connection := Conn;
+    q.SQL.Text :=
+      'SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS ' +
+      'WHERE TABLE_SCHEMA=:db AND TABLE_NAME=:t AND COLUMN_NAME=:c LIMIT 1';
+    q.ParamByName('db').AsString := CurrentDatabase(Conn);
+    q.ParamByName('t').AsString := TableName;
+    q.ParamByName('c').AsString := ColumnName;
+    q.Open;
+    Result := not q.IsEmpty;
+  finally
+    q.Free;
+  end;
+end;
+
+function IndexExists(Conn: TZConnection; const TableName, IndexName: string): Boolean;
+var
+  q: TZQuery;
+begin
+  Result := False;
+  if (Conn = nil) or (not Conn.Connected) then Exit;
+
+  q := TZQuery.Create(nil);
+  try
+    q.Connection := Conn;
+    q.SQL.Text :=
+      'SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS ' +
+      'WHERE TABLE_SCHEMA=:db AND TABLE_NAME=:t AND INDEX_NAME=:i LIMIT 1';
+    q.ParamByName('db').AsString := CurrentDatabase(Conn);
+    q.ParamByName('t').AsString := TableName;
+    q.ParamByName('i').AsString := IndexName;
+    q.Open;
+    Result := not q.IsEmpty;
+  finally
+    q.Free;
+  end;
+end;
+
+function GetColumnInfo(Conn: TZConnection; const TableName, ColumnName: string;
+  out ColumnType, IsNullable, ColumnDefault: string): Boolean;
+var
+  q: TZQuery;
+begin
+  Result := False;
+  ColumnType := '';
+  IsNullable := '';
+  ColumnDefault := '';
+
+  if (Conn = nil) or (not Conn.Connected) then Exit;
+
+  q := TZQuery.Create(nil);
+  try
+    q.Connection := Conn;
+    q.SQL.Text :=
+      'SELECT COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT ' +
+      'FROM INFORMATION_SCHEMA.COLUMNS ' +
+      'WHERE TABLE_SCHEMA=:db AND TABLE_NAME=:t AND COLUMN_NAME=:c LIMIT 1';
+    q.ParamByName('db').AsString := CurrentDatabase(Conn);
+    q.ParamByName('t').AsString := TableName;
+    q.ParamByName('c').AsString := ColumnName;
+    q.Open;
+    if not q.IsEmpty then
+    begin
+      ColumnType := q.FieldByName('COLUMN_TYPE').AsString;
+      IsNullable := q.FieldByName('IS_NULLABLE').AsString;
+      if q.FieldByName('COLUMN_DEFAULT').IsNull then
+        ColumnDefault := ''
+      else
+        ColumnDefault := q.FieldByName('COLUMN_DEFAULT').AsString;
+      Result := True;
+    end;
+  finally
+    q.Free;
+  end;
+end;
+
+function VF_QueueRuntimeSchemaOK(Conn: TZConnection; out Missing: string): Boolean;
+
+  procedure NeedCol(const C: string);
+  begin
+    if not ColumnExists(Conn, 'verifactu_queue', C) then
+    begin
+      if Missing <> '' then
+        Missing := Missing + ', ';
+      Missing := Missing + C;
+      Result := False;
+    end;
+  end;
+
+begin
+  Result := True;
+  Missing := '';
+
+  if (Conn = nil) or (not Conn.Connected) then
+  begin
+    Result := False;
+    Missing := 'sin conexion';
+    Exit;
+  end;
+
+  if not TableExists(Conn, 'verifactu_queue') then
+  begin
+    Result := False;
+    Missing := 'tabla verifactu_queue inexistente';
+    Exit;
+  end;
+
+  // Columnas usadas por encolado, monitor, envio y encadenamiento.
+  NeedCol('id');
+  NeedCol('serie');
+  NeedCol('numero');
+  NeedCol('fecha');
+  NeedCol('hora');
+  NeedCol('total_con_iva');
+  NeedCol('estado');
+  NeedCol('intentos');
+  NeedCol('payload_json');
+  NeedCol('hash');
+  NeedCol('hash_prev');
+  NeedCol('respuesta_text');
+  NeedCol('last_error');
+  NeedCol('last_attempt_at');
+  NeedCol('token');
+  NeedCol('claimed_by');
+  NeedCol('claimed_at');
+  NeedCol('claimed_until');
+  NeedCol('fecha_isoz');
+  NeedCol('canonical');
+  NeedCol('tipo_factura');
+  NeedCol('created_at');
+  NeedCol('updated_at');
+end;
+
+function VF_OtherDBSessionsExist(Conn: TZConnection): Boolean;
+var
+  q: TZQuery;
+begin
+  // Para DDL somos deliberadamente conservadores: si no podemos comprobarlo,
+  // asumimos que NO es seguro modificar estructura automaticamente.
+  Result := True;
+  if (Conn = nil) or (not Conn.Connected) then Exit;
+
+  q := TZQuery.Create(nil);
+  try
+    q.Connection := Conn;
+    q.SQL.Text :=
+      'SELECT COUNT(*) AS n ' +
+      'FROM INFORMATION_SCHEMA.PROCESSLIST ' +
+      'WHERE DB=:db AND ID<>CONNECTION_ID()';
+    q.ParamByName('db').AsString := CurrentDatabase(Conn);
+    q.Open;
+    Result := q.FieldByName('n').AsInteger > 0;
+  except
+    on E: Exception do
+    begin
+      WriteDiag('VF_OtherDBSessionsExist: no se pudo comprobar PROCESSLIST; DDL automatico no seguro: ' + E.Message);
+      Result := True;
+    end;
+  end;
+  q.Free;
+end;
+
+function VF_TryExecDDLSafe(Conn: TZConnection; const SQLText, Desc: string): Boolean;
+var
+  q: TZQuery;
+  OldTimeout: Integer;
+begin
+  Result := False;
+  if (Conn = nil) or (not Conn.Connected) then Exit;
+
+  if VF_OtherDBSessionsExist(Conn) then
+  begin
+    WriteDiag(Desc + ' aplazado: hay otros puestos/conexiones usando la BBDD. SQL=' + SQLText);
+    Exit;
+  end;
+
+  q := TZQuery.Create(nil);
+  try
+    q.Connection := Conn;
+    OldTimeout := -1;
+
+    try
+      q.SQL.Text := 'SELECT @@SESSION.lock_wait_timeout AS t';
+      q.Open;
+      if not q.IsEmpty then
+        OldTimeout := q.FieldByName('t').AsInteger;
+      q.Close;
+    except
+      on E: Exception do
+      begin
+        try q.Close; except end;
+        WriteDiag('VF_TryExecDDLSafe: no se pudo leer lock_wait_timeout: ' + E.Message);
+      end;
+    end;
+
+    try
+      q.SQL.Text := 'SET SESSION lock_wait_timeout = 3';
+      q.ExecSQL;
+    except
+      on E: Exception do
+        WriteDiag('VF_TryExecDDLSafe: no se pudo fijar lock_wait_timeout=3: ' + E.Message);
+    end;
+
+    try
+      q.SQL.Text := SQLText;
+      q.ExecSQL;
+      Result := True;
+      WriteDiag(Desc + ' ejecutado.');
+    except
+      on E: Exception do
+        WriteDiag(Desc + ' cancelado/error DDL: ' + E.Message);
+    end;
+
+    if OldTimeout > 0 then
+    begin
+      try
+        q.SQL.Text := 'SET SESSION lock_wait_timeout = ' + IntToStr(OldTimeout);
+        q.ExecSQL;
+      except
+        on E: Exception do
+          WriteDiag('VF_TryExecDDLSafe: no se pudo restaurar lock_wait_timeout: ' + E.Message);
+      end;
+    end;
+  finally
+    q.Free;
+  end;
+end;
+
+function VF_AddColumnIfMissing(Conn: TZConnection; const TableName, ColumnName, ColumnDDL: string): Boolean;
+begin
+  Result := True;
+  if ColumnExists(Conn, TableName, ColumnName) then
+    Exit;
+
+  Result := VF_TryExecDDLSafe(Conn,
+    'ALTER TABLE ' + QuoteIdent(TableName) + ' ADD COLUMN ' + ColumnDDL,
+    'ADD COLUMN ' + TableName + '.' + ColumnName);
+end;
+
+function VF_AddIndexIfMissing(Conn: TZConnection; const TableName, IndexName, IndexDDL: string): Boolean;
+begin
+  Result := True;
+  if IndexExists(Conn, TableName, IndexName) then
+    Exit;
+
+  Result := VF_TryExecDDLSafe(Conn,
+    'ALTER TABLE ' + QuoteIdent(TableName) + ' ADD ' + IndexDDL,
+    'ADD INDEX ' + TableName + '.' + IndexName);
+end;
+
+function VF_TipoFacturaNeedsModify(Conn: TZConnection): Boolean;
+var
+  CT, Nul, Def: string;
+begin
+  Result := True;
+  if not GetColumnInfo(Conn, 'verifactu_queue', 'tipo_factura', CT, Nul, Def) then
+    Exit;
+
+  CT := LowerCase(Trim(CT));
+  Nul := UpperCase(Trim(Nul));
+  Def := UpperCase(Trim(Def));
+
+  Result := not ((CT = 'char(2)') and (Nul = 'NO') and (Def = 'F1'));
+end;
+
+function VF_EstadoNeedsModify(Conn: TZConnection): Boolean;
+var
+  CT, Nul, Def, U: string;
+begin
+  Result := True;
+  if not GetColumnInfo(Conn, 'verifactu_queue', 'estado', CT, Nul, Def) then
+    Exit;
+
+  U := UpperCase(CT);
+  Nul := UpperCase(Trim(Nul));
+  Def := UpperCase(Trim(Def));
+
+  Result := not (
+    (Pos('PENDIENTE', U) > 0) and
+    (Pos('EN_PROCESO', U) > 0) and
+    (Pos('ENVIADO', U) > 0) and
+    (Pos('ERROR', U) > 0) and
+    (Nul = 'NO') and
+    (Def = 'PENDIENTE')
+  );
+end;
+
 
 
 // ----------------------------------
@@ -682,12 +996,32 @@ end;
 procedure EnsureTables_DB_Conn(Conn: TZConnection);
 var
   qry: TZQuery;
+  Missing: string;
 begin
+  if (Conn = nil) or (not Conn.Connected) then
+    Exit;
+
+  // Si en esta ejecucion ya hemos comprobado que la estructura esta bien,
+  // no repetimos comprobaciones ni migraciones en cada factura.
+  if GVFSchemaCheckedOK then
+    Exit;
+
+  // Si ya se intento comprobar/migrar y quedo algo pendiente/aplazado,
+  // no se reintenta en cada factura. Esto evita coste en INFORMATION_SCHEMA,
+  // logs repetidos y nuevos intentos DDL durante ventas/facturacion.
+  // La migracion pendiente debe ejecutarse desde Actualizador/Utilidades
+  // con todos los puestos cerrados, o al reiniciar cuando ya sea seguro.
+  if GVFSchemaCheckAttempted then
+    Exit;
+
+  GVFSchemaCheckAttempted := True;
+
   qry := TZQuery.Create(nil);
   try
     qry.Connection := Conn;
 
-    // verifactu_config (por si futuras configuraciones)
+    // verifactu_config: crear si no existe. Crear una tabla inexistente no tiene el
+    // mismo riesgo que modificar una tabla en uso.
     try
       qry.SQL.Text :=
         'CREATE TABLE IF NOT EXISTS verifactu_config (' +
@@ -704,22 +1038,22 @@ begin
         WriteDiag('CREATE verifactu_config error: ' + E.Message);
     end;
 
-    // columnas tolerantes (ALTER ... dentro de try/except)
-    try qry.SQL.Text := 'ALTER TABLE verifactu_config ADD COLUMN cert_pass_enc VARCHAR(64) NULL'; qry.ExecSQL; except on E: Exception do ; end;
-    try qry.SQL.Text := 'ALTER TABLE verifactu_config ADD COLUMN endpoint_local VARCHAR(255) DEFAULT "http://127.0.0.1:8080/verifactu/test'; qry.ExecSQL; except on E: Exception do ; end;
-
+    // Migraciones condicionadas de verifactu_config: solo si falta la columna,
+    // nunca por costumbre, y solo si no hay otros puestos/conexiones.
+    VF_AddColumnIfMissing(Conn, 'verifactu_config', 'cert_pass_enc',
+      'cert_pass_enc VARCHAR(64) NULL');
+    VF_AddColumnIfMissing(Conn, 'verifactu_config', 'endpoint_local',
+      'endpoint_local VARCHAR(255) DEFAULT "http://127.0.0.1:8080/verifactu/test"');
 
     // verifactu_config: insertar fila inicial si está vacía
     try
+      qry.Close;
       qry.SQL.Text := 'SELECT COUNT(*) AS c FROM verifactu_config';
       qry.Open;
       if (not qry.EOF) and (qry.Fields[0].AsInteger = 0) then
       begin
         qry.Close;
 
-        // Obtenemos datos del emisor desde la config global
-        // y el UUID desde /etc/machine-id
-        // (si algo viene vacío, lo insertamos vacío, pero al menos hay fila)
         qry.SQL.Text :=
           'INSERT INTO verifactu_config ' +
           '  (uuid_emisor, nif_emisor, razon_emisor, endpoint) ' +
@@ -744,11 +1078,11 @@ begin
         WriteDiag('Ensure verifactu_config initial row error: ' + E.Message);
     end;
 
-    // verifactu_queue
+    // verifactu_queue: crear si no existe con la estructura final conocida.
     if not TableExists(Conn, 'verifactu_queue') then
     begin
       try
-        // CREATE inicial ya actualizado a la estructura final
+        qry.Close;
         qry.SQL.Text :=
           'CREATE TABLE verifactu_queue (' +
           '  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,' +
@@ -791,44 +1125,54 @@ begin
       end;
     end;
 
-    // columnas tolerantes (ALTER ... dentro de try/except)
-    try qry.SQL.Text := 'ALTER TABLE verifactu_queue ADD COLUMN last_attempt_at DATETIME NULL'; qry.ExecSQL; except on E: Exception do ; end;
-    try qry.SQL.Text := 'ALTER TABLE verifactu_queue MODIFY COLUMN estado ENUM("PENDIENTE","EN_PROCESO","ENVIADO","ERROR") NOT NULL DEFAULT "PENDIENTE"'; qry.ExecSQL; except on E: Exception do ; end;
-    try qry.SQL.Text := 'ALTER TABLE verifactu_queue ADD COLUMN token VARCHAR(64) NULL'; qry.ExecSQL; except on E: Exception do ; end;
-    try qry.SQL.Text := 'ALTER TABLE verifactu_queue ADD COLUMN claimed_by VARCHAR(64) NULL'; qry.ExecSQL; except on E: Exception do ; end;
-    try qry.SQL.Text := 'ALTER TABLE verifactu_queue ADD COLUMN claimed_at DATETIME NULL'; qry.ExecSQL; except on E: Exception do ; end;
-    try qry.SQL.Text := 'ALTER TABLE verifactu_queue ADD COLUMN claimed_until DATETIME NULL'; qry.ExecSQL; except on E: Exception do ; end;
+    // Migraciones condicionadas de verifactu_queue.
+    // IMPORTANTE: antes se ejecutaban ALTER TABLE siempre, aunque la columna ya
+    // estuviera bien. Ahora se consulta INFORMATION_SCHEMA y solo se ejecuta DDL
+    // si falta o difiere algo. Ademas, el DDL se aplaza si hay otros puestos y
+    // lleva lock_wait_timeout=3 para no congelar ventas/facturacion.
+    if TableExists(Conn, 'verifactu_queue') then
+    begin
+      VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'last_attempt_at', 'last_attempt_at DATETIME NULL');
+      VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'token', 'token VARCHAR(64) NULL');
+      VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'claimed_by', 'claimed_by VARCHAR(64) NULL');
+      VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'claimed_at', 'claimed_at DATETIME NULL');
+      VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'claimed_until', 'claimed_until DATETIME NULL');
+      VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'hash_prev', 'hash_prev VARCHAR(64) DEFAULT NULL');
+      VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'fecha_isoz', 'fecha_isoz VARCHAR(30) NULL DEFAULT NULL');
+      VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'canonical', 'canonical TEXT NULL');
+      VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'tipo_factura', 'tipo_factura CHAR(2) NOT NULL DEFAULT "F1"');
+      VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'payload_json', 'payload_json MEDIUMTEXT');
+      VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'respuesta_text', 'respuesta_text MEDIUMTEXT');
+      VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'last_error', 'last_error VARCHAR(255)');
+      VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'hash', 'hash VARCHAR(128)');
+      VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'intentos', 'intentos INT NOT NULL DEFAULT 0');
+      VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'created_at', 'created_at DATETIME NULL');
+      VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'updated_at', 'updated_at DATETIME NULL');
 
-    //--- Añadido hash_prev NO existente
-    try
-      qry.SQL.Text := 'ALTER TABLE verifactu_queue ADD COLUMN hash_prev VARCHAR(64) DEFAULT NULL';
-      qry.ExecSQL;
-      WriteDiag('Campo hash_prev añadido a verifactu_queue');
-    except
-      on E: Exception do
-      begin
-        if Pos('Duplicate column', E.Message) = 0 then
-          WriteDiag('VF_EnsureHashPrevField error: ' + E.Message);
-      end;
+      if ColumnExists(Conn, 'verifactu_queue', 'token') then
+        VF_AddIndexIfMissing(Conn, 'verifactu_queue', 'idx_token', 'KEY idx_token (token)');
+
+      if ColumnExists(Conn, 'verifactu_queue', 'estado') and VF_EstadoNeedsModify(Conn) then
+        VF_TryExecDDLSafe(Conn,
+          'ALTER TABLE verifactu_queue MODIFY COLUMN estado ENUM("PENDIENTE","EN_PROCESO","ENVIADO","ERROR") NOT NULL DEFAULT "PENDIENTE"',
+          'MODIFY verifactu_queue.estado');
+
+      if ColumnExists(Conn, 'verifactu_queue', 'tipo_factura') and VF_TipoFacturaNeedsModify(Conn) then
+        VF_TryExecDDLSafe(Conn,
+          'ALTER TABLE verifactu_queue MODIFY COLUMN tipo_factura CHAR(2) NOT NULL DEFAULT "F1"',
+          'MODIFY verifactu_queue.tipo_factura');
     end;
 
-    try qry.SQL.Text := 'ALTER TABLE verifactu_queue ADD KEY idx_token (token)'; qry.ExecSQL; except on E: Exception do ; end;
-    try qry.SQL.Text := 'ALTER TABLE verifactu_queue ADD COLUMN fecha_isoz VARCHAR(30) NULL DEFAULT NULL'; qry.ExecSQL; except on E: Exception do ; end;
-    try qry.SQL.Text := 'ALTER TABLE verifactu_queue ADD COLUMN canonical TEXT NULL'; qry.ExecSQL; except on E: Exception do ; end;
-
-    // tipo_factura: columna + default final F1
-    try
-      qry.SQL.Text := 'ALTER TABLE verifactu_queue ADD COLUMN tipo_factura CHAR(2) NOT NULL DEFAULT "F1"';
-      qry.ExecSQL;
-    except
-      on E: Exception do ; // si ya existe, ignoramos
-    end;
-    try
-      // Aseguramos default F1 aunque la columna existiese de antes con otro default
-      qry.SQL.Text := 'ALTER TABLE verifactu_queue MODIFY COLUMN tipo_factura CHAR(2) NOT NULL DEFAULT "F1"';
-      qry.ExecSQL;
-    except
-      on E: Exception do ; // ignoramos fallos aquí
+    if VF_QueueRuntimeSchemaOK(Conn, Missing) then
+    begin
+      GVFSchemaCheckedOK := True;
+      WriteDiag('Estructura verifactu_queue comprobada OK; no se repetira en esta ejecucion.');
+    end
+    else
+    begin
+      GVFSchemaCheckedOK := False;
+      WriteDiag('Estructura verifactu_queue pendiente de migracion: ' + Missing +
+        '. No se debe bloquear la facturacion; se usara copia JSON si no se puede insertar en DB.');
     end;
 
   finally
@@ -1697,6 +2041,7 @@ procedure VeriFactu_QueueFactura(
 var
   FechaISO, HoraISO, Payload: string;
   temp: TZConnection;
+  Missing: string;
 begin
   try
     // Construimos el JSON intentando leer cabecera + líneas de DB (GConn o temp)
@@ -1704,11 +2049,29 @@ begin
     HoraISO  := FormatDateTime('hh:nn:ss', Hora);
     Payload := BuildJSON(Serie, Numero, FechaISO, HoraISO, TotalConIVA);
 
-    // 1) Si tenemos conexión DB viva (GConn), escribimos en DB
+    // 1) Si tenemos conexión DB viva (GConn), escribimos en DB.
+    // Si la estructura no está lista o la inserción falla, dejamos copia JSON
+    // para no perder el documento ni bloquear ventas/facturación.
     if Assigned(GConn) and GConn.Connected then
     begin
       EnsureTables_DB_Conn(GConn);
-      QueueToDB_Conn(GConn, Serie, Numero, FechaISO, HoraISO, TotalConIVA, Payload);
+      if VF_QueueRuntimeSchemaOK(GConn, Missing) then
+      begin
+        try
+          QueueToDB_Conn(GConn, Serie, Numero, FechaISO, HoraISO, TotalConIVA, Payload);
+        except
+          on E: Exception do
+          begin
+            WriteDiag('QueueToDB_Conn fallo; se deja copia JSON: ' + E.Message);
+            QueueToFiles(Serie, Numero, FechaISO, HoraISO, TotalConIVA, Payload);
+          end;
+        end;
+      end
+      else
+      begin
+        WriteDiag('Estructura verifactu_queue no valida (' + Missing + '); se deja copia JSON.');
+        QueueToFiles(Serie, Numero, FechaISO, HoraISO, TotalConIVA, Payload);
+      end;
       Exit;
     end;
 
@@ -1717,14 +2080,30 @@ begin
     begin
       try
         EnsureTables_DB_Conn(temp);
-        QueueToDB_Conn(temp, Serie, Numero, FechaISO, HoraISO, TotalConIVA, Payload);
-        if GDualWriteJSON then
+        if VF_QueueRuntimeSchemaOK(temp, Missing) then
         begin
-          QueueToFiles(Serie, Numero, FechaISO, HoraISO, TotalConIVA, Payload);
-          WriteDiag('Insertada (temp-DB) + copia JSON (dual-write).');
+          try
+            QueueToDB_Conn(temp, Serie, Numero, FechaISO, HoraISO, TotalConIVA, Payload);
+            if GDualWriteJSON then
+            begin
+              QueueToFiles(Serie, Numero, FechaISO, HoraISO, TotalConIVA, Payload);
+              WriteDiag('Insertada (temp-DB) + copia JSON (dual-write).');
+            end
+            else
+              WriteDiag('Insertada en DB principal con conexión temporal.');
+          except
+            on E: Exception do
+            begin
+              WriteDiag('QueueToDB_Conn temp fallo; se deja copia JSON: ' + E.Message);
+              QueueToFiles(Serie, Numero, FechaISO, HoraISO, TotalConIVA, Payload);
+            end;
+          end;
         end
         else
-          WriteDiag('Insertada en DB principal con conexión temporal.');
+        begin
+          WriteDiag('Estructura verifactu_queue no valida en conexion temporal (' + Missing + '); se deja copia JSON.');
+          QueueToFiles(Serie, Numero, FechaISO, HoraISO, TotalConIVA, Payload);
+        end;
         Exit;
       finally
         try if temp.Connected then temp.Disconnect; except end;
@@ -1740,6 +2119,12 @@ begin
     begin
       // Captura total para evitar diálogos en UI
       WriteDiag('EXCEPTION VeriFactu_QueueFactura: ' + E.Message);
+      try
+        QueueToFiles(Serie, Numero, FechaISO, HoraISO, TotalConIVA, Payload);
+      except
+        on E2: Exception do
+          WriteDiag('EXCEPTION guardando JSON tras fallo VeriFactu_QueueFactura: ' + E2.Message);
+      end;
     end;
   end;
 end;
@@ -1752,7 +2137,10 @@ var
 begin
   Result := False;
   Conn := nil;
-  if Assigned(GConn) and GConn.Connected then
+  // En hilos de envío VeriFactu NO reutilizamos la conexión global visual.
+  // Cada worker debe abrir su propia conexión temporal para evitar bloqueos o
+  // uso simultáneo de TZConnection desde menú/ventas.
+  if (not GVFForceTempConnection) and Assigned(GConn) and GConn.Connected then
   begin
     Conn := GConn;
     Exit(True);
@@ -1861,7 +2249,7 @@ begin
      (Pos('prueba', LowerCase(vfUrlTP)) > 0) then
     VEnv := 'PRE';
 
-  Result := Host + '|P=' + VPuesto + '|V=33|'+ VEnv;
+  Result := Host + '|P=' + VPuesto + '|V=35|'+ VEnv;
   if Length(Result) > 64 then
     Result := Copy(Result, 1, 64);
 end;
@@ -1881,6 +2269,7 @@ var
   token: string;
   LockName: string;
   Locked: Boolean;
+  RowId: Integer;
 begin
   Result := False;
   Serie := '';
@@ -1890,6 +2279,8 @@ begin
 
   ownTemp := False;
   Locked := False;
+  RowId := 0;
+
   if not GetConnForOps(Conn) then
   begin
     WriteDiag('TakeNextPending: no hay conexión DB.');
@@ -1902,22 +2293,54 @@ begin
     q.Connection := Conn;
     token := NewToken;
 
-    // Reclamo seguro de una PENDIENTE
+    // 1) Buscar la siguiente PENDIENTE reclamable, respetando orden por serie SOLO
+    //    para incidencias técnicas/transitorias sin respuesta válida.
+    //    Regla v5:
+    //    - PENDIENTE / EN_PROCESO anteriores bloquean.
+    //    - ERROR con respuesta AEAT NO bloquea; queda para subsanación/revisión.
+    //    - ENVIADO incluye Correcto y AceptadoConErrores; NO bloquea.
+    //    - Fallos técnicos/timeout/SOAP sin respuesta válida quedan en PENDIENTE.
+    //    - IMPORTANTE: no filtramos por last_attempt_at/intentos aquí.
+    //      El worker ya corre en segundo plano y para el lote ante fallo técnico, así que
+    //      el documento que bloquea la serie debe reintentarse en cada ciclo disponible.
+    //      Esto evita que una fila PENDIENTE_REINTENTO quede sin seleccionarse por
+    //      desfases de hora, last_attempt_at o condiciones SQL demasiado restrictivas.
+    q.SQL.Text :=
+      'SELECT q.id, q.serie, q.numero ' +
+      'FROM verifactu_queue q ' +
+      'WHERE q.estado="PENDIENTE" ' +
+      '  AND NOT EXISTS ( ' +
+      '       SELECT 1 FROM verifactu_queue p ' +
+      '       WHERE p.serie=q.serie AND p.id<q.id ' +
+      '         AND p.estado IN ("PENDIENTE","EN_PROCESO") ' +
+      '  ) ' +
+      'ORDER BY q.created_at ASC, q.id ASC ' +
+      'LIMIT 1';
+    q.Open;
+
+    if q.IsEmpty then
+      Exit(False);
+
+    RowId := q.FieldByName('id').AsInteger;
+    q.Close;
+
+    // 2) Reclamar la fila exacta por ID. Si otro proceso la cogió antes, no hacemos nada.
     q.SQL.Text :=
       'UPDATE verifactu_queue ' +
       'SET estado="EN_PROCESO", token=:t, claimed_by=:cb, claimed_at=NOW(), ' +
-      '    claimed_until=DATE_ADD(NOW(), INTERVAL 10 MINUTE), intentos=intentos+1, updated_at=NOW(), last_attempt_at=NOW() ' +
-      'WHERE estado="PENDIENTE" ' +
-      'ORDER BY created_at ASC ' +
+      '    claimed_until=DATE_ADD(NOW(), INTERVAL 10 MINUTE), ' +
+      '    intentos=intentos+1, updated_at=NOW(), last_attempt_at=NOW() ' +
+      'WHERE id=:id AND estado="PENDIENTE" ' +
       'LIMIT 1';
     q.ParamByName('t').AsString  := token;
     q.ParamByName('cb').AsString := VF_ClaimTag;
+    q.ParamByName('id').AsInteger := RowId;
     q.ExecSQL;
 
     if q.RowsAffected = 0 then
       Exit(False);
 
-    // 2) Obtenemos serie, numero y payload_json de la fila reclamada
+    // 3) Obtenemos serie, numero y payload_json de la fila reclamada
     q.Close;
     q.SQL.Text := 'SELECT serie, numero, payload_json FROM verifactu_queue WHERE token=:t LIMIT 1';
     q.ParamByName('t').AsString := token;
@@ -1932,7 +2355,7 @@ begin
     Numero := q.FieldByName('numero').AsInteger;
     PayloadJSON := q.FieldByName('payload_json').AsString;
 
-    // 3) AHORA SÍ: recalculamos hash_prev en este momento
+    // 4) AHORA SÍ: recalculamos hash_prev en este momento
     // -- LOCK DB para asegurar encadenamiento (evita hash_prev repetido con concurrencia)
     LockName := VF_MakeChainLockName(Serie);
     Locked := VF_DB_GetLock(Conn, LockName, 10);
@@ -1947,7 +2370,7 @@ begin
       VF_DB_ReleaseLock(Conn, LockName);
     end;
 
-    // 4) Volvemos a leer la fila, ahora con hash y hash_prev actualizados
+    // 5) Volvemos a leer la fila, ahora con hash y hash_prev actualizados
     q.Close;
     q.SQL.Text :=
       'SELECT serie, numero, payload_json, hash, hash_prev ' +
@@ -1981,7 +2404,6 @@ begin
     end;
   end;
 end;
-
 function VeriFactu_TakeSpecificPending(const SerieIn: string; const NumeroIn: Integer;
   out PayloadJSON: string; out EncadenamientoHash: string): Boolean;
 var
@@ -1991,6 +2413,7 @@ var
   token: string;
   LockName: string;
   Locked: Boolean;
+  RowId: Integer;
 begin
   Result := False;
   PayloadJSON := '';
@@ -1998,6 +2421,7 @@ begin
 
   ownTemp := False;
   Locked := False;
+  RowId := 0;
 
   if not GetConnForOps(Conn) then
   begin
@@ -2011,24 +2435,46 @@ begin
     q.Connection := Conn;
     token := NewToken;
 
-    // 1) Reclamo seguro de ESA PENDIENTE (serie+numero)
+    // 1) Localizar esa factura concreta, pero sin saltarse una anterior pendiente/en proceso
+    //    de la misma serie. Los errores con respuesta AEAT no bloquean; quedan para
+    //    subsanación/revisión y el resto de la cola puede continuar.
+    q.SQL.Text :=
+      'SELECT q.id ' +
+      'FROM verifactu_queue q ' +
+      'WHERE q.estado="PENDIENTE" AND q.serie=:s AND q.numero=:n ' +
+      '  AND NOT EXISTS ( ' +
+      '       SELECT 1 FROM verifactu_queue p ' +
+      '       WHERE p.serie=q.serie AND p.id<q.id ' +
+      '         AND p.estado IN ("PENDIENTE","EN_PROCESO") ' +
+      '  ) ' +
+      'LIMIT 1';
+    q.ParamByName('s').AsString := SerieIn;
+    q.ParamByName('n').AsInteger := NumeroIn;
+    q.Open;
+
+    if q.IsEmpty then
+      Exit(False);
+
+    RowId := q.FieldByName('id').AsInteger;
+    q.Close;
+
+    // 2) Reclamo seguro de ESA PENDIENTE por ID
     q.SQL.Text :=
       'UPDATE verifactu_queue ' +
       'SET estado="EN_PROCESO", token=:t, claimed_by=:cb, claimed_at=NOW(), ' +
       '    claimed_until=DATE_ADD(NOW(), INTERVAL 10 MINUTE), intentos=intentos+1, ' +
       '    updated_at=NOW(), last_attempt_at=NOW() ' +
-      'WHERE estado="PENDIENTE" AND serie=:s AND numero=:n ' +
+      'WHERE id=:id AND estado="PENDIENTE" ' +
       'LIMIT 1';
     q.ParamByName('t').AsString  := token;
     q.ParamByName('cb').AsString := VF_ClaimTag;
-    q.ParamByName('s').AsString  := SerieIn;
-    q.ParamByName('n').AsInteger := NumeroIn;
+    q.ParamByName('id').AsInteger := RowId;
     q.ExecSQL;
 
     if q.RowsAffected = 0 then
       Exit(False);
 
-    // 2) Obtenemos payload de la fila reclamada
+    // 3) Obtenemos payload de la fila reclamada
     q.Close;
     q.SQL.Text := 'SELECT payload_json FROM verifactu_queue WHERE token=:t LIMIT 1';
     q.ParamByName('t').AsString := token;
@@ -2041,7 +2487,7 @@ begin
 
     PayloadJSON := q.FieldByName('payload_json').AsString;
 
-    // 3) Recalcular hash_prev/hashes (LOCK DB para encadenamiento)
+    // 4) Recalcular hash_prev/hashes (LOCK DB para encadenamiento)
     LockName := VF_MakeChainLockName(SerieIn);
     Locked := VF_DB_GetLock(Conn, LockName, 10);
     if not Locked then
@@ -2056,7 +2502,7 @@ begin
       VF_DB_ReleaseLock(Conn, LockName);
     end;
 
-    // 4) Leer ya con hash y hash_prev actualizado
+    // 5) Leer ya con hash y hash_prev actualizado
     q.Close;
     q.SQL.Text :=
       'SELECT payload_json, hash, hash_prev ' +
@@ -2088,7 +2534,6 @@ begin
     end;
   end;
 end;
-
 procedure VeriFactu_MarkSent(const Serie: string; const Numero: Integer; const Hash: string = ''; const Respuesta: string = '');
 var
   ownTemp: Boolean;
@@ -2112,9 +2557,8 @@ begin
   			'hash = IF(:h<>"", :h, hash), ' +  // si :h está vacío, conserva el hash actual
   			'respuesta_text = :r, ' +
   			'last_error=NULL, ' +
-  			'intentos=intentos+1, ' +
-  			'updated_at=NOW(), ' +
-  			'token=NULL, claimed_until=NULL ' +
+        'updated_at=NOW(), ' +
+        'token=NULL, claimed_until=NULL ' +
   			'WHERE serie=:s AND numero=:n LIMIT 1';
 
     q.ParamByName('h').AsString := Hash;
@@ -2151,7 +2595,8 @@ begin
   try
     q.Connection := Conn;
     q.SQL.Text :=
-      'UPDATE verifactu_queue SET estado="ERROR", last_error=:e, respuesta_text=:r, updated_at=NOW(), token=NULL, claimed_until=NULL ' +
+      'UPDATE verifactu_queue SET estado="ERROR", last_error=:e, respuesta_text=:r, ' +
+      'updated_at=NOW(), token=NULL, claimed_until=NULL ' +
       'WHERE serie=:s AND numero=:n LIMIT 1';
     q.ParamByName('e').AsString := Copy(MensajeError, 1, 255);
     q.ParamByName('r').AsString := Respuesta;
@@ -2159,6 +2604,79 @@ begin
     q.ParamByName('n').AsInteger := Numero;
     q.ExecSQL;
     WriteDiag('MarkError: ' + Serie + '-' + IntToStr(Numero) + ' → ERROR (' + MensajeError + ').');
+  finally
+    q.Free;
+    if ownTemp then
+    begin
+      try if Conn.Connected then Conn.Disconnect; except end;
+      Conn.Free;
+    end;
+  end;
+end;
+
+procedure VeriFactu_MarkRetryOrError(const Serie: string; const Numero: Integer; const MensajeError: string; const Respuesta: string = '');
+var
+  ownTemp: Boolean;
+  Conn: TZConnection;
+  q: TZQuery;
+  IntentosActuales: Integer;
+  MsgCorto: string;
+begin
+  ownTemp := False;
+  IntentosActuales := VF_MAX_AUTO_ATTEMPTS;
+
+  if not GetConnForOps(Conn) then
+  begin
+    WriteDiag('MarkRetryOrError: no hay conexión DB.');
+    Exit;
+  end;
+  if Conn <> GConn then ownTemp := True;
+
+  MsgCorto := Copy(MensajeError, 1, 255);
+
+  q := TZQuery.Create(nil);
+  try
+    q.Connection := Conn;
+
+    try
+      q.SQL.Text := 'SELECT intentos FROM verifactu_queue WHERE serie=:s AND numero=:n LIMIT 1';
+      q.ParamByName('s').AsString := Serie;
+      q.ParamByName('n').AsInteger := Numero;
+      q.Open;
+      if not q.IsEmpty then
+        IntentosActuales := q.FieldByName('intentos').AsInteger;
+      q.Close;
+    except
+      on E: Exception do
+      begin
+        WriteDiag('MarkRetryOrError SELECT error: ' + E.Message);
+        IntentosActuales := VF_MAX_AUTO_ATTEMPTS;
+      end;
+    end;
+
+    // Error técnico/transitorio: SIEMPRE se devuelve a PENDIENTE para reintento automático.
+    // No se pasa a ERROR/ERROR_TECNICO para no depender de una persona ni bloquear
+    // ilegalmente envíos posteriores cuando el sistema vuelva a estar operativo.
+    // El orden de serie queda protegido porque esta fila PENDIENTE sigue bloqueando
+    // a las posteriores hasta que consiga respuesta válida o se convierta en ERROR
+    // con respuesta AEAT desde el sender.
+    q.SQL.Text :=
+      'UPDATE verifactu_queue SET estado="PENDIENTE", last_error=:e, respuesta_text=:r, ' +
+      'updated_at=NOW(), token=NULL, claimed_until=NULL ' +
+      'WHERE serie=:s AND numero=:n LIMIT 1';
+    q.ParamByName('e').AsString := MsgCorto;
+    q.ParamByName('r').AsString := Respuesta;
+    q.ParamByName('s').AsString := Serie;
+    q.ParamByName('n').AsInteger := Numero;
+    q.ExecSQL;
+
+    if IntentosActuales >= VF_MAX_AUTO_ATTEMPTS then
+      WriteDiag(Format('MarkRetryOrError: %s-%d → PENDIENTE reintento tecnico automatico continuado (%d intentos).',
+        [Serie, Numero, IntentosActuales]))
+    else
+      WriteDiag(Format('MarkRetryOrError: %s-%d → PENDIENTE para reintento automatico (%d/%d).',
+        [Serie, Numero, IntentosActuales, VF_MAX_AUTO_ATTEMPTS]));
+
   finally
     q.Free;
     if ownTemp then
@@ -2187,7 +2705,8 @@ begin
   try
     q.Connection := Conn;
     q.SQL.Text :=
-      'UPDATE verifactu_queue SET estado="PENDIENTE", last_error=NULL, respuesta_text=NULL, updated_at=NOW(), token=NULL, claimed_by=NULL, claimed_until=NULL ' +
+      'UPDATE verifactu_queue SET estado="PENDIENTE", intentos=0, last_error=NULL, respuesta_text=NULL, ' +
+      'updated_at=NOW(), last_attempt_at=NULL, token=NULL, claimed_until=NULL ' +
       'WHERE serie=:s AND numero=:n LIMIT 1';
     q.ParamByName('s').AsString := Serie;
     q.ParamByName('n').AsInteger := Numero;
@@ -2222,7 +2741,7 @@ begin
     q.Connection := Conn;
     q.SQL.Text :=
       'UPDATE verifactu_queue ' +
-      'SET estado="PENDIENTE", token=NULL, claimed_by=NULL, claimed_until=NULL ' +
+      'SET estado="PENDIENTE", token=NULL, claimed_until=NULL, updated_at=NOW() ' +
       'WHERE estado="EN_PROCESO" AND (claimed_until IS NULL OR claimed_until < NOW())';
     q.ExecSQL;
     if q.RowsAffected > 0 then

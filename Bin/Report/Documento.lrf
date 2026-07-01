@@ -7,7 +7,7 @@
     <KeyWords Value=""/>
     <Comments Value=""/>
     <ReportCreateDate Value="2025-11-08 23:16:03"/>
-    <ReportLastChange Value="2025-12-09 12:38:28"/>
+    <ReportLastChange Value="2026-01-08 13:55:06"/>
     <ReportVersionBuild Value=""/>
     <ReportVersionMajor Value=""/>
     <ReportVersionMinor Value=""/>
@@ -17,14 +17,14 @@
     <Pages>
       <PrintToDefault Value="True"/>
       <DoublePass Value="True"/>
-      <SelectedPrinter Value="HP-LaserJet-Pro-MFP-M125a"/>
+      <SelectedPrinter Value="Default printer"/>
       <PageCount Value="1"/>
       <Page1>
         <Name Value="Page1"/>
         <ClassName Value="TfrPageReport"/>
         <Visible Value="True"/>
-        <Width Value="595"/>
-        <Height Value="842"/>
+        <Width Value="2100"/>
+        <Height Value="2970"/>
         <Script Value=""/>
         <PgSize Value="9"/>
         <Margins>
@@ -48,7 +48,7 @@
           <Size>
             <Left Value="0"/>
             <Top Value="20"/>
-            <Width Value="753"/>
+            <Width Value="752"/>
             <Height Value="296"/>
           </Size>
           <Flags Value="48"/>
@@ -76,7 +76,7 @@
           <Size>
             <Left Value="0"/>
             <Top Value="316"/>
-            <Width Value="753"/>
+            <Width Value="752"/>
             <Height Value="40"/>
           </Size>
           <Flags Value="112"/>
@@ -104,7 +104,7 @@
           <Size>
             <Left Value="0"/>
             <Top Value="444"/>
-            <Width Value="753"/>
+            <Width Value="752"/>
             <Height Value="212"/>
           </Size>
           <Flags Value="48"/>
@@ -132,7 +132,7 @@
           <Size>
             <Left Value="0"/>
             <Top Value="384"/>
-            <Width Value="753"/>
+            <Width Value="752"/>
             <Height Value="24"/>
           </Size>
           <Flags Value="48"/>
@@ -633,7 +633,7 @@
           <StreamMode Value="0"/>
           <Size>
             <Left Value="392"/>
-            <Top Value="162"/>
+            <Top Value="174"/>
             <Width Value="332"/>
             <Height Value="18"/>
           </Size>
@@ -4169,7 +4169,7 @@
           <StreamMode Value="0"/>
           <Size>
             <Left Value="591"/>
-            <Top Value="131"/>
+            <Top Value="143"/>
             <Width Value="132"/>
             <Height Value="18"/>
           </Size>
@@ -4484,7 +4484,153 @@
           <Justify Value="False"/>
           <Cursor Value="0"/>
         </Object91>
-        <ObjectCount Value="91"/>
+        <Object92>
+          <Name Value="PictureQR"/>
+          <ClassName Value="TfrPictureView"/>
+          <Visible Value="True"/>
+          <Typ Value="gtPicture"/>
+          <StreamMode Value="0"/>
+          <Size>
+            <Left Value="399"/>
+            <Top Value="41"/>
+            <Width Value="133"/>
+            <Height Value="101"/>
+          </Size>
+          <Flags Value="3"/>
+          <FillColor Value="clCream"/>
+          <Frames>
+            <FrameColor Value="clGray"/>
+            <FrameStyle Value="frsSolid"/>
+            <FrameWidth Value="1"/>
+            <FrameBorders Value="frbLeft,frbTop,frbRight,frbBottom"/>
+            <Restrictions Value=""/>
+          </Frames>
+          <Data>
+            <Memo Value="&#xA;"/>
+            <Script Value="if [page#] &gt; 1 then visible := false&#xA;"/>
+            <GapX Value="0"/>
+            <GapY Value="0"/>
+          </Data>
+          <Tag Value=""/>
+          <FURLInfo Value=""/>
+          <Picture>
+            <SharedName Value=""/>
+            <Type Value="0"/>
+          </Picture>
+        </Object92>
+        <Object93>
+          <Name Value="Memo65"/>
+          <ClassName Value="TfrMemoView"/>
+          <Visible Value="True"/>
+          <Typ Value="gtMemo"/>
+          <StreamMode Value="0"/>
+          <Size>
+            <Left Value="358"/>
+            <Top Value="22"/>
+            <Width Value="218"/>
+            <Height Value="18"/>
+          </Size>
+          <Flags Value="3"/>
+          <FillColor Value="clNone"/>
+          <Frames>
+            <FrameColor Value="clBlack"/>
+            <FrameStyle Value="frsSolid"/>
+            <FrameWidth Value="1"/>
+            <FrameBorders Value=""/>
+            <Restrictions Value=""/>
+          </Frames>
+          <Data>
+            <Format Value="558"/>
+            <FormatStr Value=""/>
+            <Memo Value="[leyenda1]&#xA;"/>
+            <Script Value="if [page#] &gt; 1 then visible := false&#xA;"/>
+            <GapX Value="0"/>
+            <GapY Value="0"/>
+            <OnClick Value=""/>
+            <OnMouseEnter Value=""/>
+            <OnMouseLeave Value=""/>
+            <DetailReport Value=""/>
+            <ParagraphGap Value="0"/>
+            <LineSpacing Value="2"/>
+          </Data>
+          <Tag Value=""/>
+          <FURLInfo Value=""/>
+          <Font>
+            <Name Value="helvetica [urw]"/>
+            <Size Value="10"/>
+            <Color Value="clBlack"/>
+            <Charset Value="0"/>
+            <Style Value=""/>
+          </Font>
+          <Highlight>
+            <FontStyle Value="2"/>
+            <FontColor Value="clBlack"/>
+            <FillColor Value="clWhite"/>
+            <HighlightStr Value=""/>
+          </Highlight>
+          <Alignment Value="taCenter"/>
+          <Layout Value="tlTop"/>
+          <Angle Value="0"/>
+          <Justify Value="False"/>
+          <Cursor Value="0"/>
+        </Object93>
+        <Object94>
+          <Name Value="Memo68"/>
+          <ClassName Value="TfrMemoView"/>
+          <Visible Value="True"/>
+          <Typ Value="gtMemo"/>
+          <StreamMode Value="0"/>
+          <Size>
+            <Left Value="357"/>
+            <Top Value="144"/>
+            <Width Value="214"/>
+            <Height Value="18"/>
+          </Size>
+          <Flags Value="3"/>
+          <FillColor Value="clNone"/>
+          <Frames>
+            <FrameColor Value="clBlack"/>
+            <FrameStyle Value="frsSolid"/>
+            <FrameWidth Value="1"/>
+            <FrameBorders Value=""/>
+            <Restrictions Value=""/>
+          </Frames>
+          <Data>
+            <Format Value="558"/>
+            <FormatStr Value=""/>
+            <Memo Value="[leyenda2]&#xA;"/>
+            <Script Value="if [page#] &gt; 1 then visible := false&#xA;"/>
+            <GapX Value="0"/>
+            <GapY Value="0"/>
+            <OnClick Value=""/>
+            <OnMouseEnter Value=""/>
+            <OnMouseLeave Value=""/>
+            <DetailReport Value=""/>
+            <ParagraphGap Value="0"/>
+            <LineSpacing Value="2"/>
+          </Data>
+          <Tag Value=""/>
+          <FURLInfo Value=""/>
+          <Font>
+            <Name Value="helvetica [urw]"/>
+            <Size Value="10"/>
+            <Color Value="clBlack"/>
+            <Charset Value="0"/>
+            <Style Value=""/>
+          </Font>
+          <Highlight>
+            <FontStyle Value="2"/>
+            <FontColor Value="clBlack"/>
+            <FillColor Value="clWhite"/>
+            <HighlightStr Value=""/>
+          </Highlight>
+          <Alignment Value="taCenter"/>
+          <Layout Value="tlTop"/>
+          <Angle Value="0"/>
+          <Justify Value="False"/>
+          <Cursor Value="0"/>
+        </Object94>
+        <ObjectCount Value="94"/>
       </Page1>
       <FVal>
         <Count Value="36"/>

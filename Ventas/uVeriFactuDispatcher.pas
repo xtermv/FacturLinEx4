@@ -8,8 +8,8 @@ uses
   Classes, SysUtils, Dialogs, DateUtils, uVeriFactu, uVF_XMLParse, uVFSenderAEAT;
 
 type
-  // Función de envío: devuelve True si "envió" bien; False si hubo error.
-  // Debe rellenar Hash y Respuesta si procede (pueden ir vacíos en modo TEST).
+  // FunciÃ³n de envÃ­o: devuelve True si "enviÃ³" bien; False si hubo error.
+  // Debe rellenar Hash y Respuesta si procede (pueden ir vacÃ­os en modo TEST).
   TVFSendFunc = function(const Serie: string; Numero: Integer;
                          const PayloadJSON: string;
                          const EncadenamientoHash: string;
@@ -17,22 +17,26 @@ type
 
 procedure VF_SetSender(SendFunc: TVFSendFunc);
 
-// Envía una sola factura pendiente (si existe).
-// Devuelve True si ha procesado alguna (aunque sea con error de envío).
+// EnvÃ­a una sola factura pendiente (si existe).
+// Devuelve True si ha procesado alguna (aunque sea con error de envÃ­o).
 function VF_DispatchNextPending: Boolean;
 
-// Envía UNA factura concreta (si existe y está PENDIENTE).
-// Devuelve True si ha procesado alguna (aunque sea con error de envío).
+// EnvÃ­a UNA factura concreta (si existe y estÃ¡ PENDIENTE).
+// Devuelve True si ha procesado alguna (aunque sea con error de envÃ­o).
 function VF_DispatchSpecific(const Serie: string; Numero: Integer): Boolean;
 
 
-// Envía hasta MaxPerRun facturas pendientes.
-// Devuelve cuántas ha procesado.
+// EnvÃ­a hasta MaxPerRun facturas pendientes.
+// Devuelve cuÃ¡ntas ha procesado.
 function VF_DispatchAllPending(MaxPerRun: Integer): Integer;
 
-// Tick periódico: recoloca bloqueadas y envía hasta MaxPerTick.
+// Tick periÃ³dico: recoloca bloqueadas y envÃ­a hasta MaxPerTick.
 // TimeoutMinutes: minutos de bloqueo para considerar una factura "atascada".
 procedure VF_Tick(const TimeoutMinutes: Integer; const MaxPerTick: Integer);
+
+// Lanza el envÃ­o de pendientes en segundo plano. No bloquea menÃº/ventas.
+procedure VF_StartDispatcherThread(const TimeoutMinutes: Integer; const MaxPerRun: Integer);
+function VF_DispatcherThreadRunning: Boolean;
 
 //-- Procedimiento de cambio Local o AEAT
 procedure VF_ApplyMode(const AMode: Integer);
@@ -40,10 +44,10 @@ procedure VF_ApplyMode(const AMode: Integer);
 implementation
 
 uses
-  StrUtils, uVeriFactuHTTPSender;  // <- AQUÍ enganchamos el parser XML
+  StrUtils, uVeriFactuHTTPSender;  // <- AQUÃ enganchamos el parser XML
 
 const
-  // Límite conservador para que dispatcher.log no crezca sin control.
+  // LÃ­mite conservador para que dispatcher.log no crezca sin control.
   VF_LOG_MAX_LINES      = 2000;
   VF_LOG_TRIM_AT_BYTES  = 512 * 1024; // recorta cuando supera 512 KB
   VF_LOG_MAX_LINE_CHARS = 4000;
@@ -53,11 +57,14 @@ var
   GSender: TVFSendFunc;
   GEveryNForError: Integer = 0;
   GTestCounter: Integer = 0;
+  GLastDispatchTransportError: Boolean = False;
+  GVFDispatcherThreadRunning: Boolean = False;
+  GVFDispatcherCS: TRTLCriticalSection;
 
 
   // ------------------------------------------------------------------
-  // PEQUEÑO STUB DE LOG LOCAL
-  // (Si ya tienes tu propio logger, cambia aquí la implementación.)
+  // PEQUEÃO STUB DE LOG LOCAL
+  // (Si ya tienes tu propio logger, cambia aquÃ­ la implementaciÃ³n.)
   // ------------------------------------------------------------------
 
 function DataPath: string;
@@ -159,7 +166,7 @@ begin
 
     VF_TrimLogFile(FileName);
   except
-    on E: Exception do ; // suprime diálogo
+    on E: Exception do ; // suprime diÃ¡logo
   end;
 end;
 
@@ -167,11 +174,107 @@ procedure WriteDiag(const Msg: string);
 var
   f: string;
 begin
-  // De momento lo dejamos vacío para no depender de nada.
+  // De momento lo dejamos vacÃ­o para no depender de nada.
   // Si quieres que escriba en consola:
   f := IncludeTrailingPathDelimiter(DataPath) + 'logs' + DirectorySeparator + 'dispatcher.log';
   SafeAppendLine(f, FormatDateTime('yyyy-mm-dd hh:nn:ss', Now) + '  ' + Msg);
   WriteLn(FormatDateTime('yyyy-mm-dd hh:nn:ss', Now) + '  ' + Msg);
+end;
+
+function VF_DispatcherThreadRunning: Boolean;
+begin
+  EnterCriticalSection(GVFDispatcherCS);
+  try
+    Result := GVFDispatcherThreadRunning;
+  finally
+    LeaveCriticalSection(GVFDispatcherCS);
+  end;
+end;
+
+procedure VF_SetDispatcherThreadRunning(const AValue: Boolean);
+begin
+  EnterCriticalSection(GVFDispatcherCS);
+  try
+    GVFDispatcherThreadRunning := AValue;
+  finally
+    LeaveCriticalSection(GVFDispatcherCS);
+  end;
+end;
+
+type
+  TVFDispatcherThread = class(TThread)
+  private
+    FTimeoutMinutes: Integer;
+    FMaxPerRun: Integer;
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(const ATimeoutMinutes: Integer; const AMaxPerRun: Integer);
+  end;
+
+constructor TVFDispatcherThread.Create(const ATimeoutMinutes: Integer; const AMaxPerRun: Integer);
+begin
+  inherited Create(True);
+  FreeOnTerminate := True;
+  FTimeoutMinutes := ATimeoutMinutes;
+  FMaxPerRun := AMaxPerRun;
+  Start;
+end;
+
+procedure TVFDispatcherThread.Execute;
+var
+  N: Integer;
+begin
+  try
+    WriteDiag(Format('VF worker START timeout=%d max=%d', [FTimeoutMinutes, FMaxPerRun]));
+
+    // Muy importante: en un hilo NO usamos la conexiÃ³n global visual de FacturLinEx.
+    // Cada operaciÃ³n abrirÃ¡ conexiÃ³n temporal propia desde uVeriFactu.
+    VeriFactu_ForceTempConnectionForCurrentThread(True);
+    try
+      VeriFactu_RequeueStuck(FTimeoutMinutes);
+      N := VF_DispatchAllPending(FMaxPerRun);
+      WriteDiag(Format('VF worker END procesadas=%d', [N]));
+    finally
+      VeriFactu_ForceTempConnectionForCurrentThread(False);
+    end;
+  except
+    on E: Exception do
+      WriteDiag('VF worker EXCEPTION: ' + E.Message);
+  end;
+
+  VF_SetDispatcherThreadRunning(False);
+end;
+
+procedure VF_StartDispatcherThread(const TimeoutMinutes: Integer; const MaxPerRun: Integer);
+begin
+  if not Assigned(GSender) then
+  begin
+    WriteDiag('VF_StartDispatcherThread: NO hay sender asignado, salgo.');
+    Exit;
+  end;
+
+  EnterCriticalSection(GVFDispatcherCS);
+  try
+    if GVFDispatcherThreadRunning then
+    begin
+      WriteDiag('VF_StartDispatcherThread: ya hay worker activo, no se lanza otro.');
+      Exit;
+    end;
+    GVFDispatcherThreadRunning := True;
+  finally
+    LeaveCriticalSection(GVFDispatcherCS);
+  end;
+
+  try
+    TVFDispatcherThread.Create(TimeoutMinutes, MaxPerRun);
+  except
+    on E: Exception do
+    begin
+      VF_SetDispatcherThreadRunning(False);
+      WriteDiag('VF_StartDispatcherThread exception: ' + E.Message);
+    end;
+  end;
 end;
 
 function VF_ContainsText(const S, Needle: string): Boolean;
@@ -217,19 +320,79 @@ begin
   Result := VF_ExtractXMLLocalTagValue(XMLText, 'EstadoRegistro') <> '';
 end;
 
+function VF_XMLPareceRespuestaAEATRegistro(const XMLText: string): Boolean;
+begin
+  // v7: cualquier XML de respuesta de registro AEAT, aunque sea Incorrecto,
+  // NO debe volver a PENDIENTE_REINTENTO. Debe cerrarse como ENVIADO
+  // (si Correcto/AceptadoConErrores/duplicado ya registrado) o ERROR
+  // de datos/subsanación, para no bloquear documentos posteriores.
+  Result := VF_XMLTieneEstadoRegistro(XMLText) or
+            VF_ContainsText(XMLText, 'RespuestaRegFactuSistemaFacturacion') or
+            VF_ContainsText(XMLText, 'RespuestaLinea') or
+            VF_ContainsText(XMLText, 'CodigoErrorRegistro') or
+            VF_ContainsText(XMLText, 'DescripcionErrorRegistro') or
+            VF_ContainsText(XMLText, 'EstadoEnvio');
+end;
+
 function VF_XMLEstadoRegistroEs(const XMLText, Estado: string): Boolean;
 begin
   Result := SameText(VF_ExtractXMLLocalTagValue(XMLText, 'EstadoRegistro'), Estado);
 end;
 
+function VF_XMLCodigoErrorRegistroEs(const XMLText, Cod: string): Boolean;
+begin
+  Result := SameText(VF_ExtractXMLLocalTagValue(XMLText, 'CodigoErrorRegistro'), Cod);
+end;
+
+function VF_XMLRegistroDuplicadoAceptado(const XMLText: string): Boolean;
+var
+  EstadoDup: string;
+begin
+  EstadoDup := VF_ExtractXMLLocalTagValue(XMLText, 'EstadoRegistroDuplicado');
+
+  // AEAT puede responder EstadoRegistro=Incorrecto + CodigoErrorRegistro=3000
+  // por duplicado, pero indicar que el registro previamente almacenado estÃ¡
+  // Correcta/AceptadaConErrores. En ese caso NO hay que reintentar: ya consta
+  // en AEAT y debe tratarse como enviado/localmente cerrado.
+  Result := VF_XMLCodigoErrorRegistroEs(XMLText, '3000') and
+            (SameText(EstadoDup, 'Correcta') or SameText(EstadoDup, 'AceptadaConErrores'));
+end;
+
+procedure VF_MarkAEATResponseErrorNoRetry(const Serie: string; Numero: Integer; const RespStr: string);
+var
+  Cod, Desc, EstadoReg: string;
+begin
+  Cod := VF_ExtractXMLLocalTagValue(RespStr, 'CodigoErrorRegistro');
+  Desc := VF_ExtractXMLLocalTagValue(RespStr, 'DescripcionErrorRegistro');
+  EstadoReg := VF_ExtractXMLLocalTagValue(RespStr, 'EstadoRegistro');
+
+  if Cod = '' then
+    Cod := 'AEAT_RESPUESTA_REGISTRO';
+  if Desc = '' then
+  begin
+    if EstadoReg <> '' then
+      Desc := 'AEAT respondio EstadoRegistro=' + EstadoReg
+    else
+      Desc := 'AEAT respondio con XML de registro no aceptado. Revisar respuesta_text.';
+  end;
+
+  VeriFactu_MarkError(Serie, Numero, Cod, RespStr);
+  WriteDiag(Format('ERROR_AEAT_NO_REINTENTO %s-%d  %s - %s',
+    [Serie, Numero, Cod, Copy(Desc, 1, 300)]));
+end;
+
 procedure VF_MarkInvalidResponse(const Serie: string; Numero: Integer; const Code, Msg, RespStr: string);
 begin
-  VeriFactu_MarkError(Serie, Numero, Code, Msg + LineEnding + Copy(RespStr, 1, 3000));
-  WriteDiag(Format('ERROR %s-%d  %s - %s', [Serie, Numero, Code, Msg]));
+  // WSDL, SOAP Fault o XML sin EstadoRegistro NO son respuesta vÃ¡lida de registro.
+  // Deben comportarse como incidencia tÃ©cnica: quedan PENDIENTE para reintento
+  // y bloquean la serie hasta recibir una respuesta AEAT de registro real.
+  GLastDispatchTransportError := True;
+  VeriFactu_MarkRetryOrError(Serie, Numero, Code + ': ' + Msg, RespStr);
+  WriteDiag(Format('PENDIENTE_TECNICO %s-%d  %s - %s', [Serie, Numero, Code, Msg]));
 end;
 
 // ------------------------------------------------------------------
-// Asignar función de envío
+// Asignar funciÃ³n de envÃ­o
 // ------------------------------------------------------------------
 procedure VF_SetSender(SendFunc: TVFSendFunc);
 begin
@@ -238,7 +401,7 @@ begin
 end;
 
 // ------------------------------------------------------------------
-// Envío de UNA factura pendiente
+// EnvÃ­o de UNA factura pendiente
 // ------------------------------------------------------------------
 function VF_DispatchNextPending: Boolean;
 var
@@ -252,6 +415,7 @@ var
   IsAEATXML: Boolean;
 begin
   Result := False;
+  GLastDispatchTransportError := False;
 
   try
     // Si no hay sender asignado, no hacemos nada (evitamos errores).
@@ -263,7 +427,7 @@ begin
 
     // Intenta tomar la siguiente pendiente (claim seguro en la cola)
     if not VeriFactu_TakeNextPending(Serie, Numero, Payload, EncadenamientoHash) then
-      Exit(False); // no había pendientes
+      Exit(False); // no habÃ­a pendientes
 
     // Enviar usando el sender actual (puede ser local JSON o AEAT XML)
     try
@@ -303,7 +467,18 @@ begin
           try
             Resp := VF_ParseResponseXML(RespStr);
 
-            if VF_XMLEstadoRegistroEs(RespStr, 'Correcto') then
+            if VF_XMLRegistroDuplicadoAceptado(RespStr) then
+            begin
+              // Duplicado, pero AEAT informa que el registro anterior consta
+              // como Correcta/AceptadaConErrores. Lo cerramos como ENVIADO
+              // para no entrar en bucle de reintentos.
+              VeriFactu_MarkSent(Serie, Numero, Hash, RespStr);
+              WriteDiag(Format(
+                'DUPLICADO_YA_REGISTRADO %s-%d  hash=%s  %s - %s',
+                [Serie, Numero, Hash, Resp.CodigoError, Resp.DescripcionError]
+              ));
+            end
+            else if VF_XMLEstadoRegistroEs(RespStr, 'Correcto') then
             begin
               VeriFactu_MarkSent(Serie, Numero, Hash, RespStr);
               WriteDiag(Format(
@@ -323,10 +498,10 @@ begin
             end
             else if VF_XMLTieneEstadoRegistro(RespStr) or (Resp.CodigoError <> '') then
             begin
-              // Incorrecto/Rechazado: guardamos código + descripción
+              // Incorrecto/Rechazado: guardamos cÃ³digo + descripciÃ³n
               VeriFactu_MarkError(Serie, Numero,
                                   Resp.CodigoError,
-                                  Resp.DescripcionError);
+                                  Resp.DescripcionError + LineEnding + RespStr);
               WriteDiag(Format(
                 'ERROR %s-%d  %s - %s',
                 [Serie, Numero,
@@ -343,12 +518,20 @@ begin
           except
             on E: Exception do
             begin
-              // Si falla el parser XML, al menos guardamos el texto de error
-              VeriFactu_MarkError(Serie, Numero, 'PARSE_XML', E.Message);
-              WriteDiag(Format(
-                'EXCEPTION parse XML %s-%d  %s',
-                [Serie, Numero, E.Message]
-              ));
+              if VF_XMLPareceRespuestaAEATRegistro(RespStr) then
+              begin
+                VF_MarkAEATResponseErrorNoRetry(Serie, Numero, RespStr);
+              end
+              else
+              begin
+                // Si no parece respuesta AEAT de registro, si es tecnico/transitorio.
+                GLastDispatchTransportError := True;
+                VeriFactu_MarkRetryOrError(Serie, Numero, 'PARSE_XML: ' + E.Message, RespStr);
+                WriteDiag(Format(
+                  'EXCEPTION parse XML %s-%d  %s',
+                  [Serie, Numero, E.Message]
+                ));
+              end;
             end;
           end;
         end
@@ -365,18 +548,58 @@ begin
       end
       else
       begin
-        // Envío fallido pero sin excepción: lo marcamos como error genérico.
-        VeriFactu_MarkError(Serie, Numero, 'ENVIO_FALLIDO', RespStr);
-        WriteDiag(Format(
-          'ERROR %s-%d (ENVIO_FALLIDO)',
-          [Serie, Numero]
-        ));
+        // EnvÃ­o fallido pero sin excepciÃ³n. Si pese al Result=False hay una respuesta
+        // AEAT con EstadoRegistro, NO es un fallo tÃ©cnico: se cierra como ENVIADO
+        // si el duplicado ya consta registrado, o como ERROR de datos/subsanaciÃ³n.
+        Trimmed := Trim(RespStr);
+        if (not VF_XMLTieneEstadoRegistro(RespStr)) and VF_XMLPareceRespuestaAEATRegistro(RespStr) then
+        begin
+          VF_MarkAEATResponseErrorNoRetry(Serie, Numero, RespStr);
+        end
+        else if VF_XMLTieneEstadoRegistro(RespStr) then
+        begin
+          Resp := VF_ParseResponseXML(RespStr);
+          if VF_XMLRegistroDuplicadoAceptado(RespStr) or
+             VF_XMLEstadoRegistroEs(RespStr, 'Correcto') or
+             VF_XMLEstadoRegistroEs(RespStr, 'AceptadoConErrores') then
+          begin
+            VeriFactu_MarkSent(Serie, Numero, Hash, RespStr);
+            WriteDiag(Format(
+              'ENVIADO_CON_RESPUESTA_AEAT %s-%d  %s - %s',
+              [Serie, Numero, Resp.CodigoError, Resp.DescripcionError]
+            ));
+          end
+          else
+          begin
+            VeriFactu_MarkError(Serie, Numero, Resp.CodigoError, Resp.DescripcionError + LineEnding + RespStr);
+            WriteDiag(Format(
+              'ERROR_AEAT_NO_REINTENTO %s-%d  %s - %s',
+              [Serie, Numero, Resp.CodigoError, Resp.DescripcionError]
+            ));
+          end;
+        end
+        else if VF_IsWSDLResponse(Trimmed) then
+          VF_MarkInvalidResponse(Serie, Numero, 'RESPUESTA_INVALIDA',
+            'Se recibio WSDL en lugar de respuesta SOAP AEAT.', RespStr)
+        else if VF_IsSOAPFaultResponse(Trimmed) then
+          VF_MarkInvalidResponse(Serie, Numero, 'SOAP_FAULT',
+            'AEAT devolvio un SOAP Fault. Revisar endpoint/servicio/certificado.', RespStr)
+        else
+        begin
+          GLastDispatchTransportError := True;
+          VeriFactu_MarkRetryOrError(Serie, Numero, 'ENVIO_FALLIDO', RespStr);
+          WriteDiag(Format(
+            'ERROR %s-%d (ENVIO_FALLIDO)',
+            [Serie, Numero]
+          ));
+        end;
       end;
     except
       on E: Exception do
       begin
-        // Cualquier excepción en el sender, la registramos como error.
-        VeriFactu_MarkError(Serie, Numero, 'EXCEPTION', E.Message);
+        // Cualquier excepciÃ³n en el sender se considera tÃ©cnica/transitoria hasta 3 intentos.
+        GLastDispatchTransportError := True;
+        VeriFactu_MarkRetryOrError(Serie, Numero, 'EXCEPTION: ' + E.Message, '');
         WriteDiag(Format(
           'EXCEPTION %s-%d  %s',
           [Serie, Numero, E.Message]
@@ -392,7 +615,7 @@ begin
 end;
 
 // ------------------------------------------------------------------
-// Envío de UNA factura concreta (Serie+Numero) - reintento exacto
+// EnvÃ­o de UNA factura concreta (Serie+Numero) - reintento exacto
 // ------------------------------------------------------------------
 function VF_DispatchSpecific(const Serie: string; Numero: Integer): Boolean;
 var
@@ -404,6 +627,7 @@ var
   IsAEATXML: Boolean;
 begin
   Result := False;
+  GLastDispatchTransportError := False;
 
   try
     // Si no hay sender asignado, no hacemos nada (evitamos errores).
@@ -415,7 +639,7 @@ begin
 
     // Intenta tomar ESA pendiente (claim seguro en la cola)
     if not VeriFactu_TakeSpecificPending(Serie, Numero, Payload, EncadenamientoHash) then
-      Exit(False); // no está pendiente o no es reclamable
+      Exit(False); // no estÃ¡ pendiente o no es reclamable
 
     // Enviar usando el sender actual (puede ser local JSON o AEAT XML)
     try
@@ -455,7 +679,12 @@ begin
           try
             Resp := VF_ParseResponseXML(RespStr);
 
-            if VF_XMLEstadoRegistroEs(RespStr, 'Correcto') then
+            if VF_XMLRegistroDuplicadoAceptado(RespStr) then
+            begin
+              VeriFactu_MarkSent(Serie, Numero, Hash, RespStr);
+              WriteDiag(Format('DUPLICADO_YA_REGISTRADO %s-%d  hash=%s  %s - %s', [Serie, Numero, Hash, Resp.CodigoError, Resp.DescripcionError]));
+            end
+            else if VF_XMLEstadoRegistroEs(RespStr, 'Correcto') then
             begin
               VeriFactu_MarkSent(Serie, Numero, Hash, RespStr);
               WriteDiag(Format('ENVIADO %s-%d  hash=%s  CSV=%s', [Serie, Numero, Hash, Resp.CSV]));
@@ -468,7 +697,7 @@ begin
             end
             else if VF_XMLTieneEstadoRegistro(RespStr) or (Resp.CodigoError <> '') then
             begin
-              VeriFactu_MarkError(Serie, Numero, Resp.CodigoError, Resp.DescripcionError);
+              VeriFactu_MarkError(Serie, Numero, Resp.CodigoError, Resp.DescripcionError + LineEnding + RespStr);
               WriteDiag(Format('ERROR %s-%d  %s - %s', [Serie, Numero, Resp.CodigoError, Resp.DescripcionError]));
             end
             else
@@ -479,28 +708,69 @@ begin
           except
             on E: Exception do
             begin
-              VeriFactu_MarkError(Serie, Numero, 'PARSE_XML', E.Message);
-              WriteDiag(Format('EXCEPTION parse XML %s-%d  %s', [Serie, Numero, E.Message]));
+              if VF_XMLPareceRespuestaAEATRegistro(RespStr) then
+              begin
+                VF_MarkAEATResponseErrorNoRetry(Serie, Numero, RespStr);
+              end
+              else
+              begin
+                GLastDispatchTransportError := True;
+                VeriFactu_MarkRetryOrError(Serie, Numero, 'PARSE_XML: ' + E.Message, RespStr);
+                WriteDiag(Format('EXCEPTION parse XML %s-%d  %s', [Serie, Numero, E.Message]));
+              end;
             end;
           end;
         end
         else
         begin
-          // Respuesta no XML (modo local o texto): si GSender devolvió True, lo consideramos enviado
+          // Respuesta no XML (modo local o texto): si GSender devolviÃ³ True, lo consideramos enviado
           VeriFactu_MarkSent(Serie, Numero, Hash, RespStr);
           WriteDiag(Format('ENVIADO %s-%d  hash=%s (no XML AEAT)', [Serie, Numero, Hash]));
         end;
       end
       else
       begin
-        // GSender devolvió False: error de transporte/temporal. Guardamos texto de error.
-        VeriFactu_MarkError(Serie, Numero, 'ENVIO_FALLIDO', RespStr);
-        WriteDiag(Format('ERROR %s-%d (ENVIO_FALLIDO)', [Serie, Numero]));
+        // GSender devolviÃ³ False. Si hay EstadoRegistro en la respuesta, no es
+        // transporte/red: AEAT contestÃ³. Por tanto no debe quedar PENDIENTE.
+        Trimmed := Trim(RespStr);
+        if (not VF_XMLTieneEstadoRegistro(RespStr)) and VF_XMLPareceRespuestaAEATRegistro(RespStr) then
+        begin
+          VF_MarkAEATResponseErrorNoRetry(Serie, Numero, RespStr);
+        end
+        else if VF_XMLTieneEstadoRegistro(RespStr) then
+        begin
+          Resp := VF_ParseResponseXML(RespStr);
+          if VF_XMLRegistroDuplicadoAceptado(RespStr) or
+             VF_XMLEstadoRegistroEs(RespStr, 'Correcto') or
+             VF_XMLEstadoRegistroEs(RespStr, 'AceptadoConErrores') then
+          begin
+            VeriFactu_MarkSent(Serie, Numero, Hash, RespStr);
+            WriteDiag(Format('ENVIADO_CON_RESPUESTA_AEAT %s-%d  %s - %s', [Serie, Numero, Resp.CodigoError, Resp.DescripcionError]));
+          end
+          else
+          begin
+            VeriFactu_MarkError(Serie, Numero, Resp.CodigoError, Resp.DescripcionError + LineEnding + RespStr);
+            WriteDiag(Format('ERROR_AEAT_NO_REINTENTO %s-%d  %s - %s', [Serie, Numero, Resp.CodigoError, Resp.DescripcionError]));
+          end;
+        end
+        else if VF_IsWSDLResponse(Trimmed) then
+          VF_MarkInvalidResponse(Serie, Numero, 'RESPUESTA_INVALIDA',
+            'Se recibio WSDL en lugar de respuesta SOAP AEAT.', RespStr)
+        else if VF_IsSOAPFaultResponse(Trimmed) then
+          VF_MarkInvalidResponse(Serie, Numero, 'SOAP_FAULT',
+            'AEAT devolvio un SOAP Fault. Revisar endpoint/servicio/certificado.', RespStr)
+        else
+        begin
+          GLastDispatchTransportError := True;
+          VeriFactu_MarkRetryOrError(Serie, Numero, 'ENVIO_FALLIDO', RespStr);
+          WriteDiag(Format('ERROR %s-%d (ENVIO_FALLIDO)', [Serie, Numero]));
+        end;
       end;
     except
       on E: Exception do
       begin
-        VeriFactu_MarkError(Serie, Numero, 'EXCEPTION', E.Message);
+        GLastDispatchTransportError := True;
+        VeriFactu_MarkRetryOrError(Serie, Numero, 'EXCEPTION: ' + E.Message, '');
         WriteDiag(Format('EXCEPTION %s-%d  %s', [Serie, Numero, E.Message]));
       end;
     end;
@@ -514,7 +784,7 @@ end;
 
 
 // ------------------------------------------------------------------
-// Bucle de envío de varias pendientes
+// Bucle de envÃ­o de varias pendientes
 // ------------------------------------------------------------------
 function VF_DispatchAllPending(MaxPerRun: Integer): Integer;
 var
@@ -522,12 +792,20 @@ var
 begin
   Procesadas := 0;
 
-  // Si MaxPerRun <= 0, interpretamos "sin límite".
+  // Si MaxPerRun <= 0, interpretamos "sin lÃ­mite".
   while (MaxPerRun <= 0) or (Procesadas < MaxPerRun) do
   begin
     if not VF_DispatchNextPending then
       Break;
     Inc(Procesadas);
+
+    // Si el Ãºltimo envÃ­o fallÃ³ por red/timeout/transporte, paramos el lote.
+    // Evita hacer muchos timeouts seguidos cuando AEAT o la red estÃ¡n caÃ­dos.
+    if GLastDispatchTransportError then
+    begin
+      WriteDiag('VF_DispatchAllPending: paro lote por error tecnico/transporte.');
+      Break;
+    end;
   end;
 
   WriteDiag(Format('VF_DispatchAllPending procesadas=%d', [Procesadas]));
@@ -535,7 +813,7 @@ begin
 end;
 
 // ------------------------------------------------------------------
-// Tick periódico (para usar con un TTimer, cron, etc.)
+// Tick periÃ³dico (para usar con un TTimer, cron, etc.)
 // ------------------------------------------------------------------
 procedure VF_Tick(const TimeoutMinutes: Integer; const MaxPerTick: Integer);
 begin
@@ -565,5 +843,11 @@ begin
     VF_SetSender(nil);
   end;
 end;
+
+initialization
+  InitCriticalSection(GVFDispatcherCS);
+
+finalization
+  DoneCriticalSection(GVFDispatcherCS);
 
 end.

@@ -1,0 +1,79 @@
+PARCHE MANUAL PARA menu.pas
+===========================
+
+1) Copia la carpeta dashboard dentro del proyecto FacturLinEx.
+
+2) Añade el fichero dashboard/uDashboardProductividad.pas al proyecto Lazarus:
+   Proyecto -> Inspector de proyecto -> Añadir -> Añadir archivos...
+   o añade la carpeta dashboard a la ruta de unidades del proyecto.
+
+3) En menu.pas, en la sección uses de implementation, añade:
+
+   uDashboardProductividad,
+
+Por ejemplo junto a:
+
+   uFLX_PedidoProveedorVentasPDF, Types, BaseUnix;
+
+quedaría:
+
+   uFLX_PedidoProveedorVentasPDF, uDashboardProductividad, Types, BaseUnix;
+
+4) En la clase TFMenu, junto a estas declaraciones:
+
+   procedure PedidoProvVentasClick(Sender: TObject);
+   procedure AddPedidoProvVentasButton;
+
+añade:
+
+   procedure DashboardProductividadClick(Sender: TObject);
+   procedure AddDashboardProductividadButton;
+
+5) En FormCreate, donde ahora tienes:
+
+   AddPedidoProvVentasButton;
+   UpdateVFStatusBar;
+
+añade el nuevo botón:
+
+   AddPedidoProvVentasButton;
+   AddDashboardProductividadButton;
+   UpdateVFStatusBar;
+
+6) Añade estas dos rutinas en implementation, por ejemplo justo después de PedidoProvVentasClick:
+
+procedure TFMenu.AddDashboardProductividadButton;
+var
+  B: TBitBtn;
+  Ref: TControl;
+begin
+  if FindComponent('BitBtnDashboardProductividad') <> nil then Exit;
+
+  if FindComponent('BitBtnPedidoVentasProveedor') <> nil then
+    Ref := TControl(FindComponent('BitBtnPedidoVentasProveedor'))
+  else
+    Ref := BitBtn57;
+
+  B := TBitBtn.Create(Self);
+  B.Name := 'BitBtnDashboardProductividad';
+  B.Parent := Ref.Parent;
+  B.Left := Ref.Left + Ref.Width + 8;
+  B.Top := Ref.Top;
+  B.Width := Ref.Width;
+  B.Height := Ref.Height;
+  B.Caption := 'Productividad';
+  B.Hint := 'Dashboard, alertas y productividad de FacturLinEx';
+  B.ShowHint := True;
+  B.OnClick := @DashboardProductividadClick;
+end;
+
+procedure TFMenu.DashboardProductividadClick(Sender: TObject);
+begin
+  timer1.enabled := false;
+  try
+    ShowFormDashboardProductividad(Self, TZConnection(dbQuery.Connection), Tienda);
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+

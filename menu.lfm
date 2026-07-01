@@ -1,16 +1,16 @@
 object FMenu: TFMenu
   Left = 0
-  Height = 1022
-  Top = 0
+  Height = 988
+  Top = 32
   Width = 1920
   Caption = 'FacturLinEx'
-  ClientHeight = 1022
+  ClientHeight = 988
   ClientWidth = 1920
   Color = clSilver
   KeyPreview = True
   Position = poDesktopCenter
   ShowHint = True
-  LCLVersion = '4.2.0.0'
+  LCLVersion = '4.4.0.0'
   WindowState = wsMaximized
   OnClose = FormClose
   OnCreate = FormCreate
@@ -18,7 +18,7 @@ object FMenu: TFMenu
   OnShow = FormShow
   object Image1: TImage
     Left = 0
-    Height = 869
+    Height = 835
     Top = 130
     Width = 1920
     Align = alClient
@@ -4863,7 +4863,7 @@ object FMenu: TFMenu
     AnchorSideBottom.Side = asrBottom
     Left = 114
     Height = 77
-    Top = 918
+    Top = 886
     Width = 91
     Anchors = []
     BorderSpacing.Left = 22
@@ -5174,7 +5174,7 @@ object FMenu: TFMenu
     AnchorSideBottom.Side = asrBottom
     Left = 239
     Height = 77
-    Top = 918
+    Top = 886
     Width = 74
     Anchors = [akLeft]
     BorderSpacing.Left = 34
@@ -5485,7 +5485,7 @@ object FMenu: TFMenu
     AnchorSideBottom.Side = asrBottom
     Left = 1659
     Height = 157
-    Top = 843
+    Top = 809
     Width = 232
     Anchors = [akRight, akBottom]
     BorderSpacing.Right = 29
@@ -6424,8 +6424,8 @@ object FMenu: TFMenu
     object TabSheet1: TTabSheet
       Hint = 'Pulsa <ALT + 1> para acceder a la parte de ventas.'
       Caption = ' Ventas '
-      ClientHeight = 93
-      ClientWidth = 1914
+      ClientHeight = 97
+      ClientWidth = 1916
       ParentFont = False
       object BitBtn1: TBitBtn
         Left = 8
@@ -8363,8 +8363,8 @@ object FMenu: TFMenu
         AnchorSideRight.Side = asrBottom
         AnchorSideBottom.Control = TabSheet1
         AnchorSideBottom.Side = asrBottom
-        Left = 1661
-        Height = 67
+        Left = 1663
+        Height = 71
         Top = 13
         Width = 200
         Anchors = [akTop, akRight, akBottom]
@@ -8605,8 +8605,8 @@ object FMenu: TFMenu
     object TabSheet2: TTabSheet
       Hint = 'Pulsa <ALT y 2> para editar los ficheros de datos.'
       Caption = '  Archivos  '
-      ClientHeight = 93
-      ClientWidth = 1914
+      ClientHeight = 97
+      ClientWidth = 1916
       ParentFont = False
       object BitBtn7: TBitBtn
         Left = 5
@@ -11039,8 +11039,8 @@ object FMenu: TFMenu
         AnchorSideRight.Side = asrBottom
         AnchorSideBottom.Control = TabSheet1
         AnchorSideBottom.Side = asrBottom
-        Left = 1661
-        Height = 69
+        Left = 1663
+        Height = 73
         Top = 13
         Width = 200
         Anchors = [akTop, akRight, akBottom]
@@ -11281,8 +11281,8 @@ object FMenu: TFMenu
     object TabSheet3: TTabSheet
       Hint = 'Pulsando <ALT y 3>  accedes a la sección de listados.'
       Caption = ' Listados '
-      ClientHeight = 93
-      ClientWidth = 1914
+      ClientHeight = 97
+      ClientWidth = 1916
       ParentFont = False
       object BitBtn9: TBitBtn
         Left = 94
@@ -14321,8 +14321,8 @@ object FMenu: TFMenu
         AnchorSideRight.Side = asrBottom
         AnchorSideBottom.Control = TabSheet1
         AnchorSideBottom.Side = asrBottom
-        Left = 1661
-        Height = 69
+        Left = 1663
+        Height = 73
         Top = 13
         Width = 200
         Anchors = [akTop, akRight, akBottom]
@@ -14563,8 +14563,8 @@ object FMenu: TFMenu
     object TabSheet4: TTabSheet
       Hint = 'Con <ALT y 4> entras en gestión  de pedidos'
       Caption = '  Pedidos  '
-      ClientHeight = 93
-      ClientWidth = 1914
+      ClientHeight = 97
+      ClientWidth = 1916
       ParentFont = False
       object BitBtn27: TBitBtn
         Left = 5
@@ -15944,8 +15944,8 @@ object FMenu: TFMenu
         AnchorSideRight.Side = asrBottom
         AnchorSideBottom.Control = TabSheet1
         AnchorSideBottom.Side = asrBottom
-        Left = 1661
-        Height = 69
+        Left = 1663
+        Height = 73
         Top = 13
         Width = 200
         Anchors = [akTop, akRight, akBottom]
@@ -16186,8 +16186,8 @@ object FMenu: TFMenu
     object TabSheet5: TTabSheet
       Hint = 'Para ver los históricos pulsa <ALT y 5>.'
       Caption = '  Históricos  '
-      ClientHeight = 93
-      ClientWidth = 1914
+      ClientHeight = 97
+      ClientWidth = 1916
       ParentFont = False
       object BitBtn26: TBitBtn
         Left = 8
@@ -17264,8 +17264,8 @@ object FMenu: TFMenu
         AnchorSideRight.Side = asrBottom
         AnchorSideBottom.Control = TabSheet1
         AnchorSideBottom.Side = asrBottom
-        Left = 1661
-        Height = 69
+        Left = 1663
+        Height = 73
         Top = 13
         Width = 200
         Anchors = [akTop, akRight, akBottom]
@@ -17506,8 +17506,8 @@ object FMenu: TFMenu
     object TabSheet6: TTabSheet
       Hint = 'Para generar etiquetas usa la tecla <ALT y 6>.'
       Caption = '  Etiquetas  '
-      ClientHeight = 93
-      ClientWidth = 1914
+      ClientHeight = 97
+      ClientWidth = 1916
       ParentFont = False
       object BitBtn45: TBitBtn
         Left = 101
@@ -18122,8 +18122,8 @@ object FMenu: TFMenu
         AnchorSideRight.Side = asrBottom
         AnchorSideBottom.Control = TabSheet1
         AnchorSideBottom.Side = asrBottom
-        Left = 1661
-        Height = 69
+        Left = 1663
+        Height = 73
         Top = 13
         Width = 200
         Anchors = [akTop, akRight, akBottom]
@@ -18364,8 +18364,8 @@ object FMenu: TFMenu
     object TabSheet7: TTabSheet
       Hint = 'La tecla <ALT y 7> para establecer comunicaciones.'
       Caption = '  Comunicaciones  '
-      ClientHeight = 93
-      ClientWidth = 1914
+      ClientHeight = 97
+      ClientWidth = 1916
       ParentFont = False
       object Shape1: TShape
         Left = 259
@@ -20198,8 +20198,8 @@ object FMenu: TFMenu
         AnchorSideRight.Side = asrBottom
         AnchorSideBottom.Control = TabSheet1
         AnchorSideBottom.Side = asrBottom
-        Left = 1661
-        Height = 69
+        Left = 1663
+        Height = 73
         Top = 13
         Width = 200
         Anchors = [akTop, akRight, akBottom]
@@ -20440,8 +20440,8 @@ object FMenu: TFMenu
     object TabSheet9: TTabSheet
       Hint = '<ALT y 8> para configurar la aplicación.'
       Caption = '  Utilidades  '
-      ClientHeight = 93
-      ClientWidth = 1914
+      ClientHeight = 97
+      ClientWidth = 1916
       ParentFont = False
       object BitBtn13: TBitBtn
         Left = 8
@@ -22575,8 +22575,8 @@ object FMenu: TFMenu
         AnchorSideRight.Side = asrBottom
         AnchorSideBottom.Control = TabSheet1
         AnchorSideBottom.Side = asrBottom
-        Left = 1661
-        Height = 69
+        Left = 1663
+        Height = 73
         Top = 13
         Width = 200
         Anchors = [akTop, akRight, akBottom]
@@ -22816,8 +22816,8 @@ object FMenu: TFMenu
     end
     object tsModulos1: TTabSheet
       Caption = 'Extras'
-      ClientHeight = 93
-      ClientWidth = 1914
+      ClientHeight = 97
+      ClientWidth = 1916
       ParentFont = False
       object FileListBox1: TFileListBox
         Left = 935
@@ -22838,8 +22838,8 @@ object FMenu: TFMenu
         AnchorSideRight.Side = asrBottom
         AnchorSideBottom.Control = TabSheet1
         AnchorSideBottom.Side = asrBottom
-        Left = 1661
-        Height = 69
+        Left = 1663
+        Height = 73
         Top = 13
         Width = 200
         Anchors = [akTop, akRight, akBottom]
@@ -23079,8 +23079,8 @@ object FMenu: TFMenu
     end
     object TabSheet11: TTabSheet
       Caption = 'Veri*Factu'
-      ClientHeight = 93
-      ClientWidth = 1914
+      ClientHeight = 97
+      ClientWidth = 1916
       object btnEnviarAhora: TBitBtn
         Left = 13
         Height = 80
@@ -23994,8 +23994,8 @@ object FMenu: TFMenu
         AnchorSideRight.Side = asrBottom
         AnchorSideBottom.Control = TabSheet1
         AnchorSideBottom.Side = asrBottom
-        Left = 1661
-        Height = 69
+        Left = 1663
+        Height = 73
         Top = 13
         Width = 200
         Anchors = [akTop, akRight, akBottom]
@@ -24344,8 +24344,8 @@ object FMenu: TFMenu
     object TabSheet8: TTabSheet
       Hint = 'Para la ayuda pulsa <ALT y 9>'
       Caption = '  Ayuda  '
-      ClientHeight = 93
-      ClientWidth = 1914
+      ClientHeight = 97
+      ClientWidth = 1916
       ParentFont = False
       object BitBtnAbout: TBitBtn
         Left = 8
@@ -24657,8 +24657,8 @@ object FMenu: TFMenu
         AnchorSideRight.Side = asrBottom
         AnchorSideBottom.Control = TabSheet1
         AnchorSideBottom.Side = asrBottom
-        Left = 1661
-        Height = 69
+        Left = 1663
+        Height = 73
         Top = 13
         Width = 200
         Anchors = [akTop, akRight, akBottom]
@@ -24899,8 +24899,8 @@ object FMenu: TFMenu
     object TabSheet10: TTabSheet
       Hint = '<ALT y 0> si quieres salir de la aplicación.'
       Caption = 'Finalizar'
-      ClientHeight = 93
-      ClientWidth = 1914
+      ClientHeight = 97
+      ClientWidth = 1916
       ParentFont = False
       object BitBtn8: TBitBtn
         Left = 5
@@ -25140,8 +25140,8 @@ object FMenu: TFMenu
         AnchorSideRight.Side = asrBottom
         AnchorSideBottom.Control = TabSheet1
         AnchorSideBottom.Side = asrBottom
-        Left = 1661
-        Height = 69
+        Left = 1663
+        Height = 73
         Top = 13
         Width = 200
         Anchors = [akTop, akRight, akBottom]
@@ -25460,7 +25460,7 @@ object FMenu: TFMenu
     end
     object Edit21: TEdit
       Left = 152
-      Height = 29
+      Height = 27
       Hint = 'Nombre o IP del servidor de BBDD (ejemplo: localhost)'
       Top = 56
       Width = 232
@@ -25470,7 +25470,7 @@ object FMenu: TFMenu
     end
     object Edit22: TEdit
       Left = 152
-      Height = 29
+      Height = 27
       Hint = 'Nombre de usuario para acceder a la BBDD (Ejemplo: root)'
       Top = 96
       Width = 232
@@ -25480,7 +25480,7 @@ object FMenu: TFMenu
     end
     object Edit23: TEdit
       Left = 152
-      Height = 29
+      Height = 27
       Hint = 'Clave de acceso a la BBDD (Si no se ha tocado nada de la configuracion de la BBDD en mysql. Por defecto poner la clave en blanco)'
       Top = 136
       Width = 232
@@ -25489,7 +25489,7 @@ object FMenu: TFMenu
     end
     object Edit24: TEdit
       Left = 152
-      Height = 29
+      Height = 27
       Hint = 'Nombre de la Base de Datos (BBDD) para FacturLinEx-2'
       Top = 176
       Width = 232
@@ -25499,7 +25499,7 @@ object FMenu: TFMenu
     end
     object Edit25: TEdit
       Left = 152
-      Height = 29
+      Height = 27
       Hint = 'Puerto de conexion a la BBDD (Ejemplo: 3306)'
       Top = 217
       Width = 64
@@ -25509,7 +25509,7 @@ object FMenu: TFMenu
     end
     object ComboServidoresBD: TComboBox
       Left = 152
-      Height = 31
+      Height = 29
       Hint = 'Protocolo de conexion a la BBDD'
       Top = 256
       Width = 232
@@ -25703,7 +25703,7 @@ object FMenu: TFMenu
     AnchorSideBottom.Control = SpeedButton1
     Left = 22
     Height = 208
-    Top = 649
+    Top = 617
     Width = 488
     Anchors = [akLeft, akBottom]
     BorderSpacing.Left = 22
@@ -25924,7 +25924,7 @@ object FMenu: TFMenu
       end
       object Edit1: TEdit
         Left = 88
-        Height = 29
+        Height = 27
         Top = 46
         Width = 80
         ParentFont = False
@@ -25932,7 +25932,7 @@ object FMenu: TFMenu
       end
       object Edit2: TEdit
         Left = 280
-        Height = 29
+        Height = 27
         Top = 46
         Width = 80
         ParentFont = False
@@ -25940,7 +25940,7 @@ object FMenu: TFMenu
       end
       object Edit3: TEdit
         Left = 88
-        Height = 29
+        Height = 27
         Top = 86
         Width = 320
         ParentFont = False
@@ -25965,7 +25965,7 @@ object FMenu: TFMenu
     AnchorSideBottom.Control = SpeedButton2
     Left = 510
     Height = 211
-    Top = 626
+    Top = 602
     Width = 488
     Anchors = [akLeft]
     BorderSpacing.Bottom = 71
@@ -26082,7 +26082,7 @@ object FMenu: TFMenu
     end
     object Edit26: TEdit
       Left = 136
-      Height = 29
+      Height = 27
       Top = 53
       Width = 160
       CharCase = ecUppercase
@@ -26094,7 +26094,7 @@ object FMenu: TFMenu
     end
     object Edit27: TEdit
       Left = 136
-      Height = 29
+      Height = 27
       Top = 98
       Width = 160
       EchoMode = emPassword
@@ -27179,7 +27179,7 @@ object FMenu: TFMenu
   object StatusBar1: TStatusBar
     Left = 0
     Height = 23
-    Top = 999
+    Top = 965
     Width = 1920
     Panels = <>
   end

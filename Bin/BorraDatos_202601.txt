@@ -1,0 +1,3 @@
+#------------- Linea Borrada ------------
+CAJA : A - Dia : 20260102 - Hora : 16:24:01
+ Venta : 1 Codigo : 0N40000001 Descripcion : P40 ACRILICA PREMIUM BLANCO MATE 1LT Cantidad : 1.000 Precio : 9.90 Total-Linea : 9.90 Cliente : 999999 Fecha : 02/01/26 Hora : 16:23:42

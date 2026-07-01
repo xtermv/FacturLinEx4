@@ -60,10 +60,10 @@ begin
     Q.SQL.Text :=
       'UPDATE verifactu_queue ' +
       'SET estado = :e, ' +
-      '    intentos = intentos + 1, ' +
       '    respuesta_text = :r, ' +
       '    last_error = :le, ' +
-      '    last_attempt_at = NOW() ' +
+      '    last_attempt_at = NOW(), ' +
+      '    token = NULL, claimed_by = NULL, claimed_at = NULL, claimed_until = NULL ' +
       'WHERE serie = :s AND numero = :n';
     Q.ParamByName('e').AsString  := Estado;
     Q.ParamByName('r').AsString  := MsgShort;
@@ -112,11 +112,14 @@ begin
     Q.SQL.Text :=
       'UPDATE verifactu_queue ' +
       'SET estado = ''PENDIENTE'', ' +
-      '    claimed_by = '''', ' +
-      '    token = '''', ' +
+      '    intentos = 0, ' +
+      '    claimed_by = NULL, ' +
+      '    token = NULL, ' +
       '    claimed_at = NULL, ' +
       '    claimed_until = NULL, ' +
-      '    last_error = '''' ' +      // limpiamos el texto de error
+      '    last_attempt_at = NULL, ' +
+      '    last_error = '''', ' +      // limpiamos el texto de error
+      '    updated_at = NOW() ' +
       'WHERE estado = ''ERROR''';
     try
       Q.ExecSQL;

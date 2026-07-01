@@ -79,6 +79,7 @@ type
     dbTrabajo: TZQuery;
     procedure ActualizarPromociones;
     procedure btnActualizarClick(Sender: TObject);
+    procedure btnImportarXLSXClick(Sender: TObject);
     procedure btnAceptarClick(Sender: TObject);
     procedure btnBorrarClick(Sender: TObject);
     procedure btnBuscarClick(Sender: TObject);
@@ -100,6 +101,7 @@ type
   private
     { private declarations }
     Operacion: char;        //   A = Alta / M = Modificación
+    btnImportarXLSX: TBitBtn;
     chkSegundaUnd50: TCheckBox;
     lblInfoSegundaUnd: TLabel;
     FOldPromoArt: string;
@@ -107,6 +109,10 @@ type
     FOldPromoFin: string;
     FOldPromoWasSegunda: Boolean;
     function ResolverCodigoArticulo(const ACodigo: string): string;
+    procedure ImportarPromocionesDesdeXLSX(const AFichero: string);
+    function BuscarArticuloDesdeDocumento(const ACodigo, AEan: string; out AArticulo, ADescripcion: string; out APvpFicha, ACosteFicha, AIvaFicha: Double): Boolean;
+    function PedirPrecioPromoLinea(const AArticulo, ADescripcion, ACodigoDoc, AEanDoc: string; const APvpFicha: Double; out APvpPromo: Double; out ASegundaUnd50: Boolean): Boolean;
+    procedure GuardarPromocionDirecta(const AArticulo, ADescripcion: string; const AIni, AFin: TDateTime; const APvpPromo, APvpFicha, ACosteFicha, AIvaFicha: Double; const ASegundaUnd50: Boolean);
     procedure PromoModeChanged(Sender: TObject);
     procedure EnsurePromoRulesTable;
     function HasSegundaUnidadRule(const AArticulo, AIniDB, AFinDB: string): Boolean;
@@ -124,7 +130,551 @@ var
 implementation
 
 uses
-  global, funciones, busquedas;
+  global, funciones, busquedas, StrUtils, Zipper, DOM, XMLRead;
+
+type
+  TXLSXRow = array of string;
+  TXLSXTable = array of TXLSXRow;
+  TXLSXSharedStrings = array of string;
+
+function FLX_EsFicheroXLSX(const AFichero: string): Boolean;
+begin
+  Result := LowerCase(ExtractFileExt(AFichero)) = '.xlsx';
+end;
+
+function FLX_NormalizaRutaXLSX(const S: string): string;
+begin
+  Result := StringReplace(S, '\', '/', [rfReplaceAll]);
+  while Pos('//', Result) > 0 do
+    Result := StringReplace(Result, '//', '/', [rfReplaceAll]);
+end;
+
+function FLX_Atributo(const Nodo: TDOMNode; const Nombre: string): string;
+var
+  I: Integer;
+  Attr: TDOMNode;
+  Nom: string;
+begin
+  Result := '';
+  if (Nodo = nil) or (Nodo.Attributes = nil) then Exit;
+
+  for I := 0 to Nodo.Attributes.Length - 1 do
+  begin
+    Attr := Nodo.Attributes.Item[I];
+    Nom := Attr.NodeName;
+    if SameText(Nom, Nombre) or SameText(Copy(Nom, Pos(':', Nom) + 1, MaxInt), Nombre) then
+    begin
+      Result := Attr.NodeValue;
+      Exit;
+    end;
+  end;
+end;
+
+function FLX_NombreNodoSimple(const Nodo: TDOMNode): string;
+var
+  P: Integer;
+begin
+  Result := '';
+  if Nodo = nil then Exit;
+  Result := Nodo.NodeName;
+  P := Pos(':', Result);
+  if P > 0 then
+    Result := Copy(Result, P + 1, MaxInt);
+end;
+
+function FLX_NodoEs(const Nodo: TDOMNode; const Nombre: string): Boolean;
+begin
+  Result := SameText(FLX_NombreNodoSimple(Nodo), Nombre);
+end;
+
+function FLX_HijoPorNombre(const Nodo: TDOMNode; const Nombre: string): TDOMNode;
+var
+  Hijo: TDOMNode;
+begin
+  Result := nil;
+  if Nodo = nil then Exit;
+
+  Hijo := Nodo.FirstChild;
+  while Hijo <> nil do
+  begin
+    if FLX_NodoEs(Hijo, Nombre) then
+    begin
+      Result := Hijo;
+      Exit;
+    end;
+    Hijo := Hijo.NextSibling;
+  end;
+end;
+
+function FLX_TextoRecursivo(const Nodo: TDOMNode): string;
+var
+  Hijo: TDOMNode;
+begin
+  Result := '';
+  if Nodo = nil then Exit;
+
+  if (Nodo.NodeType = TEXT_NODE) or (Nodo.NodeType = CDATA_SECTION_NODE) then
+    Result := Nodo.NodeValue;
+
+  Hijo := Nodo.FirstChild;
+  while Hijo <> nil do
+  begin
+    Result := Result + FLX_TextoRecursivo(Hijo);
+    Hijo := Hijo.NextSibling;
+  end;
+end;
+
+function FLX_TextoHijo(const Nodo: TDOMNode; const Nombre: string): string;
+var
+  Hijo: TDOMNode;
+begin
+  Result := '';
+  Hijo := FLX_HijoPorNombre(Nodo, Nombre);
+  if Hijo <> nil then
+    Result := FLX_TextoRecursivo(Hijo);
+end;
+
+function FLX_QuitarCerosIzquierdaSeguro(const S: string): string;
+begin
+  Result := Trim(S);
+  while (Length(Result) > 1) and (Result[1] = '0') do
+    Delete(Result, 1, 1);
+end;
+
+function FLX_NormalizaCabeceraExcel(const S: string): string;
+begin
+  Result := LowerCase(Trim(S));
+  Result := StringReplace(Result, 'á', 'a', [rfReplaceAll]);
+  Result := StringReplace(Result, 'é', 'e', [rfReplaceAll]);
+  Result := StringReplace(Result, 'í', 'i', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ó', 'o', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ú', 'u', [rfReplaceAll]);
+  Result := StringReplace(Result, 'à', 'a', [rfReplaceAll]);
+  Result := StringReplace(Result, 'è', 'e', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ì', 'i', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ò', 'o', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ù', 'u', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ü', 'u', [rfReplaceAll]);
+  Result := StringReplace(Result, 'ñ', 'n', [rfReplaceAll]);
+  Result := StringReplace(Result, '.', '', [rfReplaceAll]);
+  Result := StringReplace(Result, '-', '', [rfReplaceAll]);
+  Result := StringReplace(Result, '_', '', [rfReplaceAll]);
+  Result := StringReplace(Result, '/', '', [rfReplaceAll]);
+  Result := StringReplace(Result, '%', '', [rfReplaceAll]);
+  Result := StringReplace(Result, ' ', '', [rfReplaceAll]);
+end;
+
+function FLX_NormalizaTextoExcel(const S: string): string;
+begin
+  Result := Trim(S);
+  Result := StringReplace(Result, #9, ' ', [rfReplaceAll]);
+  while Pos('  ', Result) > 0 do
+    Result := StringReplace(Result, '  ', ' ', [rfReplaceAll]);
+end;
+
+function FLX_NormalizaCodigoExcel(const S: string; const AQuitarCerosIzquierda: Boolean): string;
+var
+  P: Integer;
+  Decs: string;
+begin
+  Result := Trim(S);
+  Result := StringReplace(Result, ' ', '', [rfReplaceAll]);
+  Result := StringReplace(Result, #160, '', [rfReplaceAll]);
+
+  // En Excel algunos códigos pueden salir como 1234.0000.
+  // Sólo quitamos la parte decimal si son todo ceros.
+  P := LastDelimiter('.,', Result);
+  if P > 0 then
+  begin
+    Decs := Copy(Result, P + 1, MaxInt);
+    if (Decs <> '') and (StringReplace(Decs, '0', '', [rfReplaceAll]) = '') then
+      Delete(Result, P, MaxInt);
+  end;
+
+  if AQuitarCerosIzquierda then
+    Result := FLX_QuitarCerosIzquierdaSeguro(Result);
+end;
+
+function FLX_NormalizaNumeroExcel(const S: string): string;
+var
+  Sep: Char;
+  PComa, PPunto: Integer;
+begin
+  Result := Trim(S);
+  Result := StringReplace(Result, ' ', '', [rfReplaceAll]);
+  Result := StringReplace(Result, #160, '', [rfReplaceAll]);
+  Result := StringReplace(Result, '€', '', [rfReplaceAll]);
+  if Result = '' then Exit;
+
+  Sep := DefaultFormatSettings.DecimalSeparator;
+  PComa := LastDelimiter(',', Result);
+  PPunto := LastDelimiter('.', Result);
+
+  if (PComa > 0) and (PPunto > 0) then
+  begin
+    if PComa > PPunto then
+    begin
+      Result := StringReplace(Result, '.', '', [rfReplaceAll]);
+      Result := StringReplace(Result, ',', Sep, [rfReplaceAll]);
+    end
+    else
+    begin
+      Result := StringReplace(Result, ',', '', [rfReplaceAll]);
+      Result := StringReplace(Result, '.', Sep, [rfReplaceAll]);
+    end;
+  end
+  else if PComa > 0 then
+    Result := StringReplace(Result, ',', Sep, [rfReplaceAll])
+  else if PPunto > 0 then
+    Result := StringReplace(Result, '.', Sep, [rfReplaceAll]);
+end;
+
+function FLX_StrToFloatPromo(const S: string; out V: Double): Boolean;
+var
+  T: string;
+  FS: TFormatSettings;
+begin
+  T := FLX_NormalizaNumeroExcel(S);
+  Result := TryStrToFloat(T, V);
+  if Result then Exit;
+
+  FS := DefaultFormatSettings;
+  FS.DecimalSeparator := '.';
+  T := StringReplace(Trim(S), '€', '', [rfReplaceAll]);
+  T := StringReplace(T, ' ', '', [rfReplaceAll]);
+  T := StringReplace(T, ',', '.', [rfReplaceAll]);
+  Result := TryStrToFloat(T, V, FS);
+end;
+
+function FLX_ColumnaDesdeReferenciaCelda(const Ref: string): Integer;
+var
+  I: Integer;
+  C: Char;
+begin
+  Result := 0;
+  for I := 1 to Length(Ref) do
+  begin
+    C := UpCase(Ref[I]);
+    if not (C in ['A'..'Z']) then Break;
+    Result := (Result * 26) + (Ord(C) - Ord('A') + 1);
+  end;
+  Dec(Result); // 0-based
+  if Result < 0 then Result := 0;
+end;
+
+function FLX_DirTemporalXLSX: string;
+var
+  Base: string;
+begin
+  Base := GetEnvironmentVariable('TMPDIR');
+  if Base = '' then Base := '/tmp';
+  Result := IncludeTrailingPathDelimiter(Base) +
+            'flx_promo_xlsx_' + FormatDateTime('yyyymmddhhnnsszzz', Now) + '_' + IntToStr(Random(1000000));
+  ForceDirectories(Result);
+end;
+
+procedure FLX_DescomprimirXLSX(const AFichero, ADir: string);
+var
+  UnZipper: TUnZipper;
+begin
+  UnZipper := TUnZipper.Create;
+  try
+    UnZipper.FileName := AFichero;
+    UnZipper.OutputPath := IncludeTrailingPathDelimiter(ADir);
+    UnZipper.UnZipAllFiles;
+  finally
+    UnZipper.Free;
+  end;
+end;
+
+function FLX_PrimeraHojaXLSX(const ADir: string): string;
+var
+  Doc, Rels: TXMLDocument;
+  Sheets, Sheet, Rel: TDOMNode;
+  RelId, Target, Id: string;
+  WorkbookFile, RelsFile: string;
+begin
+  Result := 'xl/worksheets/sheet1.xml';
+  WorkbookFile := IncludeTrailingPathDelimiter(ADir) + 'xl/workbook.xml';
+  RelsFile := IncludeTrailingPathDelimiter(ADir) + 'xl/_rels/workbook.xml.rels';
+
+  if (not FileExists(WorkbookFile)) or (not FileExists(RelsFile)) then Exit;
+
+  Doc := nil;
+  Rels := nil;
+  try
+    ReadXMLFile(Doc, WorkbookFile);
+    Sheets := FLX_HijoPorNombre(Doc.DocumentElement, 'sheets');
+    if Sheets = nil then Exit;
+
+    Sheet := Sheets.FirstChild;
+    while (Sheet <> nil) and (not FLX_NodoEs(Sheet, 'sheet')) do
+      Sheet := Sheet.NextSibling;
+    if Sheet = nil then Exit;
+
+    RelId := FLX_Atributo(Sheet, 'id');
+    if RelId = '' then Exit;
+
+    ReadXMLFile(Rels, RelsFile);
+    Rel := Rels.DocumentElement.FirstChild;
+    while Rel <> nil do
+    begin
+      if FLX_NodoEs(Rel, 'Relationship') then
+      begin
+        Id := FLX_Atributo(Rel, 'Id');
+        if Id = RelId then
+        begin
+          Target := FLX_Atributo(Rel, 'Target');
+          if Target <> '' then
+          begin
+            if Pos('/', Target) = 1 then
+              Result := Copy(Target, 2, MaxInt)
+            else if Pos('xl/', Target) = 1 then
+              Result := Target
+            else
+              Result := 'xl/' + Target;
+            Result := FLX_NormalizaRutaXLSX(Result);
+            Exit;
+          end;
+        end;
+      end;
+      Rel := Rel.NextSibling;
+    end;
+  finally
+    if Rels <> nil then Rels.Free;
+    if Doc <> nil then Doc.Free;
+  end;
+end;
+
+procedure FLX_CargarSharedStrings(const ADir: string; var AShared: TXLSXSharedStrings);
+var
+  Doc: TXMLDocument;
+  NodoSI: TDOMNode;
+  Fichero: string;
+  N: Integer;
+begin
+  SetLength(AShared, 0);
+  Fichero := IncludeTrailingPathDelimiter(ADir) + 'xl/sharedStrings.xml';
+  if not FileExists(Fichero) then Exit;
+
+  Doc := nil;
+  try
+    ReadXMLFile(Doc, Fichero);
+    NodoSI := Doc.DocumentElement.FirstChild;
+    while NodoSI <> nil do
+    begin
+      if FLX_NodoEs(NodoSI, 'si') then
+      begin
+        N := Length(AShared);
+        SetLength(AShared, N + 1);
+        AShared[N] := FLX_TextoRecursivo(NodoSI);
+      end;
+      NodoSI := NodoSI.NextSibling;
+    end;
+  finally
+    if Doc <> nil then Doc.Free;
+  end;
+end;
+
+function FLX_ValorCeldaXLSX(const Celda: TDOMNode; const AShared: TXLSXSharedStrings): string;
+var
+  Tipo, V: string;
+  Idx: Integer;
+  NodoIS: TDOMNode;
+begin
+  Result := '';
+  if Celda = nil then Exit;
+
+  Tipo := LowerCase(FLX_Atributo(Celda, 't'));
+
+  if Tipo = 's' then
+  begin
+    V := Trim(FLX_TextoHijo(Celda, 'v'));
+    Idx := StrToIntDef(V, -1);
+    if (Idx >= 0) and (Idx < Length(AShared)) then
+      Result := AShared[Idx];
+    Exit;
+  end;
+
+  if Tipo = 'inlinestr' then
+  begin
+    NodoIS := FLX_HijoPorNombre(Celda, 'is');
+    Result := FLX_TextoRecursivo(NodoIS);
+    Exit;
+  end;
+
+  Result := FLX_TextoHijo(Celda, 'v');
+end;
+
+procedure FLX_CargarHojaXLSX(const ADir, AHojaRelativa: string;
+  const AShared: TXLSXSharedStrings; var ATabla: TXLSXTable);
+var
+  Doc: TXMLDocument;
+  SheetData, RowNode, CellNode: TDOMNode;
+  Fichero, Ref: string;
+  RowIdx, ColIdx, UltCol: Integer;
+  Valor: string;
+begin
+  SetLength(ATabla, 0);
+  Fichero := IncludeTrailingPathDelimiter(ADir) + StringReplace(AHojaRelativa, '/', PathDelim, [rfReplaceAll]);
+  if not FileExists(Fichero) then
+    raise Exception.Create('No se encuentra la hoja interna del XLSX: ' + AHojaRelativa);
+
+  Doc := nil;
+  try
+    ReadXMLFile(Doc, Fichero);
+    SheetData := FLX_HijoPorNombre(Doc.DocumentElement, 'sheetData');
+    if SheetData = nil then Exit;
+
+    RowNode := SheetData.FirstChild;
+    while RowNode <> nil do
+    begin
+      if FLX_NodoEs(RowNode, 'row') then
+      begin
+        RowIdx := StrToIntDef(FLX_Atributo(RowNode, 'r'), 0) - 1;
+        if RowIdx < 0 then RowIdx := Length(ATabla);
+        if Length(ATabla) <= RowIdx then
+          SetLength(ATabla, RowIdx + 1);
+
+        UltCol := -1;
+        CellNode := RowNode.FirstChild;
+        while CellNode <> nil do
+        begin
+          if FLX_NodoEs(CellNode, 'c') then
+          begin
+            Ref := FLX_Atributo(CellNode, 'r');
+            if Ref <> '' then
+              ColIdx := FLX_ColumnaDesdeReferenciaCelda(Ref)
+            else
+              ColIdx := UltCol + 1;
+            UltCol := ColIdx;
+
+            if Length(ATabla[RowIdx]) <= ColIdx then
+              SetLength(ATabla[RowIdx], ColIdx + 1);
+
+            Valor := FLX_ValorCeldaXLSX(CellNode, AShared);
+            ATabla[RowIdx][ColIdx] := Valor;
+          end;
+          CellNode := CellNode.NextSibling;
+        end;
+      end;
+      RowNode := RowNode.NextSibling;
+    end;
+  finally
+    if Doc <> nil then Doc.Free;
+  end;
+end;
+
+function FLX_CeldaTabla(const ATabla: TXLSXTable; const Fila, Col: Integer): string;
+begin
+  Result := '';
+  if (Fila < 0) or (Fila >= Length(ATabla)) then Exit;
+  if (Col < 0) or (Col >= Length(ATabla[Fila])) then Exit;
+  Result := ATabla[Fila][Col];
+end;
+
+function FLX_UltimaColumnaFila(const AFila: TXLSXRow): Integer;
+begin
+  Result := Length(AFila) - 1;
+end;
+
+function FLX_BuscarColumnaExcelEnFila(const AFila: TXLSXRow; const ANombres: array of string): Integer;
+var
+  C, I: Integer;
+  Cab, Nom: string;
+begin
+  Result := -1;
+  for C := 0 to FLX_UltimaColumnaFila(AFila) do
+  begin
+    Cab := FLX_NormalizaCabeceraExcel(AFila[C]);
+    for I := Low(ANombres) to High(ANombres) do
+    begin
+      Nom := FLX_NormalizaCabeceraExcel(ANombres[I]);
+      if Cab = Nom then
+      begin
+        Result := C;
+        Exit;
+      end;
+    end;
+  end;
+end;
+
+function FLX_BuscarFilaCabeceraExcel(const ATabla: TXLSXTable): Integer;
+var
+  R, MaxFila: Integer;
+  ColCod, ColEAN, ColDes: Integer;
+begin
+  Result := -1;
+  MaxFila := Length(ATabla) - 1;
+  if MaxFila > 20 then MaxFila := 20;
+
+  for R := 0 to MaxFila do
+  begin
+    ColCod := FLX_BuscarColumnaExcelEnFila(ATabla[R], ['Artículo', 'Articulo', 'Código', 'Codigo', 'Referencia']);
+    ColEAN := FLX_BuscarColumnaExcelEnFila(ATabla[R], ['Ean', 'EAN', 'Código EAN', 'Codigo EAN', 'Código de barras', 'Codigo de barras']);
+    ColDes := FLX_BuscarColumnaExcelEnFila(ATabla[R], ['Descripción', 'Descripcion', 'Nombre', 'Artículo descripción', 'Articulo descripcion']);
+
+    if ((ColCod >= 0) or (ColEAN >= 0)) and (ColDes >= 0) then
+    begin
+      Result := R;
+      Exit;
+    end;
+  end;
+end;
+
+function FLX_TryStrToDatePromoLocal(const S: string; out D: TDateTime): Boolean;
+var
+  FS: TFormatSettings;
+  Y, M, Day: Integer;
+  T: string;
+begin
+  Result := False;
+  D := 0;
+  T := Trim(S);
+  if T = '' then Exit;
+
+  FS := DefaultFormatSettings;
+  if TryStrToDate(T, D, FS) then Exit(True);
+
+  FS.DateSeparator := '/';
+  FS.ShortDateFormat := 'dd/mm/yyyy';
+  if TryStrToDate(T, D, FS) then Exit(True);
+
+  FS.DateSeparator := '-';
+  FS.ShortDateFormat := 'dd-mm-yyyy';
+  if TryStrToDate(T, D, FS) then Exit(True);
+
+  if (Length(T) >= 10) and (T[5] = '-') and (T[8] = '-') then
+  begin
+    try
+      Y := StrToInt(Copy(T, 1, 4));
+      M := StrToInt(Copy(T, 6, 2));
+      Day := StrToInt(Copy(T, 9, 2));
+      D := EncodeDate(Y, M, Day);
+      Exit(True);
+    except
+      Exit(False);
+    end;
+  end;
+end;
+
+function FLX_PreguntarFechaPromo(const APrompt: string; const ADefault: TDateTime; out AFecha: TDateTime): Boolean;
+var
+  S: string;
+begin
+  S := FormatDateTime('dd/mm/yyyy', ADefault);
+  Result := InputQuery('Importar promociones', APrompt, S);
+  if not Result then Exit;
+
+  if not FLX_TryStrToDatePromoLocal(S, AFecha) then
+  begin
+    ShowMessage('Fecha no válida: ' + S);
+    Result := False;
+  end
+  else
+    AFecha := Trunc(AFecha);
+end;
+
 
   
 function TfPromociones.ResolverCodigoArticulo(const ACodigo: string): string;
@@ -166,6 +716,449 @@ begin
     Q.Free;
   end;
 end;
+
+
+procedure TfPromociones.btnImportarXLSXClick(Sender: TObject);
+var
+  Dlg: TOpenDialog;
+  Fichero: string;
+begin
+  Dlg := TOpenDialog.Create(Self);
+  try
+    Dlg.Title := 'Importar documento XLSX para promociones';
+    Dlg.InitialDir := ExtractFilePath(ParamStr(0));
+    Dlg.Filter := 'Excel XLSX (*.xlsx)|*.xlsx|Todos los ficheros (*.*)|*.*';
+    if not Dlg.Execute then Exit;
+    Fichero := Dlg.FileName;
+  finally
+    Dlg.Free;
+  end;
+
+  ImportarPromocionesDesdeXLSX(Fichero);
+end;
+
+function TfPromociones.BuscarArticuloDesdeDocumento(const ACodigo, AEan: string;
+  out AArticulo, ADescripcion: string; out APvpFicha, ACosteFicha, AIvaFicha: Double): Boolean;
+
+  function CargarArticuloPorCodigo(const ACod: string): Boolean;
+  begin
+    Result := False;
+    if Trim(ACod) = '' then Exit;
+
+    dbTrabajo.Active := False;
+    dbTrabajo.SQL.Clear;
+    dbTrabajo.SQL.Text :=
+      'SELECT A0, A1, A2, A24, A3 FROM artitien' + Tienda +
+      ' WHERE A0=:cod LIMIT 1';
+    dbTrabajo.ParamByName('cod').AsString := Trim(ACod);
+    try
+      dbTrabajo.Active := True;
+      if not dbTrabajo.EOF then
+      begin
+        AArticulo := Trim(dbTrabajo.FieldByName('A0').AsString);
+        ADescripcion := dbTrabajo.FieldByName('A1').AsString;
+        APvpFicha := dbTrabajo.FieldByName('A2').AsFloat;
+        ACosteFicha := dbTrabajo.FieldByName('A24').AsFloat;
+        AIvaFicha := dbTrabajo.FieldByName('A3').AsFloat;
+        Result := True;
+      end;
+    except
+      Result := False;
+    end;
+  end;
+
+var
+  CodPrincipal: string;
+begin
+  Result := False;
+  AArticulo := '';
+  ADescripcion := '';
+  APvpFicha := 0;
+  ACosteFicha := 0;
+  AIvaFicha := 0;
+
+  // 1) Código del documento contra código principal de la ficha.
+  if CargarArticuloPorCodigo(ACodigo) then Exit(True);
+
+  // 2) EAN del documento por si coincide directamente con A0.
+  if CargarArticuloPorCodigo(AEan) then Exit(True);
+
+  // 3) EAN auxiliar: eans.EAN0 -> eans.EAN1 -> artitienXXXX.A0.
+  if Trim(AEan) <> '' then
+  begin
+    dbTrabajo.Active := False;
+    dbTrabajo.SQL.Clear;
+    dbTrabajo.SQL.Text := 'SELECT EAN1 FROM eans WHERE EAN0=:ean LIMIT 1';
+    dbTrabajo.ParamByName('ean').AsString := Trim(AEan);
+    try
+      dbTrabajo.Active := True;
+      if not dbTrabajo.EOF then
+      begin
+        CodPrincipal := Trim(dbTrabajo.FieldByName('EAN1').AsString);
+        if CargarArticuloPorCodigo(CodPrincipal) then Exit(True);
+      end;
+    except
+      // Si la tabla eans no existiera o fallara, simplemente se ignora esta vía.
+    end;
+  end;
+
+  // 4) Código del proveedor por si también está dado de alta como EAN auxiliar.
+  if Trim(ACodigo) <> '' then
+  begin
+    dbTrabajo.Active := False;
+    dbTrabajo.SQL.Clear;
+    dbTrabajo.SQL.Text := 'SELECT EAN1 FROM eans WHERE EAN0=:ean LIMIT 1';
+    dbTrabajo.ParamByName('ean').AsString := Trim(ACodigo);
+    try
+      dbTrabajo.Active := True;
+      if not dbTrabajo.EOF then
+      begin
+        CodPrincipal := Trim(dbTrabajo.FieldByName('EAN1').AsString);
+        if CargarArticuloPorCodigo(CodPrincipal) then Exit(True);
+      end;
+    except
+    end;
+  end;
+end;
+
+function TfPromociones.PedirPrecioPromoLinea(const AArticulo, ADescripcion, ACodigoDoc,
+  AEanDoc: string; const APvpFicha: Double; out APvpPromo: Double;
+  out ASegundaUnd50: Boolean): Boolean;
+var
+  F: TForm;
+  LInfo, LPrecio: TLabel;
+  EPrecio: TEdit;
+  CkSegunda: TCheckBox;
+  BOk, BCancel: TButton;
+  S: string;
+  CheckedDefault: Boolean;
+  Modal: Integer;
+begin
+  Result := False;
+  APvpPromo := 0;
+  ASegundaUnd50 := False;
+  S := FormatFloat('0.00', APvpFicha);
+  CheckedDefault := False;
+
+  while True do
+  begin
+    F := TForm.Create(Self);
+    try
+      F.Caption := 'Precio de promoción';
+      F.BorderStyle := bsDialog;
+      F.Position := poScreenCenter;
+      F.Width := 590;
+      F.Height := 255;
+
+      LInfo := TLabel.Create(F);
+      LInfo.Parent := F;
+      LInfo.Left := 12;
+      LInfo.Top := 12;
+      LInfo.Width := F.ClientWidth - 24;
+      LInfo.Height := 92;
+      LInfo.AutoSize := False;
+      LInfo.WordWrap := True;
+      LInfo.Caption :=
+        'Artículo: ' + AArticulo + LineEnding +
+        'Descripción: ' + ADescripcion + LineEnding +
+        'Código doc.: ' + ACodigoDoc + LineEnding +
+        'EAN doc.: ' + AEanDoc + LineEnding +
+        'PVP ficha actual: ' + FormatFloat('0.00', APvpFicha);
+
+      LPrecio := TLabel.Create(F);
+      LPrecio.Parent := F;
+      LPrecio.Left := 12;
+      LPrecio.Top := 112;
+      LPrecio.Caption := 'PVP promoción con IVA:';
+
+      EPrecio := TEdit.Create(F);
+      EPrecio.Parent := F;
+      EPrecio.Left := 170;
+      EPrecio.Top := 108;
+      EPrecio.Width := 100;
+      EPrecio.Text := S;
+      EPrecio.SelectAll;
+
+      CkSegunda := TCheckBox.Create(F);
+      CkSegunda.Parent := F;
+      CkSegunda.Left := 12;
+      CkSegunda.Top := 145;
+      CkSegunda.Width := F.ClientWidth - 24;
+      CkSegunda.Caption := 'Activar también 2ª unidad al 50%';
+      CkSegunda.Checked := CheckedDefault;
+
+      BOk := TButton.Create(F);
+      BOk.Parent := F;
+      BOk.Caption := 'Aceptar';
+      BOk.Left := F.ClientWidth - 190;
+      BOk.Top := F.ClientHeight - 42;
+      BOk.Width := 82;
+      BOk.Height := 28;
+      BOk.Default := True;
+      BOk.ModalResult := mrOk;
+
+      BCancel := TButton.Create(F);
+      BCancel.Parent := F;
+      BCancel.Caption := 'Cancelar';
+      BCancel.Left := F.ClientWidth - 100;
+      BCancel.Top := F.ClientHeight - 42;
+      BCancel.Width := 82;
+      BCancel.Height := 28;
+      BCancel.Cancel := True;
+      BCancel.ModalResult := mrCancel;
+
+      F.ActiveControl := EPrecio;
+      Modal := F.ShowModal;
+      if Modal <> mrOk then
+        Exit(False);
+
+      S := EPrecio.Text;
+      CheckedDefault := CkSegunda.Checked;
+      ASegundaUnd50 := CheckedDefault;
+    finally
+      F.Free;
+    end;
+
+    if FLX_StrToFloatPromo(S, APvpPromo) and (APvpPromo > 0) then
+      Exit(True);
+
+    ShowMessage('Precio de promoción no válido: ' + S);
+  end;
+end;
+
+procedure TfPromociones.GuardarPromocionDirecta(const AArticulo, ADescripcion: string;
+  const AIni, AFin: TDateTime; const APvpPromo, APvpFicha, ACosteFicha, AIvaFicha: Double;
+  const ASegundaUnd50: Boolean);
+var
+  IniDB, FinDB: string;
+  ExistePromo: Boolean;
+begin
+  IniDB := FormatDateTime('yyyy-mm-dd', AIni);
+  FinDB := FormatDateTime('yyyy-mm-dd', AFin);
+
+  dbTrabajo.Active := False;
+  dbTrabajo.SQL.Clear;
+  dbTrabajo.SQL.Text :=
+    'SELECT P0 FROM promo' + Tienda + ' ' +
+    'WHERE P0=:art AND DATE(P5)=:ini AND DATE(P6)=:fin LIMIT 1';
+  dbTrabajo.ParamByName('art').AsString := AArticulo;
+  dbTrabajo.ParamByName('ini').AsString := IniDB;
+  dbTrabajo.ParamByName('fin').AsString := FinDB;
+  dbTrabajo.Active := True;
+  ExistePromo := not dbTrabajo.EOF;
+  dbTrabajo.Active := False;
+
+  if ExistePromo then
+  begin
+    dbTrabajo.SQL.Clear;
+    dbTrabajo.SQL.Text :=
+      'UPDATE promo' + Tienda + ' SET ' +
+      ' P1=:des, P2=:pvpfic, P3=:coste, P4=:iva, ' +
+      ' P5=:fini, P6=:ffin, P7=:pvppromo, P8=:costepromo, P9=:ivapromo, P10=''A'' ' +
+      'WHERE P0=:art AND DATE(P5)=:iniw AND DATE(P6)=:finw';
+    dbTrabajo.ParamByName('des').AsString := ADescripcion;
+    dbTrabajo.ParamByName('pvpfic').AsFloat := APvpFicha;
+    dbTrabajo.ParamByName('coste').AsFloat := ACosteFicha;
+    dbTrabajo.ParamByName('iva').AsFloat := AIvaFicha;
+    dbTrabajo.ParamByName('fini').AsDateTime := Trunc(AIni);
+    dbTrabajo.ParamByName('ffin').AsDateTime := Trunc(AFin);
+    dbTrabajo.ParamByName('pvppromo').AsFloat := APvpPromo;
+    dbTrabajo.ParamByName('costepromo').AsFloat := ACosteFicha;
+    dbTrabajo.ParamByName('ivapromo').AsFloat := AIvaFicha;
+    dbTrabajo.ParamByName('art').AsString := AArticulo;
+    dbTrabajo.ParamByName('iniw').AsString := IniDB;
+    dbTrabajo.ParamByName('finw').AsString := FinDB;
+    dbTrabajo.ExecSQL;
+  end
+  else
+  begin
+    dbPromo.Append;
+    dbPromo.FieldByName('P0').AsString := AArticulo;                         // Código artículo
+    dbPromo.FieldByName('P1').AsString := ADescripcion;                      // Descripción
+    dbPromo.FieldByName('P2').AsFloat := APvpFicha;                          // PVP actual ficha
+    dbPromo.FieldByName('P3').AsFloat := ACosteFicha;                        // Coste ficha
+    dbPromo.FieldByName('P4').AsFloat := AIvaFicha;                          // IVA ficha
+    dbPromo.FieldByName('P5').AsDateTime := Trunc(AIni);                     // Inicio promo
+    dbPromo.FieldByName('P6').AsDateTime := Trunc(AFin);                     // Fin promo
+    dbPromo.FieldByName('P7').AsFloat := APvpPromo;                          // PVP oferta indicado
+    dbPromo.FieldByName('P8').AsFloat := ACosteFicha;                        // Coste oferta = coste ficha
+    dbPromo.FieldByName('P9').AsFloat := AIvaFicha;                          // IVA oferta = IVA ficha
+    dbPromo.FieldByName('P10').AsString := 'A';                              // Activa
+    dbPromo.Post;
+  end;
+
+  try
+    if Assigned(dbPromo.Connection) then
+      dbPromo.Connection.Commit;
+  except
+  end;
+
+  if ASegundaUnd50 then
+    SaveSegundaUnidadRule(AArticulo, ADescripcion, IniDB, FinDB)
+  else
+    DeleteSegundaUnidadRule(AArticulo, IniDB, FinDB);
+end;
+
+procedure TfPromociones.ImportarPromocionesDesdeXLSX(const AFichero: string);
+var
+  TempDir, HojaRelativa: string;
+  Shared: TXLSXSharedStrings;
+  Tabla: TXLSXTable;
+  FilaCabecera, R: Integer;
+  ColCodigo, ColEAN, ColDescripcion, ColUnidades, ColPrecioNeto, ColIVA, ColPrecioConIVA: Integer;
+  IniPromo, FinPromo: TDateTime;
+  CodigoDoc, EanDoc, DescDoc, UdsDoc, NetoDoc, IvaDoc, PvpConIvaDoc: string;
+  Articulo, DescFicha: string;
+  PvpFicha, CosteFicha, IvaFicha, PvpPromo: Double;
+  Leidas, Encontradas, Insertadas, NoEncontradas, Saltadas: Integer;
+  SegundaUnd50: Boolean;
+begin
+  if not FLX_EsFicheroXLSX(AFichero) then
+  begin
+    ShowMessage('Esta importación sólo lee documentos .XLSX.' + LineEnding +
+                'El fichero seleccionado no es XLSX: ' + ExtractFileName(AFichero));
+    Exit;
+  end;
+
+  if not FileExists(AFichero) then
+  begin
+    ShowMessage('No existe el fichero seleccionado: ' + AFichero);
+    Exit;
+  end;
+
+  if not FLX_PreguntarFechaPromo('Fecha de INICIO de la promoción para todo el documento:', Date, IniPromo) then
+    Exit;
+
+  if not FLX_PreguntarFechaPromo('Fecha de FIN de la promoción para todo el documento:', Date, FinPromo) then
+    Exit;
+
+  if FinPromo < IniPromo then
+  begin
+    ShowMessage('La fecha de fin no puede ser anterior a la fecha de inicio.');
+    Exit;
+  end;
+
+  TempDir := '';
+  Randomize;
+  Leidas := 0;
+  Encontradas := 0;
+  Insertadas := 0;
+  NoEncontradas := 0;
+  Saltadas := 0;
+
+  try
+    try
+      TempDir := FLX_DirTemporalXLSX;
+      FLX_DescomprimirXLSX(AFichero, TempDir);
+      FLX_CargarSharedStrings(TempDir, Shared);
+      HojaRelativa := FLX_PrimeraHojaXLSX(TempDir);
+      FLX_CargarHojaXLSX(TempDir, HojaRelativa, Shared, Tabla);
+    except
+      on E: Exception do
+      begin
+        ShowMessage('No se ha podido leer el fichero XLSX:' + LineEnding +
+                    AFichero + LineEnding + LineEnding + E.Message);
+        Exit;
+      end;
+    end;
+
+    FilaCabecera := FLX_BuscarFilaCabeceraExcel(Tabla);
+    if FilaCabecera < 0 then
+    begin
+      ShowMessage('No se han encontrado las cabeceras esperadas en el XLSX.' + LineEnding +
+                  'Se necesita al menos Descripción y Artículo o EAN.');
+      Exit;
+    end;
+
+    ColCodigo       := FLX_BuscarColumnaExcelEnFila(Tabla[FilaCabecera], ['Artículo', 'Articulo', 'Código', 'Codigo', 'Referencia']);
+    ColEAN          := FLX_BuscarColumnaExcelEnFila(Tabla[FilaCabecera], ['Ean', 'EAN', 'Código EAN', 'Codigo EAN', 'Código de barras', 'Codigo de barras']);
+    ColDescripcion  := FLX_BuscarColumnaExcelEnFila(Tabla[FilaCabecera], ['Descripción', 'Descripcion', 'Nombre', 'Artículo descripción', 'Articulo descripcion']);
+    ColUnidades     := FLX_BuscarColumnaExcelEnFila(Tabla[FilaCabecera], ['Uds', 'Unidades', 'Cantidad', 'Cant']);
+    ColPrecioNeto   := FLX_BuscarColumnaExcelEnFila(Tabla[FilaCabecera], ['Precio Neto', 'Precio neto', 'Coste', 'Costo', 'Precio coste', 'Precio costo']);
+    ColIVA          := FLX_BuscarColumnaExcelEnFila(Tabla[FilaCabecera], ['Iva', 'IVA', '% IVA', 'Tipo IVA']);
+    ColPrecioConIVA := FLX_BuscarColumnaExcelEnFila(Tabla[FilaCabecera], ['Precio con Iva', 'Precio con IVA', 'PVP', 'Precio venta']);
+
+    if (ColCodigo < 0) and (ColEAN < 0) then
+    begin
+      ShowMessage('Faltan columnas de identificación. Debe existir Artículo/Código o EAN.');
+      Exit;
+    end;
+
+    for R := FilaCabecera + 1 to Length(Tabla) - 1 do
+    begin
+      CodigoDoc := '';
+      EanDoc := '';
+      DescDoc := '';
+      UdsDoc := '';
+      NetoDoc := '';
+      IvaDoc := '';
+      PvpConIvaDoc := '';
+
+      if ColCodigo >= 0 then
+        CodigoDoc := FLX_NormalizaCodigoExcel(FLX_CeldaTabla(Tabla, R, ColCodigo), True);
+      if ColEAN >= 0 then
+        EanDoc := FLX_NormalizaCodigoExcel(FLX_CeldaTabla(Tabla, R, ColEAN), False);
+      if ColDescripcion >= 0 then
+        DescDoc := FLX_NormalizaTextoExcel(FLX_CeldaTabla(Tabla, R, ColDescripcion));
+      if ColUnidades >= 0 then
+        UdsDoc := FLX_NormalizaNumeroExcel(FLX_CeldaTabla(Tabla, R, ColUnidades));
+      if ColPrecioNeto >= 0 then
+        NetoDoc := FLX_NormalizaNumeroExcel(FLX_CeldaTabla(Tabla, R, ColPrecioNeto));
+      if ColIVA >= 0 then
+        IvaDoc := FLX_NormalizaNumeroExcel(FLX_CeldaTabla(Tabla, R, ColIVA));
+      if ColPrecioConIVA >= 0 then
+        PvpConIvaDoc := FLX_NormalizaNumeroExcel(FLX_CeldaTabla(Tabla, R, ColPrecioConIVA));
+
+      if (CodigoDoc = '') and (EanDoc = '') and (DescDoc = '') then
+        Continue;
+
+      Inc(Leidas);
+
+      if not BuscarArticuloDesdeDocumento(CodigoDoc, EanDoc, Articulo, DescFicha, PvpFicha, CosteFicha, IvaFicha) then
+      begin
+        Inc(NoEncontradas);
+        Continue;
+      end;
+
+      Inc(Encontradas);
+
+      if not PedirPrecioPromoLinea(Articulo, DescFicha, CodigoDoc, EanDoc, PvpFicha, PvpPromo, SegundaUnd50) then
+      begin
+        Inc(Saltadas);
+        Continue;
+      end;
+
+      GuardarPromocionDirecta(Articulo, DescFicha, IniPromo, FinPromo,
+        PvpPromo, PvpFicha, CosteFicha, IvaFicha, SegundaUnd50);
+
+      Inc(Insertadas);
+      Application.ProcessMessages;
+    end;
+
+    rgFiltro.ItemIndex := 0;
+    rgFiltroClick(Self);
+
+    ShowMessage('Importación de promociones finalizada.' + LineEnding + LineEnding +
+                'Documento: ' + ExtractFileName(AFichero) + LineEnding +
+                'Líneas leídas: ' + IntToStr(Leidas) + LineEnding +
+                'Artículos encontrados: ' + IntToStr(Encontradas) + LineEnding +
+                'Promociones insertadas/actualizadas: ' + IntToStr(Insertadas) + LineEnding +
+                'No encontrados: ' + IntToStr(NoEncontradas) + LineEnding +
+                'Saltadas/canceladas: ' + IntToStr(Saltadas));
+
+  finally
+    SetLength(Shared, 0);
+    SetLength(Tabla, 0);
+    if (TempDir <> '') and DirectoryExists(TempDir) then
+    begin
+      try
+        DeleteDirectory(TempDir, False);
+      except
+      end;
+    end;
+  end;
+end;
+
 
 procedure TfPromociones.PromoModeChanged(Sender: TObject);
 begin
@@ -431,6 +1424,8 @@ begin
   btnModificar.Enabled:=False;
   btnCerrar.Enabled:=False;
   btnActualizar.Enabled:=False;
+  if btnImportarXLSX<>nil then
+    btnImportarXLSX.Enabled:=False;
   Panel1.Visible:=True;
 end;
 procedure TfPromociones.DesactivarPanel;
@@ -443,6 +1438,8 @@ begin
   btnModificar.Enabled:=True;
   btnCerrar.Enabled:=True;
   btnActualizar.Enabled:=True;
+  if btnImportarXLSX<>nil then
+    btnImportarXLSX.Enabled:=True;
 end;
 
 procedure TfPromociones.FormClose(Sender: TObject; var CloseAction: TCloseAction
@@ -467,6 +1464,18 @@ begin
   dbPromo.Active := True;
   dbArti.Sql.Text:='SELECT * FROM artitien'+Tienda+' ORDER BY A0';
   dbArti.Active := True;
+
+  btnImportarXLSX := TBitBtn.Create(Self);
+  btnImportarXLSX.Parent := Self;
+  btnImportarXLSX.Left := rgFiltro.Left + rgFiltro.Width + 16;
+  btnImportarXLSX.Top := rgFiltro.Top;
+  btnImportarXLSX.Width := 120;
+  btnImportarXLSX.Height := 30;
+  btnImportarXLSX.Caption := 'Importar XLSX';
+  btnImportarXLSX.Hint := 'Importa un documento XLSX de proveedor y crea promociones línea por línea';
+  btnImportarXLSX.ShowHint := True;
+  btnImportarXLSX.OnClick := @btnImportarXLSXClick;
+
 
   FOldPromoArt := '';
   FOldPromoIni := '';

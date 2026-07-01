@@ -9,7 +9,7 @@ object AboutBox: TAboutBox
   ClientHeight = 313
   ClientWidth = 901
   Position = poScreenCenter
-  LCLVersion = '4.2.0.0'
+  LCLVersion = '4.4.0.0'
   OnClose = FormClose
   OnCreate = FormCreate
   OnShow = FormShow
@@ -30,9 +30,9 @@ object AboutBox: TAboutBox
     TabOrder = 0
     object LabelPaquete: TLabel
       Left = 31
-      Height = 17
+      Height = 20
       Top = 21
-      Width = 107
+      Width = 89
       Caption = 'Gestión Linex'
       Font.Color = clNavy
       Font.Height = -14
@@ -85,9 +85,9 @@ object AboutBox: TAboutBox
     end
     object LabelPagProyecto: TLabel
       Left = 32
-      Height = 15
+      Height = 17
       Top = 268
-      Width = 257
+      Width = 238
       Caption = 'http://sourceforge.net/projects/facturlinex/'
       Font.Height = -12
       Layout = tlCenter
@@ -231,7 +231,7 @@ object AboutBox: TAboutBox
     TabOrder = 2
     object Logo: TTabSheet
       Caption = 'Logo'
-      ClientHeight = 226
+      ClientHeight = 224
       ClientWidth = 556
       ParentFont = False
       object ImageLogo: TImage
@@ -831,12 +831,12 @@ object AboutBox: TAboutBox
     end
     object Desarrollo: TTabSheet
       Caption = 'Desarrollo'
-      ClientHeight = 226
+      ClientHeight = 224
       ClientWidth = 556
       ParentFont = False
       object MemoDesarrollo: TMemo
         Left = 0
-        Height = 226
+        Height = 224
         Top = 0
         Width = 556
         Align = alClient
@@ -850,12 +850,12 @@ object AboutBox: TAboutBox
     end
     object Agradecimientos: TTabSheet
       Caption = 'Agradecimientos'
-      ClientHeight = 226
+      ClientHeight = 224
       ClientWidth = 556
       ParentFont = False
       object MemoAgradec: TMemo
         Left = 0
-        Height = 226
+        Height = 224
         Top = 0
         Width = 556
         Align = alClient
@@ -867,12 +867,12 @@ object AboutBox: TAboutBox
     end
     object Licencia: TTabSheet
       Caption = 'Licencia'
-      ClientHeight = 226
+      ClientHeight = 224
       ClientWidth = 556
       ParentFont = False
       object MemoLicencia: TMemo
         Left = 0
-        Height = 226
+        Height = 224
         Top = 0
         Width = 556
         Align = alClient
