@@ -85,7 +85,7 @@ procedure TAboutbox.FormCreate(Sender: TObject);
 begin
   // Asignamos el valor de la versión del programa para mostrar en pantalla
   //-- JOSE -- LabelVersion.Caption := 'Desarrollo 2.5 - Rev.1/2015-20250402';
-  LabelVersion.Caption := 'Desarrollo 4.0. - Rev.2601Beta2.0';
+  LabelVersion.Caption := 'Desarrollo 4.1. - Rev.2606Beta3.0';
 
   // A por estos datos y otros como Nombre del producto, versión, etc
   // se podría acudir a un fichero

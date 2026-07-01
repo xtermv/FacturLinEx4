@@ -9212,6 +9212,10 @@ msgstr ""
 msgid "        OBSERVACIONES"
 msgstr ""
 
+#: tflhistoop.dbgrid1.columns[12].title.caption
+msgid "HO20_RECT"
+msgstr ""
+
 #: tflhistoop.dbgrid1.columns[1].title.caption
 msgctxt "tflhistoop.dbgrid1.columns[1].title.caption"
 msgid "HORA"
@@ -10128,6 +10132,10 @@ msgstr ""
 
 #: tfmenu.bitbtnenvicli.caption
 msgid "Env. Clie"
+msgstr ""
+
+#: tfmenu.bitbtnmonitor.caption
+msgid "Vf_Monitor"
 msgstr ""
 
 #: tfmenu.btnenviarahora.caption

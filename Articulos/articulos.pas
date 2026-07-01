@@ -32,6 +32,8 @@ uses
 
 type
 
+  
+
   { TFArticulos }
 
   TFArticulos = class(TForm)
@@ -372,6 +374,123 @@ implementation
 uses
   Global, Funciones, Busquedas;
 
+// -----------------------------------------------------------------------------
+// Limpieza defensiva de descripciones de articulos.
+// Evita caracteres que rompen SQL legacy por concatenacion y limita al tamano
+// real del campo de BBDD cuando el dataset informa de el.
+// -----------------------------------------------------------------------------
+function FLX_FieldTextMax(ADataSet: TDataSet; const AFieldName: string; ADefault: Integer): Integer;
+var
+  F: TField;
+begin
+  Result := ADefault;
+  if Assigned(ADataSet) then
+  begin
+    F := ADataSet.FindField(AFieldName);
+    if Assigned(F) and (F.Size > 0) then
+      Result := F.Size;
+  end;
+  if Result <= 0 then
+    Result := ADefault;
+end;
+
+function FLX_DescripcionCharBloqueado(const Key: Char): Boolean;
+begin
+  Result := (Key >= #32) and
+            ((Key = '"') or (Key = #39) or (Key = '\') or (Key = '`') or (Key = ';'));
+end;
+
+function FLX_LimpiarDescripcionArticulo(const S: string; AMaxLen: Integer): string;
+var
+  I: Integer;
+  C: Char;
+  R: string;
+begin
+  R := S;
+
+  R := StringReplace(R, 'Ñ', 'N', [rfReplaceAll]);
+  R := StringReplace(R, 'ñ', 'n', [rfReplaceAll]);
+  R := StringReplace(R, 'Á', 'A', [rfReplaceAll]);
+  R := StringReplace(R, 'À', 'A', [rfReplaceAll]);
+  R := StringReplace(R, 'Ä', 'A', [rfReplaceAll]);
+  R := StringReplace(R, 'Â', 'A', [rfReplaceAll]);
+  R := StringReplace(R, 'á', 'a', [rfReplaceAll]);
+  R := StringReplace(R, 'à', 'a', [rfReplaceAll]);
+  R := StringReplace(R, 'ä', 'a', [rfReplaceAll]);
+  R := StringReplace(R, 'â', 'a', [rfReplaceAll]);
+  R := StringReplace(R, 'É', 'E', [rfReplaceAll]);
+  R := StringReplace(R, 'È', 'E', [rfReplaceAll]);
+  R := StringReplace(R, 'Ë', 'E', [rfReplaceAll]);
+  R := StringReplace(R, 'Ê', 'E', [rfReplaceAll]);
+  R := StringReplace(R, 'é', 'e', [rfReplaceAll]);
+  R := StringReplace(R, 'è', 'e', [rfReplaceAll]);
+  R := StringReplace(R, 'ë', 'e', [rfReplaceAll]);
+  R := StringReplace(R, 'ê', 'e', [rfReplaceAll]);
+  R := StringReplace(R, 'Í', 'I', [rfReplaceAll]);
+  R := StringReplace(R, 'Ì', 'I', [rfReplaceAll]);
+  R := StringReplace(R, 'Ï', 'I', [rfReplaceAll]);
+  R := StringReplace(R, 'Î', 'I', [rfReplaceAll]);
+  R := StringReplace(R, 'í', 'i', [rfReplaceAll]);
+  R := StringReplace(R, 'ì', 'i', [rfReplaceAll]);
+  R := StringReplace(R, 'ï', 'i', [rfReplaceAll]);
+  R := StringReplace(R, 'î', 'i', [rfReplaceAll]);
+  R := StringReplace(R, 'Ó', 'O', [rfReplaceAll]);
+  R := StringReplace(R, 'Ò', 'O', [rfReplaceAll]);
+  R := StringReplace(R, 'Ö', 'O', [rfReplaceAll]);
+  R := StringReplace(R, 'Ô', 'O', [rfReplaceAll]);
+  R := StringReplace(R, 'ó', 'o', [rfReplaceAll]);
+  R := StringReplace(R, 'ò', 'o', [rfReplaceAll]);
+  R := StringReplace(R, 'ö', 'o', [rfReplaceAll]);
+  R := StringReplace(R, 'ô', 'o', [rfReplaceAll]);
+  R := StringReplace(R, 'Ú', 'U', [rfReplaceAll]);
+  R := StringReplace(R, 'Ù', 'U', [rfReplaceAll]);
+  R := StringReplace(R, 'Ü', 'U', [rfReplaceAll]);
+  R := StringReplace(R, 'Û', 'U', [rfReplaceAll]);
+  R := StringReplace(R, 'ú', 'u', [rfReplaceAll]);
+  R := StringReplace(R, 'ù', 'u', [rfReplaceAll]);
+  R := StringReplace(R, 'ü', 'u', [rfReplaceAll]);
+  R := StringReplace(R, 'û', 'u', [rfReplaceAll]);
+  R := StringReplace(R, 'Ç', 'C', [rfReplaceAll]);
+  R := StringReplace(R, 'ç', 'c', [rfReplaceAll]);
+  R := StringReplace(R, 'ª', 'a', [rfReplaceAll]);
+  R := StringReplace(R, 'º', 'o', [rfReplaceAll]);
+  R := StringReplace(R, '´', ' ', [rfReplaceAll]);
+  R := StringReplace(R, '“', ' ', [rfReplaceAll]);
+  R := StringReplace(R, '”', ' ', [rfReplaceAll]);
+  R := StringReplace(R, '‘', ' ', [rfReplaceAll]);
+  R := StringReplace(R, '’', ' ', [rfReplaceAll]);
+
+  Result := '';
+  for I := 1 to Length(R) do
+  begin
+    C := R[I];
+    if (Ord(C) < 32) then
+      Result := Result + ' '
+    else if (Ord(C) > 126) then
+      Result := Result + ' '
+    else if FLX_DescripcionCharBloqueado(C) then
+      Result := Result + ' '
+    else
+      Result := Result + C;
+  end;
+
+  while Pos('  ', Result) > 0 do
+    Result := StringReplace(Result, '  ', ' ', [rfReplaceAll]);
+  Result := Trim(Result);
+
+  if AMaxLen > 0 then
+    Result := Copy(Result, 1, AMaxLen);
+end;
+
+function FLX_SQLEscapeDbl(const S: string): string;
+begin
+  Result := StringReplace(S, '\', '\\', [rfReplaceAll]);
+  Result := StringReplace(Result, '"', '\"', [rfReplaceAll]);
+end;
+
+{ TFArticulos }
+
+
 { TFArticulos }
 
 //=============== Crea el formulario ================
@@ -390,6 +509,11 @@ begin
   //------------------- Tablas ------------------
   dbArti.Sql.Text:='SELECT * FROM artitien'+Tienda+' ORDER BY A0';
   dbArti.Active := True;
+  if Assigned(dbArti.FindField('A1')) and (dbArti.FieldByName('A1').Size > 0) then
+    Edit2.MaxLength := dbArti.FieldByName('A1').Size
+  else
+    Edit2.MaxLength := 100;
+  Edit52.MaxLength := Edit2.MaxLength;
   //------------------- Roles ---------------------
   BitBtn4.Enabled:=CheckRoles(dbRoles, CgRol, 'Articulos', 2);//------------------ Boton Modificar
   BitBtn3.Enabled:=CheckRoles(dbRoles, CgRol, 'Articulos', 3);//------------------ Boton Borrar
@@ -440,7 +564,7 @@ begin
      dbClonar.SQL.Add('SELECT * FROM artitien'+Tienda+' WHERE A0='''+busqueda+'''');
      dbClonar.Open;
      if dbClonar.RecordCount>0 then begin
-        Edit2.Text:=dbClonar.FieldByName('A1').AsString;//-------------- Nombre
+        Edit2.Text:=FLX_LimpiarDescripcionArticulo(dbClonar.FieldByName('A1').AsString, FLX_FieldTextMax(dbArti, 'A1', 100));//-------------- Nombre
         Edit3.Text:=dbClonar.FieldByName('A21').AsString;//------------- Precio sin Iva
         Edit4.Text:=dbClonar.FieldByName('A3').AsString;//-------------- Iva
         Edit5.Text:=dbClonar.FieldByName('A2').AsString;//-------------- P.V.P.
@@ -479,7 +603,7 @@ begin
    dbArti.Append; LlenaReg(); dbArti.Post;//---- Datos Articulos
    CreaEstadistica();//------------------------- Crear estadisticas vacias
    GuardaTarifa();//---------------------------- Crear Tarifa de precios
-   Label2.Caption:=dbArti.FieldByName('A1').AsString;
+   Label2.Caption:=FLX_LimpiarDescripcionArticulo(dbArti.FieldByName('A1').AsString, FLX_FieldTextMax(dbArti, 'A1', 100));
    if ActivarSIC='S' then GrabarModificarSic();//------ Comprobar si se crea cliente en el SIC.
    ActivarCgoAux();//----------- Activar Codigos Auxiliares
 end;
@@ -535,7 +659,7 @@ begin
       Exit;
    dbArti.Edit; LlenaReg(); dbArti.Post;
    GuardaTarifa();//------- Modificar Tarifa de precios
-   Label2.Caption:=dbArti.FieldByName('A1').AsString;
+   Label2.Caption:=FLX_LimpiarDescripcionArticulo(dbArti.FieldByName('A1').AsString, FLX_FieldTextMax(dbArti, 'A1', 100));
    if ActivarSIC='S' then GrabarModificarSic();//------ Comprobar si se modifica cliente en el SIC.
 end;
 
@@ -548,8 +672,9 @@ begin
    Edit2.SetFocus;
    Exit;
   end;
+  Edit2.Text:=FLX_LimpiarDescripcionArticulo(Edit2.Text, FLX_FieldTextMax(dbArti, 'A1', 100));
   Edit1.Text:=FBusquedas.IniciaBusquedas('SELECT A0, A1 FROM artitien'+Tienda+
-                  ' WHERE A1 LIKE "%'+Edit2.Text+'%"', ['Código','Referencia'],'A0');
+                  ' WHERE A1 LIKE "%'+FLX_SQLEscapeDbl(Edit2.Text)+'%"', ['Código','Referencia'],'A0');
   if Edit1.Text='-1' then Edit1.Text:='' else Edit1Exit(Edit1);
 end;
 
@@ -806,6 +931,11 @@ end;
 //=================== BUSCAR ARTICULOS =================
 procedure TFArticulos.Edit2KeyPress(Sender: TObject; var Key: char);
 begin
+  if FLX_DescripcionCharBloqueado(Key) then
+  begin
+    Key:=#0;
+    Exit;
+  end;
   if (key=#13) then BitBtn21Click(Self);
 end;
 
@@ -983,9 +1113,9 @@ End;
 Procedure TFArticulos.Relleno();
 Begin
   if dbArti.RecordCount=0 then exit;
-  Label2.Caption:=dbArti.FieldByName('A1').AsString;
+  Label2.Caption:=FLX_LimpiarDescripcionArticulo(dbArti.FieldByName('A1').AsString, FLX_FieldTextMax(dbArti, 'A1', 100));
   Edit1.Text:=dbArti.FieldByName('A0').AsString;//-------------- Cgo.
-  Edit2.Text:=dbArti.FieldByName('A1').AsString;//-------------- Nombre
+  Edit2.Text:=FLX_LimpiarDescripcionArticulo(dbArti.FieldByName('A1').AsString, FLX_FieldTextMax(dbArti, 'A1', 100));//-------------- Nombre
   Edit3.Text:=dbArti.FieldByName('A21').AsString;//------------- Precio sin Iva
   Edit4.Text:=dbArti.FieldByName('A3').AsString;//-------------- Iva
   Edit5.Text:=dbArti.FieldByName('A2').AsString;//-------------- P.V.P.
@@ -1077,7 +1207,7 @@ if (Edit16.Text<>'') and (FileExists(RutaImagenes+Edit16.Text)) then
             If Application.MessageBox('CONFIRME LA MODIFICACION DEL REGISTRO','FacturLinEx', boxstyle) = IDNO Then
                Exit;
             dbArti.Edit; LlenaReg(); dbArti.Post;
-            Label7.Caption:=dbArti.Fields[1].AsString;//--- Refrescar nombre.
+            Label7.Caption:=FLX_LimpiarDescripcionArticulo(dbArti.Fields[1].AsString, FLX_FieldTextMax(dbArti, 'A1', 100));//--- Refrescar nombre.
             dbArti.Edit;
             dbArti.FieldByName('A33').Value:=dbCliSic.FieldByName('version').Value;//------- Control de Version
             dbArti.Post;
@@ -1089,6 +1219,7 @@ end;
 Procedure TFArticulos.LlenaReg();
 Begin
   dbArti.FieldByName('A0').AsString:=Edit1.Text;//-------------- Cgo.
+  Edit2.Text:=FLX_LimpiarDescripcionArticulo(Edit2.Text, FLX_FieldTextMax(dbArti, 'A1', 100));
   dbArti.FieldByName('A1').AsString:=Edit2.Text;//-------------- Nombre
   dbArti.FieldByName('A21').AsString:=Edit3.Text;//------------- Precio
   dbArti.FieldByName('A3').AsString:=Edit4.Text;//-------------- Iva
@@ -1608,6 +1739,7 @@ end;
 //------------- Crear nuevo codigo auxiliar -------------
 procedure TFArticulos.BitBtn7Click(Sender: TObject);
 begin
+  Edit52.Text:=FLX_LimpiarDescripcionArticulo(Edit52.Text, FLX_FieldTextMax(dbEans, 'EAN2', FLX_FieldTextMax(dbArti, 'A1', 100)));
   if Edit51.Text='' then begin showmessage('DEBE TECLEAR EL CODIGO AUXILIAR A CREAR'); exit; end;
   if Edit52.Text='' then begin showmessage('DEBE TECLEAR LA DESCRIPCION DEL AUXILIAR A CREAR'); exit; end;
   if Edit52.Text=' ' then begin showmessage('DEBE TECLEAR LA DESCRIPCION DEL AUXILIAR A CREAR'); exit; end;
@@ -1629,7 +1761,7 @@ begin
   dbTrabajo.Active:=True;
   if dbTrabajo.Locate('A0', Edit51.Text, []) then
     begin
-      Showmessage('EXISTE UN ARTICULO CON ESE CODIGO COMO PRINCIPAL '+ #13+#13 + dbTrabajo.FieldByName('A1').AsString);
+      Showmessage('EXISTE UN ARTICULO CON ESE CODIGO COMO PRINCIPAL '+ #13+#13 + FLX_LimpiarDescripcionArticulo(dbTrabajo.FieldByName('A1').AsString, FLX_FieldTextMax(dbTrabajo, 'A1', 100)));
       dbTrabajo.Active:=False;
       Edit51.SetFocus;
       exit;
@@ -1662,6 +1794,7 @@ end;
 //---------------- Modificar codigo auxiliar ----------------
 procedure TFArticulos.BitBtn9Click(Sender: TObject);
 begin
+  Edit52.Text:=FLX_LimpiarDescripcionArticulo(Edit52.Text, FLX_FieldTextMax(dbEans, 'EAN2', FLX_FieldTextMax(dbArti, 'A1', 100)));
   if dbArti.RecordCount=0 then exit;//---- Si no hay articulo consultado
   if Edit51.Text='' then begin showmessage('DEBE TECLEAR EL CODIGO AUXILIAR A CREAR'); exit; end;
   if Edit52.Text='' then begin showmessage('DEBE TECLEAR LA DESCRIPCION DEL AUXILIAR A CREAR'); exit; end;
@@ -1688,7 +1821,7 @@ procedure TFArticulos.Edit51Exit(Sender: TObject);
 begin
   if Edit51.Text='' then exit;
   if dbEans.Locate('EAN0', Edit51.Text, []) then
-    PintaEans() else Edit52.Text:=Edit2.Text;
+    PintaEans() else Edit52.Text:=FLX_LimpiarDescripcionArticulo(Edit2.Text, FLX_FieldTextMax(dbArti, 'A1', 100));
 
 end;
 
@@ -1710,6 +1843,7 @@ procedure TFArticulos.LlenaEans();
 begin
    dbEans.FieldByName('EAN0').Value:=Edit51.Text;//------- Cgo. auxiliar.
    dbEans.FieldByName('EAN1').Value:=Edit1.Text;//-------- Cgo. articulo principal.
+   Edit52.Text:=FLX_LimpiarDescripcionArticulo(Edit52.Text, FLX_FieldTextMax(dbEans, 'EAN2', FLX_FieldTextMax(dbArti, 'A1', 100)));
    dbEans.FieldByName('EAN2').Value:=Edit52.Text;//------- Descripcion
    dbEans.FieldByName('EAN3').AsString:=Edit53.Text;//---- Unidades.
    if Edit54.Text='' then Edit54.Text:='0';
@@ -1722,7 +1856,7 @@ end;
 procedure TFArticulos.PintaEans();
 begin
    Edit51.Text:=dbEans.FieldByName('EAN0').AsString;//------- Cgo. auxiliar.
-   Edit52.Text:=dbEans.FieldByName('EAN2').AsString;//------- Descripcion
+   Edit52.Text:=FLX_LimpiarDescripcionArticulo(dbEans.FieldByName('EAN2').AsString, FLX_FieldTextMax(dbEans, 'EAN2', FLX_FieldTextMax(dbArti, 'A1', 100)));//------- Descripcion
    Edit53.Text:=dbEans.FieldByName('EAN3').AsString;//---- Unidades.
    Edit54.Text:=dbEans.FieldByName('EAN4').AsString;//---- Importe.
    Edit55.Text:=dbEans.FieldByName('EAN5').AsString;//---- Unidades a descontar del cgo. principal.
@@ -1864,7 +1998,7 @@ begin
      dbArti.FieldByName('A33').AsInteger:=dbCliSic.FieldByName('version').AsInteger;//- Control de Version
      dbArti.FieldByName('A34').AsString:=dbCliSic.FieldByName('CODIGO').AsString;//--- Codigo siclinex
      dbArti.Post;
-     Label7.Caption:=dbArti.FieldByName('A1').AsString;//--- Refrescar nombre.
+     Label7.Caption:=FLX_LimpiarDescripcionArticulo(dbArti.FieldByName('A1').AsString, FLX_FieldTextMax(dbArti, 'A1', 100));//--- Refrescar nombre.
     end
   else LimpiaForm();
   //---------------------
@@ -1876,14 +2010,14 @@ end;
 //================== RELLENAR CAMPOS DEL SIC ===================
 procedure TFArticulos.RellenaSIC();
 begin
-  dbCliSic.FieldByName('NOMBRE').AsString:=Edit2.Text;
+  dbCliSic.FieldByName('NOMBRE').AsString:=FLX_LimpiarDescripcionArticulo(Edit2.Text, FLX_FieldTextMax(dbArti, 'A1', 100));
   dbCliSic.FieldByName('DESCRIPCION').AsString:=Memo1.Lines.Text;
 end;
 
 //================== RELLENAR CAMPOS DEL SIC ===================
 procedure TFArticulos.CargaSIC();
 begin
-  Edit2.Text:=dbCliSic.FieldByName('NOMBRE').AsString;
+  Edit2.Text:=FLX_LimpiarDescripcionArticulo(dbCliSic.FieldByName('NOMBRE').AsString, FLX_FieldTextMax(dbArti, 'A1', 100));
   Memo1.Lines.Text:=dbCliSic.FieldByName('DESCRIPCION').AsString;
 end;
 

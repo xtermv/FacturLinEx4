@@ -403,6 +403,7 @@ begin
     '    WHEN COALESCE(q.respuesta_text,'''') LIKE ''%RespuestaRegFactuSistemaFacturacion%'' '+
     '     AND COALESCE(q.respuesta_text,'''') LIKE ''%EstadoEnvio>Correcto%'' '+
     '     AND COALESCE(q.respuesta_text,'''') LIKE ''%EstadoRegistro>Correcto%'' THEN ''CORRECTO'' '+
+    '    WHEN q.estado = ''PENDIENTE'' AND q.intentos > 0 AND COALESCE(q.last_error,'''') <> '''' THEN ''PENDIENTE REINTENTO'' '+
     '    WHEN q.estado = ''ERROR'' THEN ''ERROR'' '+
     '    WHEN q.estado = ''ENVIADO'' THEN ''NO VERIFICADO'' '+
     '    ELSE q.estado '+
@@ -421,6 +422,7 @@ begin
     '    WHEN COALESCE(q.respuesta_text,'''') LIKE ''%faultstring%'' THEN LEFT(COALESCE(q.respuesta_text,''''), 255) '+
     '    WHEN COALESCE(q.respuesta_text,'''') LIKE ''%EstadoRegistro>Incorrecto%'' THEN LEFT(COALESCE(q.respuesta_text,''''), 255) '+
     '    WHEN COALESCE(q.respuesta_text,'''') LIKE ''%EstadoRegistro>AceptadoConErrores%'' THEN LEFT(COALESCE(q.respuesta_text,''''), 255) '+
+    '    WHEN q.estado = ''PENDIENTE'' AND q.intentos > 0 AND COALESCE(q.last_error,'''') <> '''' THEN CONCAT(''Reintento automático pendiente. Último error: '', LEFT(COALESCE(q.last_error,''''), 220)) '+
     '    WHEN q.estado = ''ERROR'' THEN COALESCE(NULLIF(q.last_error,''''), LEFT(COALESCE(q.respuesta_text,''''), 255)) '+
     '    WHEN q.estado = ''ENVIADO'' THEN ''Enviado en cola, pero la respuesta no ha podido validarse como Correcto.'' '+
     '    ELSE '''' '+

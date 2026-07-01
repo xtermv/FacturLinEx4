@@ -9,7 +9,7 @@ procedure FLX_UpdateCheckAtStartup(const AIniFile, ACurrentExecutable: string);
 implementation
 
 uses
-  Classes, SysUtils, StrUtils, IniFiles, Dialogs, Process, Forms, BaseUnix, fphttpclient, opensslsockets;
+  Classes, SysUtils, StrUtils, IniFiles, Dialogs, Process, Forms, BaseUnix, fphttpclient, opensslsockets, ZDataset, Global;
 
 const
   FLX_UPD_SECTION = 'Actualizaciones';
@@ -170,6 +170,118 @@ begin
     if L.Count > 0 then Result := Trim(L[0]) else Result := '';
   finally
     L.Free;
+  end;
+end;
+
+function NormalizeVersionPart(const S: string): Int64;
+begin
+  Result := StrToInt64Def(Trim(S), 0);
+end;
+
+function CompareVersionText(const A, B: string): Integer;
+var
+  SA, SB: TStringList;
+  I, N: Integer;
+  VA, VB: Int64;
+begin
+  Result := 0;
+  SA := TStringList.Create;
+  SB := TStringList.Create;
+  try
+    SA.StrictDelimiter := True;
+    SB.StrictDelimiter := True;
+    SA.Delimiter := '.';
+    SB.Delimiter := '.';
+    SA.DelimitedText := StringReplace(Trim(A), '-', '.', [rfReplaceAll]);
+    SB.DelimitedText := StringReplace(Trim(B), '-', '.', [rfReplaceAll]);
+    N := SA.Count;
+    if SB.Count > N then N := SB.Count;
+    for I := 0 to N - 1 do
+    begin
+      if I < SA.Count then VA := NormalizeVersionPart(SA[I]) else VA := 0;
+      if I < SB.Count then VB := NormalizeVersionPart(SB[I]) else VB := 0;
+      if VA < VB then begin Result := -1; Exit; end;
+      if VA > VB then begin Result := 1; Exit; end;
+    end;
+  finally
+    SA.Free;
+    SB.Free;
+  end;
+end;
+
+function GetLocalDBSchemaVersionSafe(out Err: string): string;
+var
+  Q: TZQuery;
+begin
+  Result := '';
+  Err := '';
+  try
+    if (not Assigned(DataModule1)) or (not Assigned(DataModule1.dbConexion)) then
+    begin
+      Err := 'No está disponible la conexión activa de FacturLinEx.';
+      Exit;
+    end;
+    if not DataModule1.dbConexion.Connected then
+      DataModule1.dbConexion.Connect;
+
+    Q := TZQuery.Create(nil);
+    try
+      Q.Connection := DataModule1.dbConexion;
+      Q.SQL.Text :=
+        'SELECT COUNT(*) AS n FROM information_schema.TABLES ' +
+        'WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ' + QuotedStr('flx_schema_version');
+      Q.Open;
+      if Q.FieldByName('n').AsInteger <= 0 then
+      begin
+        Err := 'No existe todavía la tabla flx_schema_version.';
+        Exit;
+      end;
+      Q.Close;
+      Q.SQL.Text := 'SELECT version_db FROM flx_schema_version WHERE id=1';
+      Q.Open;
+      if not Q.EOF then
+        Result := Trim(Q.FieldByName('version_db').AsString)
+      else
+        Err := 'La tabla flx_schema_version existe, pero no tiene versión marcada.';
+    finally
+      Q.Free;
+    end;
+  except
+    on E: Exception do
+      Err := E.Message;
+  end;
+end;
+
+function CheckRequiredDBVersionAtStartup(const RequiredVersion, LogFile: string; BlockIfOld: Boolean; out Msg: string): Boolean;
+var
+  LocalVersion, Err: string;
+  Cmp: Integer;
+begin
+  Result := True;
+  Msg := '';
+  if Trim(RequiredVersion) = '' then Exit;
+
+  LocalVersion := GetLocalDBSchemaVersionSafe(Err);
+  if LocalVersion = '' then
+  begin
+    Msg := 'El ejecutable publicado requiere estructura BBDD ' + RequiredVersion + ',' + LineEnding +
+           'pero no se pudo comprobar la versión local.' + LineEnding + LineEnding +
+           'Detalle: ' + IfThen(Err <> '', Err, 'versión local no indicada.') + LineEnding + LineEnding +
+           'Abra el actualizador, pestaña Base de datos, compruebe la estructura y marque la versión aplicada si corresponde.';
+    FLXLog(LogFile, 'BBDD requerida=' + RequiredVersion + ' local=(sin marcar) detalle=' + Err);
+    Result := not BlockIfOld;
+    Exit;
+  end;
+
+  Cmp := CompareVersionText(LocalVersion, RequiredVersion);
+  FLXLog(LogFile, 'BBDD requerida=' + RequiredVersion + ' local=' + LocalVersion + ' cmp=' + IntToStr(Cmp));
+  if Cmp < 0 then
+  begin
+    Msg := 'ATENCIÓN: la estructura de BBDD local parece antigua.' + LineEnding + LineEnding +
+           'Versión BBDD local: ' + LocalVersion + LineEnding +
+           'Versión BBDD requerida: ' + RequiredVersion + LineEnding + LineEnding +
+           'Revise la pestaña Base de datos antes de trabajar con esta versión de FacturLinEx.';
+    Result := not BlockIfOld;
   end;
 end;
 
@@ -535,6 +647,10 @@ begin
     Ini.WriteString(FLX_UPD_SECTION, 'LogFile', DefaultUpdateLogFile(Ini.FileName));
   if Ini.ReadString(FLX_UPD_SECTION, 'ReiniciarTrasActualizar', '') = '' then
     Ini.WriteString(FLX_UPD_SECTION, 'ReiniciarTrasActualizar', '0');
+  if Ini.ReadString(FLX_UPD_SECTION, 'ComprobarVersionDBAlInicio', '') = '' then
+    Ini.WriteString(FLX_UPD_SECTION, 'ComprobarVersionDBAlInicio', '1');
+  if Ini.ReadString(FLX_UPD_SECTION, 'BloquearSiDBAntigua', '') = '' then
+    Ini.WriteString(FLX_UPD_SECTION, 'BloquearSiDBAntigua', '0');
 end;
 
 procedure FLX_UpdateCheckAtStartup(const AIniFile, ACurrentExecutable: string);
@@ -542,11 +658,13 @@ var
   Ini, RemoteIni: TIniFile;
   RemoteText, Err, URL, LocalVersion, RemoteVersion, ExeLocal: string;
   RemoteFileName, RemoteSHA, CanalLocal, CanalRemote, TmpDir, DownloadedFile: string;
+  RequiredDBVersion, DBGuardMsg: string;
   TmpFile: string;
   SLTmp: TStringList;
   DebianOut, LddOut, HashLocal, InstallOut, BackupFile, LogFile, RelaunchErr, LogDirInfo: string;
   Msg: string;
   NeedUpdate, SHAOK, LddOK, CanInstall, RequireSHA, RestartAfterUpdate: Boolean;
+  CheckDBAtStart, BlockIfOldDB: Boolean;
 begin
   if not FileExists(AIniFile) then Exit;
 
@@ -604,6 +722,27 @@ begin
       CanalRemote := Trim(RemoteIni.ReadString('Version', 'Canal', 'estable'));
       RemoteFileName := Trim(RemoteIni.ReadString('Version', 'Fichero', ''));
       RemoteSHA := LowerCase(Trim(RemoteIni.ReadString('Version', 'SHA256', '')));
+      RequiredDBVersion := Trim(RemoteIni.ReadString('Database', 'VersionDB', ''));
+      if RequiredDBVersion = '' then
+        RequiredDBVersion := Trim(RemoteIni.ReadString('Database', 'Version', ''));
+      if RequiredDBVersion = '' then
+        RequiredDBVersion := Trim(RemoteIni.ReadString('Version', 'VersionDB', ''));
+
+      CheckDBAtStart := Ini.ReadBool(FLX_UPD_SECTION, 'ComprobarVersionDBAlInicio', True);
+      BlockIfOldDB := Ini.ReadBool(FLX_UPD_SECTION, 'BloquearSiDBAntigua', False);
+      if CheckDBAtStart and (RequiredDBVersion <> '') then
+      begin
+        if not CheckRequiredDBVersionAtStartup(RequiredDBVersion, LogFile, BlockIfOldDB, DBGuardMsg) then
+        begin
+          ShowMessage(DBGuardMsg + LineEnding + LineEnding +
+                      'BloquearSiDBAntigua=1: FacturLinEx se cerrará para evitar trabajar con una estructura incompatible.');
+          Application.Terminate;
+          Exit;
+        end
+        else if DBGuardMsg <> '' then
+          ShowMessage(DBGuardMsg + LineEnding + LineEnding +
+                      'BloquearSiDBAntigua=0: se permite continuar, pero conviene revisar la estructura.');
+      end;
 
       if RemoteVersion = '' then
       begin
@@ -631,7 +770,10 @@ begin
              'Versión servidor: ' + RemoteVersion + LineEnding +
              'Canal local: ' + CanalLocal + LineEnding +
              'Canal servidor: ' + CanalRemote + LineEnding +
-             'Debian: ' + FirstLine(DebianOut) + LineEnding + LineEnding;
+             'Debian: ' + FirstLine(DebianOut) + LineEnding;
+      if RequiredDBVersion <> '' then
+        Msg := Msg + 'BBDD requerida: ' + RequiredDBVersion + LineEnding;
+      Msg := Msg + LineEnding;
 
       if CanalLocal <> CanalRemote then
       begin

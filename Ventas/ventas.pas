@@ -32,7 +32,7 @@ uses
   ZConnection, ExtCtrls, StdCtrls, DBGrids, Buttons, ZDataset, db,
   LCLType, Grids, LR_Class, LR_DBSet, EditBtn, ComCtrls, LCLIntf,
   ubarcodes, ZClasses, ZAbstractConnection, ZAbstractRODataset, 
-  ZExceptions, ZAbstractDataset, uPromoEngine; //-- Control de errores de la uniad ZEOS; //-- Esta última libería controla el GetKeyState para saber si pulsé el ctrl
+  ZExceptions, ZAbstractDataset, uPromoEngine; //-- Control de errores de la uniad ZEOS; //-- Esta Ãºltima liberÃ­a controla el GetKeyState para saber si pulsÃ© el ctrl
 
 type
 
@@ -508,7 +508,7 @@ type
     { private declarations }
     btBuscarAbono: TBitBtn;
     ChkTodosAniosPrePro: TCheckBox;
-    VF_PrevTotalEdit11: Double; // Total línea antes de editar con F7 (para calcular descuento)
+    VF_PrevTotalEdit11: Double; // Total lÃ­nea antes de editar con F7 (para calcular descuento)
     LblPromoActiva: TLabel;
     FEdit6ColorNormal: TColor;
     FEdit6StyleNormal: TFontStyles;
@@ -589,7 +589,7 @@ var
   txtQR, DirectorioQR: String;
   NombrePDF: String;
 
-  //-- Nueva Función para Identificar la serie activa
+  //-- Nueva FunciÃ³n para Identificar la serie activa
   function VF_GetSerieActiva: string;
   //-------------------------------------------------
 
@@ -610,9 +610,127 @@ begin
   Result := StringReplace(Result, '"', '\"', [rfReplaceAll]);
 end;
 
+
+
+// -----------------------------------------------------------------------------
+// Limpieza defensiva de descripciones de articulos para evitar romper SQL legacy
+// construido por concatenacion y para respetar el tamano real del campo.
+// -----------------------------------------------------------------------------
+function FLX_FieldTextMax(ADataSet: TDataSet; const AFieldName: string; ADefault: Integer): Integer;
+var
+  F: TField;
+begin
+  Result := ADefault;
+  if Assigned(ADataSet) then
+  begin
+    F := ADataSet.FindField(AFieldName);
+    if Assigned(F) and (F.Size > 0) then
+      Result := F.Size;
+  end;
+  if Result <= 0 then
+    Result := ADefault;
+end;
+
+function FLX_DescripcionCharBloqueado(const Key: Char): Boolean;
+begin
+  // Permitimos teclas de control. Bloqueamos caracteres que rompen SQL legacy
+  // o suelen venir de importaciones/copias problemáticas.
+  Result := (Key >= #32) and
+            ((Key = '"') or (Key = #39) or (Key = '\') or (Key = '`') or (Key = ';'));
+end;
+
+function FLX_LimpiarDescripcionVenta(const S: string; AMaxLen: Integer): string;
+var
+  I: Integer;
+  C: Char;
+  R: string;
+begin
+  R := S;
+
+  // Normalizacion basica a texto seguro ASCII para ventas/historicos.
+  R := StringReplace(R, 'Ñ', 'N', [rfReplaceAll]);
+  R := StringReplace(R, 'ñ', 'n', [rfReplaceAll]);
+  R := StringReplace(R, 'Á', 'A', [rfReplaceAll]);
+  R := StringReplace(R, 'À', 'A', [rfReplaceAll]);
+  R := StringReplace(R, 'Ä', 'A', [rfReplaceAll]);
+  R := StringReplace(R, 'Â', 'A', [rfReplaceAll]);
+  R := StringReplace(R, 'á', 'a', [rfReplaceAll]);
+  R := StringReplace(R, 'à', 'a', [rfReplaceAll]);
+  R := StringReplace(R, 'ä', 'a', [rfReplaceAll]);
+  R := StringReplace(R, 'â', 'a', [rfReplaceAll]);
+  R := StringReplace(R, 'É', 'E', [rfReplaceAll]);
+  R := StringReplace(R, 'È', 'E', [rfReplaceAll]);
+  R := StringReplace(R, 'Ë', 'E', [rfReplaceAll]);
+  R := StringReplace(R, 'Ê', 'E', [rfReplaceAll]);
+  R := StringReplace(R, 'é', 'e', [rfReplaceAll]);
+  R := StringReplace(R, 'è', 'e', [rfReplaceAll]);
+  R := StringReplace(R, 'ë', 'e', [rfReplaceAll]);
+  R := StringReplace(R, 'ê', 'e', [rfReplaceAll]);
+  R := StringReplace(R, 'Í', 'I', [rfReplaceAll]);
+  R := StringReplace(R, 'Ì', 'I', [rfReplaceAll]);
+  R := StringReplace(R, 'Ï', 'I', [rfReplaceAll]);
+  R := StringReplace(R, 'Î', 'I', [rfReplaceAll]);
+  R := StringReplace(R, 'í', 'i', [rfReplaceAll]);
+  R := StringReplace(R, 'ì', 'i', [rfReplaceAll]);
+  R := StringReplace(R, 'ï', 'i', [rfReplaceAll]);
+  R := StringReplace(R, 'î', 'i', [rfReplaceAll]);
+  R := StringReplace(R, 'Ó', 'O', [rfReplaceAll]);
+  R := StringReplace(R, 'Ò', 'O', [rfReplaceAll]);
+  R := StringReplace(R, 'Ö', 'O', [rfReplaceAll]);
+  R := StringReplace(R, 'Ô', 'O', [rfReplaceAll]);
+  R := StringReplace(R, 'ó', 'o', [rfReplaceAll]);
+  R := StringReplace(R, 'ò', 'o', [rfReplaceAll]);
+  R := StringReplace(R, 'ö', 'o', [rfReplaceAll]);
+  R := StringReplace(R, 'ô', 'o', [rfReplaceAll]);
+  R := StringReplace(R, 'Ú', 'U', [rfReplaceAll]);
+  R := StringReplace(R, 'Ù', 'U', [rfReplaceAll]);
+  R := StringReplace(R, 'Ü', 'U', [rfReplaceAll]);
+  R := StringReplace(R, 'Û', 'U', [rfReplaceAll]);
+  R := StringReplace(R, 'ú', 'u', [rfReplaceAll]);
+  R := StringReplace(R, 'ù', 'u', [rfReplaceAll]);
+  R := StringReplace(R, 'ü', 'u', [rfReplaceAll]);
+  R := StringReplace(R, 'û', 'u', [rfReplaceAll]);
+  R := StringReplace(R, 'Ç', 'C', [rfReplaceAll]);
+  R := StringReplace(R, 'ç', 'c', [rfReplaceAll]);
+  R := StringReplace(R, 'ª', 'a', [rfReplaceAll]);
+  R := StringReplace(R, 'º', 'o', [rfReplaceAll]);
+  R := StringReplace(R, '´', ' ', [rfReplaceAll]);
+  R := StringReplace(R, '“', ' ', [rfReplaceAll]);
+  R := StringReplace(R, '”', ' ', [rfReplaceAll]);
+  R := StringReplace(R, '‘', ' ', [rfReplaceAll]);
+  R := StringReplace(R, '’', ' ', [rfReplaceAll]);
+
+  Result := '';
+  for I := 1 to Length(R) do
+  begin
+    C := R[I];
+    if (Ord(C) < 32) then
+      Result := Result + ' '
+    else if (Ord(C) > 126) then
+      Result := Result + ' '
+    else if FLX_DescripcionCharBloqueado(C) then
+      Result := Result + ' '
+    else
+      Result := Result + C;
+  end;
+
+  while Pos('  ', Result) > 0 do
+    Result := StringReplace(Result, '  ', ' ', [rfReplaceAll]);
+  Result := Trim(Result);
+
+  if AMaxLen > 0 then
+    Result := Copy(Result, 1, AMaxLen);
+end;
+
+function FLX_SQLDescripcionVenta(const S: string; AMaxLen: Integer): string;
+begin
+  // Aunque la descripcion ya se limpia, escapamos tambien por seguridad.
+  Result := VF_SQLEscapeDbl(FLX_LimpiarDescripcionVenta(S, AMaxLen));
+end;
+
 function VF_SQLFloat(const V: Double): string;
 begin
-  // SQL num�rico con punto decimal, independiente de la configuraci�n regional.
+  // SQL numï¿½rico con punto decimal, independiente de la configuraciï¿½n regional.
   Result := FloatToStr(V);
   if DecimalSeparator <> '.' then
     Result := StringReplace(Result, DecimalSeparator, '.', [rfReplaceAll]);
@@ -688,7 +806,7 @@ begin
   // Permitir teclas de control (Enter, Backspace, Tab, etc.)
   if Key < #32 then Exit;
 
-  // Permitir dígitos
+  // Permitir dÃ­gitos
   if (Key >= '0') and (Key <= '9') then Exit;
 
   E := nil;
@@ -709,7 +827,7 @@ begin
 
   // Permitir signo negativo solo al inicio y solo una vez.
   // Normalmente el empleado no debe teclearlo en cobro, pero lo dejamos
-  // para no bloquear casos de abonos/rectificativas si algún campo lo necesitara.
+  // para no bloquear casos de abonos/rectificativas si algÃºn campo lo necesitara.
   if Key = '-' then
   begin
     if (E <> nil) and (E.SelStart = 0) and (Pos('-', S) = 0) then Exit;
@@ -717,26 +835,26 @@ begin
     Exit;
   end;
 
-  // Bloquear cualquier otro carácter
+  // Bloquear cualquier otro carÃ¡cter
   Key := #0;
 end;
 
 // === [Paso 1] Utilidades de registro y manejo de errores (no intrusivas) ===
 // ============================================================================
-// Control de valores numéricos (anti-desbordes / lector de códigos de barras)
+// Control de valores numÃ©ricos (anti-desbordes / lector de cÃ³digos de barras)
 // ----------------------------------------------------------------------------
-// Problema típico: al pasar un EAN en un campo numérico (unidades / importe / total),
-// el valor se convierte en un número enorme y puede provocar overflows/Inf o
-// cálculos absurdos al totalizar.
+// Problema tÃ­pico: al pasar un EAN en un campo numÃ©rico (unidades / importe / total),
+// el valor se convierte en un nÃºmero enorme y puede provocar overflows/Inf o
+// cÃ¡lculos absurdos al totalizar.
 // Estas rutinas validan longitud, formato y rangos antes de usar StrToFloat.
-// Ajusta los máximos si tu operativa necesita valores mayores.
+// Ajusta los mÃ¡ximos si tu operativa necesita valores mayores.
 // ============================================================================
 const
-  VF_MAX_INPUTLEN = 20;          // longitud máxima admitida en campos numéricos (anti-EAN)
-  VF_MAX_QTY      = 100000.0;    // unidades máximas por línea
-  VF_MAX_PRICE    = 1000000.0;   // precio máximo (PVP / precio sin IVA)
-  VF_MAX_AMOUNT   = 1000000000.0;// importe máximo por línea
-  VF_MAX_TOTAL    = 1000000000000.0; // total máximo del ticket (suma)
+  VF_MAX_INPUTLEN = 20;          // longitud mÃ¡xima admitida en campos numÃ©ricos (anti-EAN)
+  VF_MAX_QTY      = 100000.0;    // unidades mÃ¡ximas por lÃ­nea
+  VF_MAX_PRICE    = 1000000.0;   // precio mÃ¡ximo (PVP / precio sin IVA)
+  VF_MAX_AMOUNT   = 1000000000.0;// importe mÃ¡ximo por lÃ­nea
+  VF_MAX_TOTAL    = 1000000000000.0; // total mÃ¡ximo del ticket (suma)
 
 function VF_NormalizaNumero(const S: string): string;
 var
@@ -762,7 +880,7 @@ begin
   V := 0;
   SS := VF_NormalizaNumero(Trim(S));
 
-  // Anti-lector: si alguien pasa un EAN de 13-14 dígitos (o más) en un campo numérico,
+  // Anti-lector: si alguien pasa un EAN de 13-14 dÃ­gitos (o mÃ¡s) en un campo numÃ©rico,
   // lo rechazamos por longitud.
   if (SS = '') then Exit(False);
   if Length(SS) > VF_MAX_INPUTLEN then Exit(False);
@@ -779,7 +897,7 @@ end;
 
 function VF_SafeMul(const A, B, MaxAbs: Double; out R: Double): Boolean;
 begin
-  // Evita overflow/Inf por multiplicación antes de formatear
+  // Evita overflow/Inf por multiplicaciÃ³n antes de formatear
   R := 0;
   if (A = 0) or (B = 0) then begin R := 0; Exit(True); end;
   if (Abs(A) > MaxAbs) or (Abs(B) > MaxAbs) then Exit(False);
@@ -791,29 +909,29 @@ end;
 procedure VF_NumError(const Campo, Valor: string);
 begin
   FLX_Beep(skError);
-  ShowMessage('Valor no válido o demasiado grande en "'+Campo+'": '+Valor);
+  ShowMessage('Valor no vÃ¡lido o demasiado grande en "'+Campo+'": '+Valor);
 end;
 
 
 { TFVentas }
 
-//------------------ Configuración segura de controles de cobro ------------------
+//------------------ ConfiguraciÃ³n segura de controles de cobro ------------------
 procedure TFVentas.VF_ConfigurarControlesCobro;
 begin
-  // Forma de pago: solo selección de la lista, no escritura manual.
+  // Forma de pago: solo selecciÃ³n de la lista, no escritura manual.
   Combo2.Style := csDropDownList;
   if (Combo2.ItemIndex < 0) and (Combo2.Items.Count > 0) then
     Combo2.ItemIndex := 0;
 
-  // Campos numéricos del panel de cobro/totalizar.
+  // Campos numÃ©ricos del panel de cobro/totalizar.
   Edit12.OnKeyPress := @VF_FilterNumericKeyPress; // Importe
   Edit13.OnKeyPress := @VF_FilterNumericKeyPress; // Descuento
   Edit14.OnKeyPress := @VF_FilterNumericKeyPress; // Total
   Edit15.OnKeyPress := @VF_FilterNumericKeyPress; // Entrega
-  Edit16.OnKeyPress := @VF_FilterNumericKeyPress; // Cambio / crédito
+  Edit16.OnKeyPress := @VF_FilterNumericKeyPress; // Cambio / crÃ©dito
   Edit42.OnKeyPress := @VF_FilterNumericKeyPress; // Contado / puntos
 
-  // El cambio/crédito lo calcula el programa. Evita que se borre o se escriba a mano.
+  // El cambio/crÃ©dito lo calcula el programa. Evita que se borre o se escriba a mano.
   Edit16.ReadOnly := True;
 end;
 
@@ -842,8 +960,8 @@ var
 begin
   Result := False;
 
-  // Si por cualquier motivo la forma de pago quedase sin selección válida,
-  // volvemos a la primera opción, que en esta pantalla se inicializa como CONTADO.
+  // Si por cualquier motivo la forma de pago quedase sin selecciÃ³n vÃ¡lida,
+  // volvemos a la primera opciÃ³n, que en esta pantalla se inicializa como CONTADO.
   if (Combo2.ItemIndex < 0) and (Combo2.Items.Count > 0) then
     Combo2.ItemIndex := 0;
 
@@ -858,7 +976,7 @@ begin
       Edit15.Text := '0.00';
   end;
   if Trim(Edit42.Text) = '' then Edit42.Text := '0.00';     // Contado / puntos
-  if Trim(Edit16.Text) = '' then Edit16.Text := '0.00';     // Cambio / crédito
+  if Trim(Edit16.Text) = '' then Edit16.Text := '0.00';     // Cambio / crÃ©dito
 
   if not LeerImporte(Edit12, 'IMPORTE', VF_MAX_TOTAL, VImporte) then Exit;
   if not LeerImporte(Edit13, 'DESCUENTO', VF_MAX_TOTAL, VDto) then Exit;
@@ -960,13 +1078,13 @@ end;
 
 
 // ===============================================================
-// === Veri*Factu: Ejecución ASYNC (sin bloquear el hilo de UI)  ===
+// === Veri*Factu: EjecuciÃ³n ASYNC (sin bloquear el hilo de UI)  ===
 // ===============================================================
 //
-//  - Implementación profesional: TThread clásico (compatible objfpc/FPC 3.2.x)
+//  - ImplementaciÃ³n profesional: TThread clÃ¡sico (compatible objfpc/FPC 3.2.x)
 //  - No toca UI desde el hilo secundario
-//  - Copia parámetros a campos del hilo (seguro)
-//  - Mantiene la llamada original a VeriFactu_QueueFactura sin modificar lógica
+//  - Copia parÃ¡metros a campos del hilo (seguro)
+//  - Mantiene la llamada original a VeriFactu_QueueFactura sin modificar lÃ³gica
 //
 type
   TVFQueueFacturaThread = class(TThread)
@@ -1011,7 +1129,7 @@ begin
   except
     on E: Exception do
     begin
-      // Nunca ShowMessage aquí (hilo secundario)
+      // Nunca ShowMessage aquÃ­ (hilo secundario)
       try
         FLX_WriteLog('VENTAS', 'VeriFactu_QueueFactura THREAD ERROR: ' + E.Message);
       except
@@ -1031,8 +1149,8 @@ begin
 end;
 
 
-// --- Medición simple de tiempos (para detectar cuellos de botella al totalizar) ---
-// No altera la lógica: solo escribe marcas en el log si uFLX_Log está disponible.
+// --- MediciÃ³n simple de tiempos (para detectar cuellos de botella al totalizar) ---
+// No altera la lÃ³gica: solo escribe marcas en el log si uFLX_Log estÃ¡ disponible.
 const
   VF_PERF_MIN_MS = 300; // ms
 
@@ -1080,8 +1198,8 @@ end;
 
 
 // -----------------------------------------------------------------------------
-// Rectificativas: análisis rápido de signos en dbVentas.
-// No hace SQL ni toca tablas. Solo se usa al FINALIZAR la operación, antes de
+// Rectificativas: anÃ¡lisis rÃ¡pido de signos en dbVentas.
+// No hace SQL ni toca tablas. Solo se usa al FINALIZAR la operaciÃ³n, antes de
 // numerar, para no ralentizar la venta normal.
 // -----------------------------------------------------------------------------
 
@@ -1156,13 +1274,13 @@ end;
 
 function TFVentas.VF_BloquearOperacionMixtaRectif: Boolean;
 begin
-  // Compatibilidad: se mantiene por si algún flujo decide bloquear explícitamente.
+  // Compatibilidad: se mantiene por si algÃºn flujo decide bloquear explÃ­citamente.
   Result := False;
   FLX_Beep(skError);
   ShowMessage(
-    'La operación contiene líneas negativas y positivas.' + LineEnding +
+    'La operaciÃ³n contiene lÃ­neas negativas y positivas.' + LineEnding +
     LineEnding +
-    'No se generará un documento fiscal mixto.'
+    'No se generarÃ¡ un documento fiscal mixto.'
   );
   Result := True;
 end;
@@ -1172,11 +1290,11 @@ var
   TicketActual, TicketNuevo: Integer;
   SQLTxt: string;
 begin
-  VF_LogMixta('SEPARAR_START', 'Inicio separación negativas/positivas');
-  // Paso seguro de separación:
-  // - deja en el ticket actual SOLO las líneas negativas para cerrar la rectificativa.
-  // - mueve las líneas positivas a un ticket nuevo abierto para cerrarlo como venta normal.
-  // No genera todavía el segundo documento automáticamente; evita tocar caja/pagos en este paso.
+  VF_LogMixta('SEPARAR_START', 'Inicio separaciÃ³n negativas/positivas');
+  // Paso seguro de separaciÃ³n:
+  // - deja en el ticket actual SOLO las lÃ­neas negativas para cerrar la rectificativa.
+  // - mueve las lÃ­neas positivas a un ticket nuevo abierto para cerrarlo como venta normal.
+  // No genera todavÃ­a el segundo documento automÃ¡ticamente; evita tocar caja/pagos en este paso.
   Result := False;
   VF_MixtaTotalRectif := 0;
   VF_MixtaTotalPositiva := 0;
@@ -1186,7 +1304,7 @@ begin
   if TicketActual <= 0 then
   begin
     VF_LogMixta('ERROR', 'No se pudo identificar TicketActual');
-    ShowMessage('No se pudo identificar el ticket actual para separar la operación mixta.');
+    ShowMessage('No se pudo identificar el ticket actual para separar la operaciÃ³n mixta.');
     Exit;
   end;
 
@@ -1201,12 +1319,12 @@ begin
     on E: Exception do
     begin
       VF_LogMixta('ERROR', 'No se pudo calcular ticket positivo | ' + E.Message);
-      ShowMessage('No se pudo calcular un nuevo ticket para las líneas positivas: ' + E.Message);
+      ShowMessage('No se pudo calcular un nuevo ticket para las lÃ­neas positivas: ' + E.Message);
       Exit;
     end;
   end;
 
-  // Separación automática y silenciosa: no preguntamos ni mostramos cartel bloqueante.
+  // SeparaciÃ³n automÃ¡tica y silenciosa: no preguntamos ni mostramos cartel bloqueante.
 
   try
     VF_LogMixta('SEPARAR_TICKETS', 'ticket_negativo=' + IntToStr(TicketActual) + ' ticket_positivo=' + IntToStr(TicketNuevo));
@@ -1240,7 +1358,7 @@ begin
     dbTrabajo.SQL.Text := SQLTxt;
     dbTrabajo.ExecSQL;
 
-    // Si por cualquier edición hubiera una marca temporal de rectificación en una línea positiva,
+    // Si por cualquier ediciÃ³n hubiera una marca temporal de rectificaciÃ³n en una lÃ­nea positiva,
     // la eliminamos: la venta positiva NO forma parte de la rectificativa.
     dbTrabajo.Active := False;
     SQLTxt := 'DELETE FROM ' + VF_TablaVentasRectif +
@@ -1251,7 +1369,7 @@ begin
     dbTrabajo.SQL.Text := SQLTxt;
     dbTrabajo.ExecSQL;
 
-    // Refrescar el ticket actual, que ahora debe contener solo líneas negativas.
+    // Refrescar el ticket actual, que ahora debe contener solo lÃ­neas negativas.
     dbVentas.Active := False;
     dbVentas.SQL.Text := 'SELECT * FROM ventas' + Tienda + Puesto + ' WHERE V0=0 AND V1=' + IntToStr(TicketActual);
     dbVentas.Active := True;
@@ -1276,15 +1394,15 @@ begin
         VF_LogMixta('ERROR', 'fase=separando | ' + E.Message);
       except
       end;
-      ShowMessage('No se pudo separar la operación mixta: ' + E.Message);
+      ShowMessage('No se pudo separar la operaciÃ³n mixta: ' + E.Message);
     end;
   end;
 end;
 
 
 // -----------------------------------------------------------------------------
-// MIXTA: cargar automáticamente la venta positiva pendiente tras cerrar la
-// rectificativa. IMPORTANTE: no la cierra todavía; solo la deja en pantalla y
+// MIXTA: cargar automÃ¡ticamente la venta positiva pendiente tras cerrar la
+// rectificativa. IMPORTANTE: no la cierra todavÃ­a; solo la deja en pantalla y
 // lista para que el cierre normal del programa calcule IVA/caja/pago sin duplicar.
 // -----------------------------------------------------------------------------
 function TFVentas.VF_CerrarPositivaMixtaPendiente(const AModoCierre: string): Boolean;
@@ -1297,7 +1415,7 @@ begin
   if LTicketPos <= 0 then Exit;
 
   // Muy importante: ponerlo a 0 ANTES de lanzar el segundo cierre para evitar
-  // reentradas o que se repita la rectificativa si algo falla después.
+  // reentradas o que se repita la rectificativa si algo falla despuÃ©s.
   VF_MixtaTicketPosPendiente := 0;
   LModo := UpperCase(Trim(AModoCierre));
   VF_LogMixta('POSITIVA_AUTO_START', 'ticket_positivo=' + IntToStr(LTicketPos) + ' modo=' + LModo);
@@ -1312,7 +1430,7 @@ begin
     if dbVentas.RecordCount = 0 then
     begin
       VF_LogMixta('POSITIVA_AUTO_ABORT', 'ticket positivo sin lineas');
-      Exit(True); // la rectificativa ya se cerró; no repetir nada
+      Exit(True); // la rectificativa ya se cerrÃ³; no repetir nada
     end;
 
     if dbVentas.FieldByName('V12').AsInteger <> 0 then
@@ -1328,9 +1446,9 @@ begin
     VF_LogMixta('RECTIFICATIVA_CERRADA', 'la parte negativa ya ha seguido el cierre normal');
     VF_LogMixta('POSITIVA_AUTO_CARGADA', 'ticket=' + TICKET + ' se cierra ahora con el flujo normal');
 
-    // Reutilizamos los cierres existentes. No grabamos IVA/caja/histórico/VeriFactu a mano.
-    // Así se mantiene la lógica actual de FacturLinEx: forma de pago, caja, estadísticas,
-    // impresión y encolado de Hacienda los hace el mismo cierre normal.
+    // Reutilizamos los cierres existentes. No grabamos IVA/caja/histÃ³rico/VeriFactu a mano.
+    // AsÃ­ se mantiene la lÃ³gica actual de FacturLinEx: forma de pago, caja, estadÃ­sticas,
+    // impresiÃ³n y encolado de Hacienda los hace el mismo cierre normal.
     if LModo = 'NS' then
       BitBtn10Click(BitBtn10)
     else if LModo = 'NT' then
@@ -1340,7 +1458,7 @@ begin
     else
     begin
       VF_LogMixta('POSITIVA_AUTO_ERROR', 'modo cierre desconocido=' + LModo + '; queda cargada en pantalla');
-      ShowMessage('La rectificativa se cerró, pero no se pudo cerrar automáticamente la venta positiva porque el modo no es válido: ' + LModo);
+      ShowMessage('La rectificativa se cerrÃ³, pero no se pudo cerrar automÃ¡ticamente la venta positiva porque el modo no es vÃ¡lido: ' + LModo);
       Exit(True);
     end;
 
@@ -1361,7 +1479,7 @@ begin
     on E: Exception do
     begin
       VF_LogMixta('POSITIVA_AUTO_ERROR', E.Message);
-      ShowMessage('La rectificativa se cerró, pero no se pudo finalizar automáticamente la venta positiva.' + LineEnding +
+      ShowMessage('La rectificativa se cerrÃ³, pero no se pudo finalizar automÃ¡ticamente la venta positiva.' + LineEnding +
                   'La venta positiva queda cargada para revisarla y cerrarla manualmente.' + LineEnding +
                   E.Message);
       Result := True; // evita abrir ticket nuevo o repetir la rectificativa
@@ -1389,8 +1507,8 @@ begin
   except
     on E: Exception do
     begin
-      // No bloqueamos ventas si la tabla aún no existe o hay un problema puntual.
-      // La validación fuerte se hará al grabar la rectificativa.
+      // No bloqueamos ventas si la tabla aÃºn no existe o hay un problema puntual.
+      // La validaciÃ³n fuerte se harÃ¡ al grabar la rectificativa.
       try
         FLX_WriteLog('VENTAS', 'RECTIF TEMP: no se pudo limpiar ' + VF_TablaVentasRectif + ' | ' + E.Message);
       except
@@ -1412,7 +1530,7 @@ begin
   except
     on E: Exception do
       try
-        FLX_WriteLog('VENTAS', 'RECTIF TEMP: no se pudo borrar l�nea ' +
+        FLX_WriteLog('VENTAS', 'RECTIF TEMP: no se pudo borrar lï¿½nea ' +
           IntToStr(ALineaVenta) + ' en ' + VF_TablaVentasRectif + ' | ' + E.Message);
       except
       end;
@@ -1426,8 +1544,8 @@ procedure TFVentas.VF_RegistrarLineaRectifTemporal(const AOrigTipo: string;
 var
   LLineaVenta: Integer;
 begin
-  // Paso 3: guardar el origen de una l�nea recuperada desde hist�rico para rectificar.
-  // Esta rutina NO se llama en ventas normales, solo desde el flujo de recuperaci�n/rectificaci�n.
+  // Paso 3: guardar el origen de una lï¿½nea recuperada desde histï¿½rico para rectificar.
+  // Esta rutina NO se llama en ventas normales, solo desde el flujo de recuperaciï¿½n/rectificaciï¿½n.
   if (dbVentas = nil) or (not dbVentas.Active) or (dbVentas.RecordCount = 0) then Exit;
 
   LLineaVenta := dbVentas.FieldByName('V2').AsInteger;
@@ -1458,12 +1576,12 @@ begin
     on E: Exception do
       begin
         try
-          FLX_WriteLog('VENTAS', 'RECTIF TEMP: no se pudo registrar origen l�nea V2=' +
+          FLX_WriteLog('VENTAS', 'RECTIF TEMP: no se pudo registrar origen lï¿½nea V2=' +
             IntToStr(LLineaVenta) + ' en ' + VF_TablaVentasRectif + ' | ' + E.Message);
         except
         end;
         DataModule1.Mensaje('AVISO',
-          'No se pudo registrar el origen de la l�nea rectificativa. Revise la tabla ' +
+          'No se pudo registrar el origen de la lï¿½nea rectificativa. Revise la tabla ' +
           VF_TablaVentasRectif, 3500, clGray);
       end;
   end;
@@ -1473,8 +1591,8 @@ end;
 
 procedure TFVentas.VF_RegistrarLineasRectifTemporalBulk(const AValuesSQL: string);
 begin
-  // Alta masiva de origen de líneas rectificativas.
-  // Evita un ExecSQL por cada línea al clonar desde histórico con multiplicador -1.
+  // Alta masiva de origen de lÃ­neas rectificativas.
+  // Evita un ExecSQL por cada lÃ­nea al clonar desde histÃ³rico con multiplicador -1.
   if Trim(AValuesSQL) = '' then Exit;
 
   try
@@ -1495,7 +1613,7 @@ begin
       except
       end;
       DataModule1.Mensaje('AVISO',
-        'No se pudo registrar el origen de las líneas rectificativas. Revise la tabla ' +
+        'No se pudo registrar el origen de las lÃ­neas rectificativas. Revise la tabla ' +
         VF_TablaVentasRectif, 3500, clGray);
     end;
   end;
@@ -1511,8 +1629,8 @@ var
   NumMin, NumMax: Integer;
   LTicketRectif: Integer;
 begin
-  // Recupera automáticamente la referencia de la factura/ticket original cuando
-  // las líneas negativas vienen desde Histórico y fueron registradas en
+  // Recupera automÃ¡ticamente la referencia de la factura/ticket original cuando
+  // las lÃ­neas negativas vienen desde HistÃ³rico y fueron registradas en
   // ventasrectif+Tienda+Puesto. No se usa en venta normal.
   Result := False;
   ARectifTag := '';
@@ -1614,7 +1732,7 @@ begin
     begin
       Result := False;
       try
-        FLX_WriteLog('VENTAS', 'RECTIF TEMP: no se pudo recuperar referencia automática desde ' +
+        FLX_WriteLog('VENTAS', 'RECTIF TEMP: no se pudo recuperar referencia automÃ¡tica desde ' +
           VF_TablaVentasRectif + ' | ' + E.Message);
       except
       end;
@@ -1664,10 +1782,10 @@ begin
       if QtyReq > (Saldo + 0.0001) then
       begin
         InfoLinea := 'Serie ' + dbTrabajo.FieldByName('VR_ORIG_SERIE').AsString +
-          ' Nº ' + dbTrabajo.FieldByName('VR_ORIG_NUMERO').AsString +
-          ' Línea ' + dbTrabajo.FieldByName('VR_ORIG_LINEA').AsString;
+          ' NÂº ' + dbTrabajo.FieldByName('VR_ORIG_NUMERO').AsString +
+          ' LÃ­nea ' + dbTrabajo.FieldByName('VR_ORIG_LINEA').AsString;
         MessageDlg('Control de rectificativas',
-          'No se puede rectificar de nuevo esta línea.' + LineEnding + LineEnding +
+          'No se puede rectificar de nuevo esta lÃ­nea.' + LineEnding + LineEnding +
           InfoLinea + LineEnding +
           'Cantidad original: ' + FormatFloat('0.###', QtyOrig) + LineEnding +
           'Ya rectificada: ' + FormatFloat('0.###', QtyYa) + LineEnding +
@@ -1690,7 +1808,7 @@ begin
       except
       end;
       DataModule1.Mensaje('AVISO',
-        'No se pudo validar el saldo rectificable. No se cerrará la operación para evitar duplicados.',
+        'No se pudo validar el saldo rectificable. No se cerrarÃ¡ la operaciÃ³n para evitar duplicados.',
         5000, clGray);
     end;
   end;
@@ -1739,7 +1857,7 @@ begin
        (dbTrabajo.FieldByName('NMIN').AsInteger <> dbTrabajo.FieldByName('NMAX').AsInteger) then
     begin
       DataModule1.Mensaje('AVISO',
-        'No se registró el control definitivo de rectificación porque hay líneas de más de un documento origen.',
+        'No se registrÃ³ el control definitivo de rectificaciÃ³n porque hay lÃ­neas de mÃ¡s de un documento origen.',
         5000, clGray);
       Exit;
     end;
@@ -1822,7 +1940,7 @@ begin
       except
       end;
       DataModule1.Mensaje('AVISO',
-        'La factura se ha generado, pero no se pudo registrar el control interno de rectificación. Revise rectifcab/rectiflin.',
+        'La factura se ha generado, pero no se pudo registrar el control interno de rectificaciÃ³n. Revise rectifcab/rectiflin.',
         6000, clGray);
     end;
   end;
@@ -1836,14 +1954,14 @@ begin
   Result := False;
   S := Trim(VF_RectifMotivoHold);
   if S = '' then
-    S := 'Devoluci�n / rectificaci�n de venta';
+    S := 'Devolución / rectificación de venta';
 
-  if not InputQuery('Factura rectificativa', 'Motivo de la rectificaci�n:', S) then
+  if not InputQuery('Factura rectificativa', 'Motivo de la rectificación:', S) then
     Exit;
 
   S := Trim(S);
   if S = '' then
-    S := 'Rectificaci�n de venta';
+    S := 'Rectificación de venta';
 
   AMotivo := Copy(S, 1, 255);
   Result := True;
@@ -1869,8 +1987,8 @@ begin
   OSerie := Trim(UpperCase(AOrigSerie));
 
   // IMPORTANTE:
-  // En histórico las facturas simplificadas/tickets NO llevan prefijo FS- en HO4.
-  // Ejemplo real histórico: HO4=A26 / B26 / X26 y HO5=NT o NS.
+  // En histÃ³rico las facturas simplificadas/tickets NO llevan prefijo FS- en HO4.
+  // Ejemplo real histÃ³rico: HO4=A26 / B26 / X26 y HO5=NT o NS.
   // El prefijo FS- solo se usa para control/VeriFactu, no para buscar en hisopcc/hisopdd.
   if AOrigIsFS then
   begin
@@ -1912,7 +2030,7 @@ begin
   end;
 
   try
-    // 1) Resolver cabecera original en histórico con serie/número/tipo y, si existe, cliente/NIF.
+    // 1) Resolver cabecera original en histÃ³rico con serie/nÃºmero/tipo y, si existe, cliente/NIF.
     dbTrabajo.Active := False;
     dbTrabajo.SQL.Text :=
       'SELECT HO0,HO1,HO2,HO3,HO4,HO5,HO8,HO19 FROM hisopcc' + Tienda +
@@ -1925,9 +2043,9 @@ begin
     if dbTrabajo.IsEmpty then
     begin
       DataModule1.Mensaje('AVISO',
-        'No se encontró en histórico la factura/ticket origen indicado.' + LineEnding +
-        'Serie buscada en histórico: ' + OSerie + '  Número: ' + IntToStr(ONum) + LineEnding +
-        'Recuerde: en histórico los tickets se buscan como A26/B26/X26 y HO5=NT o NS, nunca como FS-A26.',
+        'No se encontrÃ³ en histÃ³rico la factura/ticket origen indicado.' + LineEnding +
+        'Serie buscada en histÃ³rico: ' + OSerie + '  NÃºmero: ' + IntToStr(ONum) + LineEnding +
+        'Recuerde: en histÃ³rico los tickets se buscan como A26/B26/X26 y HO5=NT o NS, nunca como FS-A26.',
         5000, clGray);
       Exit;
     end;
@@ -1939,7 +2057,7 @@ begin
     OFechaStr := FormatDateTime('yyyy-mm-dd', OFechaDT);
     OHoraStr := FormatDateTime('hh:nn:ss', OHoraDT);
 
-    // 2) Limpiar posibles temporales anteriores de este ticket y reconstruirlos desde las líneas negativas actuales.
+    // 2) Limpiar posibles temporales anteriores de este ticket y reconstruirlos desde las lÃ­neas negativas actuales.
     dbTrabajo.Active := False;
     dbTrabajo.SQL.Text := 'DELETE FROM ' + VF_TablaVentasRectif + ' WHERE VR_TICKET=' + IntToStr(LTicket);
     dbTrabajo.ExecSQL;
@@ -2019,7 +2137,7 @@ begin
           if OLinea <= 0 then
           begin
             MessageDlg('Control de rectificativas',
-              'No hay saldo suficiente para rectificar el artículo:' + LineEnding + LineEnding +
+              'No hay saldo suficiente para rectificar el artÃ­culo:' + LineEnding + LineEnding +
               CodArt + ' - ' + DescArt + LineEnding +
               'Cantidad solicitada: ' + FormatFloat('0.###', QtyReq) + LineEnding +
               'Factura origen: ' + OSerie + '-' + IntToStr(ONum),
@@ -2075,7 +2193,7 @@ begin
       end;
       DataModule1.Mensaje('AVISO',
         'No se pudo preparar el control interno de la rectificativa manual.' + LineEnding +
-        'No se cerrará para evitar duplicados.' + LineEnding + E.Message,
+        'No se cerrarÃ¡ para evitar duplicados.' + LineEnding + E.Message,
         7000, clGray);
       Result := False;
     end;
@@ -2105,7 +2223,7 @@ begin
     if Assigned(FVentas) then
       FVentas.VerSerieFacturacion
     else
-      Exit(''); // por seguridad, si no está creado el formulario
+      Exit(''); // por seguridad, si no estÃ¡ creado el formulario
   end;
 
   Result := SERIEFACT;
@@ -2158,7 +2276,7 @@ begin
   Codigo := Trim(ACodigo);
   if Codigo = '' then Exit;
 
-  // Muy importante: la línea del ticket puede venir con EA/código auxiliar,
+  // Muy importante: la lÃ­nea del ticket puede venir con EA/cÃ³digo auxiliar,
   // mientras que la promo puede estar guardada con A0 o con otro auxiliar.
   CodigoPrincipal := ResolveArticuloPrincipal(dbArti.Connection, Tienda, Codigo);
   if CodigoPrincipal = '' then
@@ -2290,7 +2408,7 @@ FEdit6StyleNormal := Edit6.Font.Style;
 
 LblPromoActiva := TLabel.Create(Self);
 LblPromoActiva.Parent := Self;
-LblPromoActiva.Caption := 'ARTÍCULO EN PROMOCIÓN';
+LblPromoActiva.Caption := 'ARTÃCULO EN PROMOCIÃN';
 LblPromoActiva.Font.Color := clGreen;
 LblPromoActiva.Font.Style := [fsBold];
 LblPromoActiva.AutoSize := True;
@@ -2316,14 +2434,14 @@ LblPromoActiva.Top := Edit6.Top + 4;
   VF_PosicionarBotonBuscarAbono;
 
   //--------- Conectar con la bbdd e inicializar datos globales
-  //Conectate(dbConnect);   // Utilizamos datamodule1.dbConexión para toda la aplicación.
+  //Conectate(dbConnect);   // Utilizamos datamodule1.dbConexiÃ³n para toda la aplicaciÃ³n.
   //--------- Cargar Tabla de usuarios -------------
   dbUsu.Active:=False;
   dbUsu.Sql.Text:='SELECT * FROM usuarios'+Tienda+' ORDER BY USU1';
   dbUsu.Active:=True;
   if dbUsu.RecordCount=0 then
    begin
-     DataModule1.Mensaje('Información','No hay usuarios creados', 3000 , clGray);
+     DataModule1.Mensaje('InformaciÃ³n','No hay usuarios creados', 3000 , clGray);
 //     ShowMessage('NO TIENE USUARIOS CREADOS, PRIMERO DEBE CREARLOS');
      Close;
      exit;
@@ -2341,6 +2459,8 @@ LblPromoActiva.Top := Edit6.Top + 4;
   dbVentas.Active:=False;
   dbVentas.SQL.Text:='SELECT * FROM ventas'+Tienda+Puesto+' WHERE V0=0 AND V1='+TICKET;
   dbVentas.Active:=True;
+  if Assigned(dbVentas.FindField('V4')) and (dbVentas.FieldByName('V4').Size > 0) then
+    Edit4.MaxLength := dbVentas.FieldByName('V4').Size;
   //--------- Ver si hay lineas de venta de algun cliente para seleccionarlo
   if dbVentas.RecordCount<>0 then
     begin
@@ -2358,7 +2478,7 @@ LblPromoActiva.Top := Edit6.Top + 4;
   T1 := VF_TickMS;
   VerSerieFacturacion();//---- Ver la serie de facturacion por def
   VF_LogPerf('TOTALIZAR: VerSerieFacturacion', T1);
-  LeerNumeroTicketActual();//--- NO consumir SF4 aquí (solo previsualización)
+  LeerNumeroTicketActual();//--- NO consumir SF4 aquÃ­ (solo previsualizaciÃ³n)
   VF_LogInfo('QR preview: SF4 actual=' + IntToStr(NOPERACION) + ' (no consumido)');
 
   if VF_EsModoProduccion then
@@ -2517,7 +2637,7 @@ begin
     end;
 
     AForm.dbVentas.FieldByName('V3').AsString := R.Codigo;
-    AForm.dbVentas.FieldByName('V4').AsString := R.Descripcion;
+    AForm.dbVentas.FieldByName('V4').AsString := FLX_LimpiarDescripcionVenta(R.Descripcion, FLX_FieldTextMax(AForm.dbVentas, 'V4', 100));
     AForm.dbVentas.FieldByName('V5').AsFloat := -Abs(QtyUsar);
     AForm.dbVentas.FieldByName('V6').AsFloat := R.PVP;
     AForm.dbVentas.FieldByName('V7').AsFloat := R.PrecioSinIVA;
@@ -2605,12 +2725,12 @@ begin
 
   PintarTotalGeneral;
 
-  // v1.8: no refrescamos tickets abiertos ni revalidamos saldos aquí.
-  // Esa doble comprobación se mantiene al totalizar/cerrar la venta, que es el punto crítico.
-  // Evitamos varios SELECT/Refresh síncronos justo al aceptar el origen del abono.
-  DataModule1.Mensaje('Informacion',
-    'Origen de abono preparado: ' + R.OrigTipo + ' ' + R.OrigSerie + '-' +
-    IntToStr(R.OrigNumero), 3500, clGray);
+  // v1.9: no refrescamos tickets abiertos ni revalidamos saldos aquÃ­.
+  // Esa doble comprobaciÃ³n se mantiene al totalizar/cerrar la venta, que es el punto crÃ­tico.
+  // Evitamos varios SELECT/Refresh sÃ­ncronos justo al aceptar el origen del abono.
+  // v1.9: quitamos el cartel temporizado porque en algunas instalaciones
+  // DataModule1.Mensaje puede bloquear la interfaz durante los milisegundos indicados.
+  // El origen queda registrado igualmente; la validacion definitiva se hace al totalizar.
 
   try
     if Assigned(BitBtn14) and BitBtn14.Visible and BitBtn14.Enabled and BitBtn14.CanFocus then
@@ -2623,7 +2743,7 @@ end;
 
 
 //**************************************************************************
-//**   Busca precios del artículo en el histórico de clientes/ Artículos  **
+//**   Busca precios del artÃ­culo en el histÃ³rico de clientes/ ArtÃ­culos  **
 //**************************************************************************
 
 procedure TFVentas.btHistoricosClick(Sender: TObject);
@@ -2635,19 +2755,19 @@ begin
  if edit3.TEXT<>'' then
    codigo := edit3.Text
    else begin
-     showmessage('Falta código de artículo ');
+     showmessage('Falta cÃ³digo de artÃ­culo ');
      exit;
    end;
 
  case cbHistoricos.ItemIndex of
       0:inutil:=FBusquedas.IniciaBusquedas('SELECT HC0, HC1, HC8, HC9, HC4, CONVERT(HC5 USING UTF8), HC6, (HC7/HC6) as Precio FROM histoclie WHERE HC0='+Edit1.Text
-                        , ['Cliente','Fecha','Serie','Número','Código','Descripción','Und','Precio'],'HC1');
+                        , ['Cliente','Fecha','Serie','NÃºmero','CÃ³digo','DescripciÃ³n','Und','Precio'],'HC1');
 
        1:inutil:=FBusquedas.IniciaBusquedas('SELECT HOD6, CONVERT(HOD7 USING UTF8), HOD8, HOD9,HOD11,HOD4, HOD3 FROM hisopdd'+Tienda+
                ' WHERE HOD6="'+codigo+'"', ['CODIGO','DESCRIPCION','CANTIDAD','PRECIO','DCT%','SERIE','NUMERO'],'HOD6');
 
       2:inutil:=FBusquedas.IniciaBusquedas('SELECT HC0, HC1, HC8, HC9, HC4, CONVERT(HC5 USING UTF8), HC6, (HC7/HC6) as Precio FROM histoclie '+
-               ' WHERE HC0='+ Edit1.Text + ' and HC4="' + codigo + '"', ['Cliente','Fecha','Serie','Número','Código','Descripción','Und','Precio'],'HC1');
+               ' WHERE HC0='+ Edit1.Text + ' and HC4="' + codigo + '"', ['Cliente','Fecha','Serie','NÃºmero','CÃ³digo','DescripciÃ³n','Und','Precio'],'HC1');
 
  end;
 
@@ -2750,12 +2870,12 @@ end;
 //====================== BUSCAR CLIENTES ======================
 procedure TFVentas.BitBtn1Click(Sender: TObject);
 begin
-  if Edit2.Text='' then begin      DataModule1.Mensaje('Información','Teclear texto a buscar', 2000 , clGray);  Edit2.SetFocus; Exit; end;
+  if Edit2.Text='' then begin      DataModule1.Mensaje('InformaciÃ³n','Teclear texto a buscar', 2000 , clGray);  Edit2.SetFocus; Exit; end;
   Combo1.Clear; Combo1.Text:='';
   dbBusca.SQL.Text:='SELECT C0,C1 FROM clientes WHERE C1 LIKE "'+Edit2.Text+'%"'; dbBusca.Active:=True;
   if dbBusca.RecordCount=0 then
     begin
-      DataModule1.Mensaje('Información','No hay clientes con ese comienzo', 2000 , clGray);
+      DataModule1.Mensaje('InformaciÃ³n','No hay clientes con ese comienzo', 2000 , clGray);
       dbBusca.Active:=False; Edit2.SetFocus; Exit;
     end;
   dbBusca.First;
@@ -2796,7 +2916,7 @@ begin
       if Edit3.Text='' then exit;//---- Si no hay articulo
       if LeerArticulo=False then
         if LeerAuxiliar=False then
-           begin FLX_Beep(skError);      DataModule1.Mensaje('Información','No existe ese artículo', 1500 , clGray); Edit3.SetFocus; exit; end;
+           begin FLX_Beep(skError);      DataModule1.Mensaje('InformaciÃ³n','No existe ese artÃ­culo', 1500 , clGray); Edit3.SetFocus; exit; end;
       VerTarifas();
     end;
   if key=VK_ESCAPE then BitBtn7Click(Self);
@@ -2821,7 +2941,7 @@ begin
     Edit3.Text:='9999999999999';
     PanelCodigoVario.Visible:=True;
     if StrTofloat(Edit5.Text)=0 then Edit5.Text:='1';                                  // Cantidad.
-    Edit41.Text:=dbBusca.FieldByName('A1').AsString;  // Descripción.
+    Edit41.Text:=dbBusca.FieldByName('A1').AsString;  // DescripciÃ³n.
     Edit41.SetFocus;
     Edit10.Text:=dbBusca.FieldByName('A3').AsString;  // IVA.
     if StrTofloat(Edit6.Text)=0 then Edit6.Text:= dbBusca.FieldByName('A2').AsString;  // Precio.
@@ -2838,7 +2958,7 @@ begin
              FLX_Beep(skError);
              while UpperCase(textoaprobacion)<>'C' do
                begin
-                    textoaprobacion:=InputBox('Información - No existe ese artículo','Pulse C para aceptar y continuar','');
+                    textoaprobacion:=InputBox('InformaciÃ³n - No existe ese artÃ­culo','Pulse C para aceptar y continuar','');
                end;
              if UpperCase(textoaprobacion)='C' then Edit3.Text:='';
              Edit3.SetFocus;
@@ -2947,7 +3067,7 @@ begin
  fichero:='';
  if FileExists(RutaIni+'BorraDatos_'+FormatDateTime('YYYYMM',(Date-93))+'.txt' ) then
    begin
-     //-- borrado del fichero de hace 63 días
+     //-- borrado del fichero de hace 63 dÃ­as
      fichero:=(RutaIni+'BorraDatos_'+FormatDateTime('YYYYMM',(Date-93))+'.txt' );
      DeleteFile(fichero);
    end;
@@ -2999,7 +3119,7 @@ end;
 
 procedure TFVentas.BitBtn5Click(Sender: TObject);
 begin
-  if Edit4.Text='' then begin DataModule1.Mensaje('Información','Teclee artículo a buscar', 2000 , clGray); Edit4.SetFocus; Exit; end;
+  if Edit4.Text='' then begin DataModule1.Mensaje('InformaciÃ³n','Teclee artÃ­culo a buscar', 2000 , clGray); Edit4.SetFocus; Exit; end;
   BuscaEan:=False;
   ListBox3.Items.Clear;
   dbBusca.SQL.Text:='SELECT A0,A1,A2 FROM artitien'+Tienda+' WHERE A1 LIKE "%'+Edit4.Text+'%" ORDER BY A1';
@@ -3013,8 +3133,8 @@ begin
   dbBusca.Active:=True;
   if dbBusca.RecordCount=0 then
     begin
-      DataModule1.Mensaje('Información','No hay artículos con ese concepto', 1500 , clGray);
-//      ShowMessage('NO HAY ARTÍCULOS QUE CONTENGAN ESE CONCEPTO');
+      DataModule1.Mensaje('InformaciÃ³n','No hay artÃ­culos con ese concepto', 1500 , clGray);
+//      ShowMessage('NO HAY ARTÃCULOS QUE CONTENGAN ESE CONCEPTO');
       dbBusca.Active:=False; Edit4.SetFocus; Exit;
     end;
   dbBusca.First;
@@ -3064,7 +3184,7 @@ begin
     PanelBuscaArticulos.Visible:=False;
 
   // Al ocultar el panel, algunos gestores de ventanas/LCL recolocan el foco al control anterior.
-  // Lo diferimos un ciclo para recuperar el comportamiento cl�sico: aceptar con NUEVO.
+  // Lo diferimos un ciclo para recuperar el comportamiento clásico: aceptar con NUEVO.
   Application.QueueAsyncCall(@VF_FocoBotonNuevoAsync, 0);
 end;
 
@@ -3082,6 +3202,11 @@ end;
 //================= BUSCAR ARTICULOS =============
 procedure TFVentas.Edit4KeyPress(Sender: TObject; var Key: char);
 begin
+  if FLX_DescripcionCharBloqueado(Key) then
+  begin
+    Key:=#0;
+    Exit;
+  end;
   if Key=#13 then BitBtn5Click(BitBtn5);
   if key=#27 then
     begin
@@ -3127,7 +3252,7 @@ begin
       exit;
     end;
 
-  // En ventas, si no hay unidades se asume 1 (comportamiento histórico)
+  // En ventas, si no hay unidades se asume 1 (comportamiento histÃ³rico)
   if Q=0 then Edit5.Text:='1';
 
   if HayStock=false then label40.Font.Color:=clRed;//------- No hay unidades suficientes.
@@ -3157,7 +3282,7 @@ var
 begin
   if Key <> #13 then exit;
 
-  // Al pulsar ENTER en Precio, volvemos al campo de Código para seguir introduciendo artículos.
+  // Al pulsar ENTER en Precio, volvemos al campo de CÃ³digo para seguir introduciendo artÃ­culos.
   // Guardamos/restauramos para evitar efectos colaterales de eventos de foco.
   Key := #0;
 
@@ -3165,7 +3290,7 @@ begin
   AntEdit6 := Edit6.Text;
 
   Edit6Exit(Sender);     // Validar/recalcular importes si procede
-  Edit3.SetFocus;        // Volver a Código
+  Edit3.SetFocus;        // Volver a CÃ³digo
 
   Edit5.Text := AntEdit5;
   Edit6.Text := AntEdit6;
@@ -3293,7 +3418,7 @@ var
 
   function GetTotalActual: Double;
   begin
-    if not VF_TryParseFloatBounded(Edit11.Text, 'Total línea', VF_MAX_AMOUNT, Result) then
+    if not VF_TryParseFloatBounded(Edit11.Text, 'Total lÃ­nea', VF_MAX_AMOUNT, Result) then
       Result := 0;
   end;
 
@@ -3311,17 +3436,17 @@ var
 begin
   if Trim(Edit11.Text)='' then Edit11.Text:='0';
 
-  // Validación fuerte: evita EAN en total/importe
-  if not VF_TryParseFloatBounded(Edit11.Text, 'Total línea', VF_MAX_AMOUNT, TotalObjetivo) then
+  // ValidaciÃ³n fuerte: evita EAN en total/importe
+  if not VF_TryParseFloatBounded(Edit11.Text, 'Total lÃ­nea', VF_MAX_AMOUNT, TotalObjetivo) then
     begin
-      VF_NumError('Total línea', Edit11.Text);
+      VF_NumError('Total lÃ­nea', Edit11.Text);
       Edit11.Text:='0';
       Edit11.SetFocus;
       exit;
     end;
 
-  // ====== TOTAL (F7) => calculamos DESCUENTO para que el total quede EXACTO al céntimo ======
-  // Importante: usamos el MISMO camino de cálculo y redondeos que Ventas (VerImporteEntra + VerTotalEntra).
+  // ====== TOTAL (F7) => calculamos DESCUENTO para que el total quede EXACTO al cÃ©ntimo ======
+  // Importante: usamos el MISMO camino de cÃ¡lculo y redondeos que Ventas (VerImporteEntra + VerTotalEntra).
   if not VF_TryParseFloatBounded(Edit5.Text, 'Unidades', VF_MAX_QTY, Unid) then Unid := 0;
   if not VF_TryParseFloatBounded(Edit6.Text, 'PVP', VF_MAX_PRICE, PVP) then PVP := 0;
   if not VF_TryParseFloatBounded(Edit10.Text, 'IVA %', 1000.0, IVA) then IVA := 0;
@@ -3353,7 +3478,7 @@ begin
       Exit;
     end;
 
-    // 1) Búsqueda binaria para aproximar rápido
+    // 1) BÃºsqueda binaria para aproximar rÃ¡pido
     Lo := 0; Hi := 100;
     BestDto := 0;
     BestT := Total0;
@@ -3369,7 +3494,7 @@ begin
         if (FormatFloat('0.00', BestT) = FormatFloat('0.00', TotalObjetivo)) then Break;
       end;
 
-      // Total baja cuando sube el dto (monótono)
+      // Total baja cuando sube el dto (monÃ³tono)
       if T > TotalObjetivo then
         Lo := Mid
       else
@@ -3394,7 +3519,7 @@ begin
       end;
     end;
 
-    // Último refinado +-0,01% en pasos 0,0001% si aún no cuadra
+    // Ãltimo refinado +-0,01% en pasos 0,0001% si aÃºn no cuadra
     if (FormatFloat('0.00', BestT) <> FormatFloat('0.00', TotalObjetivo)) then
     begin
       BestDto := DtoCalc;
@@ -3459,7 +3584,7 @@ begin
   VF_ConfigurarControlesCobro; // Asegura que la forma de pago no sea editable.
 
   chBoxRegalo.Checked:= false;                                                          //-- Checkbox anulado, si lo quiere, se activa
-  if TicketRegalo='S' then ChBoxRegalo.Visible:=True else ChBoxRegalo.Visible:=False;   //-- Si está activada la opción, se muestra el checbox
+  if TicketRegalo='S' then ChBoxRegalo.Visible:=True else ChBoxRegalo.Visible:=False;   //-- Si estÃ¡ activada la opciÃ³n, se muestra el checbox
 
   Label32.Font.Color:=clWindowText; Label32.Caption:='CAMBIO';
   Edit16.Font.Color:=clWindowText;
@@ -3469,7 +3594,7 @@ begin
   Label31.Caption:='ENTREGA';
   Panel4.Visible:=True;
 
- if PedirSiempreUsuario='N' then cajon();  // Abrimos cajón al totalizar
+ if PedirSiempreUsuario='N' then cajon();  // Abrimos cajÃ³n al totalizar
 
  if PedirSiempreUsuario='S' then
    begin
@@ -3496,7 +3621,7 @@ begin
   Edit42.Text:='0.00';//------------------ Contado / Puntos
   Edit16.Text:='0.00';//------------------ Cambio
 
-  // Promociones de ticket completo (2ª unidad al 50%, NxM, etc.)
+  // Promociones de ticket completo (2Âª unidad al 50%, NxM, etc.)
   try
     ApplyTicketPromosToTotalEdits(dbArti.Connection, Tienda, dbVentas,
                                   Edit1.Text, Now,
@@ -3516,8 +3641,8 @@ end;
 //----------------- Tipo de pago -----------------
 procedure TFVentas.Combo2Change(Sender: TObject);
 begin
-  // No llamamos aqu� a VF_ConfigurarControlesCobro porque cambiar Style/ItemIndex
-  // durante el desplegable t�ctil puede cerrarlo autom�ticamente.
+  // No llamamos aquí a VF_ConfigurarControlesCobro porque cambiar Style/ItemIndex
+  // durante el desplegable táctil puede cerrarlo automáticamente.
   Edit15.Enabled:=True;
   Edit12.Text:=StaticText1.Caption;//----- Importe
   Edit14.Text:=StaticText1.Caption;//----- Total
@@ -3548,9 +3673,9 @@ begin
   //---------- Puntos acumulados ------------
   if Combo2.Text='PUNTOS ACUMULADOS' then
     begin
-      if APuntos<>'S' then begin DataModule1.Mensaje('Información','Los puntos están desactivados', 2000 , clGray); Combo2.ItemIndex:=0; exit; end;
-      if dbClientes.FieldByName('C49').AsString<>'S' then begin DataModule1.Mensaje('Información','Este cliente no tiene los puntos activados', 2000 , clGray); Combo2.ItemIndex:=0; exit; end;
-      if dbClientes.FieldByName('C50').AsFloat<=0 then begin DataModule1.Mensaje('Información','Este cliente no tiene los puntos acumulados', 2000 , clGray); Combo2.ItemIndex:=0; exit; end;
+      if APuntos<>'S' then begin DataModule1.Mensaje('InformaciÃ³n','Los puntos estÃ¡n desactivados', 2000 , clGray); Combo2.ItemIndex:=0; exit; end;
+      if dbClientes.FieldByName('C49').AsString<>'S' then begin DataModule1.Mensaje('InformaciÃ³n','Este cliente no tiene los puntos activados', 2000 , clGray); Combo2.ItemIndex:=0; exit; end;
+      if dbClientes.FieldByName('C50').AsFloat<=0 then begin DataModule1.Mensaje('InformaciÃ³n','Este cliente no tiene los puntos acumulados', 2000 , clGray); Combo2.ItemIndex:=0; exit; end;
       Label32.Top:=312; Edit16.Top:=304;
       Label81.Visible:=True; Edit42.Visible:=True;
       Label81.Caption:='PUNTOS';
@@ -3571,7 +3696,7 @@ end;
 //========================================================
 procedure TFVentas.BitBtn10Click(Sender: TObject);
 var
-  // Rectificativas (FS / Normal): control de líneas negativas
+  // Rectificativas (FS / Normal): control de lÃ­neas negativas
   VF_EsRectif: Boolean;
   VF_OrigIsFS: Boolean;
   VF_OrigSerie, VF_SNum: string;
@@ -3590,7 +3715,7 @@ begin
 	vfTipoFactura:='F2';  //-- Definimos TipoFactura Veri*Factu como F2 - Factura Simplificada
 
   if (Combo2.Text='TARJETA+CONTADO') or (Combo2.Text='PUNTOS ACUMULADOS') then
-     if StrToFloat(Edit16.Text)<0 then begin DataModule1.Mensaje('Información','No puede entregar menos del total', 2000 , clGray); exit; end; //----- Si este tipo e pago, no credito
+     if StrToFloat(Edit16.Text)<0 then begin DataModule1.Mensaje('InformaciÃ³n','No puede entregar menos del total', 2000 , clGray); exit; end; //----- Si este tipo e pago, no credito
 
   if StrToFloat(Edit16.Text)<0 then if not VersiapuntarCredito then exit;//--- Si se apunta a credito o no
 
@@ -3602,8 +3727,8 @@ begin
   FechaVenta:=Date; HoraVenta:=Time;//---- Fecha y hora para grabar los datos
   VerSerieFacturacion();//---- Ver la serie de facturacion por defecto
   // -------------------------------------------------
-  // Rectificativas: si hay alguna línea con unidades negativas,
-  // la operación se trata como rectificativa y se pide la factura origen.
+  // Rectificativas: si hay alguna lÃ­nea con unidades negativas,
+  // la operaciÃ³n se trata como rectificativa y se pide la factura origen.
   // IMPORTANTE: esto debe ocurrir ANTES de numerar (NumeroTicket()).
   // -------------------------------------------------
   VF_EsRectif := False;
@@ -3636,18 +3761,18 @@ begin
 
   if VF_EsRectif then
   begin
-    // Serie rectificativa única RYY (año actual)
+    // Serie rectificativa Ãºnica RYY (aÃ±o actual)
     VF_SerieRect := 'R' + Copy(FormatDateTime('yyyy', Date), 3, 2);
 
-    // Si las líneas vienen de Histórico, la referencia original ya está en
+    // Si las lÃ­neas vienen de HistÃ³rico, la referencia original ya estÃ¡ en
     // ventasrectif+Tienda+Puesto. En ese caso NO volvemos a pedir datos.
     if not VF_ObtenerRectifTagTemporal(VF_RectifTag, VF_SNum, VF_OrigSerie, VF_OrigNum) then
     begin
       // Preguntar si la factura origen es FS (ticket/simplificada) o Normal
-      // Sí = FS, No = Normal
+      // SÃ­ = FS, No = Normal
       case MessageDlg('Factura rectificativa',
-        'Se han detectado líneas con cantidades negativas.' + LineEnding +
-        '¿La factura que rectificas es una FACTURA SIMPLIFICADA (FS / ticket)?',
+        'Se han detectado lÃ­neas con cantidades negativas.' + LineEnding +
+        'Â¿La factura que rectificas es una FACTURA SIMPLIFICADA (FS / ticket)?',
         mtConfirmation, [mbYes, mbNo, mbCancel], 0) of
         mrYes: VF_OrigIsFS := True;
         mrNo:  VF_OrigIsFS := False;
@@ -3655,27 +3780,27 @@ begin
         Exit; // Cancelar: salir SIN numerar nada
       end;
 
-      // Pedir siempre SERIE + NÚMERO reales de la factura origen
+      // Pedir siempre SERIE + NÃMERO reales de la factura origen
       VF_OrigSerie := '';
       if not InputQuery('Factura a rectificar', 'Serie de la factura a rectificar:', VF_OrigSerie) then Exit;
       VF_OrigSerie := Trim(UpperCase(VF_OrigSerie));
       if VF_OrigSerie = '' then
       begin
-        DataModule1.Mensaje('Información','Debe indicar una serie válida de la factura a rectificar', 2000 , clGray);
+        DataModule1.Mensaje('InformaciÃ³n','Debe indicar una serie vÃ¡lida de la factura a rectificar', 2000 , clGray);
         Exit;
       end;
 
       VF_SNum := '';
-      if not InputQuery('Factura a rectificar', 'Número de la factura a rectificar:', VF_SNum) then Exit;
+      if not InputQuery('Factura a rectificar', 'NÃºmero de la factura a rectificar:', VF_SNum) then Exit;
       VF_SNum := Trim(VF_SNum);
       if (VF_SNum = '') or (not TryStrToInt(VF_SNum, VF_OrigNum)) or (VF_OrigNum <= 0) then
       begin
-        DataModule1.Mensaje('Información','Debe indicar un número válido de la factura a rectificar', 2000 , clGray);
+        DataModule1.Mensaje('InformaciÃ³n','Debe indicar un nÃºmero vÃ¡lido de la factura a rectificar', 2000 , clGray);
         Exit;
       end;
 
-      // Rectificativa manual: con serie/número original resolvemos cabecera y líneas
-      // en histórico, preparamos ventasrectif temporal y validamos saldo antes de numerar.
+      // Rectificativa manual: con serie/nÃºmero original resolvemos cabecera y lÃ­neas
+      // en histÃ³rico, preparamos ventasrectif temporal y validamos saldo antes de numerar.
       if not VF_PrepararRectifManualTemporal(VF_OrigIsFS, VF_OrigSerie, VF_OrigNum, VF_RectifTag) then
         Exit;
 
@@ -3793,7 +3918,7 @@ begin
     begin
       VF_LogInfo('TOTALIZAR: BitBtn10Click EXCEPTION: ' + E.Message);
       LogErrorToFile('BitBtn10Click EXCEPTION: ' + E.Message);
-      // Intentamos dejar constancia para evitar huecos en numeración
+      // Intentamos dejar constancia para evitar huecos en numeraciÃ³n
       if NOPERACION>0 then
         RegistrarTicketAnulado(SERIEFACT, NOPERACION, TIPOOPER, E.Message)
       else
@@ -3880,7 +4005,7 @@ end;
 //========================================================
 procedure TFVentas.BitBtn11Click(Sender: TObject);
 var
-  // Rectificativas (FS / Normal): control de líneas negativas
+  // Rectificativas (FS / Normal): control de lÃ­neas negativas
   VF_EsRectif: Boolean;
   VF_OrigIsFS: Boolean;
   VF_OrigSerie, VF_SNum: string;
@@ -3896,7 +4021,7 @@ begin
 
   if not VF_NormalizarCamposCobro(True) then Exit;
 
-  // Seguridad: por si quedara algo de una operación anterior (se limpia en ActualizaHisto)
+  // Seguridad: por si quedara algo de una operaciÃ³n anterior (se limpia en ActualizaHisto)
   VF_RectifTagHold := '';
   VF_RectifMotivoHold := '';
 
@@ -3906,8 +4031,8 @@ begin
   FechaVenta:=Date; HoraVenta:=Time;//---- Fecha y hora para grabar los datos
   VerSerieFacturacion();//---- Ver la serie de facturacion por defecto
   // -------------------------------------------------
-  // Rectificativas: si hay alguna línea con unidades negativas,
-  // la operación se trata como rectificativa y se pide la factura origen.
+  // Rectificativas: si hay alguna lÃ­nea con unidades negativas,
+  // la operaciÃ³n se trata como rectificativa y se pide la factura origen.
   // IMPORTANTE: esto debe ocurrir ANTES de numerar (NumeroTicket()).
   // -------------------------------------------------
   VF_EsRectif := False;
@@ -3940,18 +4065,18 @@ begin
 
   if VF_EsRectif then
   begin
-    // Serie rectificativa única RYY (año actual)
+    // Serie rectificativa Ãºnica RYY (aÃ±o actual)
     VF_SerieRect := 'R' + Copy(FormatDateTime('yyyy', Date), 3, 2);
 
-    // Si las líneas vienen de Histórico, la referencia original ya está en
+    // Si las lÃ­neas vienen de HistÃ³rico, la referencia original ya estÃ¡ en
     // ventasrectif+Tienda+Puesto. En ese caso NO volvemos a pedir datos.
     if not VF_ObtenerRectifTagTemporal(VF_RectifTag, VF_SNum, VF_OrigSerie, VF_OrigNum) then
     begin
       // Preguntar si la factura origen es FS (ticket/simplificada) o Normal
-      // Sí = FS, No = Normal
+      // SÃ­ = FS, No = Normal
       case MessageDlg('Factura rectificativa',
-        'Se han detectado líneas con cantidades negativas.' + LineEnding +
-        '¿La factura que rectificas es una FACTURA SIMPLIFICADA (FS / ticket)?',
+        'Se han detectado lÃ­neas con cantidades negativas.' + LineEnding +
+        'Â¿La factura que rectificas es una FACTURA SIMPLIFICADA (FS / ticket)?',
         mtConfirmation, [mbYes, mbNo, mbCancel], 0) of
         mrYes: VF_OrigIsFS := True;
         mrNo:  VF_OrigIsFS := False;
@@ -3959,27 +4084,27 @@ begin
         Exit; // Cancelar: salir SIN numerar nada
       end;
 
-      // Pedir siempre SERIE + NÚMERO reales de la factura origen
+      // Pedir siempre SERIE + NÃMERO reales de la factura origen
       VF_OrigSerie := '';
       if not InputQuery('Factura a rectificar', 'Serie de la factura a rectificar:', VF_OrigSerie) then Exit;
       VF_OrigSerie := Trim(UpperCase(VF_OrigSerie));
       if VF_OrigSerie = '' then
       begin
-        DataModule1.Mensaje('Información','Debe indicar una serie válida de la factura a rectificar', 2000 , clGray);
+        DataModule1.Mensaje('InformaciÃ³n','Debe indicar una serie vÃ¡lida de la factura a rectificar', 2000 , clGray);
         Exit;
       end;
 
       VF_SNum := '';
-      if not InputQuery('Factura a rectificar', 'Número de la factura a rectificar:', VF_SNum) then Exit;
+      if not InputQuery('Factura a rectificar', 'NÃºmero de la factura a rectificar:', VF_SNum) then Exit;
       VF_SNum := Trim(VF_SNum);
       if (VF_SNum = '') or (not TryStrToInt(VF_SNum, VF_OrigNum)) or (VF_OrigNum <= 0) then
       begin
-        DataModule1.Mensaje('Información','Debe indicar un número válido de la factura a rectificar', 2000 , clGray);
+        DataModule1.Mensaje('InformaciÃ³n','Debe indicar un nÃºmero vÃ¡lido de la factura a rectificar', 2000 , clGray);
         Exit;
       end;
 
-      // Rectificativa manual: con serie/número original resolvemos cabecera y líneas
-      // en histórico, preparamos ventasrectif temporal y validamos saldo antes de numerar.
+      // Rectificativa manual: con serie/nÃºmero original resolvemos cabecera y lÃ­neas
+      // en histÃ³rico, preparamos ventasrectif temporal y validamos saldo antes de numerar.
       if not VF_PrepararRectifManualTemporal(VF_OrigIsFS, VF_OrigSerie, VF_OrigNum, VF_RectifTag) then
         Exit;
 
@@ -3993,7 +4118,7 @@ begin
     if not VF_PedirMotivoRectif(VF_RectifMotivoHold) then Exit;
 
     // IMPORTANTE: NO confiar en DESCRIOPER (puede ser modificado por ActualizaDatos/ActualizaIva).
-    // Guardamos el tag en una variable dedicada para que llegue limpio al histórico (HO20_RECT).
+    // Guardamos el tag en una variable dedicada para que llegue limpio al histÃ³rico (HO20_RECT).
     VF_RectifTagHold := VF_RectifTag;
     vfTipoFactura := VF_AEATTipoFacturaFromRectifTag(VF_RectifTag, vfTipoFactura);
 
@@ -4141,7 +4266,7 @@ procedure TFVentas.BitBtn12Click(Sender: TObject);
 begin
   if not VF_NormalizarCamposCobro(True) then Exit;
 
-  if Edit1.Text=ClienteVario then begin DataModule1.Mensaje('Información','No puede hacer albarán a clientes varios', 2000 , clGray); exit; end;
+  if Edit1.Text=ClienteVario then begin DataModule1.Mensaje('InformaciÃ³n','No puede hacer albarÃ¡n a clientes varios', 2000 , clGray); exit; end;
   if CgForzAl='S' then
     begin
          //ShowMessage('El valor de CgForzAl es : '+CgForzAl);
@@ -4156,11 +4281,11 @@ begin
   dbTiendas.Active:=False;
   dbTiendas.Sql.Text:='SELECT * FROM tiendas WHERE T0='+NTienda;
   dbTiendas.Active:=True;
-  if dbTiendas.Recordcount=0 then begin DataModule1.Mensaje('Información','No sé en que tienda facturar', 2000 , clGray); Exit; end;
+  if dbTiendas.Recordcount=0 then begin DataModule1.Mensaje('InformaciÃ³n','No sÃ© en que tienda facturar', 2000 , clGray); Exit; end;
   dbSeries.Active:=False;
   dbSeries.SQL.Text:='SELECT * FROM seriesfactu WHERE SF5<>"E" and SF0 like "%'+copy(FormatDateTime('YYYY',(now)),3,2)+'%" ORDER BY SF0';
   dbSeries.Active:=True;
-  if dbSeries.RecordCount=0 then begin DataModule1.Mensaje('Información','Falta serie de facturación', 2000 , clGray) ; exit; end;
+  if dbSeries.RecordCount=0 then begin DataModule1.Mensaje('InformaciÃ³n','Falta serie de facturaciÃ³n', 2000 , clGray) ; exit; end;
   dbSeries.First; ListBox1.Items.Clear;
   Label33.Caption:='N. Albaran';  Label34.Caption:='Fecha Albaran';
   Edit22.Text:=FormatDateTime('DD/MM/YYYY',Date);
@@ -4206,7 +4331,7 @@ begin
 
   FechaVenta:=Date; HoraVenta:=Time;//---- Fecha y hora para grabar los datos
   SERIEFACT:=dbSeries.FieldByName('SF0').AsString;
-  if SERIEFACT='' then begin DataModule1.Mensaje('Información','Se necesita seleccionar SERIE a facturar', 2000 , clGray); Exit; end;
+  if SERIEFACT='' then begin DataModule1.Mensaje('InformaciÃ³n','Se necesita seleccionar SERIE a facturar', 2000 , clGray); Exit; end;
   BitBtn20Click(BitBtn20);//--- Ocultar panel series de albaranes
   NumeroAlbaran();
   dbMuestrad.Active:=False;
@@ -4228,7 +4353,7 @@ begin
       dbMuestrad.FieldByName('AD3').Value:=NOPERACION;//--------------- N. Albaran.
       dbMuestrad.FieldByName('AD4').Value:=VerUltimaLineaA;//----------- N. Linea
       dbMuestrad.FieldByName('AD5').AsString:=dbVentas.FieldByName('V3').AsString;//--- C. Articulo
-      dbMuestrad.FieldByName('AD6').AsString:=dbVentas.FieldByName('V4').AsString;//--- Descripcion
+      dbMuestrad.FieldByName('AD6').AsString:=FLX_LimpiarDescripcionVenta(dbVentas.FieldByName('V4').AsString, FLX_FieldTextMax(dbMuestrad, 'AD6', FLX_FieldTextMax(dbVentas, 'V4', 100)));//--- Descripcion
       dbMuestrad.FieldByName('AD7').Value:=dbVentas.FieldByName('V5').Value;//--------- Unidades
       dbMuestrad.FieldByName('AD8').Value:=dbVentas.FieldByName('V6').Value;//--------- P.V.P.
       dbMuestrad.FieldByName('AD9').Value:=dbVentas.FieldByName('V7').Value;//--------- Precio
@@ -4368,17 +4493,17 @@ begin
 
   vfTipoFactura:='F1';  //-- Definimos TipoFactura Veri*Factu como F1 - Factura Completa
 
-  if Edit1.Text=ClienteVario then begin DataModule1.Mensaje('Información','No se puede hacer factura a clientes varios', 2000 , clGray); exit; end;
+  if Edit1.Text=ClienteVario then begin DataModule1.Mensaje('InformaciÃ³n','No se puede hacer factura a clientes varios', 2000 , clGray); exit; end;
   if StrToFloat(Edit16.Text)<0 then if not VersiapuntarCredito then exit;//--- Si se apunta a credito o no
   //--- Ver la tienda activa para saber que serie usa por defecto
   dbTiendas.Active:=False;
   dbTiendas.Sql.Text:='SELECT * FROM tiendas WHERE T0='+NTienda;
   dbTiendas.Active:=True;
-  if dbTiendas.Recordcount=0 then begin DataModule1.Mensaje('Información','No sé en qué tienda facturar', 2000 , clGray);Exit; end;
+  if dbTiendas.Recordcount=0 then begin DataModule1.Mensaje('InformaciÃ³n','No sÃ© en quÃ© tienda facturar', 2000 , clGray);Exit; end;
   dbSeries.Active:=False;
   dbSeries.SQL.Text:='SELECT * FROM seriesfactu WHERE SF5<>"E" and SF0 like "%'+copy(FormatDateTime('YYYY',(now)),3,2)+'%" ORDER BY SF0';
   dbSeries.Active:=True;
-  if dbSeries.RecordCount=0 then begin DataModule1.Mensaje('Información','Falta serie de facturación', 2000 , clGray); exit; end;
+  if dbSeries.RecordCount=0 then begin DataModule1.Mensaje('InformaciÃ³n','Falta serie de facturaciÃ³n', 2000 , clGray); exit; end;
   dbSeries.First; ListBox1.Items.Clear;
   Label33.Caption:='N. Factura';  Label34.Caption:='Fecha Factura';
   Edit22.Text:=FormatDateTime('DD/MM/YYYY',Date);
@@ -4398,7 +4523,16 @@ begin
   BitBtn23.SendToBack; BitBtn23.Enabled:=False; BitBtn19.Enabled:=True;
   dbTiendas.Active:=False; BitBtn19.BringToFront;
   Panel8.Visible:=True; Panel4.Enabled:=False;
-  Panel1.Enabled:=False; BitBtn19.SetFocus;
+  Panel1.Enabled:=False;
+
+  //-- Observaciones por defecto del cliente, igual que en albarán.
+  //-- Si el cliente no las fuerza, se limpia para evitar arrastres de la operación anterior.
+  if dbClientes.FieldByName('C56').AsBoolean then
+    Memo1.Text:=dbClientes.FieldByName('C36').AsString
+  else
+    Memo1.Text:='';
+
+  BitBtn19.SetFocus;
 end;
 
 //---------------- Aceptar nueva factura ----------------
@@ -4426,10 +4560,10 @@ begin
 
   FechaVenta:=Date; HoraVenta:=Time;//---- Fecha y hora para grabar los datos
   SERIEFACT:=dbSeries.FieldByName('SF0').AsString;
-  if SERIEFACT='' then begin DataModule1.Mensaje('Información','Seleccionar SERIE de facturación', 2000 , clGray); Exit; end;
+  if SERIEFACT='' then begin DataModule1.Mensaje('InformaciÃ³n','Seleccionar SERIE de facturaciÃ³n', 2000 , clGray); Exit; end;
   BitBtn20Click(BitBtn20);//--- Ocultar panel series de facturas
 
-  // --- Detectar rectificativa: si hay alguna línea con cantidad negativa (V5<0)
+  // --- Detectar rectificativa: si hay alguna lÃ­nea con cantidad negativa (V5<0)
   TieneNegativos := False;
   EsRectif := False;
   RectifLine := '';
@@ -4461,7 +4595,7 @@ begin
 
     YY := FormatDateTime('YY', Date);
 
-    // Si viene desde Histórico, usar la referencia temporal y no pedir datos.
+    // Si viene desde HistÃ³rico, usar la referencia temporal y no pedir datos.
     if VF_ObtenerRectifTagTemporal(RectifLine, S, OrigSerie, OrigNum) then
     begin
       // RectifLine queda preparado para Memo1/HO20_RECT.
@@ -4469,54 +4603,54 @@ begin
     else
     begin
       Resp := MessageDlg('Factura rectificativa',
-        'Se han detectado líneas con cantidades negativas.' + LineEnding +
-        'La venta se tratará como FACTURA RECTIFICATIVA.' + LineEnding + LineEnding +
-        '¿La factura a rectificar es una FACTURA SIMPLIFICADA (FS)?' + LineEnding +
-        '(Sí = FS / No = Normal)',
+        'Se han detectado lÃ­neas con cantidades negativas.' + LineEnding +
+        'La venta se tratarÃ¡ como FACTURA RECTIFICATIVA.' + LineEnding + LineEnding +
+        'Â¿La factura a rectificar es una FACTURA SIMPLIFICADA (FS)?' + LineEnding +
+        '(SÃ­ = FS / No = Normal)',
         mtConfirmation, [mbYes, mbNo, mbCancel], 0);
 
       if Resp = mrCancel then Exit;
 
       if Resp = mrYes then
       begin
-      // FS: se pide la serie real de la factura simplificada (FS) y su número.
+      // FS: se pide la serie real de la factura simplificada (FS) y su nÃºmero.
       // Para Hacienda/Veri*Factu guardamos la serie con prefijo "FS-" para distinguir tickets/simplificadas.
       OrigSerie := dbSeries.FieldByName('SF0').AsString; // valor por defecto (serie activa)
       if not InputQuery('Factura rectificativa', 'Serie de la factura simplificada (FS) a rectificar (ej: A26):', OrigSerie) then Exit;
       OrigSerie := Trim(OrigSerie);
       if OrigSerie = '' then
       begin
-        DataModule1.Mensaje('Información', 'Serie FS no válida.', 2500, clGray);
+        DataModule1.Mensaje('InformaciÃ³n', 'Serie FS no vÃ¡lida.', 2500, clGray);
         Exit;
       end;
 
       S := '';
-      if not InputQuery('Factura rectificativa', 'Número de la factura simplificada (FS) a rectificar:', S) then Exit;
+      if not InputQuery('Factura rectificativa', 'NÃºmero de la factura simplificada (FS) a rectificar:', S) then Exit;
       S := Trim(S);
       if (S = '') or (not TryStrToInt(S, OrigNum)) or (OrigNum <= 0) then
       begin
-        DataModule1.Mensaje('Información', 'Número de factura FS no válido.', 2500, clGray);
+        DataModule1.Mensaje('InformaciÃ³n', 'NÃºmero de factura FS no vÃ¡lido.', 2500, clGray);
         Exit;
       end;
       if not VF_PrepararRectifManualTemporal(True, OrigSerie, OrigNum, RectifLine) then Exit;
     end
     else
     begin
-      // Normal: se pide serie y número
+      // Normal: se pide serie y nÃºmero
       OrigSerie := '';
       if not InputQuery('Factura rectificativa', 'Serie de la factura a rectificar (ej: A26):', OrigSerie) then Exit;
       OrigSerie := Trim(OrigSerie);
       if OrigSerie = '' then
       begin
-        DataModule1.Mensaje('Información', 'Serie de factura no válida.', 2500, clGray);
+        DataModule1.Mensaje('InformaciÃ³n', 'Serie de factura no vÃ¡lida.', 2500, clGray);
         Exit;
       end;
       S := '';
-      if not InputQuery('Factura rectificativa', 'Número de la factura a rectificar:', S) then Exit;
+      if not InputQuery('Factura rectificativa', 'NÃºmero de la factura a rectificar:', S) then Exit;
       S := Trim(S);
       if (S = '') or (not TryStrToInt(S, OrigNum)) or (OrigNum <= 0) then
       begin
-        DataModule1.Mensaje('Información', 'Número de factura no válido.', 2500, clGray);
+        DataModule1.Mensaje('InformaciÃ³n', 'NÃºmero de factura no vÃ¡lido.', 2500, clGray);
         Exit;
       end;
       if not VF_PrepararRectifManualTemporal(False, OrigSerie, OrigNum, RectifLine) then Exit;
@@ -4532,7 +4666,7 @@ begin
       Exit;
     end;
 
-    // Serie única para rectificativas: RYY
+    // Serie Ãºnica para rectificativas: RYY
     if not VF_PedirMotivoRectif(VF_RectifMotivoHold) then Exit;
 
     SERIEFACT := 'R' + YY;
@@ -4564,7 +4698,7 @@ begin
       dbMuestrad.FieldByName('FD3').Value:=NOPERACION;//---------------- N. Factura.
       dbMuestrad.FieldByName('FD4').Value:=VerUltimaLineaF;//------------ N. Linea
       dbMuestrad.FieldByName('FD5').AsString:=dbVentas.FieldByName('V3').AsString;//--- C. Articulo
-      dbMuestrad.FieldByName('FD6').AsString:=dbVentas.FieldByName('V4').AsString;//--- Descripcion
+      dbMuestrad.FieldByName('FD6').AsString:=FLX_LimpiarDescripcionVenta(dbVentas.FieldByName('V4').AsString, FLX_FieldTextMax(dbMuestrad, 'FD6', FLX_FieldTextMax(dbVentas, 'V4', 100)));//--- Descripcion
       dbMuestrad.FieldByName('FD7').Value:=dbVentas.FieldByName('V5').Value;//--------- Unidades
       dbMuestrad.FieldByName('FD8').Value:=dbVentas.FieldByName('V6').Value;//--------- P.V.P.
       dbMuestrad.FieldByName('FD9').Value:=dbVentas.FieldByName('V7').Value;//--------- Precio
@@ -4733,7 +4867,7 @@ begin
 
     end;
 
-   // Factura PAGADA si el total = entrega + contado - cambio y no hay crédito.
+   // Factura PAGADA si el total = entrega + contado - cambio y no hay crÃ©dito.
 
   if ( StrToFloat(Edit14.Text) = StrToFloat(Edit15.Text) + StrToFloat(Edit42.Text) - StrToFloat(Edit16.Text) )
        and ( StrToFloat(Edit16.Text) >= 0 ) then
@@ -4992,16 +5126,16 @@ begin
   try
     dbIva.ExecSQL;
   except
-   // Capturamos el error específico de la capa de datos
+   // Capturamos el error especÃ­fico de la capa de datos
     on EDB: EZSQLException do
     begin
-      // El mensaje de EDB contendrá el mensaje de error de MariaDB
+      // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
       ShowMessage('Error de Base de Datos Inesperado al insertar IVA : ' + EDB.Message);
-      // La aplicación sigue desde aquí.
+      // La aplicaciÃ³n sigue desde aquÃ­.
     end;
   end;
 
-  // Evitamos arrastre a la siguiente operación
+  // Evitamos arrastre a la siguiente operaciÃ³n
 end;
 
 
@@ -5017,9 +5151,9 @@ begin
   Codigo:=dbVentas.FieldByName('V3').AsString;//-------- Cgo Articulo
   Cantidad:=dbVentas.FieldByName('V5').AsString;//------ Unidades
   Precio:=dbVentas.FieldByName('V9').AsString;//-------- Importe de la linea sin iva
-  DESCRIOPER:=DESCRIOPER+Copy(dbVentas.FieldByName('V4').AsString,1,15)+', ';//---- Descripcion del ticket
+  DESCRIOPER:=DESCRIOPER+FLX_LimpiarDescripcionVenta(dbVentas.FieldByName('V4').AsString,15)+', ';//---- Descripcion del ticket
 
-   // Comprobamos si el código es un auxiliar o un código de artículo.
+   // Comprobamos si el cÃ³digo es un auxiliar o un cÃ³digo de artÃ­culo.
   dbTrabajo.Active:=False;
   dbTrabajo.SQL.Text:='SELECT * FROM artitien'+Tienda+' WHERE A0="'+Codigo+'"';
   dbTrabajo.Active:=True;
@@ -5046,12 +5180,12 @@ begin
   try
     dbTrabajo.ExecSQL;
   except
-   // Capturamos el error específico de la capa de datos
+   // Capturamos el error especÃ­fico de la capa de datos
     on EDB: EZSQLException do
     begin
-      // El mensaje de EDB contendrá el mensaje de error de MariaDB
+      // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
       ShowMessage('Error de Base de Datos Inesperado al actualizar Articulos : ' + EDB.Message);
-      // La aplicación sigue desde aquí.
+      // La aplicaciÃ³n sigue desde aquÃ­.
     end;
   end;
   //------------------- Estadistica de articulos
@@ -5070,12 +5204,12 @@ begin
   try
     dbTrabajo.ExecSQL;
   except
-   // Capturamos el error específico de la capa de datos
+   // Capturamos el error especÃ­fico de la capa de datos
     on EDB: EZSQLException do
     begin
-      // El mensaje de EDB contendrá el mensaje de error de MariaDB
+      // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
       ShowMessage('Error de Base de Datos Inesperado al actualizar Estadisticas Articulos : ' + EDB.Message);
-      // La aplicación sigue desde aquí.
+      // La aplicaciÃ³n sigue desde aquÃ­.
     end;
   end;
   //------------------- Clientes, si hay credito grabar "pendiente de facturar"
@@ -5087,12 +5221,12 @@ begin
      try
        dbTrabajo.ExecSQL;
      except
-      // Capturamos el error específico de la capa de datos
+      // Capturamos el error especÃ­fico de la capa de datos
        on EDB: EZSQLException do
        begin
-         // El mensaje de EDB contendrá el mensaje de error de MariaDB
+         // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
          ShowMessage('Error de Base de Datos Inesperado al actualizar Clientes : ' + EDB.Message);
-         // La aplicación sigue desde aquí.
+         // La aplicaciÃ³n sigue desde aquÃ­.
        end;
      end;
     end;
@@ -5112,18 +5246,18 @@ begin
   try
     dbTrabajo.ExecSQL;
   except
-   // Capturamos el error específico de la capa de datos
+   // Capturamos el error especÃ­fico de la capa de datos
     on EDB: EZSQLException do
     begin
-      // El mensaje de EDB contendrá el mensaje de error de MariaDB
+      // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
       ShowMessage('Error de Base de Datos Inesperado al Insertar Estadisticas de Clientes : ' + EDB.Message);
-      // La aplicación sigue desde aquí.
+      // La aplicaciÃ³n sigue desde aquÃ­.
     end;
   end;
   //------------------- Historico de compras de clientes
   // NOTA (robustez): en casos raros dos TPVs pueden finalizar una venta en el mismo segundo
-  // y provocar "Duplicate key" en histoclie si la clave única usa (Cliente+Fecha+Hora).
-  // Solución mínima (Opción 3): reintentar el INSERT ajustando la hora +1 segundo.
+  // y provocar "Duplicate key" en histoclie si la clave Ãºnica usa (Cliente+Fecha+Hora).
+  // SoluciÃ³n mÃ­nima (OpciÃ³n 3): reintentar el INSERT ajustando la hora +1 segundo.
   HC_OK := False;
   HoraVentaTry := HoraVenta;
 
@@ -5132,7 +5266,7 @@ begin
     TxtQ:='INSERT INTO histoclie (HC0,HC1,HC2,HC3,HC4,HC5,HC6,HC7,HC8,HC9) VALUES ("'+
           Edit1.Text+'","'+FormatDateTime('YYYY/MM/DD',FechaVenta)+'","'+
           FormatDateTime('HH:MM:SS',HoraVentaTry)+'",'+dbVentas.FieldByName('V2').AsString+
-          ',"'+Codigo+'","'+dbVentas.FieldByName('V4').AsString+
+          ',"'+Codigo+'","'+FLX_SQLDescripcionVenta(dbVentas.FieldByName('V4').AsString, FLX_FieldTextMax(dbVentas, 'V4', 100))+
           '",'+Cantidad+','+dbVentas.FieldByName('V11').AsString+',"VN",'+
           dbVentas.FieldByName('V1').AsString+')';
     dbTrabajo.SQL.Text:=TxtQ;
@@ -5144,7 +5278,7 @@ begin
     except
       on EDB: EZSQLException do
       begin
-        // Detectar duplicidad (MariaDB 1062) sin depender de la versión del driver
+        // Detectar duplicidad (MariaDB 1062) sin depender de la versiÃ³n del driver
         MsgDup := UpperCase(EDB.Message);
         if (Pos('DUPLICATE', MsgDup) > 0) or (Pos('1062', MsgDup) > 0) then
         begin
@@ -5189,7 +5323,7 @@ begin
       ' Puesto=' + Puesto +
       ' Oper=' + IntToStr(NOperacion) +
       ' Art=' + Codigo);
-    // No forzamos ShowMessage aquí para no interrumpir la venta si fue solo un choque temporal
+    // No forzamos ShowMessage aquÃ­ para no interrumpir la venta si fue solo un choque temporal
   end;
   //------------------- Tiendas
   TxtQ:='UPDATE tiendas SET T9="'+FormatDateTime('YYYY/MM/DD',Date)+'" WHERE T0='+NTienda;
@@ -5197,12 +5331,12 @@ begin
   try
     dbTrabajo.ExecSQL;
   except
-   // Capturamos el error específico de la capa de datos
+   // Capturamos el error especÃ­fico de la capa de datos
     on EDB: EZSQLException do
     begin
-      // El mensaje de EDB contendrá el mensaje de error de MariaDB
+      // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
       ShowMessage('Error de Base de Datos Inesperado al actualizar Tiendas : ' + EDB.Message);
-      // La aplicación sigue desde aquí.
+      // La aplicaciÃ³n sigue desde aquÃ­.
     end;
   end;
   //------------------- Estadistica de tiendas
@@ -5221,12 +5355,12 @@ begin
   try
     dbTrabajo.ExecSQL;
   except
-   // Capturamos el error específico de la capa de datos
+   // Capturamos el error especÃ­fico de la capa de datos
     on EDB: EZSQLException do
     begin
-      // El mensaje de EDB contendrá el mensaje de error de MariaDB
+      // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
       ShowMessage('Error de Base de Datos Inesperado al actualizar Estadiscicas de Tiendas : ' + EDB.Message);
-      // La aplicación sigue desde aquí.
+      // La aplicaciÃ³n sigue desde aquÃ­.
     end;
   end;
   //------------------- Estadistica de usuarios
@@ -5245,12 +5379,12 @@ begin
   try
     dbTrabajo.ExecSQL;
   except
-   // Capturamos el error específico de la capa de datos
+   // Capturamos el error especÃ­fico de la capa de datos
     on EDB: EZSQLException do
     begin
-      // El mensaje de EDB contendrá el mensaje de error de MariaDB
+      // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
       ShowMessage('Error de Base de Datos Inesperado al actualizar Estadisticas Usuarios : ' + EDB.Message);
-      // La aplicación sigue desde aquí.
+      // La aplicaciÃ³n sigue desde aquÃ­.
     end;
   end;
   //------------------- Historico de operaciones detalles
@@ -5258,21 +5392,21 @@ begin
         ',HOD12,HOD13,HOD14,HOD15,HOD16) VALUES ("'+FormatDateTime('YYYY/MM/DD',FechaVenta)+'",'+
         '"'+FormatDateTime('HH:MM:SS',HoraVenta)+'","'+Puesto+'",'+IntToStr(NOPERACION)+',"'+SERIEFACT+
         '",'+dbVentas.FieldByName('V2').AsString+',"'+
-        Codigo+'","'+dbVentas.FieldByName('V4').AsString+'",'+Cantidad+','+
+        Codigo+'","'+FLX_SQLDescripcionVenta(dbVentas.FieldByName('V4').AsString, FLX_FieldTextMax(dbVentas, 'V4', 100))+'",'+Cantidad+','+
         dbVentas.FieldByName('V6').AsString+','+dbVentas.FieldByName('V7').AsString+','+
         dbVentas.FieldByName('V8').AsString+','+dbVentas.FieldByName('V9').AsString+','+
         dbVentas.FieldByName('V10').AsString+','+dbVentas.FieldByName('V11').AsString+',"","A")';
-//TODO: Hay que poner tipo de linea ¿A=Articulo, L=Lote, etc?
+//TODO: Hay que poner tipo de linea Â¿A=Articulo, L=Lote, etc?
   dbTrabajo.SQL.Text:=TxtQ;
   try
     dbTrabajo.ExecSQL;
   except
-   // Capturamos el error específico de la capa de datos
+   // Capturamos el error especÃ­fico de la capa de datos
     on EDB: EZSQLException do
     begin
-      // El mensaje de EDB contendrá el mensaje de error de MariaDB
+      // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
       ShowMessage('Error de Base de Datos Inesperado al Insertar Lineas de Historicos OP : ' + EDB.Message);
-      // La aplicación sigue desde aquí.
+      // La aplicaciÃ³n sigue desde aquÃ­.
     end;
   end;
   //------------------- Detalle de Puntos --------------- (TPuntos,CalPuntos),Tempocaso:String;
@@ -5310,20 +5444,20 @@ else
        TxtQ:='INSERT INTO puntos (P0,P1,P2,P3,P4,P5,P6,P7,P8,P9,P10) VALUES ("'+FormatDateTime('YYYY/MM/DD',FechaVenta)+'",'+
              '"'+FormatDateTime('HH:MM:SS',HoraVenta)+'","'+Puesto+'","'+dbVentas.FieldByName('V12').AsString+
              '","'+IntToStr(NOPERACION)+'","'+dbVentas.FieldByName('V2').AsString+'","'+Codigo+
-             '","'+dbVentas.FieldByName('V4').AsString+'","'+dbArti.FieldByName('A35').AsString+'","'+
+             '","'+FLX_SQLDescripcionVenta(dbVentas.FieldByName('V4').AsString, FLX_FieldTextMax(dbVentas, 'V4', 100))+'","'+dbArti.FieldByName('A35').AsString+'","'+
              TPuntos+'","'+CalPuntos+'")';
-     //TODO: Hay que poner tipo de linea ¿A=Articulo, L=Lote, etc?
+     //TODO: Hay que poner tipo de linea Â¿A=Articulo, L=Lote, etc?
 //--- CONTROL       showmessage(TxtQ);
        dbTrabajo.SQL.Text:=TxtQ;
        try
          dbTrabajo.ExecSQL;
        except
-        // Capturamos el error específico de la capa de datos
+        // Capturamos el error especÃ­fico de la capa de datos
          on EDB: EZSQLException do
          begin
-           // El mensaje de EDB contendrá el mensaje de error de MariaDB
+           // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
            ShowMessage('Error de Base de Datos Inesperado al Insertar Puntos : ' + EDB.Message);
-           // La aplicación sigue desde aquí.
+           // La aplicaciÃ³n sigue desde aquÃ­.
          end;
        end;
        TxtQ:='UPDATE clientes SET C50=' + CalPuntos +' WHERE C0="'+Edit1.Text+'"';
@@ -5331,12 +5465,12 @@ else
        try
           dbTrabajo.ExecSQL;
        except
-        // Capturamos el error específico de la capa de datos
+        // Capturamos el error especÃ­fico de la capa de datos
          on EDB: EZSQLException do
          begin
-           // El mensaje de EDB contendrá el mensaje de error de MariaDB
+           // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
            ShowMessage('Error de Base de Datos Inesperado al actualizar Clientes : ' + EDB.Message);
-           // La aplicación sigue desde aquí.
+           // La aplicaciÃ³n sigue desde aquÃ­.
          end;
        end;
      end;
@@ -5357,12 +5491,12 @@ else
          try
            dbTrabajo.ExecSQL;
          except
-          // Capturamos el error específico de la capa de datos
+          // Capturamos el error especÃ­fico de la capa de datos
            on EDB: EZSQLException do
            begin
-             // El mensaje de EDB contendrá el mensaje de error de MariaDB
+             // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
              ShowMessage('Error de Base de Datos Inesperado al actualizar Proveedores : ' + EDB.Message);
-             // La aplicación sigue desde aquí.
+             // La aplicaciÃ³n sigue desde aquÃ­.
            end;
          end;
          //------------------- Estadistica de proveedores
@@ -5381,12 +5515,12 @@ else
          try
            dbTrabajo.ExecSQL;
          except
-          // Capturamos el error específico de la capa de datos
+          // Capturamos el error especÃ­fico de la capa de datos
            on EDB: EZSQLException do
            begin
-             // El mensaje de EDB contendrá el mensaje de error de MariaDB
+             // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
              ShowMessage('Error de Base de Datos Inesperado al actualizar Estadisticas Proveedores : ' + EDB.Message);
-             // La aplicación sigue desde aquí.
+             // La aplicaciÃ³n sigue desde aquÃ­.
            end;
          end;
        end;
@@ -5405,12 +5539,12 @@ else
           try
             dbTrabajo.ExecSQL;
           except
-           // Capturamos el error específico de la capa de datos
+           // Capturamos el error especÃ­fico de la capa de datos
             on EDB: EZSQLException do
             begin
-              // El mensaje de EDB contendrá el mensaje de error de MariaDB
+              // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
               ShowMessage('Error de Base de Datos Inesperado al actualizar Familias : ' + EDB.Message);
-              // La aplicación sigue desde aquí.
+              // La aplicaciÃ³n sigue desde aquÃ­.
             end;
           end;
           //------ Departamentos
@@ -5426,12 +5560,12 @@ else
                    try
                      dbTrabajo.ExecSQL;
                    except
-                    // Capturamos el error específico de la capa de datos
+                    // Capturamos el error especÃ­fico de la capa de datos
                      on EDB: EZSQLException do
                      begin
-                       // El mensaje de EDB contendrá el mensaje de error de MariaDB
+                       // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
                        ShowMessage('Error de Base de Datos Inesperado al actualizar Departamentos : ' + EDB.Message);
-                       // La aplicación sigue desde aquí.
+                       // La aplicaciÃ³n sigue desde aquÃ­.
                      end;
                    end;
                  end;
@@ -5453,12 +5587,12 @@ else
           try
             dbTrabajo.ExecSQL;
           except
-           // Capturamos el error específico de la capa de datos
+           // Capturamos el error especÃ­fico de la capa de datos
             on EDB: EZSQLException do
             begin
-              // El mensaje de EDB contendrá el mensaje de error de MariaDB
+              // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
               ShowMessage('Error de Base de Datos Inesperado Estadisticas Familias : ' + EDB.Message);
-              // La aplicación sigue desde aquí.
+              // La aplicaciÃ³n sigue desde aquÃ­.
             end;
           end;
           //-----------------Estadisticas Departamentos
@@ -5479,12 +5613,12 @@ else
              try
                dbTrabajo.ExecSQL;
              except
-              // Capturamos el error específico de la capa de datos
+              // Capturamos el error especÃ­fico de la capa de datos
                on EDB: EZSQLException do
                begin
-                 // El mensaje de EDB contendrá el mensaje de error de MariaDB
+                 // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
                  ShowMessage('Error de Base de Datos Inesperado Estadisticas Departamentos : ' + EDB.Message);
-                 // La aplicación sigue desde aquí.
+                 // La aplicaciÃ³n sigue desde aquÃ­.
                end;
              end;
             end;
@@ -5500,7 +5634,7 @@ else
   dbCajas.FieldByName('CA1').AsString := Dispensador; //---------------------------- Dispensador
   dbCajas.FieldByName('CA2').AsString := Puesto; //--------------------------------- Puesto
   dbCajas.FieldByName('CA3').AsString := dbArti.FieldByName('A14').AsString; //----- Familia
-  //----- Vendidas ó Und. Devueltas----------
+  //----- Vendidas Ã³ Und. Devueltas----------
   if dbVentas.FieldByName('V5').AsFloat>=0 then
      begin
        dbCajas.FieldByName('CA4').Value:=dbCajas.FieldByName('CA4').AsFloat+
@@ -5568,7 +5702,7 @@ begin
   //-------------------------------------------------
   // HO20_RECT: guardamos la etiqueta estructurada si existe referencia rectificativa.
   //  - En FS la llevamos en DESCRIOPER.
-  //  - En factura normal se guarda en observaciones (Memo1/FC19), así que la extraemos de Memo1.
+  //  - En factura normal se guarda en observaciones (Memo1/FC19), asÃ­ que la extraemos de Memo1.
   RectTag := '';
   // Preferimos la etiqueta dedicada (no se pisa por ActualizaDatos/ActualizaIva)
   if Pos('VF_RECTIF:', Trim(VF_RectifTagHold)) = 1 then
@@ -5593,16 +5727,16 @@ begin
   try
     dbTrabajo.ExecSQL;
   except
-   // Capturamos el error específico de la capa de datos
+   // Capturamos el error especÃ­fico de la capa de datos
     on EDB: EZSQLException do
     begin
-      // El mensaje de EDB contendrá el mensaje de error de MariaDB
+      // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
       ShowMessage('Error de Base de Datos Inesperado Cabeceras de Historicos : ' + EDB.Message);
-      // La aplicación sigue desde aquí.
+      // La aplicaciÃ³n sigue desde aquÃ­.
     end;
   end;
 
-  // Limpiamos para evitar arrastres a la siguiente operación
+  // Limpiamos para evitar arrastres a la siguiente operaciÃ³n
   VF_RectifTagHold := '';
   VF_RectifMotivoHold := '';
 
@@ -5666,19 +5800,19 @@ begin
         'CRE13,CRE14,CRE15,CRE16,CRE17,CRE18,CRE21) '+
         'VALUES ('+Edit1.Text+',"'+FormatDateTime('YYYY/MM/DD',FechaVenta)+'",'+
         '"'+FormatDateTime('HH:MM:SS',HoraVenta)+'","'+TIPOOPER+'","'+SERIEFACT+'",'+IntToStr(NOPERACION)+
-        ',"'+Copy(DESCRIOPER,1,100)+'",'+Debe+','+Haber+',"N",'+Dispensador+',"'+Puesto+'","'+Copy(Combo2.Text,1,10)+'"'+
+        ',"'+VF_SQLEscapeDbl(FLX_LimpiarDescripcionVenta(DESCRIOPER,100))+'",'+Debe+','+Haber+',"N",'+Dispensador+',"'+Puesto+'","'+VF_SQLEscapeDbl(Copy(Combo2.Text,1,10))+'"'+
         ','+Edit12.Text+','+Edit13.Text+','+Edit14.Text+','+
-        Edit15.Text+','+Edit16.Text+',0,"'+Memo1.Lines.Text+'")';
+        Edit15.Text+','+Edit16.Text+',0,"'+VF_SQLEscapeDbl(Memo1.Lines.Text)+'")';
   dbTrabajo.SQL.Text:=TxtQ;
   try
     dbTrabajo.ExecSQL;
   except
-   // Capturamos el error específico de la capa de datos
+   // Capturamos el error especÃ­fico de la capa de datos
     on EDB: EZSQLException do
     begin
-      // El mensaje de EDB contendrá el mensaje de error de MariaDB
+      // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
       ShowMessage('Error de Base de Datos Inesperado Insertando Creditos : ' + EDB.Message);
-      // La aplicación sigue desde aquí.
+      // La aplicaciÃ³n sigue desde aquÃ­.
     end;
   end;
   //------------------- Creditos detalles
@@ -5689,22 +5823,22 @@ begin
         ',CRED12,CRED13,CRED14,CRED15,CRED16,CRED17) VALUES ('+Edit1.Text+',"'+FormatDateTime('YYYY/MM/DD',FechaVenta)+'",'+
         '"'+FormatDateTime('HH:MM:SS',HoraVenta)+'","'+SERIEFACT+'",'+IntToStr(NOPERACION)+
         ','+dbVentas.FieldByName('V2').AsString+',"'+
-        dbVentas.FieldByName('V3').AsString+'","'+dbVentas.FieldByName('V4').AsString+'",'+
+        dbVentas.FieldByName('V3').AsString+'","'+FLX_SQLDescripcionVenta(dbVentas.FieldByName('V4').AsString, FLX_FieldTextMax(dbVentas, 'V4', 100))+'",'+
         dbVentas.FieldByName('V5').AsString+','+dbVentas.FieldByName('V6').AsString+','+
         dbVentas.FieldByName('V7').AsString+','+dbVentas.FieldByName('V8').AsString+','+
         dbVentas.FieldByName('V9').AsString+','+dbVentas.FieldByName('V10').AsString+','+
         dbVentas.FieldByName('V11').AsString+',"","A","N")';
-//TODO: Hay que poner tipo de linea ¿A=Articulo, L=Lote, etc?
+//TODO: Hay que poner tipo de linea Â¿A=Articulo, L=Lote, etc?
       dbTrabajo.SQL.Text:=TxtQ;
       try
         dbTrabajo.ExecSQL;
       except
-       // Capturamos el error específico de la capa de datos
+       // Capturamos el error especÃ­fico de la capa de datos
         on EDB: EZSQLException do
         begin
-          // El mensaje de EDB contendrá el mensaje de error de MariaDB
+          // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
           ShowMessage('Error de Base de Datos Inesperado Insertando Detalles Creditos : ' + EDB.Message);
-          // La aplicación sigue desde aquí.
+          // La aplicaciÃ³n sigue desde aquÃ­.
         end;
       end;
       dbVentas.Next;
@@ -5742,7 +5876,7 @@ begin
   if (dbTrabajo.RecordCount=0) or (dbTrabajo.Fields[0].AsFloat=0) then
      begin dbTrabajo.Active:=False; exit; end;
   if dbTrabajo.Fields[0].AsFloat<0 then Label56.Caption:='Saldo a su favor'
-  else Label56.Caption:='Crédito pendiente';
+  else Label56.Caption:='CrÃ©dito pendiente';
   Label55.Caption:=FormatFloat('0.00',dbTrabajo.Fields[0].AsFloat);
   PanelCredito.Visible:=True; dbTrabajo.Active:=False;
 end;
@@ -5847,7 +5981,7 @@ begin
   Total:=0;
   if RadioButton1.Checked=True then;
     begin
-     AssignFile(PrintText, DevTicket); //añadido por javi para quitar opendialog
+     AssignFile(PrintText, DevTicket); //aÃ±adido por javi para quitar opendialog
      Rewrite(PrintText);
      CabeceraTicket();
 
@@ -5919,7 +6053,7 @@ var
  codigo13,descrip50,canti3,precio6, total6 : string;
 begin
 //============================= KeyLog de Borrado de Ventas ===============================
-//-- textoaprobación,codigo13 y descrip50, canti3,precio6,total6 añadidos por el keyloger
+//-- textoaprobaciÃ³n,codigo13 y descrip50, canti3,precio6,total6 aÃ±adidos por el keyloger
  codigo13:='';
  descrip50:='';
  canti3:='';
@@ -5932,7 +6066,7 @@ begin
          fichero:='';
          if FileExists(RutaIni+'BorraDatos_'+FormatDateTime('YYYYMM',(Date-63))+'.txt' ) then
             begin
-               //-- borrado del fichero de hace 63 días
+               //-- borrado del fichero de hace 63 dÃ­as
                fichero:=(RutaIni+'BorraDatos_'+FormatDateTime('YYYYMM',(Date-63))+'.txt' );
                DeleteFile(fichero);
             end;
@@ -5942,14 +6076,20 @@ begin
   if ( lDirecto <> False ) then
     begin
        boxstyle :=  MB_ICONQUESTION + MB_YESNO;
-       if Application.MessageBox('¿ BORRAR TODA LA VENTA ?','FacturLinEx', boxstyle) = IDNO Then
+       if Application.MessageBox('Â¿ BORRAR TODA LA VENTA ?','FacturLinEx', boxstyle) = IDNO Then
             begin
               Edit3.SetFocus;
               Exit;
             end;
     end;
 
-  if dbVentas.RecordCount=0 then exit;
+  if dbVentas.RecordCount=0 then
+  begin
+    // Si no hay líneas pero quedaban observaciones escritas, no deben pasar
+    // a la siguiente operación.
+    Memo1.Clear;
+    Exit;
+  end;
 //============================= KeyLog de Borrado de Ventas ===============================
   if ( lDirecto <> False ) then
     begin
@@ -5986,25 +6126,29 @@ begin
   try
     dbTrabajo.ExecSQL;
   except
-   // Capturamos el error específico de la capa de datos
+   // Capturamos el error especÃ­fico de la capa de datos
     on EDB: EZSQLException do
     begin
-      // El mensaje de EDB contendrá el mensaje de error de MariaDB
+      // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
       ShowMessage('Error de Base de Datos Inesperado Eliminando/Limpiando VENTAS : ' + EDB.Message);
-      // La aplicación sigue desde aquí.
+      // La aplicaciÃ³n sigue desde aquÃ­.
     end;
   end;
-  // Rectificativas: limpiar también la tabla temporal asociada al puesto actual.
-  // Es una operación ligera y aislada por Puesto (ventasrectif+Tienda+Puesto).
+  // Rectificativas: limpiar tambiÃ©n la tabla temporal asociada al puesto actual.
+  // Es una operaciÃ³n ligera y aislada por Puesto (ventasrectif+Tienda+Puesto).
   VF_LimpiarVentasRectifTemporal;
+
+  // Las observaciones son de la operación cerrada/borrada. Si no se limpian
+  // aquí, quedan en Memo1 y se arrastran al siguiente albarán/factura.
+  Memo1.Clear;
 
   dbVentas.Refresh;
   PintarTotalGeneral();
 
   if (lDirecto <> False) then
   begin
-    // Borrado manual de venta completa: no saltar a la última venta aparcada.
-    // Dejamos una venta nueva vacía calculando el siguiente número disponible.
+    // Borrado manual de venta completa: no saltar a la Ãºltima venta aparcada.
+    // Dejamos una venta nueva vacÃ­a calculando el siguiente nÃºmero disponible.
     dbTrabajo.Active:=False;
     dbTrabajo.SQL.Text:='SELECT DISTINCT(V1) FROM ventas'+Tienda+Puesto+
                         ' WHERE V0=0 ORDER BY V1 DESC LIMIT 1';
@@ -6144,7 +6288,7 @@ begin
     Pvp := 0;
 
   if Pvp = 0 then
-    DataModule1.Mensaje('Información','El importe a pagar es cero', 1500 , clGray)
+    DataModule1.Mensaje('InformaciÃ³n','El importe a pagar es cero', 1500 , clGray)
   else
   begin
     Margen := ((Pvp - VTotal) * 100 / Pvp);
@@ -6162,7 +6306,7 @@ end;
 procedure TFVentas.Edit15Exit(Sender: TObject);
 begin
   // Si el empleado borra la entrega y sale del campo, volvemos al total.
-  // Así evitamos créditos accidentales o errores por campo vacío.
+  // AsÃ­ evitamos crÃ©ditos accidentales o errores por campo vacÃ­o.
   VF_NormalizarCamposCobro(True);
 end;
 
@@ -6171,7 +6315,7 @@ end;
 
 procedure TFVentas.Edit42Exit(Sender: TObject);
 begin
-  // Entrega contado / puntos: si queda vacío, se considera 0.00.
+  // Entrega contado / puntos: si queda vacÃ­o, se considera 0.00.
   if Trim(Edit42.Text) = '' then
     Edit42.Text := '0.00';
 
@@ -6186,11 +6330,11 @@ var
   PrecioPropuesto: Double;
 begin
   Edit3.Text:=dbArti.FieldByName('A0').AsString;//----------------- Codigo
-  Edit4.Text:=dbArti.FieldByName('A1').AsString;//----------------- Descripcion
+  Edit4.Text:=FLX_LimpiarDescripcionVenta(dbArti.FieldByName('A1').AsString, FLX_FieldTextMax(dbVentas, 'V4', 100));//----------------- Descripcion
 
   // --- Aviso si el precio propuesto es inferior al PVP de ficha ---
   // Comportamiento: si Edit6 viene distinto de 0, se respeta como "precio propuesto".
-  // Si además es menor que el PVP de la ficha (A2), avisamos antes de aceptar y damos opción a corregirlo.
+  // Si ademÃ¡s es menor que el PVP de la ficha (A2), avisamos antes de aceptar y damos opciÃ³n a corregirlo.
   try
     PrecioFicha := 0;
     PrecioPropuesto := 0;
@@ -6204,7 +6348,7 @@ begin
           if MessageDlg('Aviso',
             'El precio introducido (' + FormatFloat('0.00', PrecioPropuesto) +
             ') es inferior al PVP de ficha (' + FormatFloat('0.00', PrecioFicha) + ').' + LineEnding +
-            '¿Desea mantener el precio introducido?',
+            'Â¿Desea mantener el precio introducido?',
             mtWarning, [mbYes, mbNo], 0) = mrNo then
             Edit6.Text := dbArti.FieldByName('A2').AsString;
         end;
@@ -6217,13 +6361,13 @@ begin
   if (Edit5.Text='') or (Edit5.Text='0') then Edit5.Text:='1';//--- Unidades
   if (Edit6.Text='') or (Edit6.Text='0') then Edit6.Text:=dbArti.FieldByName('A2').AsString;//------------ P.V.P.
   if (Edit7.Text='') or (Edit7.Text='0') then Edit7.Text:=dbArti.FieldByName('A21').AsString;//----------- Precio
-  //-----------Ver si se aplica algún precio de tarifa al cliente
+  //-----------Ver si se aplica algÃºn precio de tarifa al cliente
   if (dbClientes.FieldByName('C43').AsInteger<>0) and (ListBox2.Items.Count=0) then VerTarifas(); // Cargamos tarifas si es primera vez
   //------------ Iva
   if (Edit10.Text='') or (Edit10.Text='0') then Edit10.Text:=dbArti.FieldByName('A3').AsString;//--------- IVA
   Edit6Exit(self);// Actualizamos precio a partir de PVP.
   //-----------Si tiene descuentos de la ficha de clientes
-  if dbClientes.FieldByName('C16').AsInteger<>0 then                      //-- Descuento según tipo descuento en ficha cliente
+  if dbClientes.FieldByName('C16').AsInteger<>0 then                      //-- Descuento segÃºn tipo descuento en ficha cliente
     begin
       if dbClientes.FieldByName('C16').AsInteger=1 then Edit8.Text:=dbArti.FieldByName('A7').AsString;
       if dbClientes.FieldByName('C16').AsInteger=2 then Edit8.Text:=dbArti.FieldByName('A8').AsString;
@@ -6247,7 +6391,7 @@ procedure TFVentas.DBGrid1DblClick(Sender: TObject);
 begin
   if dbVentas.RecordCount=0 then exit;
   Edit3.Text:=dbVentas.FieldByName('V3').AsString;//----------------- Codigo
-  Edit4.Text:=dbVentas.FieldByName('V4').AsString;//----------------- Descripcion
+  Edit4.Text:=FLX_LimpiarDescripcionVenta(dbVentas.FieldByName('V4').AsString, FLX_FieldTextMax(dbVentas, 'V4', 100));//----------------- Descripcion
   Edit5.Text:=dbVentas.FieldByName('V5').AsString;//----------------- Unidades
   Edit6.Text:=dbVentas.FieldByName('V6').AsString;//----------------- P.V.P.
   Edit7.Text:=dbVentas.FieldByName('V7').AsString;//----------------- Precio
@@ -6282,6 +6426,7 @@ begin
      dbVentas.FieldByName('V2').AsInteger:=VerUltimaLineaV;//----------- N. Linea
     end;
   dbVentas.FieldByName('V3').AsString:=Edit3.Text;//----------------- Codigo
+  Edit4.Text:=FLX_LimpiarDescripcionVenta(Edit4.Text, FLX_FieldTextMax(dbVentas, 'V4', 100));
   dbVentas.FieldByName('V4').AsString:=Edit4.Text;//----------------- Descripcion
   dbVentas.FieldByName('V5').AsString:=Edit5.Text;//----------------- Unidades
   dbVentas.FieldByName('V6').AsString:=Edit6.Text;//----------------- P.V.P.
@@ -6292,9 +6437,9 @@ begin
   dbVentas.FieldByName('V11').AsString:=Edit11.Text;//--------------- Total Linea
   dbVentas.FieldByName('V12').AsString:=Edit1.Text;//---------------- Cgo. Cliente
   //-- ShowMessage(DateToStr(Date));
-  dbVentas.FieldByName('V14').AsDateTime:=Date();//-------------------- Fecha de grabación de la línea
+  dbVentas.FieldByName('V14').AsDateTime:=Date();//-------------------- Fecha de grabaciÃ³n de la lÃ­nea
   //-- ShowMessage(TimeToStr(Time));
-  dbVentas.FieldByName('V15').AsDateTime:=Time();//-------------------- Hora de grabación de la línea
+  dbVentas.FieldByName('V15').AsDateTime:=Time();//-------------------- Hora de grabaciÃ³n de la lÃ­nea
 end;
 
 //=================== SACAR EL ULT N. DE LINEA VENTAS =====================
@@ -6342,7 +6487,7 @@ begin
 
   if not VF_SafeMul(Unid, PrecioSin, VF_MAX_AMOUNT, Importe) then
     begin
-      VF_NumError('Importe línea', Edit5.Text+' x '+Edit7.Text);
+      VF_NumError('Importe lÃ­nea', Edit5.Text+' x '+Edit7.Text);
       Edit9.Text:='0.00';
       exit;
     end;
@@ -6352,7 +6497,7 @@ begin
       Importe := Importe * (1 - (Dto/100));
       if Abs(Importe) > VF_MAX_AMOUNT then
         begin
-          VF_NumError('Importe línea', 'Exceso por descuento');
+          VF_NumError('Importe lÃ­nea', 'Exceso por descuento');
           Edit9.Text:='0.00';
           exit;
         end;
@@ -6368,7 +6513,7 @@ begin
   begin
     //-------------- Si existe un importe superior a 0
 
-    // ----  Para variar el Precio del Articulo con y sin IVA en función del total
+    // ----  Para variar el Precio del Articulo con y sin IVA en funciÃ³n del total
 {
     Edit6.Text := FloatToStr(StrToFloat(Edit11.Text) / StrToFloat(Edit5.Text));
     Edit7.Text := FloatToStr(StrToFloat(Edit6.Text) / ((StrToFloat(Edit10.Text) / 100) + 1));
@@ -6428,7 +6573,7 @@ begin
     begin
       if not VF_SafeMul(Unid, PVP, VF_MAX_AMOUNT, TotalConIva) then
         begin
-          VF_NumError('Total línea', Edit5.Text+' x '+Edit6.Text);
+          VF_NumError('Total lÃ­nea', Edit5.Text+' x '+Edit6.Text);
           Edit11.Text:='0.00';
           exit;
         end;
@@ -6450,7 +6595,7 @@ begin
 
   if Abs(TotalConIva) > VF_MAX_AMOUNT then
     begin
-      VF_NumError('Total línea', 'Exceso al aplicar IVA');
+      VF_NumError('Total lÃ­nea', 'Exceso al aplicar IVA');
       Edit11.Text:='0.00';
       exit;
     end;
@@ -6505,8 +6650,8 @@ begin
   dbArti.Active:=True;
   if dbArti.RecordCount=0 then begin VF_SetPromoVisual(False); exit; end;
   PintaEntrada();//----- Pintar los datos del articulo.
-  Edit3.Text:=dbTrabajo.FieldByName('EAN0').AsString;//----- código
-  Edit4.Text:=dbTrabajo.FieldByName('EAN2').AsString;//----- Descripcion
+  Edit3.Text:=dbTrabajo.FieldByName('EAN0').AsString;//----- cÃ³digo
+  Edit4.Text:=FLX_LimpiarDescripcionVenta(dbTrabajo.FieldByName('EAN2').AsString, FLX_FieldTextMax(dbVentas, 'V4', 100));//----- Descripcion
   IF (Edit5.Text='1') or (Edit5.Text='0') then Edit5.Text:=dbTrabajo.FieldByName('EAN3').AsString;//----- Unidades del auxiliar
 
   { TODO : ventas falta poner el importe del auxiliar o la cantidad por el importe unitario?
@@ -6574,7 +6719,7 @@ var
   Texto: PChar;
 begin
   VerSiApuntarCredito:=False;
-  if Edit1.Text=ClienteVario then begin DataModule1.Mensaje('Información','No se pueden apuntar créditos a clientes varios', 2000 , clGray); exit; end;
+  if Edit1.Text=ClienteVario then begin DataModule1.Mensaje('InformaciÃ³n','No se pueden apuntar crÃ©ditos a clientes varios', 2000 , clGray); exit; end;
   Texto:=PChar('SE APUNTARA EN SU CUENTA DE CREDITO '+Edit16.Text+'?');
   if Application.MessageBox(Texto,'FacturLinEx', boxstyle) = IDNO Then
     VerSiApuntarCredito:=False
@@ -6660,7 +6805,7 @@ begin
   if (gdSelected in State) then
   begin
     if EsPromo then
-      G.Canvas.Brush.Color := $00C8F0C8   // verde suave más visible al seleccionar
+      G.Canvas.Brush.Color := $00C8F0C8   // verde suave mÃ¡s visible al seleccionar
     else
       G.Canvas.Brush.Color := clInfoBK;
     G.Canvas.Font.Color := clBlack;
@@ -6674,7 +6819,7 @@ begin
     G.Canvas.Font.Color := clBlack;
   end;
 
-  // 2) Si está marcada en rojo, SOLO cambiamos el color de fuente
+  // 2) Si estÃ¡ marcada en rojo, SOLO cambiamos el color de fuente
   if (DS <> nil) and (not DS.IsEmpty) then
     if DS.FieldByName('V13').AsString = 'S' then
       G.Canvas.Font.Color := clRed;
@@ -6682,7 +6827,7 @@ begin
   // 3) Pintamos el fondo SIEMPRE
   G.Canvas.FillRect(Rect);
 
-  // 4) Columna de "número de línea"
+  // 4) Columna de "nÃºmero de lÃ­nea"
   if Column.Index = 0 then
   begin
     if (DS <> nil) and (not DS.IsEmpty) then
@@ -6693,7 +6838,7 @@ begin
     Exit;
   end;
 
-  // 5) Resto de columnas: dibujo estándar
+  // 5) Resto de columnas: dibujo estÃ¡ndar
   G.DefaultDrawColumnCell(Rect, DataCol, Column, State);
 end;
 
@@ -6704,11 +6849,11 @@ begin
   dbTiendas.Active:=False;
   dbTiendas.Sql.Text:='SELECT * FROM tiendas WHERE T0='+NTienda;
   dbTiendas.Active:=True;
-  if dbTiendas.Recordcount=0 then begin DataModule1.Mensaje('Información','No sé en qué tienda facturar', 2000 , clGray); Exit; end;
+  if dbTiendas.Recordcount=0 then begin DataModule1.Mensaje('InformaciÃ³n','No sÃ© en quÃ© tienda facturar', 2000 , clGray); Exit; end;
   dbSeries.Active:=False;
   dbSeries.SQL.Text:='SELECT * FROM seriesfactu WHERE SF5<>"E" ORDER BY SF0';
   dbSeries.Active:=True;
-  if dbSeries.RecordCount=0 then begin DataModule1.Mensaje('Información','Crear SERIE de facturación', 2000 , clGray); exit; end;
+  if dbSeries.RecordCount=0 then begin DataModule1.Mensaje('InformaciÃ³n','Crear SERIE de facturaciÃ³n', 2000 , clGray); exit; end;
   dbSeries.Locate('SF0', dbTiendas.Fields[11].AsString, [loCaseInsensitive]);
   SERIEFACT:=dbSeries.FieldByName('SF0').AsString;
   dbTiendas.Active:=False; dbSeries.Active:=False;
@@ -6719,7 +6864,7 @@ procedure TFVentas.NumeroTicket();
 var
   Msg: string;
 begin
-  // Opción A: si la serie no existe, BLOQUEAR (no finalizar) y dejar constancia en log.
+  // OpciÃ³n A: si la serie no existe, BLOQUEAR (no finalizar) y dejar constancia en log.
   // Importante: inicializar a 0 para evitar reutilizar el valor anterior si falla algo.
   if SERIEFACT='' then begin SERIEFACT:=''; NOPERACION:=0; Exit; end;
   NOPERACION := 0;
@@ -6754,7 +6899,7 @@ begin
     end;
   end;
 
-  // Leer el número ya incrementado (SF4)
+  // Leer el nÃºmero ya incrementado (SF4)
   dbSeries.Active:=False;
   dbSeries.SQL.Text:='SELECT * FROM seriesfactu WHERE SF0="'+SERIEFACT+'"';
   dbSeries.Active:=True;
@@ -6762,27 +6907,27 @@ begin
   if dbSeries.Recordcount<>1 then
   begin
     dbSeries.Active:=False;
-    Msg := 'No se pudo leer la numeración de la serie "'+SERIEFACT+'" en seriesfactu (SF0).';
+    Msg := 'No se pudo leer la numeraciÃ³n de la serie "'+SERIEFACT+'" en seriesfactu (SF0).';
     try FLX_WriteLog('VENTAS', 'NumeroTicket: ' + Msg); except end;
     ShowMessage(Msg);
     raise Exception.Create(Msg);
   end;
 
-  NOPERACION:=dbSeries.Fields[4].AsInteger; // SF4 = último ticket emitido
+  NOPERACION:=dbSeries.Fields[4].AsInteger; // SF4 = Ãºltimo ticket emitido
   dbSeries.Active:=False;
 end;
 
 
 procedure TFVentas.LeerNumeroTicketActual();
 begin
-  // OJO: esto NO incrementa el contador. Solo lee el último ticket emitido (SF4)
-  // para previsualizaciones (QR en pantalla, etc.). El número se consume solo al finalizar la venta.
+  // OJO: esto NO incrementa el contador. Solo lee el Ãºltimo ticket emitido (SF4)
+  // para previsualizaciones (QR en pantalla, etc.). El nÃºmero se consume solo al finalizar la venta.
   if SERIEFACT='' then begin SERIEFACT:=''; NOPERACION:=0; Exit; end;
   dbSeries.Active:=False;
   dbSeries.SQL.Text:='SELECT * FROM seriesfactu WHERE SF0="'+SERIEFACT+'"';
   dbSeries.Active:=True;
   if dbSeries.Recordcount=0 then exit;
-  NOPERACION:=dbSeries.Fields[4].AsInteger; // SF4 = último ticket emitido
+  NOPERACION:=dbSeries.Fields[4].AsInteger; // SF4 = Ãºltimo ticket emitido
   dbSeries.Active:=False;
 end;
 
@@ -6795,12 +6940,12 @@ begin
   try
     dbSeries.ExecSQL;
   except
-   // Capturamos el error específico de la capa de datos
+   // Capturamos el error especÃ­fico de la capa de datos
     on EDB: EZSQLException do
     begin
-      // El mensaje de EDB contendrá el mensaje de error de MariaDB
+      // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
       ShowMessage('Error de Base de Datos Inesperado Actualizando Series Fra : ' + EDB.Message);
-      // La aplicación sigue desde aquí.
+      // La aplicaciÃ³n sigue desde aquÃ­.
     end;
   end;
   dbSeries.Active:=False;
@@ -6820,12 +6965,12 @@ begin
   try
     dbSeries.ExecSQL;
   except
-   // Capturamos el error específico de la capa de datos
+   // Capturamos el error especÃ­fico de la capa de datos
     on EDB: EZSQLException do
     begin
-      // El mensaje de EDB contendrá el mensaje de error de MariaDB
+      // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
       ShowMessage('Error de Base de Datos Inesperado Actualizando Series Alb : ' + EDB.Message);
-      // La aplicación sigue desde aquí.
+      // La aplicaciÃ³n sigue desde aquÃ­.
     end;
   end;
   dbSeries.Active:=False;
@@ -6845,12 +6990,12 @@ begin
   try
     dbSeries.ExecSQL;
   except
-   // Capturamos el error específico de la capa de datos
+   // Capturamos el error especÃ­fico de la capa de datos
     on EDB: EZSQLException do
     begin
-      // El mensaje de EDB contendrá el mensaje de error de MariaDB
+      // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
       ShowMessage('Error de Base de Datos Inesperado Actualizando Series Pedido : ' + EDB.Message);
-      // La aplicación sigue desde aquí.
+      // La aplicaciÃ³n sigue desde aquÃ­.
     end;
   end;
   dbSeries.Active:=False;
@@ -6866,12 +7011,12 @@ begin
   try
     dbSeries.ExecSQL;
   except
-   // Capturamos el error específico de la capa de datos
+   // Capturamos el error especÃ­fico de la capa de datos
     on EDB: EZSQLException do
     begin
-      // El mensaje de EDB contendrá el mensaje de error de MariaDB
+      // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
       ShowMessage('Error de Base de Datos Inesperado Actualizando Series Presup : ' + EDB.Message);
-      // La aplicación sigue desde aquí.
+      // La aplicaciÃ³n sigue desde aquÃ­.
     end;
   end;
   dbSeries.Active:=False;
@@ -6886,12 +7031,12 @@ begin
   try
     dbSeries.ExecSQL;
   except
-   // Capturamos el error específico de la capa de datos
+   // Capturamos el error especÃ­fico de la capa de datos
     on EDB: EZSQLException do
     begin
-      // El mensaje de EDB contendrá el mensaje de error de MariaDB
+      // El mensaje de EDB contendrÃ¡ el mensaje de error de MariaDB
       ShowMessage('Error de Base de Datos Inesperado Actualizando Series Proforma : ' + EDB.Message);
-      // La aplicación sigue desde aquí.
+      // La aplicaciÃ³n sigue desde aquÃ­.
     end;
   end;
   dbSeries.Active:=False;
@@ -6982,7 +7127,7 @@ procedure TFVentas.CambiarTicket();
 var
   LT: String;
 begin
-  // Evitar SQL inválido si el refresco de tickets deja el dataset sin registro
+  // Evitar SQL invÃ¡lido si el refresco de tickets deja el dataset sin registro
   // durante un instante, o si no quedan ventas aparcadas tras borrar la venta.
   LT := '';
   if (dbTickets.Active) and (dbTickets.RecordCount<>0) and
@@ -7130,7 +7275,7 @@ begin
 
   ImprimeQRTicket();
 
-  AssignFile(PrintText, DevTicket); //Añadido por javi para quitar opendialog
+  AssignFile(PrintText, DevTicket); //AÃ±adido por javi para quitar opendialog
   Rewrite(PrintText);
 
   Write(PrintText, #27#97#1); // Centrar
@@ -7175,7 +7320,7 @@ begin
             Precio:=dbVentas.Fields[6].AsFloat;
             SubTotal:=dbVentas.Fields[11].AsFloat;
            end;
-      //--- Línea con código de artículo
+      //--- LÃ­nea con cÃ³digo de artÃ­culo
       if CgoEnTicket='S' then Texto:=Copy(dbVentas.Fields[3].AsString+'                    ',1,18)+' '
                          else Texto:=Copy(dbVentas.Fields[4].AsString+'                    ',1,18)+' ';
 
@@ -7246,13 +7391,13 @@ begin
    //Centrar QR
    S += ESC + 'a' + #1;
 
-   // Definir tamaño QR a 30x30 mm
+   // Definir tamaÃ±o QR a 30x30 mm
    S += GS + '(k' + #3#0 + #49#67#6;       // tamano QR aprox. 30x30 mm
 
    // Imprimir el QR
    S += GS + '(k' + #3#0 + #49#81#48;
 
-   // Saltos de línea para asegurar el corte o avance
+   // Saltos de lÃ­nea para asegurar el corte o avance
    //S += #10;
 
    // Usar la misma salida configurada para el ticket, no /dev/usb/lp0 fijo.
@@ -7451,11 +7596,11 @@ begin
   textoseguro:=InputBox('Codigo de Seguridad','Necesita el codigo de seguridad, insertelo y acepte','');
   if textoseguro=CgSegCajon then Cajon();
 //============================= KeyLog de Apertura CAJON ===============================
-//-- textoaprobación,codigo13 y descrip50, canti3,precio6,total6 añadidos por el keyloger
+//-- textoaprobaciÃ³n,codigo13 y descrip50, canti3,precio6,total6 aÃ±adidos por el keyloger
    fichero:='';
    if FileExists(RutaIni+'Cajon_'+FormatDateTime('YYYYMM',(Date-63))+'.txt' ) then
      begin
-       //-- borrado del fichero de hace 63 días
+       //-- borrado del fichero de hace 63 dÃ­as
        fichero:=(RutaIni+'Cajon_'+FormatDateTime('YYYYMM',(Date-63))+'.txt' );
        DeleteFile(fichero);
      end;
@@ -7475,9 +7620,9 @@ begin
 
    AssignFile(PrintText, DevTicket);
 
-//-- TEST COMPROBACIÓN ERROR CAJON
+//-- TEST COMPROBACIÃN ERROR CAJON
 //   showmessage(DevTicket);
-//-- FIN TEST COMPROBACIÓN ERROR CAJON
+//-- FIN TEST COMPROBACIÃN ERROR CAJON
 
    Rewrite(PrintText);
 
@@ -7504,7 +7649,7 @@ begin
   except
    on E:Exception do
      begin
-       ShowMessage('El error provocado en inserción ha sido: '+E.Message);
+       ShowMessage('El error provocado en inserciÃ³n ha sido: '+E.Message);
      end;
   end;
 end;
@@ -7536,11 +7681,11 @@ begin
   dbTiendas.Active:=False;
   dbTiendas.Sql.Text:='SELECT * FROM tiendas WHERE T0='+NTienda;
   dbTiendas.Active:=True;
-  if dbTiendas.Recordcount=0 then begin DataModule1.Mensaje('Información','No sé en qué tienda facturar', 2000 , clGray); Exit; end;
+  if dbTiendas.Recordcount=0 then begin DataModule1.Mensaje('InformaciÃ³n','No sÃ© en quÃ© tienda facturar', 2000 , clGray); Exit; end;
   dbSeries.Active:=False;
   dbSeries.SQL.Text:='SELECT * FROM seriesfactu WHERE SF5<>"E" ORDER BY SF0';
   dbSeries.Active:=True;
-  if dbSeries.RecordCount=0 then begin DataModule1.Mensaje('Información','Debe crear SERIE de facturación', 2000 , clGray); exit; end;
+  if dbSeries.RecordCount=0 then begin DataModule1.Mensaje('InformaciÃ³n','Debe crear SERIE de facturaciÃ³n', 2000 , clGray); exit; end;
   dbSeries.First; Combo5.Items.Clear;
   while not dbSeries.EOF do
     begin
@@ -7630,7 +7775,7 @@ begin
   dbBusca.Active:=False;
   dbBusca.SQL.Text:='SELECT * FROM proveedores WHERE P0='+Edit24.Text;
   dbBusca.Active:=True;
-  if dbBusca.RecordCount=0 then begin DataModule1.Mensaje('Información','No existe ese proveedor', 2000 , clGray); exit; end;
+  if dbBusca.RecordCount=0 then begin DataModule1.Mensaje('InformaciÃ³n','No existe ese proveedor', 2000 , clGray); exit; end;
   Edit25.Text:=dbBusca.FieldByName('P1').AsString;
   dbBusca.Active:=False;
   BitBtn27.SetFocus;
@@ -7639,12 +7784,12 @@ end;
 //------------------- Buscar Proveedor ------------
 procedure TFVentas.BitBtn29Click(Sender: TObject);
 begin
-  if Edit25.Text='' then begin DataModule1.Mensaje('Información','Teclear comienzo de texto a buscar', 2000 , clGray); Edit25.SetFocus; Exit; end;
+  if Edit25.Text='' then begin DataModule1.Mensaje('InformaciÃ³n','Teclear comienzo de texto a buscar', 2000 , clGray); Edit25.SetFocus; Exit; end;
   Combo4.Clear; Combo4.Text:='';
   dbBusca.SQL.Text:='SELECT P0,P1 FROM proveedores WHERE P1 LIKE "'+Edit25.Text+'%"'; dbBusca.Active:=True;
   if dbBusca.RecordCount=0 then
     begin
-      DataModule1.Mensaje('Información','No hay ningún proveedor con ese comienzo', 2000 , clGray);
+      DataModule1.Mensaje('InformaciÃ³n','No hay ningÃºn proveedor con ese comienzo', 2000 , clGray);
       dbBusca.Active:=False; Edit25.SetFocus; Exit;
     end;
   dbBusca.First;
@@ -7672,8 +7817,8 @@ end;
 //----------------- Aceptar crear pedido ----------------
 procedure TFVentas.BitBtn27Click(Sender: TObject);
 begin
-  if Edit24.Text='' then begin DataModule1.Mensaje('Información','Falta proveedor en el pedido', 2000 , clGray); exit; end;
-  if dbVentas.RecordCount=0 then begin DataModule1.Mensaje('Información','No hay líneas para pedidos', 2000 , clGray); exit; end;
+  if Edit24.Text='' then begin DataModule1.Mensaje('InformaciÃ³n','Falta proveedor en el pedido', 2000 , clGray); exit; end;
+  if dbVentas.RecordCount=0 then begin DataModule1.Mensaje('InformaciÃ³n','No hay lÃ­neas para pedidos', 2000 , clGray); exit; end;
   If Application.MessageBox('CREAR UN PEDIDO NUEVO CON ESTAS LINEAS?','FacturLinEx', boxstyle) = IDNO Then
       Exit;
   dbTrabajo.Active:=False;
@@ -7724,13 +7869,13 @@ begin
   RefrescaTicketsAbiertos();
   Edit3.SetFocus;
 end;
-//----------------- Aceptar añadir al pedido ----------------
+//----------------- Aceptar aÃ±adir al pedido ----------------
 procedure TFVentas.BitBtn30Click(Sender: TObject);
 begin
-  if dbVentas.RecordCount=0 then begin DataModule1.Mensaje('Información','No hay líneas para crear pedidos', 2000 , clGray); exit; end;
-  if dbPedi.RecordCount=0 then begin DataModule1.Mensaje('Información','No hay pedidos creados', 2000 , clGray); exit; end;
+  if dbVentas.RecordCount=0 then begin DataModule1.Mensaje('InformaciÃ³n','No hay lÃ­neas para crear pedidos', 2000 , clGray); exit; end;
+  if dbPedi.RecordCount=0 then begin DataModule1.Mensaje('InformaciÃ³n','No hay pedidos creados', 2000 , clGray); exit; end;
   boxstyle :=  MB_ICONQUESTION + MB_YESNO;
-  If Application.MessageBox('AÑADIR ESTA LINEAS AL PEDIDO SELECCIONADO?','FacturLinEx', boxstyle) = IDNO Then
+  If Application.MessageBox('AÃADIR ESTA LINEAS AL PEDIDO SELECCIONADO?','FacturLinEx', boxstyle) = IDNO Then
       Exit;
   DateEdit1.Date:=dbPedi.FieldByName('PC1').AsDateTime;
   Edit24.Text:=dbPedi.FieldByName('PC2').AsString;
@@ -7739,7 +7884,7 @@ begin
      Combo5.ItemIndex:= Combo5.Items.IndexOf(Space(3-length(dbSeries.FieldByName('SF0').AsString))+ dbSeries.FieldByName('SF0').AsString+' - '+
                         dbSeries.FieldByName('SF1').AsString);
   Edit26.Text:=dbPedi.FieldByName('PC4').AsString;//----- N. Pedido
-  if Edit24.Text='' then begin DataModule1.Mensaje('Información','Falta proveedor para el pedido', 2000 , clGray); exit; end;
+  if Edit24.Text='' then begin DataModule1.Mensaje('InformaciÃ³n','Falta proveedor para el pedido', 2000 , clGray); exit; end;
   //----------- Cabeceras
   dbTrabajo.Active:=False;
   dbTrabajo.SQL.Text:='SELECT * FROM pedicc'+Tienda+' WHERE PC0='+NTienda+
@@ -7748,7 +7893,7 @@ begin
                       ' AND PC3="'+trim(copy(Combo5.Items.Strings[Combo5.ItemIndex],1,3))+'"'+
                       ' AND PC4='+Edit26.Text;
   dbTrabajo.Active:=True;
-  if dbTrabajo.RecordCount=0 then begin DataModule1.Mensaje('Información','No existe el pedido seleccionado', 2000 , clGray); exit; end;
+  if dbTrabajo.RecordCount=0 then begin DataModule1.Mensaje('InformaciÃ³n','No existe el pedido seleccionado', 2000 , clGray); exit; end;
   if dbTrabajo.FieldByName('PC14').AsString<>Edit1.Text then
     if Application.MessageBox('EL CLIENTE DEL PEDIDO ES DISTINTO AL SELECCIONADO, CONTINUAR?','FacturLinEx', boxstyle) = IDNO Then
        Exit;
@@ -7859,8 +8004,8 @@ begin
   dbPedid.FieldByName('PD19').AsString:=dbArti.FieldByName('A14').AsString;//- Familia
   dbPedid.FieldByName('PD20').AsString:=dbArti.FieldByName('A4').AsString;//-- Stock actual en el momento de pedir
 
-  dbPedid.FieldByName('PD21').AsString:='0';//---------- Unidades vendidas de X a X año actual
-  dbPedid.FieldByName('PD22').AsString:='0';//---------- Unidades vendidas de X a X año anterior
+  dbPedid.FieldByName('PD21').AsString:='0';//---------- Unidades vendidas de X a X aÃ±o actual
+  dbPedid.FieldByName('PD22').AsString:='0';//---------- Unidades vendidas de X a X aÃ±o anterior
 
   dbPedid.FieldByName('PD23').AsString:='S';//---------- Recibido S/N
   dbPedid.FieldByName('PD24').AsString:='';//----------- Serie de colores
@@ -7887,7 +8032,7 @@ end;
 //------------------------------------------------
 procedure TFVentas.BitBtn31Click(Sender: TObject);
 begin
- if (dbHiPedic.RecordCount=0) or (dbHiPedic.Eof) then begin DataModule1.Mensaje('Información','No hay pedidos a recuperar', 2000 , clGray); exit; end;
+ if (dbHiPedic.RecordCount=0) or (dbHiPedic.Eof) then begin DataModule1.Mensaje('InformaciÃ³n','No hay pedidos a recuperar', 2000 , clGray); exit; end;
  if dbVentas.RecordCount<>0 then
    if Application.MessageBox('ESTA PANTALLA DE VENTAS YA TIENE LINEAS, CONTINUAR?','FacturLinEx', boxstyle) = IDNO then exit;
  dbHipedid.Active:=False;
@@ -7898,7 +8043,7 @@ begin
    ' AND HPD3="'+dbHipedic.FieldByName('HPC3').AsString+'"'+
    ' AND HPD4='+dbHipedic.FieldByName('HPC4').AsString;
  dbHipedid.Active:=True;
- if dbHipedid.RecordCount=0 then begin DataModule1.Mensaje('Información','Ese pedido no tiene líneas', 2000 , clGray); Exit; end;
+ if dbHipedid.RecordCount=0 then begin DataModule1.Mensaje('InformaciÃ³n','Ese pedido no tiene lÃ­neas', 2000 , clGray); Exit; end;
  if Application.MessageBox('SE RECUPERARA EL PEDIDO SELECCIONADO, CONTINUAR?','FacturLinEx', boxstyle) = IDNO then exit;
  dbHipedid.First;
  while not dbHiPedid.EOF do
@@ -7908,7 +8053,7 @@ begin
     dbVentas.FieldByName('V1').AsString:=TICKET;//--------------------- Cgo. Vendedor
     dbVentas.FieldByName('V2').AsInteger:=VerUltimaLineaV;//------------------------ N. Linea
     dbVentas.FieldByName('V3').Value:=dbHipedid.FieldByName('HPD6').Value;//-- Codigo
-    dbVentas.FieldByName('V4').Value:=dbHipedid.FieldByName('HPD7').Value;//-- Descripción
+    dbVentas.FieldByName('V4').Value:=dbHipedid.FieldByName('HPD7').Value;//-- DescripciÃ³n
     dbVentas.FieldByName('V5').Value:=dbHipedid.FieldByName('HPD8').Value;//-- Unidades
     dbVentas.FieldByName('V6').Value:=dbHipedid.FieldByName('HPD16').Value;//- P.V.P.
     dbVentas.FieldByName('V7').Value:=dbHipedid.FieldByName('HPD12').Value;//- Precio
@@ -7951,7 +8096,7 @@ begin
  BitBtn28Click(BitBtn28);//---- Ocultar panel
  PintarTotalGeneral();//------- Pintar total
  RefrescaTicketsAbiertos();//----- Refrescar total tickets abiertos
- DataModule1.Mensaje('Información','Pedido recuperado correctamente', 2000 , clGray);
+ DataModule1.Mensaje('InformaciÃ³n','Pedido recuperado correctamente', 2000 , clGray);
 end;
 
 //---------------- Actualizar datos del pedido al -------------
@@ -7963,7 +8108,7 @@ begin
  dbHipedic.Active:=True;
  dbHipedic.Edit;
  dbHipedic.FieldByName('HPC39').AsString:=TIPOOPER;//---- Tipo de operacion
- dbHipedic.FieldByName('HPC40').Value:=FechaVenta;//----- Fecha operación
+ dbHipedic.FieldByName('HPC40').Value:=FechaVenta;//----- Fecha operaciÃ³n
  dbHipedic.FieldByName('HPC41').AsString:=SERIEFACT;//--- Serie
  dbHipedic.FieldByName('HPC42').Value:=NOPERACION;//----- Numero
  try
@@ -7986,7 +8131,7 @@ begin
   dbClientes.Active:=True;
   if dbClientes.RecordCount=0 then
    begin
-     DataModule1.Mensaje('Información','No existe ese cliente', 2000 , clGray); Edit1.SetFocus; Exit;
+     DataModule1.Mensaje('InformaciÃ³n','No existe ese cliente', 2000 , clGray); Edit1.SetFocus; Exit;
    end;
   Edit28.Text:=dbClientes.FieldByName('C1').AsString;//----- Nombre
   //-------------------------- Hist. de pedidos
@@ -8001,9 +8146,9 @@ end;
 //--------- Buscar cliente a recuperar --------
 procedure TFVentas.BitBtn32Click(Sender: TObject);
 begin
-  if Edit28.Text='' then begin DataModule1.Mensaje('Información','Debe teclear comienzo de texto a buscar', 2000 , clGray); Edit28.SetFocus; Exit; end;
+  if Edit28.Text='' then begin DataModule1.Mensaje('InformaciÃ³n','Debe teclear comienzo de texto a buscar', 2000 , clGray); Edit28.SetFocus; Exit; end;
   Edit27.Text := FBusquedas.IniciaBusquedas('SELECT C0, C1, C2 FROM clientes WHERE C1 LIKE "'+Edit28.Text+'%"',
-           ['Codigo', ' Razón social ', ' Dirección ' ], 'C0' );
+           ['Codigo', ' RazÃ³n social ', ' DirecciÃ³n ' ], 'C0' );
   if Edit27.Text<>'' then begin Edit27Exit(Edit27); end;
 end;
 procedure TFVentas.Edit28KeyPress(Sender: TObject; var Key: char);
@@ -8016,7 +8161,7 @@ begin
   if Key = Char(VK_RETURN) then BitBtn1.Click;
 end;
 
-//--------------- Mostrar crear/añadir pedidos -------------------
+//--------------- Mostrar crear/aÃ±adir pedidos -------------------
 procedure TFVentas.TabSheet1Show(Sender: TObject);
 begin
   BitBtn27.Enabled:=True; BitBtn30.Enabled:=True;
@@ -8078,17 +8223,17 @@ begin
   Panel10.Visible:=True;
   Edit34.Text:=dbClientes.FieldByName('C0').AsString;//----- Cgo Cliente
   Edit33.Text:=dbClientes.FieldByName('C1').AsString;//----- Nombre del cliente.
-  Edit36.Text:=dbClientes.FieldByName('C3').AsString;//----- Dirección cliente
+  Edit36.Text:=dbClientes.FieldByName('C3').AsString;//----- DirecciÃ³n cliente
   Edit30.Text:=dbClientes.FieldByName('C6').AsString;//----- Telefono del cliente.
   //--- Ver la tienda activa para saber que serie usa por defecto
   dbTiendas.Active:=False;
   dbTiendas.Sql.Text:='SELECT * FROM tiendas WHERE T0='+NTienda;
   dbTiendas.Active:=True;
-  if dbTiendas.Recordcount=0 then begin DataModule1.Mensaje('Información','No sé en qué tienda facturar', 2000 , clGray); Exit; end;
+  if dbTiendas.Recordcount=0 then begin DataModule1.Mensaje('InformaciÃ³n','No sÃ© en quÃ© tienda facturar', 2000 , clGray); Exit; end;
   dbSeries.Active:=False;
   dbSeries.SQL.Text:='SELECT * FROM seriesfactu WHERE SF5<>"E" ORDER BY SF0';
   dbSeries.Active:=True;
-  if dbSeries.RecordCount=0 then begin DataModule1.Mensaje('Información','Debe crear SERIE de facturación', 2000 , clGray); exit; end;
+  if dbSeries.RecordCount=0 then begin DataModule1.Mensaje('InformaciÃ³n','Debe crear SERIE de facturaciÃ³n', 2000 , clGray); exit; end;
   dbSeries.First; Combo6.Items.Clear;
   Combo6.Items.Add('*** - TODAS');
   while not dbSeries.EOF do
@@ -8118,14 +8263,14 @@ begin
     begin
       ChkTodosAniosPrePro := TCheckBox.Create(Self);
       ChkTodosAniosPrePro.Parent := Panel10;
-      ChkTodosAniosPrePro.Caption := 'Todos los años';
+      ChkTodosAniosPrePro.Caption := 'Todos los aÃ±os';
       ChkTodosAniosPrePro.AutoSize := True;
       ChkTodosAniosPrePro.Constraints.MinWidth := 140;
       ChkTodosAniosPrePro.Checked := False;
       ChkTodosAniosPrePro.Left := DateEdit2.Left;
       ChkTodosAniosPrePro.Top := DateEdit2.Top + DateEdit2.Height + 4;
       ChkTodosAniosPrePro.OnClick := @ChkTodosAniosPreProClick;
-      // refresco automático al cambiar el año
+      // refresco automÃ¡tico al cambiar el aÃ±o
       DateEdit2.OnChange := @DateEdit2Change;
     end;
   RecargaListaPrePro;
@@ -8158,7 +8303,7 @@ begin
     begin
      Edit34.Text:=dbClientes.FieldByName('C0').AsString;//----- Cgo Cliente
      Edit33.Text:=dbClientes.FieldByName('C1').AsString;//----- Nombre del cliente.
-     Edit36.Text:=dbClientes.FieldByName('C3').AsString;//----- Dirección cliente
+     Edit36.Text:=dbClientes.FieldByName('C3').AsString;//----- DirecciÃ³n cliente
      Edit30.Text:=dbClientes.FieldByName('C6').AsString;//----- Telefono del cliente.
       if Panel10.Visible then
     RecargaListaPrePro;
@@ -8175,7 +8320,7 @@ begin
   Label65.Caption:='FECHA PRESUP.';
   Label67.Caption:='N. PRESUP.';
   BitBtn35.Caption:='Nuevo presup.';
-  BitBtn37.Caption:='Añadir al presup.';
+  BitBtn37.Caption:='AÃ±adir al presup.';
   BitBtn38.Caption:='Recuperar presup.';
   //-------------------------- Presupuestos sin servir
 {
@@ -8198,7 +8343,7 @@ begin
   Label65.Caption:='FECHA PROFOR.';
   Label67.Caption:='N. PROFOR.';
   BitBtn35.Caption:='Nueva profor.';
-  BitBtn37.Caption:='Añadir a la profor.';
+  BitBtn37.Caption:='AÃ±adir a la profor.';
   BitBtn38.Caption:='Recuperar profor.';
   //-------------------------- Proformas sin servir
 {
@@ -8226,7 +8371,7 @@ begin
 
   Edit34.Text:=dbPedi.FieldByName('PRC0').AsString;//---- Cgo Cliente
   Edit33.Text:=dbPedi.FieldByName('C1').AsString;//----- Nombre cliente
-  Edit36.Text:=dbPedi.FieldByName('C3').AsString;//----- Dirección cliente
+  Edit36.Text:=dbPedi.FieldByName('C3').AsString;//----- DirecciÃ³n cliente
   Edit30.Text:=dbPedi.FieldByName('C6').AsString;//----- Telefono del cliente.
   CheckBox3.Checked:=False;
 end;
@@ -8235,7 +8380,7 @@ end;
 //------------------------- CREAR NUEVO PRE/PRO -----------------------
 procedure TFVentas.BitBtn35Click(Sender: TObject);
 begin
-  if dbVentas.RecordCount=0 then begin DataModule1.Mensaje('Información','No hay líneas para crear presupuestos o proformas', 2000 , clGray); exit; end;
+  if dbVentas.RecordCount=0 then begin DataModule1.Mensaje('InformaciÃ³n','No hay lÃ­neas para crear presupuestos o proformas', 2000 , clGray); exit; end;
   If Application.MessageBox('CREAR UN NUEVO PRESUPUESTO/PROFORMA CON ESTAS LINEAS?','FacturLinEx', boxstyle) = IDNO Then
       Exit;
   //--------- Distinguir entre pre/pro
@@ -8296,13 +8441,13 @@ begin
   Edit3.SetFocus;
 end;
 
-//------------------------- AÑADIR A UN PRE/PRO -----------------------
+//------------------------- AÃADIR A UN PRE/PRO -----------------------
 procedure TFVentas.BitBtn37Click(Sender: TObject);
 begin
-  if dbVentas.RecordCount=0 then begin DataModule1.Mensaje('Información','No hay líneas para crear presupuestos o proformas', 2000 , clGray); exit; end;
-  if dbPedi.RecordCount=0 then begin DataModule1.Mensaje('Información','No hay presupuestos o proformas creados', 2000 , clGray); exit; end;
+  if dbVentas.RecordCount=0 then begin DataModule1.Mensaje('InformaciÃ³n','No hay lÃ­neas para crear presupuestos o proformas', 2000 , clGray); exit; end;
+  if dbPedi.RecordCount=0 then begin DataModule1.Mensaje('InformaciÃ³n','No hay presupuestos o proformas creados', 2000 , clGray); exit; end;
   boxstyle :=  MB_ICONQUESTION + MB_YESNO;
-  If Application.MessageBox('AÑADIR ESTA LINEAS AL PRE/PRO SELECCIONADO?','FacturLinEx2', boxstyle) = IDNO Then
+  If Application.MessageBox('AÃADIR ESTA LINEAS AL PRE/PRO SELECCIONADO?','FacturLinEx2', boxstyle) = IDNO Then
       Exit;
   DateEdit2.Date:=dbPedi.FieldByName('PRC1').AsDateTime;
   Edit34.Text:=dbPedi.FieldByName('PRC0').AsString;
@@ -8311,7 +8456,7 @@ begin
      Combo6.ItemIndex:= Combo6.Items.IndexOf(Space(3-length(dbSeries.FieldByName('SF0').AsString))+ dbSeries.FieldByName('SF0').AsString+' - '+
                         dbSeries.FieldByName('SF1').AsString);
   Edit35.Text:=dbPedi.FieldByName('PRC3').AsString;//----- N. Pedido
-  if Edit34.Text='' then begin DataModule1.Mensaje('Información','Falta cliente para presupuesto o proforma', 2000 , clGray); exit; end;
+  if Edit34.Text='' then begin DataModule1.Mensaje('InformaciÃ³n','Falta cliente para presupuesto o proforma', 2000 , clGray); exit; end;
   //--------- Distinguir entre pre/pro
   if RadioButton9.Checked=true then begin TablaPreProc:='presuc'; TablaPreProd:='presud'; end
   else begin TablaPreProc:='proforc'; TablaPreProd:='proford'; end;
@@ -8322,7 +8467,7 @@ begin
                       ' AND PRC2="'+trim(copy(Combo6.Items.Strings[Combo6.ItemIndex],1,3))+'"'+
                       ' AND PRC3='+Edit35.Text;
   dbTrabajo.Active:=True;
-  if dbTrabajo.RecordCount=0 then begin DataModule1.Mensaje('Información','El presupuesto / proforma seleccionado no existe', 2000 , clGray); exit; end;
+  if dbTrabajo.RecordCount=0 then begin DataModule1.Mensaje('InformaciÃ³n','El presupuesto / proforma seleccionado no existe', 2000 , clGray); exit; end;
 
   if dbTrabajo.FieldByName('PRC0').AsString<>Edit34.Text then
     if Application.MessageBox('EL CLIENTE DEL PRE/PRO ES DISTINTO AL SELECCIONADO, CONTINUAR?','FacturLinEx2', boxstyle) = IDNO Then
@@ -8388,7 +8533,7 @@ begin
  else
     begin TablaPreProc:='proforc'; TablaPreProd:='proford'; Texto:='PROFORMAS'; end;
  //-------------------------------
- if (dbPedi.RecordCount=0) or (dbPedi.Eof) then begin DataModule1.Mensaje('Información','No hay '+ texto + ' a recuperar', 2000 , clGray); exit; end;
+ if (dbPedi.RecordCount=0) or (dbPedi.Eof) then begin DataModule1.Mensaje('InformaciÃ³n','No hay '+ texto + ' a recuperar', 2000 , clGray); exit; end;
  if dbVentas.RecordCount<>0 then
    if Application.MessageBox('ESTA PANTALLA DE VENTAS YA TIENE LINEAS, CONTINUAR?','FacturLinEx2', boxstyle) = IDNO then exit;
  dbpedid.Active:=False;
@@ -8398,7 +8543,7 @@ begin
    ' AND PRD2="'+dbpedi.FieldByName('PRC2').AsString+'"'+
    ' AND PRD3='+dbpedi.FieldByName('PRC3').AsString;
  dbpedid.Active:=True;
- if dbpedid.RecordCount=0 then begin DataModule1.Mensaje('Información','Este ' +Texto +' no tiene líneas', 2000 , clGray); Exit; end;
+ if dbpedid.RecordCount=0 then begin DataModule1.Mensaje('InformaciÃ³n','Este ' +Texto +' no tiene lÃ­neas', 2000 , clGray); Exit; end;
  if Application.MessageBox('SE RECUPERARA EL REGISTRO SELECCIONADO, CONTINUAR?','FacturLinEx2', boxstyle) = IDNO then exit;
  dbpedid.First;
  while not dbPedid.EOF do
@@ -8408,7 +8553,7 @@ begin
     dbVentas.FieldByName('V1').AsString:=TICKET;//--------------------- Cgo. Vendedor
     dbVentas.FieldByName('V2').AsString:=dbpedid.FieldByName('PRD4').Value;;//------------------------ N. Linea
     dbVentas.FieldByName('V3').Value:=dbpedid.FieldByName('PRD5').Value;//-- Codigo
-    dbVentas.FieldByName('V4').Value:=LeftStr(dbpedid.FieldByName('PRD6').Value, 50);//-- Descripción
+    dbVentas.FieldByName('V4').Value:=LeftStr(dbpedid.FieldByName('PRD6').Value, 50);//-- DescripciÃ³n
     dbVentas.FieldByName('V5').Value:=dbpedid.FieldByName('PRD7').Value;//-- Unidades
     dbVentas.FieldByName('V6').Value:=dbpedid.FieldByName('PRD8').Value;//- P.V.P.
     dbVentas.FieldByName('V7').Value:=dbpedid.FieldByName('PRD9').Value;//- Precio
@@ -8454,7 +8599,7 @@ begin
  BitBtn36Click(BitBtn36);//---- Ocultar panel
  PintarTotalGeneral();//------- Pintar total
  RefrescaTicketsAbiertos();//----- Refrescar total tickets abiertos
- DataModule1.Mensaje('Información',Texto +' recuperado correctamente', 2000 , clGray);
+ DataModule1.Mensaje('InformaciÃ³n',Texto +' recuperado correctamente', 2000 , clGray);
 end;
 
 //---------------- Actualizar datos del pre/pro al -------------
@@ -8466,7 +8611,7 @@ begin
  dbpedi.Active:=True;
  dbpedi.Edit;
  dbpedi.FieldByName('PRC12').AsString:=TIPOOPER;//---- Tipo de operacion
- dbpedi.FieldByName('PRC13').Value:=FechaVenta;//----- Fecha operación
+ dbpedi.FieldByName('PRC13').Value:=FechaVenta;//----- Fecha operaciÃ³n
  dbpedi.FieldByName('PRC14').AsString:=SERIEFACT;//--- Serie
  dbpedi.FieldByName('PRC15').Value:=NOPERACION;//----- Numero
  try
@@ -8619,7 +8764,7 @@ begin
 
   if Edit29.Text='' then
     begin
-       DataModule1.Mensaje('Información','Falta la Razón social', 2000 , clGray);
+       DataModule1.Mensaje('InformaciÃ³n','Falta la RazÃ³n social', 2000 , clGray);
        Edit29.SetFocus;
        Exit;
     end;
@@ -8682,7 +8827,7 @@ begin
  Result:= Duplicado;
  if Duplicado='' then exit;
 
- DataModule1.Mensaje('Información','Duplicidad en'+Duplicado+' Cliente :' +
+ DataModule1.Mensaje('InformaciÃ³n','Duplicidad en'+Duplicado+' Cliente :' +
                         dbBusca.FieldByName('C0').AsString+' ', 2000 , clGray);
 
 end;
@@ -8701,7 +8846,7 @@ end;
 //========================================================
 //===================== USUARIOS =========================
 //========================================================
-//================== CARGAR PESTAÑAS ===============
+//================== CARGAR PESTAÃAS ===============
 procedure TFVentas.CargaUsuarios();
 var
   Boton: TBitBtn;
@@ -8756,7 +8901,7 @@ var
           begin
               cbUsuario.ItemIndex:=nIndex;
               Dispensador:=dbUsu.Fields[0].AsString;
-              btnUsuarioActivo:= boton;      // Asignamos el botón del usuario activo.
+              btnUsuarioActivo:= boton;      // Asignamos el botÃ³n del usuario activo.
           end;
        inc(nIndex);
 
@@ -8814,7 +8959,7 @@ begin
     begin
       if key=VK_F1 then
         begin
-             //-- Pruebas de Jose -- if GetKeyState(VK_CONTROL) < 0 then showmessage('Ole, se pulsó la tecla con CTRL'); // se presionó CONTROL
+             //-- Pruebas de Jose -- if GetKeyState(VK_CONTROL) < 0 then showmessage('Ole, se pulsÃ³ la tecla con CTRL'); // se presionÃ³ CONTROL
              exit;
         end;
       if key=VK_F2 then begin exit; end;
@@ -8847,7 +8992,7 @@ begin
     begin
       if BitBtn9.Enabled=true and Panel4.Visible=True then
         begin
-           //-- Linea anulada por Jose para evitar que vuelva un paso atrás tras cancelar la operación
+           //-- Linea anulada por Jose para evitar que vuelva un paso atrÃ¡s tras cancelar la operaciÃ³n
            //-- if PedirSiempreUsuario='S' then Panel12.Visible:=True;
            if BitBtn11.Enabled=True then begin BitBtn11Click(BitBtn11); key:=0; exit; end;
         end;
@@ -8868,12 +9013,12 @@ begin
   //-------------- Control en totalizar de la impresion directa / email -----------------
 
 
-   if ssCtrl in Shift then // Verifica si la tecla Ctrl está presionada
+   if ssCtrl in Shift then // Verifica si la tecla Ctrl estÃ¡ presionada
    begin
 
      if (key=VK_C) and (panel4.Visible=True) then
      begin
-       edNumeroCopias.SetFocus;                                                   // Editamos valor en número copias
+       edNumeroCopias.SetFocus;                                                   // Editamos valor en nÃºmero copias
        key:=0;
        exit;
      end;
@@ -8904,7 +9049,7 @@ begin
      if (key=VK_D) and (panel4.Visible=True) then
      begin
          if (cbImpresionDirecta.Checked=False) then cbImpresionDirecta.Checked:=True
-                                               else cbImpresionDirecta.Checked:=False;  //Cambiamos valor Impresión directa
+                                               else cbImpresionDirecta.Checked:=False;  //Cambiamos valor ImpresiÃ³n directa
          key:=0;
          exit;
      end;

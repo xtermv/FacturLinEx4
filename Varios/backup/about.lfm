@@ -1,12 +1,12 @@
 object AboutBox: TAboutBox
-  Left = 777
-  Height = 314
-  Top = 325
+  Left = 535
+  Height = 313
+  Top = 310
   Width = 901
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = 'About'
-  ClientHeight = 314
+  ClientHeight = 313
   ClientWidth = 901
   Position = poScreenCenter
   LCLVersion = '4.2.0.0'
@@ -30,9 +30,9 @@ object AboutBox: TAboutBox
     TabOrder = 0
     object LabelPaquete: TLabel
       Left = 31
-      Height = 20
+      Height = 17
       Top = 21
-      Width = 89
+      Width = 107
       Caption = 'Gestión Linex'
       Font.Color = clNavy
       Font.Height = -14
@@ -44,7 +44,7 @@ object AboutBox: TAboutBox
       ParentFont = False
     end
     object LabelVersion: TLabel
-      Left = 4
+      Left = 3
       Height = 16
       Top = 230
       Width = 322
@@ -72,7 +72,7 @@ object AboutBox: TAboutBox
       Alignment = taCenter
       Anchors = [akTop, akLeft, akRight]
       AutoSize = False
-      Caption = 'FacturLinEx Veri*factu 4.0'
+      Caption = 'FacturLinEx Veri*factu 4.0.1'
       Font.Color = clNavy
       Font.Height = 22
       Font.Name = 'Sans'
@@ -85,9 +85,9 @@ object AboutBox: TAboutBox
     end
     object LabelPagProyecto: TLabel
       Left = 32
-      Height = 17
+      Height = 15
       Top = 268
-      Width = 238
+      Width = 257
       Caption = 'http://sourceforge.net/projects/facturlinex/'
       Font.Height = -12
       Layout = tlCenter
@@ -231,7 +231,7 @@ object AboutBox: TAboutBox
     TabOrder = 2
     object Logo: TTabSheet
       Caption = 'Logo'
-      ClientHeight = 224
+      ClientHeight = 226
       ClientWidth = 556
       ParentFont = False
       object ImageLogo: TImage
@@ -831,12 +831,12 @@ object AboutBox: TAboutBox
     end
     object Desarrollo: TTabSheet
       Caption = 'Desarrollo'
-      ClientHeight = 224
+      ClientHeight = 226
       ClientWidth = 556
       ParentFont = False
       object MemoDesarrollo: TMemo
         Left = 0
-        Height = 224
+        Height = 226
         Top = 0
         Width = 556
         Align = alClient
@@ -850,12 +850,12 @@ object AboutBox: TAboutBox
     end
     object Agradecimientos: TTabSheet
       Caption = 'Agradecimientos'
-      ClientHeight = 224
+      ClientHeight = 226
       ClientWidth = 556
       ParentFont = False
       object MemoAgradec: TMemo
         Left = 0
-        Height = 224
+        Height = 226
         Top = 0
         Width = 556
         Align = alClient
@@ -867,12 +867,12 @@ object AboutBox: TAboutBox
     end
     object Licencia: TTabSheet
       Caption = 'Licencia'
-      ClientHeight = 224
+      ClientHeight = 226
       ClientWidth = 556
       ParentFont = False
       object MemoLicencia: TMemo
         Left = 0
-        Height = 224
+        Height = 226
         Top = 0
         Width = 556
         Align = alClient

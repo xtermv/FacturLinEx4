@@ -1,0 +1,22 @@
+# Compilados Lazarus/FPC
+*.o
+*.ppu
+*.or
+*.compiled
+
+# Copias y temporales
+*.bak
+*.BAK
+*.tmp
+*~
+
+# Carpetas de basura/copias
+_BASURA_REVISAR_*/
+backup/
+
+# Ejecutables generados
+/Bin/FacturLinEx
+/ActualizadorBBDD/Bin/FacturActBBDD
+
+# Salidas temporales
+/Bin/QR.png

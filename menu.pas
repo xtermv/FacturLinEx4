@@ -957,14 +957,14 @@ begin
       VF_HttpConfigure(
                        urlSelect,   // <-- cámbialo a tu endpoint
                        '',                                           // bearer opcional
-                       180000,                                        // timeout ms
+                       15000,                                         // timeout ms corto; reintentos por dispatcher
                        ''                                            // cabecera extra opcional, p.ej. 'X-Tienda: 0000'
                        );
 
       VF_UseHTTPSender; // ← activa el sender HTTP
       //-- ACTIVAR MODO TEST
            // VF_UseDefaultTestSender(0); // 0 = nunca falla
-      TimerVF.Interval := 180000;  // 10000 son 10 s, lo he cambiado a 30
+      TimerVF.Interval := 30000;   // 30 s: worker en segundo plano
       TimerVF.Enabled := True;
       VF_SetMode(vfMode);
       UpdateVFStatusBar;
@@ -974,18 +974,22 @@ begin
 end;
 
 procedure TFMenu.TimerVFTimer(Sender: TObject);
+var
+  OldEnabled: Boolean;
 begin
-  VF_Tick(10{min lease}, 25{max por pulso});
-  // VF_TimerStep;  // DESACTIVADO: ruta antigua uVF_Sender consultaba payload en vez de payload_json y duplicaba el dispatcher VF_Tick.
-  // DEBUG 1s:
-  // StatusBar1.SimpleText := StatusBar1.SimpleText + '  [tick]';
-  { ERA PARA COMPROBAR QUE APUNTABA A LAS DIRECCIONES REQUERIDAS, AUNQUE NO ACTUALIZA EL NÚMERO DE DOCUMENTOS EN COLA, :(
-  StatusBar1.SimpleText := StatusBar1.SimpleText +
-  '  | VFMode=' + VFMode +
-  '  | VFUrlTLocal=' + VFUrlTLocal +
-  '  | VFUrlTP=' + VFUrlTP;
-  }
-  UpdateVFStatusBar;
+  // V2+: el Timer no envia a AEAT en el hilo principal.
+  // Solo lanza un worker en segundo plano; si ya hay uno activo, se ignora.
+  // Evita congelaciones al volver de ventas al menu si no hay red o AEAT tarda.
+  OldEnabled := TimerVF.Enabled;
+  TimerVF.Enabled := False;
+  try
+    VF_StartDispatcherThread(10{min lease}, 25{max por lote});
+    // VF_TimerStep;  // DESACTIVADO: ruta antigua uVF_Sender duplicaba el dispatcher.
+    UpdateVFStatusBar;
+  finally
+    TimerVF.Interval := 30000;
+    TimerVF.Enabled := OldEnabled;
+  end;
 end;
 
 procedure TFMenu.ActualizamosPromociones();
@@ -1674,13 +1678,13 @@ begin
   B.NumGlyphs := 1;
   B.OnClick := @FLXUpdateConfigClick;
 
-  // Colocaci�n en Utilidades:
-  // a unos 10 cm hacia la derecha del bot�n ROLES.
+  // Colocación en Utilidades:
+  // a unos 10 cm hacia la derecha del botón ROLES.
   // Aproximamos 10 cm a 360 px en pantallas normales.
   GapPx := 360;
   B.Left := BitBtn54.Left + BitBtn54.Width + GapPx;
 
-  // Si en alg�n terminal no cupiese, lo acercamos un poco pero nunca lo
+  // Si en algún terminal no cupiese, lo acercamos un poco pero nunca lo
   // mandamos a Ventas. La referencia visual siempre es ROLES.
   if (B.Left + B.Width) > (B.Parent.ClientWidth - 8) then
     B.Left := B.Parent.ClientWidth - B.Width - 8;

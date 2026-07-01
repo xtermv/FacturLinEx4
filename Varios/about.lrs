@@ -4,14 +4,14 @@ LazarusResources.Add('TAboutBox','FORMDATA',[
   'TPF0'#9'TAboutBox'#8'AboutBox'#4'Left'#3#23#2#6'Height'#3'9'#1#3'Top'#3'6'#1
   +#5'Width'#3#133#3#11'BorderIcons'#11#12'biSystemMenu'#0#11'BorderStyle'#7#8
   +'bsSingle'#7'Caption'#6#5'About'#12'ClientHeight'#3'9'#1#11'ClientWidth'#3
-  +#133#3#8'Position'#7#14'poScreenCenter'#10'LCLVersion'#6#7'4.2.0.0'#7'OnClos'
+  +#133#3#8'Position'#7#14'poScreenCenter'#10'LCLVersion'#6#7'4.4.0.0'#7'OnClos'
   +'e'#7#9'FormClose'#8'OnCreate'#7#10'FormCreate'#6'OnShow'#7#8'FormShow'#0#6
   +'TPanel'#10'AboutPanel'#4'Left'#2#3#6'Height'#3'7'#1#3'Top'#2#2#5'Width'#3'M'
   +#1#10'BevelInner'#7#8'bvRaised'#10'BevelOuter'#7#9'bvLowered'#10'BevelWidth'
   +#2#2#12'ClientHeight'#3'7'#1#11'ClientWidth'#3'M'#1#5'Color'#7#9'clSkyBlue'
   +#16'ParentBackground'#8#11'ParentColor'#8#10'ParentFont'#8#8'TabOrder'#2#0#0
-  +#6'TLabel'#12'LabelPaquete'#4'Left'#2#31#6'Height'#2#17#3'Top'#2#21#5'Width'
-  +#2'k'#7'Caption'#6#14'Gesti'#195#179'n Linex'#10'Font.Color'#7#6'clNavy'#11
+  +#6'TLabel'#12'LabelPaquete'#4'Left'#2#31#6'Height'#2#20#3'Top'#2#21#5'Width'
+  +#2'Y'#7'Caption'#6#14'Gesti'#195#179'n Linex'#10'Font.Color'#7#6'clNavy'#11
   +'Font.Height'#2#242#9'Font.Name'#6#4'Sans'#10'Font.Pitch'#7#10'fpVariable'#10
   +'Font.Style'#11#6'fsBold'#8'fsItalic'#0#6'Layout'#7#8'tlCenter'#11'ParentCol'
   +'or'#8#10'ParentFont'#8#0#0#6'TLabel'#12'LabelVersion'#4'Left'#2#3#6'Height'
@@ -28,10 +28,10 @@ LazarusResources.Add('TAboutBox','FORMDATA',[
   +'t'#2#22#9'Font.Name'#6#4'Sans'#10'Font.Pitch'#7#10'fpVariable'#10'Font.Styl'
   +'e'#11#6'fsBold'#8'fsItalic'#0#6'Layout'#7#8'tlCenter'#11'OptimalFill'#9#11
   +'ParentColor'#8#10'ParentFont'#8#0#0#6'TLabel'#16'LabelPagProyecto'#4'Left'#2
-  +' '#6'Height'#2#15#3'Top'#3#12#1#5'Width'#3#1#1#7'Caption'#6',http://sourcef'
-  +'orge.net/projects/facturlinex/'#11'Font.Height'#2#244#6'Layout'#7#8'tlCente'
-  +'r'#11'ParentColor'#8#10'ParentFont'#8#0#0#6'TImage'#6'Image1'#4'Left'#2'O'#6
-  +'Height'#2'`'#3'Top'#2'<'#5'Width'#3#170#0#12'Picture.Data'#10'>'#11#0#0#23
+  +' '#6'Height'#2#17#3'Top'#3#12#1#5'Width'#3#238#0#7'Caption'#6',http://sourc'
+  +'eforge.net/projects/facturlinex/'#11'Font.Height'#2#244#6'Layout'#7#8'tlCen'
+  +'ter'#11'ParentColor'#8#10'ParentFont'#8#0#0#6'TImage'#6'Image1'#4'Left'#2'O'
+  +#6'Height'#2'`'#3'Top'#2'<'#5'Width'#3#170#0#12'Picture.Data'#10'>'#11#0#0#23
   +'TPortableNetworkGraphic"'#11#0#0#137'PNG'#13#10#26#10#0#0#0#13'IHDR'#0#0#0
   +'x'#0#0#0'd'#8#2#0#0#0#194#18'ce'#0#0#0#1'sRGB'#0#174#206#28#233#0#0#0#9'pHY'
   +'s'#0#0#11#19#0#0#11#19#1#0#154#156#24#0#0#0#7'tIME'#7#218#4#22#10#4#5#230#18
@@ -160,7 +160,7 @@ LazarusResources.Add('TAboutBox','FORMDATA',[
   +#0#12'TPageControl'#9'Notebook1'#4'Left'#3'R'#1#6'Height'#3#1#1#3'Top'#2#5#5
   +'Width'#3'0'#2#10'ActivePage'#7#4'Logo'#10'ParentFont'#8#8'TabIndex'#2#0#8'T'
   +'abOrder'#2#2#0#9'TTabSheet'#4'Logo'#7'Caption'#6#4'Logo'#12'ClientHeight'#3
-  +#226#0#11'ClientWidth'#3','#2#10'ParentFont'#8#0#6'TImage'#9'ImageLogo'#4'Le'
+  +#224#0#11'ClientWidth'#3','#2#10'ParentFont'#8#0#6'TImage'#9'ImageLogo'#4'Le'
   +'ft'#3#136#0#6'Height'#2'x'#3'Top'#2'8'#5'Width'#2'x'#8'AutoSize'#9#12'Pictu'
   +'re.Data'#10#230'H'#0#0#23'TPortableNetworkGraphic'#202'H'#0#0#137'PNG'#13#10
   +#26#10#0#0#0#13'IHDR'#0#0#0'x'#0#0#0'x'#8#6#0#0#0'9d6'#210#0#0#0#1'sRGB'#0
@@ -946,17 +946,17 @@ LazarusResources.Add('TAboutBox','FORMDATA',[
   +#195#217#183#14#31#254#189'h'#226#214#137'Mlb'#19#155#216#196'&6'#177#137'Ml'
   +'b'#19#155#216#196'&6'#177#137'Mlb'#19#155#216#196'&6'#177#137'Ml='#246#191
   +#22'{3'#29'`'#211#146#10#0#0#0#0'IEND'#174'B`'#130#12'Proportional'#9#0#0#0#9
-  +'TTabSheet'#10'Desarrollo'#7'Caption'#6#10'Desarrollo'#12'ClientHeight'#3#226
+  +'TTabSheet'#10'Desarrollo'#7'Caption'#6#10'Desarrollo'#12'ClientHeight'#3#224
   +#0#11'ClientWidth'#3','#2#10'ParentFont'#8#0#5'TMemo'#14'MemoDesarrollo'#4'L'
-  +'eft'#2#0#6'Height'#3#226#0#3'Top'#2#0#5'Width'#3','#2#5'Align'#7#8'alClient'
+  +'eft'#2#0#6'Height'#3#224#0#3'Top'#2#0#5'Width'#3','#2#5'Align'#7#8'alClient'
   +#11'Font.Height'#2#243#9'Font.Name'#6#15'Times New Roman'#11'ParentColor'#9
   +#10'ParentFont'#8#8'ReadOnly'#9#8'TabOrder'#2#0#0#0#0#9'TTabSheet'#15'Agrade'
-  +'cimientos'#7'Caption'#6#15'Agradecimientos'#12'ClientHeight'#3#226#0#11'Cli'
+  +'cimientos'#7'Caption'#6#15'Agradecimientos'#12'ClientHeight'#3#224#0#11'Cli'
   +'entWidth'#3','#2#10'ParentFont'#8#0#5'TMemo'#11'MemoAgradec'#4'Left'#2#0#6
-  +'Height'#3#226#0#3'Top'#2#0#5'Width'#3','#2#5'Align'#7#8'alClient'#11'Parent'
+  +'Height'#3#224#0#3'Top'#2#0#5'Width'#3','#2#5'Align'#7#8'alClient'#11'Parent'
   +'Color'#9#10'ParentFont'#8#8'ReadOnly'#9#8'TabOrder'#2#0#0#0#0#9'TTabSheet'#8
-  +'Licencia'#7'Caption'#6#8'Licencia'#12'ClientHeight'#3#226#0#11'ClientWidth'
+  +'Licencia'#7'Caption'#6#8'Licencia'#12'ClientHeight'#3#224#0#11'ClientWidth'
   +#3','#2#10'ParentFont'#8#0#5'TMemo'#12'MemoLicencia'#4'Left'#2#0#6'Height'#3
-  +#226#0#3'Top'#2#0#5'Width'#3','#2#5'Align'#7#8'alClient'#11'ParentColor'#9#10
+  +#224#0#3'Top'#2#0#5'Width'#3','#2#5'Align'#7#8'alClient'#11'ParentColor'#9#10
   +'ParentFont'#8#8'ReadOnly'#9#8'TabOrder'#2#0#0#0#0#0#0
 ]);
