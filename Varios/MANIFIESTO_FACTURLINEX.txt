@@ -1,0 +1,19 @@
+MANIFIESTO DEL PROYECTO FACTURLINEX
+
+FacturLinEx nace y continúa como una herramienta práctica para la gestión diaria de comercios y profesionales.
+
+Nuestros principios:
+
+1. Software libre. El conocimiento y las mejoras deben poder estudiarse, compartirse y continuar en el tiempo.
+
+2. Estabilidad. Cada mejora debe preservar lo que ya funciona y reducir riesgos en el trabajo diario.
+
+3. Utilidad real. Las funciones se diseñan para ahorrar tiempo, aportar información y resolver necesidades concretas.
+
+4. Control de los datos. La información pertenece al usuario y debe permanecer accesible, portable y protegida.
+
+5. Evolución compatible. FacturLinEx debe modernizarse sin obligar a abandonar instalaciones, datos o formas de trabajo válidas.
+
+6. Comunidad y continuidad. Cada prueba, corrección, traducción, idea y aportación ayuda a mantener vivo el proyecto.
+
+FacturLinEx 4.2.2 mantiene estos principios y continúa su desarrollo bajo la licencia GNU GPL versión 3.

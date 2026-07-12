@@ -489,6 +489,14 @@ type
     procedure cbCopia2Change(Sender: TObject);
     procedure cbCopia1Change(Sender: TObject);
   private
+    lbClientesBuscarNIFCodigo: TLabel;
+    lbClientesModoCodigoAltaNIF: TLabel;
+    lbClientesCodigoSuperiorDesde: TLabel;
+    cbClientesBuscarNIFCodigo: TComboBox;
+    cbClientesModoCodigoAltaNIF: TComboBox;
+    edClientesCodigoSuperiorDesde: TEdit;
+    procedure CrearControlesClientesCodigo;
+    procedure ClientesCodigoConfigChange(Sender: TObject);
     { private declarations }
   public
     { public declarations }
@@ -513,6 +521,73 @@ const
   VF_DEFAULT_URL_SOAP   = 'https://prewww10.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP';
   VF_DEFAULT_URL_LOCAL  = 'http://127.0.0.1:8080/verifactu/test';
   VF_DEFAULT_MODE       = 'PRODUCCION';
+
+//--------------- Controles runtime para codigo de cliente desde NIF -----------
+procedure TFConfig.CrearControlesClientesCodigo;
+var
+  AParent: TWinControl;
+  LLeft, CLeft, LWidth, CWidth, Top1: Integer;
+begin
+  if Assigned(cbClientesBuscarNIFCodigo) then Exit;
+
+  AParent := edCliVario.Parent;
+  LLeft := lbCliVario.Left;
+  CLeft := edCliVario.Left;
+  LWidth := lbCliVario.Width;
+  CWidth := 220;
+  Top1 := CgSCajon.Top + 42;
+
+  lbClientesBuscarNIFCodigo := TLabel.Create(Self);
+  lbClientesBuscarNIFCodigo.Parent := AParent;
+  lbClientesBuscarNIFCodigo.SetBounds(LLeft, Top1, LWidth, lbCliVario.Height);
+  lbClientesBuscarNIFCodigo.AutoSize := False;
+  lbClientesBuscarNIFCodigo.Layout := tlCenter;
+  lbClientesBuscarNIFCodigo.Caption := 'Buscar NIF/CIF desde codigo cliente';
+
+  cbClientesBuscarNIFCodigo := TComboBox.Create(Self);
+  cbClientesBuscarNIFCodigo.Parent := AParent;
+  cbClientesBuscarNIFCodigo.SetBounds(CLeft, Top1-3, 56, ComboBox1.Height);
+  cbClientesBuscarNIFCodigo.Style := csDropDownList;
+  cbClientesBuscarNIFCodigo.Items.Add('S');
+  cbClientesBuscarNIFCodigo.Items.Add('N');
+
+  lbClientesModoCodigoAltaNIF := TLabel.Create(Self);
+  lbClientesModoCodigoAltaNIF.Parent := AParent;
+  lbClientesModoCodigoAltaNIF.SetBounds(LLeft, Top1 + 40, LWidth, lbCliVario.Height);
+  lbClientesModoCodigoAltaNIF.AutoSize := False;
+  lbClientesModoCodigoAltaNIF.Layout := tlCenter;
+  lbClientesModoCodigoAltaNIF.Caption := 'Codigo al crear cliente desde NIF';
+
+  cbClientesModoCodigoAltaNIF := TComboBox.Create(Self);
+  cbClientesModoCodigoAltaNIF.Parent := AParent;
+  cbClientesModoCodigoAltaNIF.SetBounds(CLeft, Top1 + 37, CWidth, ComboBox1.Height);
+  cbClientesModoCodigoAltaNIF.Style := csDropDownList;
+  cbClientesModoCodigoAltaNIF.Items.Add('SIGUIENTE_NORMAL');
+  cbClientesModoCodigoAltaNIF.Items.Add('NIF_SIN_LETRA');
+  cbClientesModoCodigoAltaNIF.Items.Add('SIGUIENTE_SUPERIOR');
+
+  lbClientesCodigoSuperiorDesde := TLabel.Create(Self);
+  lbClientesCodigoSuperiorDesde.Parent := AParent;
+  lbClientesCodigoSuperiorDesde.SetBounds(LLeft, Top1 + 80, LWidth, lbCliVario.Height);
+  lbClientesCodigoSuperiorDesde.AutoSize := False;
+  lbClientesCodigoSuperiorDesde.Layout := tlCenter;
+  lbClientesCodigoSuperiorDesde.Caption := 'Siguiente superior a';
+
+  edClientesCodigoSuperiorDesde := TEdit.Create(Self);
+  edClientesCodigoSuperiorDesde.Parent := AParent;
+  edClientesCodigoSuperiorDesde.SetBounds(CLeft, Top1 + 77, edCliVario.Width, edCliVario.Height);
+  edClientesCodigoSuperiorDesde.Alignment := taCenter;
+  edClientesCodigoSuperiorDesde.Text := '999999';
+  edClientesCodigoSuperiorDesde.OnKeyPress := @Edit64KeyPress;
+end;
+
+procedure TFConfig.ClientesCodigoConfigChange(Sender: TObject);
+begin
+  if BitBtn1.Enabled=True then Exit;
+  BitBtn1.Enabled := True;
+  BitBtn2.Enabled := True;
+end;
+
 //--------------- Valores por defecto VeriFactu ----------------
 procedure TFConfig.AplicarDefaultsVeriFactuEnBlanco;
 begin
@@ -749,6 +824,19 @@ begin
 
     ClienteVario:= edCliVario.Text;
     if ClienteVario='' then ClienteVario:='999999';
+
+    ClientesBuscarNIFDesdeCodigo := 'S';
+    if Assigned(cbClientesBuscarNIFCodigo) and (Trim(cbClientesBuscarNIFCodigo.Text)<>'') then
+      ClientesBuscarNIFDesdeCodigo := UpperCase(Trim(cbClientesBuscarNIFCodigo.Text));
+
+    ClientesModoCodigoAltaNIF := 'SIGUIENTE_NORMAL';
+    if Assigned(cbClientesModoCodigoAltaNIF) and (Trim(cbClientesModoCodigoAltaNIF.Text)<>'') then
+      ClientesModoCodigoAltaNIF := UpperCase(Trim(cbClientesModoCodigoAltaNIF.Text));
+
+    ClientesCodigoSuperiorDesde := 999999;
+    if Assigned(edClientesCodigoSuperiorDesde) then
+      ClientesCodigoSuperiorDesde := StrToIntDef(Trim(edClientesCodigoSuperiorDesde.Text),999999);
+
     CgSegCajon:=CgSCajon.Text;
 
     PedirSiempreUsuario:=ComboBox31.Text;
@@ -1048,6 +1136,18 @@ begin
     IniReader.WriteString('CGeneral','ImprimirLOPD',ComboboxLOPD.Text);
     IniReader.WriteString('CGeneral','Stock_suficiente', cbRupturaStock.Text);
     IniReader.WriteString('CGeneral','CgClienteVario', edCliVario.Text);
+    if Assigned(cbClientesBuscarNIFCodigo) then
+      IniReader.WriteString('CGeneral','ClientesBuscarNIFDesdeCodigo', cbClientesBuscarNIFCodigo.Text)
+    else
+      IniReader.WriteString('CGeneral','ClientesBuscarNIFDesdeCodigo', 'S');
+    if Assigned(cbClientesModoCodigoAltaNIF) then
+      IniReader.WriteString('CGeneral','ClientesModoCodigoAltaNIF', cbClientesModoCodigoAltaNIF.Text)
+    else
+      IniReader.WriteString('CGeneral','ClientesModoCodigoAltaNIF', 'SIGUIENTE_NORMAL');
+    if Assigned(edClientesCodigoSuperiorDesde) then
+      IniReader.WriteString('CGeneral','ClientesCodigoSuperiorDesde', edClientesCodigoSuperiorDesde.Text)
+    else
+      IniReader.WriteString('CGeneral','ClientesCodigoSuperiorDesde', '999999');
     IniReader.WriteString('CGeneral','CgSeguroCajon',CgSCajon.Text);
     IniReader.WriteString('CGeneral','Moneda', edMoneda.Text);
 
@@ -1104,6 +1204,7 @@ begin
   IniReader.ReadSections( Sections );
 
   PageControl1.ActivePage := TabSheet1;
+  CrearControlesClientesCodigo;
   RestaurarIni;
 
   LabelCambiable1.Caption:='Tienda Activa';
@@ -1131,6 +1232,13 @@ begin
   Edit72.OnChange      := @VeriFactuChange;
   Edit73.OnChange      := @VeriFactuChange;
   vfCheckTest.OnChange := @VeriFactuChange;
+
+  if Assigned(cbClientesBuscarNIFCodigo) then
+    cbClientesBuscarNIFCodigo.OnChange := @ClientesCodigoConfigChange;
+  if Assigned(cbClientesModoCodigoAltaNIF) then
+    cbClientesModoCodigoAltaNIF.OnChange := @ClientesCodigoConfigChange;
+  if Assigned(edClientesCodigoSuperiorDesde) then
+    edClientesCodigoSuperiorDesde.OnChange := @ClientesCodigoConfigChange;
 
   // Estado inicial limpio: no hay cambios pendientes al abrir configuración.
   BitBtn1.Enabled := False;
@@ -1429,6 +1537,18 @@ begin
     cbRupturaStock.Text:=IniReader.ReadString('CGeneral','Stock_suficiente','');
     edMoneda.Text:=IniReader.ReadString('CGeneral','Moneda','');
     edCliVario.Text:=IniReader.ReadString('CGeneral','CgClienteVario','');
+    if Assigned(cbClientesBuscarNIFCodigo) then
+    begin
+      cbClientesBuscarNIFCodigo.Text:=UpperCase(Trim(IniReader.ReadString('CGeneral','ClientesBuscarNIFDesdeCodigo','S')));
+      if cbClientesBuscarNIFCodigo.Text='' then cbClientesBuscarNIFCodigo.Text:='S';
+    end;
+    if Assigned(cbClientesModoCodigoAltaNIF) then
+    begin
+      cbClientesModoCodigoAltaNIF.Text:=UpperCase(Trim(IniReader.ReadString('CGeneral','ClientesModoCodigoAltaNIF','SIGUIENTE_NORMAL')));
+      if cbClientesModoCodigoAltaNIF.Text='' then cbClientesModoCodigoAltaNIF.Text:='SIGUIENTE_NORMAL';
+    end;
+    if Assigned(edClientesCodigoSuperiorDesde) then
+      edClientesCodigoSuperiorDesde.Text:=IniReader.ReadString('CGeneral','ClientesCodigoSuperiorDesde','999999');
     CgSCajon.Text:= IniReader.ReadString('CGeneral','CgSeguroCajon','');
 
        //Rellenar valores de Combo Tienda y puesto

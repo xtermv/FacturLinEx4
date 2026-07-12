@@ -41,11 +41,21 @@ type
     Label8: TLabel;
     Label9: TLabel;
     Panel1: TPanel;
+    PnlHeader: TPanel;
+    LblTitulo: TLabel;
+    LblSubtitulo: TLabel;
+    GBSistema: TGroupBox;
+    GBCertificado: TGroupBox;
+    LblAyudaSistema: TLabel;
+    LblAyudaTLS: TLabel;
+    LblAvisoTLS: TLabel;
+    LblPie: TLabel;
     procedure BtnCancelarClick(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure BtnAceptarClick(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure FormResize(Sender: TObject);
     procedure BtnProbarCertClick(Sender: TObject);
   private
     FSIFCfg: TVeriSIFConfig;
@@ -122,6 +132,42 @@ begin
   end;
 end;
 
+procedure TFSIFConfig.FormResize(Sender: TObject);
+var
+  Margen, Separacion, TopContenido, AltoContenido, AnchoIzq: Integer;
+begin
+  if (not Assigned(GBSistema)) or (not Assigned(GBCertificado)) then Exit;
+
+  Margen := 16;
+  Separacion := 14;
+  TopContenido := PnlHeader.Height + Margen;
+  AltoContenido := ClientHeight - PnlHeader.Height - Panel1.Height - (Margen * 2);
+  if AltoContenido < 470 then AltoContenido := 470;
+
+  AnchoIzq := (ClientWidth - (Margen * 2) - Separacion) div 2;
+  if AnchoIzq < 470 then AnchoIzq := 470;
+
+  GBSistema.SetBounds(Margen, TopContenido, AnchoIzq, AltoContenido);
+  GBCertificado.SetBounds(Margen + AnchoIzq + Separacion, TopContenido,
+    ClientWidth - (Margen * 2) - Separacion - AnchoIzq, AltoContenido);
+
+  EditNombreSistema.Width := GBSistema.ClientWidth - EditNombreSistema.Left - 18;
+  Button1.Left := GBSistema.ClientWidth - Button1.Width - 18;
+  EditIdSistema.Width := Button1.Left - EditIdSistema.Left - 10;
+  EditVersion.Width := GBSistema.ClientWidth - EditVersion.Left - 18;
+  EditNumeroInst.Width := GBSistema.ClientWidth - EditNumeroInst.Left - 18;
+
+  EditP12File.Width := GBCertificado.ClientWidth - EditP12File.Left - 18;
+  EditP12Password.Width := GBCertificado.ClientWidth - EditP12Password.Left - 18;
+  EditOpenSSLPath.Width := GBCertificado.ClientWidth - EditOpenSSLPath.Left - 18;
+  EditCertFile.Width := GBCertificado.ClientWidth - EditCertFile.Left - 18;
+  EditKeyFile.Width := GBCertificado.ClientWidth - EditKeyFile.Left - 18;
+  EditCAFile.Width := GBCertificado.ClientWidth - EditCAFile.Left - 18;
+
+  btnCancelar.Left := Panel1.ClientWidth - btnCancelar.Width - 22;
+  btnAceptar.Left := btnCancelar.Left - btnAceptar.Width - 12;
+end;
+
 procedure TFSIFConfig.FormCreate(Sender: TObject);
 var
   Ini: TIniFile;
@@ -194,6 +240,8 @@ var
       Ini.Free;
     end;
   end;
+
+  FormResize(Self);
 end;
 
 procedure TFSIFConfig.BtnCancelarClick(Sender: TObject);

@@ -131,7 +131,14 @@ type
     edtCodigoManual: TEdit;
     btnIncluirManual: TButton;
     btnQuitarManual: TButton;
+    btnBuscarArticuloManual: TButton;
     btnVerGuardados: TButton;
+
+    FFormBusquedaManual: TForm;
+    FEditBusquedaManual: TEdit;
+    FGridBusquedaManual: TStringGrid;
+    FBusquedaSortCol: Integer;
+    FBusquedaSortAsc: Boolean;
 
     procedure ConstruirInterfaz;
     procedure InicializarGrid;
@@ -182,6 +189,7 @@ type
     procedure CalcularTemporada;
     procedure GuardarArticulosTemporadaVisibles;
     procedure IncluirCodigoTemporada(const ACodigo, AObs: string);
+    procedure AnadirLineaManualPedido(const ACodigo: string; const Cantidad: Double);
     procedure GuardarCodigoTemporadaSilencioso(const ACodigo, AObs: string);
     procedure QuitarCodigoTemporada(const ACodigo: string);
     function CodigoGridSeleccionado: string;
@@ -194,6 +202,9 @@ type
     function AbrirFichero(const NombreFichero: string): Boolean;
     procedure ImprimirGrid;
     procedure AutoAjustarColumnas;
+    function SeleccionarArticuloPorDescripcion(out ACodigo: string): Boolean;
+    procedure EjecutarBusquedaArticuloManual;
+    procedure OrdenarBusquedaArticuloManual(const ACol: Integer; const AAsc: Boolean);
 
     procedure BtnCerrarClick(Sender: TObject);
     procedure BtnLimpiarProveedorClick(Sender: TObject);
@@ -210,6 +221,11 @@ type
     procedure BtnGuardarTemporadaClick(Sender: TObject);
     procedure BtnIncluirManualClick(Sender: TObject);
     procedure BtnQuitarManualClick(Sender: TObject);
+    procedure BtnBuscarArticuloManualClick(Sender: TObject);
+    procedure BtnEjecutarBusquedaManualClick(Sender: TObject);
+    procedure EditBusquedaManualKeyPress(Sender: TObject; var Key: Char);
+    procedure GridBusquedaManualHeaderClick(Sender: TObject; IsColumn: Boolean; Index: Integer);
+    procedure GridBusquedaManualDblClick(Sender: TObject);
     procedure BtnVerGuardadosClick(Sender: TObject);
     procedure BtnCSVClick(Sender: TObject);
     procedure BtnPDFClick(Sender: TObject);
@@ -280,11 +296,16 @@ begin
   FListaProveedores := TStringList.Create;
   FSortCol := -1;
   FSortAsc := True;
-  Caption := 'FacturLinEx - Pedido automatico de temporada v1.8';
+  Caption := 'FacturLinEx - Pedido automatico de temporada v1.9';
   Position := poScreenCenter;
+  BorderStyle := bsSizeable;
+  BorderIcons := [biSystemMenu, biMinimize, biMaximize];
   WindowState := wsMaximized;
-  Width := 1200;
-  Height := 760;
+  Width := 1280;
+  Height := 820;
+  Color := $00F3F5F7;
+  Font.Name := 'Sans';
+  Font.Height := -13;
   ConstruirInterfaz;
   CrearTablasTemporada;
   CargarKeywordsTemporada;
@@ -306,447 +327,305 @@ end;
 
 procedure TfPedidoTemporadaAuto.ConstruirInterfaz;
 var
-  Y: Integer;
+  pnlCab, pnlGridCab: TPanel;
+  lblTitulo, lblSubtitulo, lblGridTitulo, lblGridAyuda: TLabel;
+  gbProveedor, gbConfig, gbKeywords, gbManual: TGroupBox;
+  pcAcciones: TPageControl;
+  tsCalculo, tsRevision, tsSalida: TTabSheet;
 begin
   PanelTop := TPanel.Create(Self);
   PanelTop.Parent := Self;
   PanelTop.Align := alTop;
-  PanelTop.Height := 238;
+  PanelTop.Height := 416;
   PanelTop.BevelOuter := bvNone;
+  PanelTop.Color := $00F3F5F7;
+
+  pnlCab := TPanel.Create(Self);
+  pnlCab.Parent := PanelTop;
+  pnlCab.Align := alTop;
+  pnlCab.Height := 74;
+  pnlCab.BevelOuter := bvNone;
+  pnlCab.Color := clNavy;
+
+  lblTitulo := TLabel.Create(Self);
+  lblTitulo.Parent := pnlCab;
+  lblTitulo.Left := 18;
+  lblTitulo.Top := 12;
+  lblTitulo.Caption := 'PEDIDO AUTOMATICO DE TEMPORADA';
+  lblTitulo.ParentFont := False;
+  lblTitulo.Font.Name := 'Sans';
+  lblTitulo.Font.Height := -21;
+  lblTitulo.Font.Style := [fsBold];
+  lblTitulo.Font.Color := clWhite;
+
+  lblSubtitulo := TLabel.Create(Self);
+  lblSubtitulo.Parent := pnlCab;
+  lblSubtitulo.Left := 20;
+  lblSubtitulo.Top := 42;
+  lblSubtitulo.Caption := 'Detecta articulos de temporada, mezcla tendencia actual y prepara un pedido orientativo claro y revisable.';
+  lblSubtitulo.ParentFont := False;
+  lblSubtitulo.Font.Name := 'Sans';
+  lblSubtitulo.Font.Height := -12;
+  lblSubtitulo.Font.Color := clSilver;
+
+  btnCerrar := TButton.Create(Self);
+  btnCerrar.Parent := pnlCab;
+  btnCerrar.Left := pnlCab.Width - btnCerrar.Width - 108;
+  btnCerrar.Top := 16;
+  btnCerrar.Width := 104;
+  btnCerrar.Height := 32;
+  btnCerrar.Caption := 'Cerrar';
+  btnCerrar.Anchors := [akTop, akRight];
+  btnCerrar.OnClick := @BtnCerrarClick;
+
+  gbProveedor := TGroupBox.Create(Self);
+  gbProveedor.Parent := PanelTop;
+  gbProveedor.SetBounds(16, 86, 1228, 80);
+  gbProveedor.Caption := ' PROVEEDOR '; 
+  gbProveedor.ParentFont := False;
+  gbProveedor.Font.Name := 'Sans';
+  gbProveedor.Font.Height := -13;
+  gbProveedor.Font.Style := [fsBold];
+  gbProveedor.Anchors := [akLeft, akTop, akRight];
 
   lblBuscarProveedor := TLabel.Create(Self);
-  lblBuscarProveedor.Parent := PanelTop;
-  lblBuscarProveedor.Caption := 'Buscar proveedor:';
-  lblBuscarProveedor.Left := 8;
-  lblBuscarProveedor.Top := 12;
+  lblBuscarProveedor.Parent := gbProveedor;
+  lblBuscarProveedor.Caption := 'Buscar proveedor';
+  lblBuscarProveedor.Left := 16;
+  lblBuscarProveedor.Top := 16;
+  lblBuscarProveedor.ParentFont := False;
+  lblBuscarProveedor.Font.Style := [];
 
   edtBuscarProveedor := TEdit.Create(Self);
-  edtBuscarProveedor.Parent := PanelTop;
-  edtBuscarProveedor.Left := 115;
-  edtBuscarProveedor.Top := 8;
-  edtBuscarProveedor.Width := 180;
+  edtBuscarProveedor.Parent := gbProveedor;
+  edtBuscarProveedor.Left := 16;
+  edtBuscarProveedor.Top := 34;
+  edtBuscarProveedor.Width := 230;
   edtBuscarProveedor.OnChange := @EdtBuscarProveedorChange;
 
   btnLimpiarProveedor := TButton.Create(Self);
-  btnLimpiarProveedor.Parent := PanelTop;
-  btnLimpiarProveedor.Left := 300;
-  btnLimpiarProveedor.Top := 7;
-  btnLimpiarProveedor.Width := 60;
-  btnLimpiarProveedor.Height := 26;
+  btnLimpiarProveedor.Parent := gbProveedor;
+  btnLimpiarProveedor.Left := 254;
+  btnLimpiarProveedor.Top := 32;
+  btnLimpiarProveedor.Width := 72;
+  btnLimpiarProveedor.Height := 28;
   btnLimpiarProveedor.Caption := 'Todos';
   btnLimpiarProveedor.OnClick := @BtnLimpiarProveedorClick;
 
   lblProveedor := TLabel.Create(Self);
-  lblProveedor.Parent := PanelTop;
-  lblProveedor.Caption := 'Proveedor:';
-  lblProveedor.Left := 370;
-  lblProveedor.Top := 12;
+  lblProveedor.Parent := gbProveedor;
+  lblProveedor.Caption := 'Proveedor seleccionado';
+  lblProveedor.Left := 346;
+  lblProveedor.Top := 16;
+  lblProveedor.ParentFont := False;
+  lblProveedor.Font.Style := [];
 
   cbProveedor := TComboBox.Create(Self);
-  cbProveedor.Parent := PanelTop;
-  cbProveedor.Left := 445;
-  cbProveedor.Top := 8;
-  cbProveedor.Width := 450;
+  cbProveedor.Parent := gbProveedor;
+  cbProveedor.Left := 346;
+  cbProveedor.Top := 34;
+  cbProveedor.Width := 560;
+  cbProveedor.DropDownCount := 16;
   cbProveedor.Style := csDropDownList;
+  cbProveedor.Anchors := [akLeft, akTop];
 
-  btnCerrar := TButton.Create(Self);
-  btnCerrar.Parent := PanelTop;
-  btnCerrar.Left := 930;
-  btnCerrar.Top := 8;
-  btnCerrar.Width := 110;
-  btnCerrar.Height := 26;
-  btnCerrar.Caption := 'Cerrar';
-  btnCerrar.OnClick := @BtnCerrarClick;
-  btnCerrar.Visible := True;
-  btnCerrar.BringToFront;
+  gbConfig := TGroupBox.Create(Self);
+  gbConfig.Parent := PanelTop;
+  gbConfig.SetBounds(16, 176, 820, 124);
+  gbConfig.Caption := ' CONFIGURACION Y CALCULO '; 
+  gbConfig.ParentFont := False;
+  gbConfig.Font.Name := 'Sans';
+  gbConfig.Font.Height := -13;
+  gbConfig.Font.Style := [fsBold];
+  gbConfig.Anchors := [akLeft, akTop];
 
-  Y := 42;
   lblTemporada := TLabel.Create(Self);
-  lblTemporada.Parent := PanelTop;
-  lblTemporada.Caption := 'Temporada:';
-  lblTemporada.Left := 8;
-  lblTemporada.Top := Y + 4;
+  lblTemporada.Parent := gbConfig;
+  lblTemporada.Caption := 'Temporada';
+  lblTemporada.Left := 16;
+  lblTemporada.Top := 16;
+  lblTemporada.ParentFont := False;
+  lblTemporada.Font.Style := [];
 
   cbTemporada := TComboBox.Create(Self);
-  cbTemporada.Parent := PanelTop;
-  cbTemporada.Left := 88;
-  cbTemporada.Top := Y;
-  cbTemporada.Width := 130;
+  cbTemporada.Parent := gbConfig;
+  cbTemporada.Left := 16;
+  cbTemporada.Top := 36;
+  cbTemporada.Width := 150;
   cbTemporada.Style := csDropDownList;
   InicializarTemporadasBase;
   cbTemporada.ItemIndex := 0;
   cbTemporada.OnChange := @CbTemporadaChange;
 
+  lblDesdeBase := TLabel.Create(Self);
+  lblDesdeBase.Parent := gbConfig;
+  lblDesdeBase.Caption := 'Desde base';
+  lblDesdeBase.Left := 182;
+  lblDesdeBase.Top := 16;
+  lblDesdeBase.ParentFont := False;
+  lblDesdeBase.Font.Style := [];
+
+  edtDesdeBase := TEdit.Create(Self);
+  edtDesdeBase.Parent := gbConfig;
+  edtDesdeBase.Left := 182;
+  edtDesdeBase.Top := 36;
+  edtDesdeBase.Width := 98;
+  edtDesdeBase.Text := IntToStr(YearOf(Date) - 1) + '-04-01';
+
+  lblHastaBase := TLabel.Create(Self);
+  lblHastaBase.Parent := gbConfig;
+  lblHastaBase.Caption := 'Hasta base';
+  lblHastaBase.Left := 294;
+  lblHastaBase.Top := 16;
+  lblHastaBase.ParentFont := False;
+  lblHastaBase.Font.Style := [];
+
+  edtHastaBase := TEdit.Create(Self);
+  edtHastaBase.Parent := gbConfig;
+  edtHastaBase.Left := 294;
+  edtHastaBase.Top := 36;
+  edtHastaBase.Width := 98;
+  edtHastaBase.Text := IntToStr(YearOf(Date) - 1) + '-08-31';
+
   lblModo := TLabel.Create(Self);
-  lblModo.Parent := PanelTop;
-  lblModo.Caption := 'Modo:';
-  lblModo.Left := 500;
-  lblModo.Top := 176;
+  lblModo.Parent := gbConfig;
+  lblModo.Caption := 'Modo';
+  lblModo.Left := 406;
+  lblModo.Top := 16;
+  lblModo.ParentFont := False;
+  lblModo.Font.Style := [];
 
   cbModo := TComboBox.Create(Self);
-  cbModo.Parent := PanelTop;
-  cbModo.Left := 548;
-  cbModo.Top := 172;
-  cbModo.Width := 170;
+  cbModo.Parent := gbConfig;
+  cbModo.Left := 406;
+  cbModo.Top := 36;
+  cbModo.Width := 188;
   cbModo.Style := csDropDownList;
   InicializarModosTemporada;
   cbModo.ItemIndex := 0;
   cbModo.Hint := 'Pretemporada prepara base inicial; Reposicion mezcla temporada anterior y venta actual; Final reduce cantidades y evita exceso.';
   cbModo.ShowHint := True;
 
-  lblDesdeBase := TLabel.Create(Self);
-  lblDesdeBase.Parent := PanelTop;
-  lblDesdeBase.Caption := 'Desde base:';
-  lblDesdeBase.Left := 230;
-  lblDesdeBase.Top := Y + 4;
-
-  edtDesdeBase := TEdit.Create(Self);
-  edtDesdeBase.Parent := PanelTop;
-  edtDesdeBase.Left := 310;
-  edtDesdeBase.Top := Y;
-  edtDesdeBase.Width := 95;
-  edtDesdeBase.Text := IntToStr(YearOf(Date) - 1) + '-04-01';
-
-  lblHastaBase := TLabel.Create(Self);
-  lblHastaBase.Parent := PanelTop;
-  lblHastaBase.Caption := 'Hasta base:';
-  lblHastaBase.Left := 415;
-  lblHastaBase.Top := Y + 4;
-
-  edtHastaBase := TEdit.Create(Self);
-  edtHastaBase.Parent := PanelTop;
-  edtHastaBase.Left := 492;
-  edtHastaBase.Top := Y;
-  edtHastaBase.Width := 95;
-  edtHastaBase.Text := IntToStr(YearOf(Date) - 1) + '-08-31';
-
   lblDiasCubrir := TLabel.Create(Self);
-  lblDiasCubrir.Parent := PanelTop;
-  lblDiasCubrir.Caption := 'Dias cubrir:';
-  lblDiasCubrir.Left := 600;
-  lblDiasCubrir.Top := Y + 4;
+  lblDiasCubrir.Parent := gbConfig;
+  lblDiasCubrir.Caption := 'Dias cubrir';
+  lblDiasCubrir.Left := 610;
+  lblDiasCubrir.Top := 16;
+  lblDiasCubrir.ParentFont := False;
+  lblDiasCubrir.Font.Style := [];
 
   seDiasCubrir := TSpinEdit.Create(Self);
-  seDiasCubrir.Parent := PanelTop;
-  seDiasCubrir.Left := 680;
-  seDiasCubrir.Top := Y;
-  seDiasCubrir.Width := 58;
+  seDiasCubrir.Parent := gbConfig;
+  seDiasCubrir.Left := 610;
+  seDiasCubrir.Top := 36;
+  seDiasCubrir.Width := 72;
   seDiasCubrir.MinValue := 1;
   seDiasCubrir.MaxValue := 180;
   seDiasCubrir.Value := 30;
 
   lblDiasActual := TLabel.Create(Self);
-  lblDiasActual.Parent := PanelTop;
-  lblDiasActual.Caption := 'Tend. dias:';
-  lblDiasActual.Left := 750;
-  lblDiasActual.Top := Y + 4;
+  lblDiasActual.Parent := gbConfig;
+  lblDiasActual.Caption := 'Tend. dias';
+  lblDiasActual.Left := 694;
+  lblDiasActual.Top := 16;
+  lblDiasActual.ParentFont := False;
+  lblDiasActual.Font.Style := [];
 
   seDiasActual := TSpinEdit.Create(Self);
-  seDiasActual.Parent := PanelTop;
-  seDiasActual.Left := 825;
-  seDiasActual.Top := Y;
-  seDiasActual.Width := 58;
+  seDiasActual.Parent := gbConfig;
+  seDiasActual.Left := 694;
+  seDiasActual.Top := 36;
+  seDiasActual.Width := 72;
   seDiasActual.MinValue := 1;
   seDiasActual.MaxValue := 120;
   seDiasActual.Value := 30;
 
-  chkUsarActual := TCheckBox.Create(Self);
-  chkUsarActual.Parent := PanelTop;
-  chkUsarActual.Left := 900;
-  chkUsarActual.Top := Y + 2;
-  chkUsarActual.Caption := 'Mezclar tendencia';
-  chkUsarActual.Checked := True;
-
-  chkProveedorTemporada := TCheckBox.Create(Self);
-  chkProveedorTemporada.Parent := PanelTop;
-  chkProveedorTemporada.Left := 1040;
-  chkProveedorTemporada.Top := Y + 2;
-  chkProveedorTemporada.Width := 150;
-  chkProveedorTemporada.Caption := 'Prov. temporada';
-  chkProveedorTemporada.Hint := 'Si esta marcado, se incluyen todos los articulos comprados alguna vez al proveedor seleccionado, aunque no coincidan palabras clave.';
-  chkProveedorTemporada.ShowHint := True;
-  chkProveedorTemporada.Checked := False;
-
-  Y := 74;
   lblFactor := TLabel.Create(Self);
-  lblFactor.Parent := PanelTop;
-  lblFactor.Caption := 'Factor:';
-  lblFactor.Left := 8;
-  lblFactor.Top := Y + 4;
+  lblFactor.Parent := gbConfig;
+  lblFactor.Caption := 'Factor';
+  lblFactor.Left := 16;
+  lblFactor.Top := 62;
+  lblFactor.ParentFont := False;
+  lblFactor.Font.Style := [];
 
   edtFactor := TEdit.Create(Self);
-  edtFactor.Parent := PanelTop;
-  edtFactor.Left := 62;
-  edtFactor.Top := Y;
-  edtFactor.Width := 55;
+  edtFactor.Parent := gbConfig;
+  edtFactor.Left := 16;
+  edtFactor.Top := 78;
+  edtFactor.Width := 72;
   edtFactor.Text := '1,20';
 
   lblMaxLineas := TLabel.Create(Self);
-  lblMaxLineas.Parent := PanelTop;
-  lblMaxLineas.Caption := 'Max lineas:';
-  lblMaxLineas.Left := 130;
-  lblMaxLineas.Top := Y + 4;
+  lblMaxLineas.Parent := gbConfig;
+  lblMaxLineas.Caption := 'Max lineas';
+  lblMaxLineas.Left := 104;
+  lblMaxLineas.Top := 62;
+  lblMaxLineas.ParentFont := False;
+  lblMaxLineas.Font.Style := [];
 
   seMaxLineas := TSpinEdit.Create(Self);
-  seMaxLineas.Parent := PanelTop;
-  seMaxLineas.Left := 205;
-  seMaxLineas.Top := Y;
-  seMaxLineas.Width := 65;
+  seMaxLineas.Parent := gbConfig;
+  seMaxLineas.Left := 104;
+  seMaxLineas.Top := 78;
+  seMaxLineas.Width := 82;
   seMaxLineas.MinValue := 10;
   seMaxLineas.MaxValue := 2000;
   seMaxLineas.Value := 250;
 
+  chkUsarActual := TCheckBox.Create(Self);
+  chkUsarActual.Parent := gbConfig;
+  chkUsarActual.Left := 204;
+  chkUsarActual.Top := 78;
+  chkUsarActual.Caption := 'Mezclar tendencia';
+  chkUsarActual.Checked := True;
+  chkUsarActual.ParentFont := False;
+  chkUsarActual.Font.Style := [];
+
+  chkProveedorTemporada := TCheckBox.Create(Self);
+  chkProveedorTemporada.Parent := gbConfig;
+  chkProveedorTemporada.Left := 366;
+  chkProveedorTemporada.Top := 78;
+  chkProveedorTemporada.Width := 180;
+  chkProveedorTemporada.Caption := 'Prov. temporada';
+  chkProveedorTemporada.Hint := 'Si esta marcado, se incluyen todos los articulos comprados alguna vez al proveedor seleccionado, aunque no coincidan palabras clave.';
+  chkProveedorTemporada.ShowHint := True;
+  chkProveedorTemporada.Checked := False;
+  chkProveedorTemporada.ParentFont := False;
+  chkProveedorTemporada.Font.Style := [];
+
   chkAbrirPDF := TCheckBox.Create(Self);
-  chkAbrirPDF.Parent := PanelTop;
-  chkAbrirPDF.Left := 285;
-  chkAbrirPDF.Top := Y + 2;
+  chkAbrirPDF.Parent := gbConfig;
+  chkAbrirPDF.Left := 548;
+  chkAbrirPDF.Top := 78;
   chkAbrirPDF.Caption := 'Abrir PDF';
   chkAbrirPDF.Checked := True;
+  chkAbrirPDF.ParentFont := False;
+  chkAbrirPDF.Font.Style := [];
 
-  btnDetectar := TButton.Create(Self);
-  btnDetectar.Parent := PanelTop;
-  btnDetectar.Left := 390;
-  btnDetectar.Top := Y - 1;
-  btnDetectar.Width := 120;
-  btnDetectar.Height := 27;
-  btnDetectar.Caption := 'Detectar cand.';
-  btnDetectar.OnClick := @BtnDetectarClick;
-
-  btnCalcular := TButton.Create(Self);
-  btnCalcular.Parent := PanelTop;
-  btnCalcular.Left := 515;
-  btnCalcular.Top := Y - 1;
-  btnCalcular.Width := 130;
-  btnCalcular.Height := 27;
-  btnCalcular.Caption := 'Calcular temp.';
-  btnCalcular.OnClick := @BtnCalcularClick;
-
-  btnVerAuto := TButton.Create(Self);
-  btnVerAuto.Parent := PanelTop;
-  btnVerAuto.Left := 650;
-  btnVerAuto.Top := Y - 1;
-  btnVerAuto.Width := 80;
-  btnVerAuto.Height := 27;
-  btnVerAuto.Caption := 'Ver auto';
-  btnVerAuto.OnClick := @BtnVerAutoClick;
-
-  btnVerDudas := TButton.Create(Self);
-  btnVerDudas.Parent := PanelTop;
-  btnVerDudas.Left := 735;
-  btnVerDudas.Top := Y - 1;
-  btnVerDudas.Width := 85;
-  btnVerDudas.Height := 27;
-  btnVerDudas.Caption := 'Ver dudas';
-  btnVerDudas.OnClick := @BtnVerDudasClick;
-
-  btnVerExcluidos := TButton.Create(Self);
-  btnVerExcluidos.Parent := PanelTop;
-  btnVerExcluidos.Left := 825;
-  btnVerExcluidos.Top := Y - 1;
-  btnVerExcluidos.Width := 95;
-  btnVerExcluidos.Height := 27;
-  btnVerExcluidos.Caption := 'Ver excl.';
-  btnVerExcluidos.OnClick := @BtnVerExcluidosClick;
-
-  btnAceptarLinea := TButton.Create(Self);
-  btnAceptarLinea.Parent := PanelTop;
-  btnAceptarLinea.Left := 925;
-  btnAceptarLinea.Top := Y - 1;
-  btnAceptarLinea.Width := 95;
-  btnAceptarLinea.Height := 27;
-  btnAceptarLinea.Caption := 'Aceptar';
-  btnAceptarLinea.Hint := 'Marca la linea seleccionada como correcta/ALTA y la guarda como articulo de temporada';
-  btnAceptarLinea.ShowHint := True;
-  btnAceptarLinea.OnClick := @BtnAceptarLineaClick;
-
-  btnRevisarLinea := TButton.Create(Self);
-  btnRevisarLinea.Parent := PanelTop;
-  btnRevisarLinea.Left := 1025;
-  btnRevisarLinea.Top := Y - 1;
-  btnRevisarLinea.Width := 90;
-  btnRevisarLinea.Height := 27;
-  btnRevisarLinea.Caption := 'Revisar';
-  btnRevisarLinea.Hint := 'Marca la linea seleccionada como duda/MEDIA';
-  btnRevisarLinea.ShowHint := True;
-  btnRevisarLinea.OnClick := @BtnRevisarLineaClick;
-
-  btnExcluirLinea := TButton.Create(Self);
-  btnExcluirLinea.Parent := PanelTop;
-  btnExcluirLinea.Left := 1120;
-  btnExcluirLinea.Top := Y - 1;
-  btnExcluirLinea.Width := 85;
-  btnExcluirLinea.Height := 27;
-  btnExcluirLinea.Caption := 'Excluir';
-  btnExcluirLinea.Hint := 'Marca la linea seleccionada como excluida/BAJA y pone cantidad final a 0';
-  btnExcluirLinea.ShowHint := True;
-  btnExcluirLinea.OnClick := @BtnExcluirLineaClick;
-
-  Y := 106;
-  btnGuardarTemporada := TButton.Create(Self);
-  btnGuardarTemporada.Parent := PanelTop;
-  btnGuardarTemporada.Left := 8;
-  btnGuardarTemporada.Top := Y;
-  btnGuardarTemporada.Width := 130;
-  btnGuardarTemporada.Height := 27;
-  btnGuardarTemporada.Caption := 'Guardar temp.';
-  btnGuardarTemporada.OnClick := @BtnGuardarTemporadaClick;
-
-  btnCSV := TButton.Create(Self);
-  btnCSV.Parent := PanelTop;
-  btnCSV.Left := 145;
-  btnCSV.Top := Y;
-  btnCSV.Width := 95;
-  btnCSV.Height := 27;
-  btnCSV.Caption := 'CSV';
-  btnCSV.OnClick := @BtnCSVClick;
-
-  btnPDF := TButton.Create(Self);
-  btnPDF.Parent := PanelTop;
-  btnPDF.Left := 245;
-  btnPDF.Top := Y;
-  btnPDF.Width := 95;
-  btnPDF.Height := 27;
-  btnPDF.Caption := 'PDF';
-  btnPDF.OnClick := @BtnPDFClick;
-
-  btnImprimir := TButton.Create(Self);
-  btnImprimir.Parent := PanelTop;
-  btnImprimir.Left := 345;
-  btnImprimir.Top := Y;
-  btnImprimir.Width := 95;
-  btnImprimir.Height := 27;
-  btnImprimir.Caption := 'Imprimir';
-  btnImprimir.OnClick := @BtnImprimirClick;
-
-  btnOrdenTienda := TButton.Create(Self);
-  btnOrdenTienda.Parent := PanelTop;
-  btnOrdenTienda.Left := 445;
-  btnOrdenTienda.Top := Y;
-  btnOrdenTienda.Width := 110;
-  btnOrdenTienda.Height := 27;
-  btnOrdenTienda.Caption := 'Orden tienda';
-  btnOrdenTienda.OnClick := @BtnOrdenTiendaClick;
-
-  btnVerCompra := TButton.Create(Self);
-  btnVerCompra.Parent := PanelTop;
-  btnVerCompra.Left := 560;
-  btnVerCompra.Top := Y;
-  btnVerCompra.Width := 105;
-  btnVerCompra.Height := 27;
-  btnVerCompra.Caption := 'Ver compra';
-  btnVerCompra.Hint := 'Muestra solo lineas con cantidad final > 0 para imprimir, PDF o crear borrador';
-  btnVerCompra.ShowHint := True;
-  btnVerCompra.OnClick := @BtnVerCompraClick;
-
-  Y := 172;
-  btnGuardarKeywords := TButton.Create(Self);
-  btnGuardarKeywords.Parent := PanelTop;
-  btnGuardarKeywords.Left := 8;
-  btnGuardarKeywords.Top := Y;
-  btnGuardarKeywords.Width := 120;
-  btnGuardarKeywords.Height := 27;
-  btnGuardarKeywords.Caption := 'Guardar claves';
-  btnGuardarKeywords.Hint := 'Guarda las palabras clave de esta temporada para futuras sesiones';
-  btnGuardarKeywords.ShowHint := True;
-  btnGuardarKeywords.OnClick := @BtnGuardarKeywordsClick;
-
-  btnGuardarBorrador := TButton.Create(Self);
-  btnGuardarBorrador.Parent := PanelTop;
-  btnGuardarBorrador.Left := 135;
-  btnGuardarBorrador.Top := Y;
-  btnGuardarBorrador.Width := 115;
-  btnGuardarBorrador.Height := 27;
-  btnGuardarBorrador.Caption := 'Guardar borr.';
-  btnGuardarBorrador.Hint := 'Guarda el estudio completo: auto, dudas y excluidos';
-  btnGuardarBorrador.ShowHint := True;
-  btnGuardarBorrador.OnClick := @BtnGuardarBorradorClick;
-
-  btnCargarBorrador := TButton.Create(Self);
-  btnCargarBorrador.Parent := PanelTop;
-  btnCargarBorrador.Left := 255;
-  btnCargarBorrador.Top := Y;
-  btnCargarBorrador.Width := 110;
-  btnCargarBorrador.Height := 27;
-  btnCargarBorrador.Caption := 'Cargar borr.';
-  btnCargarBorrador.Hint := 'Carga el ultimo borrador guardado de esta temporada/proveedor';
-  btnCargarBorrador.ShowHint := True;
-  btnCargarBorrador.OnClick := @BtnCargarBorradorClick;
-
-  btnBorrarBorrador := TButton.Create(Self);
-  btnBorrarBorrador.Parent := PanelTop;
-  btnBorrarBorrador.Left := 370;
-  btnBorrarBorrador.Top := Y;
-  btnBorrarBorrador.Width := 110;
-  btnBorrarBorrador.Height := 27;
-  btnBorrarBorrador.Caption := 'Borrar borr.';
-  btnBorrarBorrador.Hint := 'Borra el ultimo borrador guardado de esta temporada/proveedor';
-  btnBorrarBorrador.ShowHint := True;
-  btnBorrarBorrador.OnClick := @BtnBorrarBorradorClick;
-
-  btnCompararTempAnt := TButton.Create(Self);
-  btnCompararTempAnt.Parent := PanelTop;
-  btnCompararTempAnt.Left := 500;
-  btnCompararTempAnt.Top := 204;
-  btnCompararTempAnt.Width := 145;
-  btnCompararTempAnt.Height := 27;
-  btnCompararTempAnt.Caption := 'Comparar ant.';
-  btnCompararTempAnt.Hint := 'Compara el estudio visible/completo con la temporada base anterior y muestra articulos vendidos antes que ahora no entran.';
-  btnCompararTempAnt.ShowHint := True;
-  btnCompararTempAnt.OnClick := @BtnCompararTempAntClick;
-
-  Y := 106;
-  lblCodigoManual := TLabel.Create(Self);
-  lblCodigoManual.Parent := PanelTop;
-  lblCodigoManual.Caption := 'Codigo temporada:';
-  lblCodigoManual.Left := 8;
-  lblCodigoManual.Top := Y + 38;
-
-  edtCodigoManual := TEdit.Create(Self);
-  edtCodigoManual.Parent := PanelTop;
-  edtCodigoManual.Left := 125;
-  edtCodigoManual.Top := Y + 34;
-  edtCodigoManual.Width := 105;
-  edtCodigoManual.Hint := 'Codigo de articulo a incluir/quitar manualmente';
-
-  btnIncluirManual := TButton.Create(Self);
-  btnIncluirManual.Parent := PanelTop;
-  btnIncluirManual.Left := 235;
-  btnIncluirManual.Top := Y + 33;
-  btnIncluirManual.Width := 105;
-  btnIncluirManual.Height := 27;
-  btnIncluirManual.Caption := 'Incluir cod.';
-  btnIncluirManual.OnClick := @BtnIncluirManualClick;
-
-  btnQuitarManual := TButton.Create(Self);
-  btnQuitarManual.Parent := PanelTop;
-  btnQuitarManual.Left := 345;
-  btnQuitarManual.Top := Y + 33;
-  btnQuitarManual.Width := 100;
-  btnQuitarManual.Height := 27;
-  btnQuitarManual.Caption := 'Quitar cod.';
-  btnQuitarManual.OnClick := @BtnQuitarManualClick;
-
-  btnVerGuardados := TButton.Create(Self);
-  btnVerGuardados.Parent := PanelTop;
-  btnVerGuardados.Left := 450;
-  btnVerGuardados.Top := Y + 33;
-  btnVerGuardados.Width := 105;
-  btnVerGuardados.Height := 27;
-  btnVerGuardados.Caption := 'Ver guard.';
-  btnVerGuardados.OnClick := @BtnVerGuardadosClick;
+  gbKeywords := TGroupBox.Create(Self);
+  gbKeywords.Parent := PanelTop;
+  gbKeywords.SetBounds(850, 176, 394, 124);
+  gbKeywords.Caption := ' PALABRAS CLAVE DE TEMPORADA '; 
+  gbKeywords.ParentFont := False;
+  gbKeywords.Font.Name := 'Sans';
+  gbKeywords.Font.Height := -13;
+  gbKeywords.Font.Style := [fsBold];
+  gbKeywords.Anchors := [akTop, akRight];
 
   lblKeywords := TLabel.Create(Self);
-  lblKeywords.Parent := PanelTop;
-  lblKeywords.Caption := 'Palabras clave temporada:';
-  lblKeywords.Left := 565;
-  lblKeywords.Top := Y + 4;
+  lblKeywords.Parent := gbKeywords;
+  lblKeywords.Caption := 'Una palabra o alias por linea';
+  lblKeywords.Left := 16;
+  lblKeywords.Top := 16;
+  lblKeywords.ParentFont := False;
+  lblKeywords.Font.Style := [];
 
   memoKeywords := TMemo.Create(Self);
-  memoKeywords.Parent := PanelTop;
-  memoKeywords.Left := 735;
-  memoKeywords.Top := 102;
-  memoKeywords.Width := 420;
-  memoKeywords.Height := 94;
+  memoKeywords.Parent := gbKeywords;
+  memoKeywords.Left := 16;
+  memoKeywords.Top := 34;
+  memoKeywords.Width := 386;
+  memoKeywords.Height := 74;
   memoKeywords.ScrollBars := ssVertical;
   memoKeywords.Lines.Text := 'CLORO' + LineEnding + 'CLOR' + LineEnding +
     'PISCINA' + LineEnding + 'PH' + LineEnding + 'ANTIALGAS' + LineEnding +
@@ -757,36 +636,277 @@ begin
     'TABLETA' + LineEnding + 'TABLETAS' + LineEnding + 'MULTIACCION' + LineEnding +
     'TRICLORO' + LineEnding + 'DICLORO' + LineEnding + 'BROMO' + LineEnding +
     'TEC';
+  memoKeywords.Anchors := [akLeft, akTop, akRight];
+
+  gbManual := TGroupBox.Create(Self);
+  gbManual.Parent := PanelTop;
+  gbManual.SetBounds(16, 310, 396, 68);
+  gbManual.Caption := ' INCLUSION MANUAL '; 
+  gbManual.ParentFont := False;
+  gbManual.Font.Name := 'Sans';
+  gbManual.Font.Height := -13;
+  gbManual.Font.Style := [fsBold];
+  gbManual.Anchors := [akLeft, akTop];
+
+  lblCodigoManual := TLabel.Create(Self);
+  lblCodigoManual.Parent := gbManual;
+  lblCodigoManual.Caption := 'Codigo temporada';
+  lblCodigoManual.Left := 16;
+  lblCodigoManual.Top := 6;
+  lblCodigoManual.ParentFont := False;
+  lblCodigoManual.Font.Style := [];
+
+  edtCodigoManual := TEdit.Create(Self);
+  edtCodigoManual.Parent := gbManual;
+  edtCodigoManual.Left := 16;
+  edtCodigoManual.Top := 20;
+  edtCodigoManual.Width := 78;
+  edtCodigoManual.Hint := 'Codigo de articulo a incluir/quitar manualmente';
+
+  btnIncluirManual := TButton.Create(Self);
+  btnIncluirManual.Parent := gbManual;
+  btnIncluirManual.Left := 100;
+  btnIncluirManual.Top := 18;
+  btnIncluirManual.Width := 72;
+  btnIncluirManual.Height := 28;
+  btnIncluirManual.Caption := 'Anadir lin.';
+  btnIncluirManual.Hint := 'Anade el codigo indicado al pedido de temporada con cantidad manual';
+  btnIncluirManual.ShowHint := True;
+  btnIncluirManual.OnClick := @BtnIncluirManualClick;
+
+  btnQuitarManual := TButton.Create(Self);
+  btnQuitarManual.Parent := gbManual;
+  btnQuitarManual.Left := 178;
+  btnQuitarManual.Top := 18;
+  btnQuitarManual.Width := 76;
+  btnQuitarManual.Height := 28;
+  btnQuitarManual.Caption := 'Quitar cod.';
+  btnQuitarManual.OnClick := @BtnQuitarManualClick;
+
+  btnBuscarArticuloManual := TButton.Create(Self);
+  btnBuscarArticuloManual.Parent := gbManual;
+  btnBuscarArticuloManual.Left := 260;
+  btnBuscarArticuloManual.Top := 18;
+  btnBuscarArticuloManual.Width := 72;
+  btnBuscarArticuloManual.Height := 28;
+  btnBuscarArticuloManual.Caption := 'Buscar';
+  btnBuscarArticuloManual.Hint := 'Buscar articulo por descripcion';
+  btnBuscarArticuloManual.ShowHint := True;
+  btnBuscarArticuloManual.OnClick := @BtnBuscarArticuloManualClick;
+
+  btnVerGuardados := TButton.Create(Self);
+  btnVerGuardados.Parent := gbManual;
+  btnVerGuardados.Left := 338;
+  btnVerGuardados.Top := 18;
+  btnVerGuardados.Width := 44;
+  btnVerGuardados.Height := 28;
+  btnVerGuardados.Caption := 'Ver';
+  btnVerGuardados.Hint := 'Muestra los articulos guardados para la temporada seleccionada';
+  btnVerGuardados.ShowHint := True;
+  btnVerGuardados.OnClick := @BtnVerGuardadosClick;
+
+  pcAcciones := TPageControl.Create(Self);
+  pcAcciones.Parent := PanelTop;
+  pcAcciones.SetBounds(424, 302, 820, 76);
+  pcAcciones.Anchors := [akLeft, akTop, akRight];
+
+  tsCalculo := TTabSheet.Create(Self);
+  tsCalculo.PageControl := pcAcciones;
+  tsCalculo.Caption := 'Calculo y vistas';
+
+  btnDetectar := TButton.Create(Self);
+  btnDetectar.Parent := tsCalculo;
+  btnDetectar.SetBounds(10, 6, 120, 30);
+  btnDetectar.Caption := 'Detectar cand.';
+  btnDetectar.OnClick := @BtnDetectarClick;
+
+  btnCalcular := TButton.Create(Self);
+  btnCalcular.Parent := tsCalculo;
+  btnCalcular.SetBounds(136, 6, 130, 30);
+  btnCalcular.Caption := 'Calcular temp.';
+  btnCalcular.OnClick := @BtnCalcularClick;
+
+  btnVerAuto := TButton.Create(Self);
+  btnVerAuto.Parent := tsCalculo;
+  btnVerAuto.SetBounds(272, 6, 90, 30);
+  btnVerAuto.Caption := 'Ver auto';
+  btnVerAuto.OnClick := @BtnVerAutoClick;
+
+  btnVerCompra := TButton.Create(Self);
+  btnVerCompra.Parent := tsCalculo;
+  btnVerCompra.SetBounds(368, 6, 96, 30);
+  btnVerCompra.Caption := 'Ver compra';
+  btnVerCompra.Hint := 'Muestra solo lineas con cantidad final > 0 para imprimir, PDF o crear borrador';
+  btnVerCompra.ShowHint := True;
+  btnVerCompra.OnClick := @BtnVerCompraClick;
+
+  btnVerDudas := TButton.Create(Self);
+  btnVerDudas.Parent := tsCalculo;
+  btnVerDudas.SetBounds(470, 6, 90, 30);
+  btnVerDudas.Caption := 'Ver dudas';
+  btnVerDudas.OnClick := @BtnVerDudasClick;
+
+  btnVerExcluidos := TButton.Create(Self);
+  btnVerExcluidos.Parent := tsCalculo;
+  btnVerExcluidos.SetBounds(566, 6, 95, 30);
+  btnVerExcluidos.Caption := 'Ver excl.';
+  btnVerExcluidos.OnClick := @BtnVerExcluidosClick;
+
+  btnCompararTempAnt := TButton.Create(Self);
+  btnCompararTempAnt.Parent := tsCalculo;
+  btnCompararTempAnt.SetBounds(667, 6, 140, 30);
+  btnCompararTempAnt.Caption := 'Comparar ant.';
+  btnCompararTempAnt.Hint := 'Compara el estudio visible/completo con la temporada base anterior y muestra articulos vendidos antes que ahora no entran.';
+  btnCompararTempAnt.ShowHint := True;
+  btnCompararTempAnt.OnClick := @BtnCompararTempAntClick;
+
+  tsRevision := TTabSheet.Create(Self);
+  tsRevision.PageControl := pcAcciones;
+  tsRevision.Caption := 'Revision';
+
+  btnAceptarLinea := TButton.Create(Self);
+  btnAceptarLinea.Parent := tsRevision;
+  btnAceptarLinea.SetBounds(10, 6, 120, 30);
+  btnAceptarLinea.Caption := 'Aceptar';
+  btnAceptarLinea.Hint := 'Marca la linea seleccionada como correcta/ALTA y la guarda como articulo de temporada';
+  btnAceptarLinea.ShowHint := True;
+  btnAceptarLinea.OnClick := @BtnAceptarLineaClick;
+
+  btnRevisarLinea := TButton.Create(Self);
+  btnRevisarLinea.Parent := tsRevision;
+  btnRevisarLinea.SetBounds(136, 6, 120, 30);
+  btnRevisarLinea.Caption := 'Revisar';
+  btnRevisarLinea.Hint := 'Marca la linea seleccionada como duda/MEDIA';
+  btnRevisarLinea.ShowHint := True;
+  btnRevisarLinea.OnClick := @BtnRevisarLineaClick;
+
+  btnExcluirLinea := TButton.Create(Self);
+  btnExcluirLinea.Parent := tsRevision;
+  btnExcluirLinea.SetBounds(262, 6, 120, 30);
+  btnExcluirLinea.Caption := 'Excluir';
+  btnExcluirLinea.Hint := 'Marca la linea seleccionada como excluida/BAJA y pone cantidad final a 0';
+  btnExcluirLinea.ShowHint := True;
+  btnExcluirLinea.OnClick := @BtnExcluirLineaClick;
+
+  tsSalida := TTabSheet.Create(Self);
+  tsSalida.PageControl := pcAcciones;
+  tsSalida.Caption := 'Guardar y salida';
+
+  btnGuardarTemporada := TButton.Create(Self);
+  btnGuardarTemporada.Parent := tsSalida;
+  btnGuardarTemporada.SetBounds(126, 6, 120, 30);
+  btnGuardarTemporada.Caption := 'Guardar temp.';
+  btnGuardarTemporada.OnClick := @BtnGuardarTemporadaClick;
+
+  btnGuardarKeywords := TButton.Create(Self);
+  btnGuardarKeywords.Parent := tsSalida;
+  btnGuardarKeywords.SetBounds(252, 6, 120, 30);
+  btnGuardarKeywords.Caption := 'Guardar claves';
+  btnGuardarKeywords.Hint := 'Guarda las palabras clave de esta temporada para futuras sesiones';
+  btnGuardarKeywords.ShowHint := True;
+  btnGuardarKeywords.OnClick := @BtnGuardarKeywordsClick;
+
+  btnGuardarBorrador := TButton.Create(Self);
+  btnGuardarBorrador.Parent := tsSalida;
+  btnGuardarBorrador.SetBounds(378, 6, 110, 30);
+  btnGuardarBorrador.Caption := 'Guardar borr.';
+  btnGuardarBorrador.Hint := 'Guarda el estudio completo: auto, dudas y excluidos';
+  btnGuardarBorrador.ShowHint := True;
+  btnGuardarBorrador.OnClick := @BtnGuardarBorradorClick;
+
+  btnCargarBorrador := TButton.Create(Self);
+  btnCargarBorrador.Parent := tsSalida;
+  btnCargarBorrador.SetBounds(494, 6, 110, 30);
+  btnCargarBorrador.Caption := 'Cargar borr.';
+  btnCargarBorrador.Hint := 'Carga el ultimo borrador guardado de esta temporada/proveedor';
+  btnCargarBorrador.ShowHint := True;
+  btnCargarBorrador.OnClick := @BtnCargarBorradorClick;
+
+  btnBorrarBorrador := TButton.Create(Self);
+  btnBorrarBorrador.Parent := tsSalida;
+  btnBorrarBorrador.SetBounds(610, 6, 110, 30);
+  btnBorrarBorrador.Caption := 'Borrar borr.';
+  btnBorrarBorrador.Hint := 'Borra el ultimo borrador guardado de esta temporada/proveedor';
+  btnBorrarBorrador.ShowHint := True;
+  btnBorrarBorrador.OnClick := @BtnBorrarBorradorClick;
+
+  btnCSV := TButton.Create(Self);
+  btnCSV.Parent := tsSalida;
+  btnCSV.SetBounds(726, 6, 56, 30);
+  btnCSV.Caption := 'CSV';
+  btnCSV.OnClick := @BtnCSVClick;
+
+  btnPDF := TButton.Create(Self);
+  btnPDF.Parent := tsSalida;
+  btnPDF.SetBounds(788, 6, 56, 30);
+  btnPDF.Caption := 'PDF';
+  btnPDF.OnClick := @BtnPDFClick;
+
+  btnImprimir := TButton.Create(Self);
+  btnImprimir.Parent := tsSalida;
+  btnImprimir.SetBounds(850, 6, 86, 30);
+  btnImprimir.Caption := 'Imprimir';
+  btnImprimir.OnClick := @BtnImprimirClick;
+
+  btnOrdenTienda := TButton.Create(Self);
+  btnOrdenTienda.Parent := tsSalida;
+  btnOrdenTienda.SetBounds(10, 6, 110, 30);
+  btnOrdenTienda.Caption := 'Orden tienda';
+  btnOrdenTienda.OnClick := @BtnOrdenTiendaClick;
+
+  pnlGridCab := TPanel.Create(Self);
+  pnlGridCab.Parent := PanelTop;
+  pnlGridCab.Align := alBottom;
+  pnlGridCab.Height := 34;
+  pnlGridCab.BevelOuter := bvNone;
+  pnlGridCab.Color := $00EAE7E3;
+
+  lblGridTitulo := TLabel.Create(Self);
+  lblGridTitulo.Parent := pnlGridCab;
+  lblGridTitulo.Left := 12;
+  lblGridTitulo.Top := 8;
+  lblGridTitulo.Caption := 'RESULTADO DEL ESTUDIO / PEDIDO';
+  lblGridTitulo.ParentFont := False;
+  lblGridTitulo.Font.Style := [fsBold];
+
+  lblGridAyuda := TLabel.Create(Self);
+  lblGridAyuda.Parent := pnlGridCab;
+  lblGridAyuda.Left := 300;
+  lblGridAyuda.Top := 8;
+  lblGridAyuda.Caption := 'Pulsa una cabecera para ordenar. Las acciones se aplican sobre la linea seleccionada.';
+  lblGridAyuda.ParentFont := False;
+  lblGridAyuda.Font.Style := [];
+  lblGridAyuda.Font.Color := clGray;
 
   PanelBottom := TPanel.Create(Self);
   PanelBottom.Parent := Self;
   PanelBottom.Align := alBottom;
-  PanelBottom.Height := 28;
+  PanelBottom.Height := 34;
   PanelBottom.BevelOuter := bvNone;
+  PanelBottom.Color := $00F3F5F7;
 
   Progress := TProgressBar.Create(Self);
   Progress.Parent := PanelBottom;
   Progress.Left := 8;
-  Progress.Top := 5;
-  Progress.Width := 300;
-  Progress.Height := 16;
+  Progress.Top := 8;
+  Progress.Width := 320;
+  Progress.Height := 18;
   Progress.Min := 0;
   Progress.Max := 100;
   Progress.Position := 0;
 
   lblEstado := TLabel.Create(Self);
   lblEstado.Parent := PanelBottom;
-  lblEstado.Left := 320;
-  lblEstado.Top := 7;
+  lblEstado.Left := 340;
+  lblEstado.Top := 10;
   lblEstado.Caption := 'Preparado';
 
   Grid := TStringGrid.Create(Self);
   Grid.Parent := Self;
   Grid.Align := alClient;
   Grid.FixedRows := 1;
-  { goFixedRowClick no existe en algunas versiones de Lazarus/FPC.
-    La ordenacion por cabecera se mantiene con OnHeaderClick. }
   Grid.Options := Grid.Options + [goRowSelect, goColSizing, goEditing];
+  Grid.DefaultRowHeight := 25;
   Grid.OnHeaderClick := @GridHeaderClick;
   InicializarGrid;
 end;
@@ -2120,6 +2240,80 @@ begin
   ShowMessage('Articulos visibles guardados en temporada: ' + IntToStr(N));
 end;
 
+
+procedure TfPedidoTemporadaAuto.AnadirLineaManualPedido(const ACodigo: string; const Cantidad: Double);
+var
+  Q: TZQuery;
+  TArti: string;
+  Cod: string;
+  L: TLineaTemporada;
+begin
+  Cod := Trim(ACodigo);
+  if Cod = '' then
+  begin
+    ShowMessage('Indica un codigo de articulo.');
+    Exit;
+  end;
+  if Cantidad <= 0 then
+  begin
+    ShowMessage('La cantidad debe ser mayor que cero.');
+    Exit;
+  end;
+
+  TArti := 'artitien' + FTienda;
+  if not TablaExiste(TArti) then
+  begin
+    ShowMessage('No existe la tabla de articulos: ' + TArti);
+    Exit;
+  end;
+
+  Q := TZQuery.Create(nil);
+  try
+    Q.Connection := FConn;
+    Q.SQL.Text := 'SELECT A0,A1,A2,A3,A14,A24,A13 FROM `' + TArti + '` WHERE A0=:COD LIMIT 1';
+    Q.ParamByName('COD').AsString := Cod;
+    Q.Open;
+    if Q.EOF then
+    begin
+      ShowMessage('No he encontrado el articulo: ' + Cod);
+      Exit;
+    end;
+
+    L.Codigo := Q.FieldByName('A0').AsString;
+    L.Descripcion := Q.FieldByName('A1').AsString;
+    L.VentasBase := 0;
+    L.VentasActual := 0;
+    L.VentaDia := 0;
+    L.Sugerido := Cantidad;
+    L.CantidadFinal := Cantidad;
+    L.UltVentaBase := '';
+    L.UltVentaActual := '';
+    if not Q.FieldByName('A13').IsNull then
+      L.UltCompra := DateToStr(Q.FieldByName('A13').AsDateTime)
+    else
+      L.UltCompra := '';
+    L.Coste := Q.FieldByName('A24').AsFloat;
+    L.PVP := Q.FieldByName('A2').AsFloat;
+    L.IVA := Q.FieldByName('A3').AsFloat;
+    L.Familia := Q.FieldByName('A14').AsString;
+    L.Estado := 'MANUAL';
+    L.Confianza := 'ALTA';
+    L.Observaciones := 'Linea anadida manualmente al pedido de temporada. Revisar cantidad antes de pedir.';
+    L.Prioridad := 99999999;
+    L.MarcadoTemporada := True;
+
+    AddLinea(FLineasTodas, L);
+    SepararLineas;
+    GuardarCodigoTemporadaSilencioso(L.Codigo, 'Anadido manualmente al pedido de temporada');
+    PintarLineas(FLineasAuto, seMaxLineas.Value, 'Pedido temporada AUTO');
+    lblEstado.Caption := 'Linea manual de temporada anadida: ' + L.Codigo +
+      '. Entrara en Ver compra si Cantidad final > 0.';
+    Log('Linea manual temporada anadida: ' + L.Codigo + ' cantidad=' + FormatFloat('0.##', Cantidad));
+  finally
+    Q.Free;
+  end;
+end;
+
 procedure TfPedidoTemporadaAuto.IncluirCodigoTemporada(const ACodigo, AObs: string);
 var
   Q: TZQuery;
@@ -2845,14 +3039,350 @@ begin
   GuardarArticulosTemporadaVisibles;
 end;
 
+function TfPedidoTemporadaAuto.SeleccionarArticuloPorDescripcion(out ACodigo: string): Boolean;
+var
+  PnlCab, PnlBuscar, PnlBuscarEntrada, PnlBuscarBoton, PnlBotones: TPanel;
+  LTitulo, LSubtitulo, LBuscar: TLabel;
+  BBuscar, BAceptar, BCancelar: TButton;
+begin
+  Result := False;
+  ACodigo := '';
+
+  FFormBusquedaManual := TForm.Create(Self);
+  try
+    FFormBusquedaManual.Caption := 'Buscar articulo por descripcion';
+    FFormBusquedaManual.Position := poScreenCenter;
+    FFormBusquedaManual.BorderStyle := bsSizeable;
+    FFormBusquedaManual.Width := 980;
+    FFormBusquedaManual.Height := 620;
+    FFormBusquedaManual.Color := $00F3F5F7;
+    FFormBusquedaManual.Font.Name := 'Sans';
+    FFormBusquedaManual.Font.Height := -13;
+
+    PnlCab := TPanel.Create(FFormBusquedaManual);
+    PnlCab.Parent := FFormBusquedaManual;
+    PnlCab.Align := alTop;
+    PnlCab.Height := 68;
+    PnlCab.BevelOuter := bvNone;
+    PnlCab.Color := clNavy;
+
+    LTitulo := TLabel.Create(FFormBusquedaManual);
+    LTitulo.Parent := PnlCab;
+    LTitulo.Left := 16;
+    LTitulo.Top := 10;
+    LTitulo.Caption := 'BUSCAR ARTICULO POR DESCRIPCION';
+    LTitulo.ParentFont := False;
+    LTitulo.Font.Name := 'Sans';
+    LTitulo.Font.Height := -19;
+    LTitulo.Font.Style := [fsBold];
+    LTitulo.Font.Color := clWhite;
+
+    LSubtitulo := TLabel.Create(FFormBusquedaManual);
+    LSubtitulo.Parent := PnlCab;
+    LSubtitulo.Left := 18;
+    LSubtitulo.Top := 38;
+    LSubtitulo.Caption := 'Escribe parte de la descripcion, revisa los resultados y selecciona el articulo.';
+    LSubtitulo.ParentFont := False;
+    LSubtitulo.Font.Color := clSilver;
+
+    PnlBuscar := TPanel.Create(FFormBusquedaManual);
+    PnlBuscar.Parent := FFormBusquedaManual;
+    PnlBuscar.Align := alTop;
+    PnlBuscar.Height := 72;
+    PnlBuscar.BevelOuter := bvNone;
+    PnlBuscar.Color := $00F3F5F7;
+
+    PnlBuscarBoton := TPanel.Create(FFormBusquedaManual);
+    PnlBuscarBoton.Parent := PnlBuscar;
+    PnlBuscarBoton.Align := alRight;
+    PnlBuscarBoton.Width := 150;
+    PnlBuscarBoton.BevelOuter := bvNone;
+    PnlBuscarBoton.ParentColor := True;
+
+    BBuscar := TButton.Create(FFormBusquedaManual);
+    BBuscar.Parent := PnlBuscarBoton;
+    BBuscar.Left := 14;
+    BBuscar.Top := 28;
+    BBuscar.Width := 122;
+    BBuscar.Height := 30;
+    BBuscar.Caption := 'Buscar / filtrar';
+    BBuscar.OnClick := @BtnEjecutarBusquedaManualClick;
+
+    PnlBuscarEntrada := TPanel.Create(FFormBusquedaManual);
+    PnlBuscarEntrada.Parent := PnlBuscar;
+    PnlBuscarEntrada.Align := alClient;
+    PnlBuscarEntrada.BevelOuter := bvNone;
+    PnlBuscarEntrada.ParentColor := True;
+
+    LBuscar := TLabel.Create(FFormBusquedaManual);
+    LBuscar.Parent := PnlBuscarEntrada;
+    LBuscar.Left := 16;
+    LBuscar.Top := 10;
+    LBuscar.Caption := 'Descripcion o codigo';
+
+    FEditBusquedaManual := TEdit.Create(FFormBusquedaManual);
+    FEditBusquedaManual.Parent := PnlBuscarEntrada;
+    FEditBusquedaManual.Left := 16;
+    FEditBusquedaManual.Top := 30;
+    FEditBusquedaManual.Width := 760;
+    FEditBusquedaManual.Anchors := [akLeft, akTop, akRight];
+    FEditBusquedaManual.Hint := 'LIKE: daf busca daf%; %daf busca %daf%; si ya termina en %, se respeta';
+    FEditBusquedaManual.ShowHint := True;
+    FEditBusquedaManual.OnKeyPress := @EditBusquedaManualKeyPress;
+
+    FGridBusquedaManual := TStringGrid.Create(FFormBusquedaManual);
+    FGridBusquedaManual.Parent := FFormBusquedaManual;
+    FGridBusquedaManual.Align := alClient;
+    FGridBusquedaManual.FixedRows := 1;
+    FGridBusquedaManual.ColCount := 5;
+    FGridBusquedaManual.RowCount := 2;
+    FGridBusquedaManual.Options := FGridBusquedaManual.Options + [goRowSelect, goColSizing, goThumbTracking] - [goEditing];
+    FGridBusquedaManual.DefaultRowHeight := 24;
+    FGridBusquedaManual.Cells[0,0] := 'Codigo';
+    FGridBusquedaManual.Cells[1,0] := 'Descripcion';
+    FGridBusquedaManual.Cells[2,0] := 'PVP';
+    FGridBusquedaManual.Cells[3,0] := 'Familia';
+    FGridBusquedaManual.Cells[4,0] := 'Proveedor';
+    FGridBusquedaManual.ColWidths[0] := 100;
+    FGridBusquedaManual.ColWidths[1] := 510;
+    FGridBusquedaManual.ColWidths[2] := 90;
+    FGridBusquedaManual.ColWidths[3] := 90;
+    FGridBusquedaManual.ColWidths[4] := 100;
+    FGridBusquedaManual.OnHeaderClick := @GridBusquedaManualHeaderClick;
+    FGridBusquedaManual.OnDblClick := @GridBusquedaManualDblClick;
+
+    PnlBotones := TPanel.Create(FFormBusquedaManual);
+    PnlBotones.Parent := FFormBusquedaManual;
+    PnlBotones.Align := alBottom;
+    PnlBotones.Height := 54;
+    PnlBotones.BevelOuter := bvNone;
+    PnlBotones.Color := $00F3F5F7;
+
+    BAceptar := TButton.Create(FFormBusquedaManual);
+    BAceptar.Parent := PnlBotones;
+    BAceptar.Left := PnlBotones.Width - 226;
+    BAceptar.Top := 10;
+    BAceptar.Width := 100;
+    BAceptar.Height := 32;
+    BAceptar.Caption := 'Seleccionar';
+    BAceptar.ModalResult := mrOK;
+    BAceptar.Anchors := [akTop, akRight];
+
+    BCancelar := TButton.Create(FFormBusquedaManual);
+    BCancelar.Parent := PnlBotones;
+    BCancelar.Left := PnlBotones.Width - 118;
+    BCancelar.Top := 10;
+    BCancelar.Width := 100;
+    BCancelar.Height := 32;
+    BCancelar.Caption := 'Cancelar';
+    BCancelar.ModalResult := mrCancel;
+    BCancelar.Anchors := [akTop, akRight];
+
+    FBusquedaSortCol := -1;
+    FBusquedaSortAsc := True;
+
+    // No usar SetFocus antes de ShowModal: el formulario todavia no es visible
+    // y Lazarus puede lanzar TCustomForm.SetFocus Can not focus.
+    FFormBusquedaManual.ActiveControl := FEditBusquedaManual;
+
+    if FFormBusquedaManual.ShowModal = mrOK then
+    begin
+      if (FGridBusquedaManual.Row > 0) and
+         (FGridBusquedaManual.Row < FGridBusquedaManual.RowCount) then
+        ACodigo := Trim(FGridBusquedaManual.Cells[0, FGridBusquedaManual.Row]);
+      Result := ACodigo <> '';
+      if not Result then
+        ShowMessage('Selecciona una linea valida del listado.');
+    end;
+  finally
+    FGridBusquedaManual := nil;
+    FEditBusquedaManual := nil;
+    FFormBusquedaManual.Free;
+    FFormBusquedaManual := nil;
+  end;
+end;
+
+procedure TfPedidoTemporadaAuto.EjecutarBusquedaArticuloManual;
+var
+  Q: TZQuery;
+  TArti, Texto, Patron: string;
+  R: Integer;
+begin
+  if (FEditBusquedaManual = nil) or (FGridBusquedaManual = nil) then Exit;
+
+  Texto := Trim(FEditBusquedaManual.Text);
+  if Texto = '' then
+  begin
+    ShowMessage('Escribe parte de la descripcion o del codigo del articulo.');
+    FEditBusquedaManual.SetFocus;
+    Exit;
+  end;
+
+  TArti := 'artitien' + FTienda;
+  if not TablaExiste(TArti) then
+  begin
+    ShowMessage('No existe la tabla de articulos: ' + TArti);
+    Exit;
+  end;
+
+  Patron := StringReplace(Texto, '*', '%', [rfReplaceAll]);
+  // Regla solicitada: siempre completar solo por la derecha.
+  // daf   -> daf%
+  // %daf  -> %daf%
+  // daf%  -> daf%
+  // %daf% -> %daf%
+  if (Patron <> '') and (Patron[Length(Patron)] <> '%') then
+    Patron := Patron + '%';
+
+  Q := TZQuery.Create(nil);
+  try
+    Q.Connection := FConn;
+    Q.SQL.Text := 'SELECT A0,A1,A2,A14,A32 FROM `' + TArti + '` ' +
+      'WHERE UPPER(COALESCE(A1,'''')) LIKE UPPER(:TXT) OR A0 LIKE :COD ' +
+      'ORDER BY A1,A0 LIMIT 500';
+    Q.ParamByName('TXT').AsString := Patron;
+    Q.ParamByName('COD').AsString := Patron;
+    Q.Open;
+
+    FGridBusquedaManual.RowCount := 1;
+    R := 0;
+    while not Q.EOF do
+    begin
+      Inc(R);
+      FGridBusquedaManual.RowCount := R + 1;
+      FGridBusquedaManual.Cells[0,R] := Q.FieldByName('A0').AsString;
+      FGridBusquedaManual.Cells[1,R] := Q.FieldByName('A1').AsString;
+      if Q.FieldByName('A2').IsNull then
+        FGridBusquedaManual.Cells[2,R] := ''
+      else
+        FGridBusquedaManual.Cells[2,R] := FormatFloat('0.00', Q.FieldByName('A2').AsFloat);
+      FGridBusquedaManual.Cells[3,R] := Q.FieldByName('A14').AsString;
+      FGridBusquedaManual.Cells[4,R] := Q.FieldByName('A32').AsString;
+      Q.Next;
+    end;
+
+    if R = 0 then
+    begin
+      FGridBusquedaManual.RowCount := 2;
+      FGridBusquedaManual.Rows[1].Clear;
+      FGridBusquedaManual.Cells[1,1] := 'Sin resultados para: ' + Texto;
+    end
+    else
+      FGridBusquedaManual.Row := 1;
+
+    FBusquedaSortCol := -1;
+    FBusquedaSortAsc := True;
+  finally
+    Q.Free;
+  end;
+end;
+
+procedure TfPedidoTemporadaAuto.OrdenarBusquedaArticuloManual(const ACol: Integer; const AAsc: Boolean);
+var
+  I, J, Cmp: Integer;
+  SA, SB: string;
+  DA, DB: Double;
+  Tmp: TStringList;
+begin
+  if (FGridBusquedaManual = nil) or (FGridBusquedaManual.RowCount <= 2) then Exit;
+
+  Tmp := TStringList.Create;
+  try
+    for I := 1 to FGridBusquedaManual.RowCount - 2 do
+      for J := I + 1 to FGridBusquedaManual.RowCount - 1 do
+      begin
+        SA := FGridBusquedaManual.Cells[ACol, I];
+        SB := FGridBusquedaManual.Cells[ACol, J];
+        if ACol = 2 then
+        begin
+          DA := FloatSeguro(SA, 0);
+          DB := FloatSeguro(SB, 0);
+          if DA < DB then Cmp := -1
+          else if DA > DB then Cmp := 1
+          else Cmp := 0;
+        end
+        else
+          Cmp := CompareText(SA, SB);
+
+        if ((AAsc) and (Cmp > 0)) or ((not AAsc) and (Cmp < 0)) then
+        begin
+          Tmp.Assign(FGridBusquedaManual.Rows[I]);
+          FGridBusquedaManual.Rows[I].Assign(FGridBusquedaManual.Rows[J]);
+          FGridBusquedaManual.Rows[J].Assign(Tmp);
+        end;
+      end;
+  finally
+    Tmp.Free;
+  end;
+  FGridBusquedaManual.Row := 1;
+end;
+
+procedure TfPedidoTemporadaAuto.BtnBuscarArticuloManualClick(Sender: TObject);
+var
+  Cod: string;
+begin
+  if SeleccionarArticuloPorDescripcion(Cod) then
+  begin
+    edtCodigoManual.Text := Cod;
+    edtCodigoManual.SetFocus;
+  end;
+end;
+
+procedure TfPedidoTemporadaAuto.BtnEjecutarBusquedaManualClick(Sender: TObject);
+begin
+  EjecutarBusquedaArticuloManual;
+end;
+
+procedure TfPedidoTemporadaAuto.EditBusquedaManualKeyPress(Sender: TObject; var Key: Char);
+begin
+  if Key = #13 then
+  begin
+    Key := #0;
+    EjecutarBusquedaArticuloManual;
+  end;
+end;
+
+procedure TfPedidoTemporadaAuto.GridBusquedaManualHeaderClick(Sender: TObject;
+  IsColumn: Boolean; Index: Integer);
+begin
+  if not IsColumn then Exit;
+  if FBusquedaSortCol = Index then
+    FBusquedaSortAsc := not FBusquedaSortAsc
+  else
+  begin
+    FBusquedaSortCol := Index;
+    FBusquedaSortAsc := True;
+  end;
+  OrdenarBusquedaArticuloManual(Index, FBusquedaSortAsc);
+end;
+
+procedure TfPedidoTemporadaAuto.GridBusquedaManualDblClick(Sender: TObject);
+begin
+  if (FFormBusquedaManual <> nil) and (FGridBusquedaManual <> nil) and
+     (FGridBusquedaManual.Row > 0) and
+     (Trim(FGridBusquedaManual.Cells[0, FGridBusquedaManual.Row]) <> '') then
+    FFormBusquedaManual.ModalResult := mrOK;
+end;
+
 procedure TfPedidoTemporadaAuto.BtnIncluirManualClick(Sender: TObject);
 var
   Cod: string;
+  CantTxt: string;
+  Cantidad: Double;
 begin
   Cod := Trim(edtCodigoManual.Text);
   if (Cod = '') and (Grid.Row > 0) then
     Cod := Trim(Grid.Cells[0, Grid.Row]);
-  IncluirCodigoTemporada(Cod, 'Incluido manualmente desde pantalla temporada');
+  if Cod = '' then
+  begin
+    ShowMessage('Indica un codigo de articulo o selecciona una linea del grid.');
+    Exit;
+  end;
+
+  CantTxt := '1';
+  if not InputQuery('Anadir linea temporada', 'Cantidad final a pedir:', CantTxt) then Exit;
+  Cantidad := FloatSeguro(CantTxt, 0);
+  AnadirLineaManualPedido(Cod, Cantidad);
 end;
 
 procedure TfPedidoTemporadaAuto.BtnQuitarManualClick(Sender: TObject);

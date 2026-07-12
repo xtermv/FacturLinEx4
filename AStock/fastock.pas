@@ -30,6 +30,19 @@ type
     Label3: TLabel;
     Label4: TLabel;
     Label5: TLabel;
+    LabelBusqueda: TLabel;
+    LabelAyudaArticulo: TLabel;
+    LabelAyudaStock: TLabel;
+    LabelTitulo: TLabel;
+    LabelSubtitulo: TLabel;
+    LabelHistorialTitulo: TLabel;
+    LabelHistorialAyuda: TLabel;
+    LabelHistorialVacio: TLabel;
+    LabelPie: TLabel;
+    GroupArticulo: TGroupBox;
+    GroupStock: TGroupBox;
+    PanelCabecera: TPanel;
+    PanelHistorialCab: TPanel;
     Panel1: TPanel;
     Panel2: TPanel;
     dbAStock: TZQuery;
@@ -53,7 +66,10 @@ type
     function compruebatecla(key: char):char;
 
   private
-    { private declarations }
+    { Devuelve vacío cuando el campo Código/EAN está vacío. Si se ha
+      introducido un EAN y el artículo está localizado, devuelve su A0. }
+    function CodigoFiltroHistorial: string;
+    procedure CargarHistorial(const ACampoOrden, ASentido: string);
   public
     { public declarations }
   end;
@@ -64,6 +80,7 @@ var
   stock: TFastock;
   Inicio: Boolean;
   sOrden: string;
+  sCampoOrden: string;
 
 implementation
 
@@ -121,6 +138,7 @@ Begin
   dbHiststock.SQL.Text := 'SELECT * FROM histstock'+Tienda+'';
   dbHiststock.Active := True;
   sOrden:='DESC';
+  sCampoOrden:='';
 end;
 
 procedure TFastock.Edit1KeyPress(Sender: TObject; var Key: char);
@@ -181,32 +199,43 @@ begin
 end;
 
 procedure TFastock.Edit1Exit(Sender: TObject);
-Var
-   temporal:string;
+var
+  Temporal, CodigoIntroducido: string;
 begin
+  CodigoIntroducido := Trim(Edit1.Text);
+  if CodigoIntroducido = '' then Exit;
 
-  dbAStock.Active := False;
-  dbAStock.Sql.Text:='SELECT * FROM artitien'+Tienda+' WHERE A0="'+Edit1.Text+'"';
-  dbAStock.Active := True;
+  dbAStock.Close;
+  dbAStock.SQL.Text := 'SELECT * FROM artitien' + Tienda + ' WHERE A0=:codigo';
+  dbAStock.ParamByName('codigo').AsString := CodigoIntroducido;
+  dbAStock.Open;
 
-  if dbAStock.RecordCount=0 then
-     begin
-          dbAStock.Active := False;
-          dbAStock.Sql.Text:='SELECT EAN0,EAN1 FROM eans WHERE EAN0="'+Edit1.Text+'"';
-          dbAStock.Active := True;
-          temporal:=dbAStock.FieldByName('EAN1').AsString;
-          dbAStock.Active := False;
-          dbAStock.Sql.Text:='SELECT * FROM artitien'+Tienda+' WHERE A0="'+temporal+'"';
-          dbAStock.Active := True;
-     end;
+  if dbAStock.IsEmpty then
+  begin
+    dbAStock.Close;
+    dbAStock.SQL.Text := 'SELECT EAN0,EAN1 FROM eans WHERE EAN0=:ean';
+    dbAStock.ParamByName('ean').AsString := CodigoIntroducido;
+    dbAStock.Open;
 
-  if dbAStock.RecordCount=0 then exit;
+    Temporal := '';
+    if not dbAStock.IsEmpty then
+      Temporal := Trim(dbAStock.FieldByName('EAN1').AsString);
 
-  Edit2.Text:=dbAStock.FieldByName('A1').AsString;//---------------- Descripción
-  Edit3.Text:=dbAStock.FieldByName('A4').AsString;//---------------- Stock Actual
-  Edit4.Text:=dbAStock.FieldByName('A5').AsString;//---------------- Stock Minimo
-  Edit5.Text:=dbAStock.FieldByName('A6').AsString;//---------------- Stock Maximo
+    dbAStock.Close;
+    dbAStock.SQL.Text := 'SELECT * FROM artitien' + Tienda + ' WHERE A0=:codigo';
+    dbAStock.ParamByName('codigo').AsString := Temporal;
+    dbAStock.Open;
+  end;
 
+  if dbAStock.IsEmpty then Exit;
+
+  { Normaliza siempre el campo al código principal A0. De este modo,
+    la consulta del historial funciona igual al introducir código o EAN. }
+  Edit1.Text := dbAStock.FieldByName('A0').AsString;
+  Edit2.Text := dbAStock.FieldByName('A1').AsString;
+  Edit3.Text := dbAStock.FieldByName('A4').AsString;
+  Edit4.Text := dbAStock.FieldByName('A5').AsString;
+  Edit5.Text := dbAStock.FieldByName('A6').AsString;
 end;
 
 procedure TFastock.BitBtn1Click(Sender: TObject);
@@ -236,26 +265,91 @@ begin
   Edit1.SetFocus;
 end;
 
+function TFastock.CodigoFiltroHistorial: string;
+begin
+  { Regla principal: sin texto en Código/EAN no se aplica ningún filtro,
+    aunque dbAStock conserve internamente el último artículo consultado. }
+  Result := Trim(Edit1.Text);
+  if Result = '' then Exit;
+
+  { Edit1Exit normaliza el EAN a A0. Esta comprobación adicional mantiene
+    el filtro correcto si el control todavía no ha perdido el foco. }
+  if dbAStock.Active and (not dbAStock.IsEmpty) then
+    Result := Trim(dbAStock.FieldByName('A0').AsString);
+end;
+
+procedure TFastock.CargarHistorial(const ACampoOrden, ASentido: string);
+var
+  CodigoFiltro, CampoOrden, Sentido: string;
+begin
+  CodigoFiltro := CodigoFiltroHistorial;
+  CampoOrden := Trim(ACampoOrden);
+  Sentido := UpperCase(Trim(ASentido));
+
+  if (Sentido <> 'ASC') and (Sentido <> 'DESC') then
+    Sentido := 'DESC';
+
+  dbHiststock.Close;
+  dbHiststock.SQL.Clear;
+  dbHiststock.SQL.Add('SELECT * FROM histstock' + Tienda);
+
+  if CodigoFiltro <> '' then
+  begin
+    dbHiststock.SQL.Add('WHERE codigo=:codigo');
+    dbHiststock.ParamByName('codigo').AsString := CodigoFiltro;
+  end;
+
+  if CampoOrden <> '' then
+    dbHiststock.SQL.Add('ORDER BY ' + CampoOrden + ' ' + Sentido)
+  else
+    dbHiststock.SQL.Add('ORDER BY fecha DESC, hora DESC');
+
+  dbHiststock.Open;
+  DBGrid1.Refresh;
+end;
+
 procedure TFastock.BitBtn2Click(Sender: TObject);
 begin
-  if DBGrid1.Visible=True then DBGrid1.Visible:=False else DBGrid1.Visible:=True;
-  if Edit1.Text='' then dbHiststock.SQL.Text:='SELECT * FROM histstock'+Tienda+''
-  else dbHiststock.SQL.Text:='SELECT * FROM histstock'+Tienda+' WHERE codigo="'+Edit1.Text+'"';
-  dbHiststock.Active:=True;
+  DBGrid1.Visible := not DBGrid1.Visible;
+  LabelHistorialVacio.Visible := not DBGrid1.Visible;
+
+  if DBGrid1.Visible then
+  begin
+    BitBtn2.Caption := 'Ocultar historial';
+    { Con Código/EAN vacío se cargan TODOS los registros. }
+    CargarHistorial('', '');
+  end
+  else
+    BitBtn2.Caption := 'Ver historial';
 end;
 
 procedure TFastock.DBGrid1TitleClick(Column: TColumn);
 var
-  corden: string;
+  Campo, SentidoAplicado: string;
 begin
-//--  Colorea(Column,DBGrid2,dbPedid, AntColun, Orden, TituloColumn, Ordenado);
-  DBGrid1.Enabled:=False;
-  if Edit1.Text='' then corden:='SELECT * FROM histstock'+Tienda+''
-    else corden:='SELECT * FROM histstock'+Tienda+' WHERE codigo="'+Edit1.Text+'" ORDER BY '+Column.FieldName+' '+sOrden;
-  if sOrden='DESC' then sOrden:='ASC' else sOrden:='DESC';
-  dbHiststock.Sql.Text:=corden; dbHiststock.Active:=True;
-  dbHiststock.Refresh; DBGrid1.Refresh;
-  DBGrid1.Enabled:=True;
+  if (Column = nil) or (Trim(Column.FieldName) = '') then Exit;
+
+  Campo := Column.FieldName;
+
+  { Una columna nueva comienza en ascendente. Pulsaciones sucesivas sobre
+    la misma cabecera alternan ASC/DESC. }
+  if not SameText(sCampoOrden, Campo) then
+  begin
+    sCampoOrden := Campo;
+    sOrden := 'ASC';
+  end;
+
+  SentidoAplicado := sOrden;
+  DBGrid1.Enabled := False;
+  try
+    CargarHistorial(Campo, SentidoAplicado);
+    if sOrden = 'ASC' then
+      sOrden := 'DESC'
+    else
+      sOrden := 'ASC';
+  finally
+    DBGrid1.Enabled := True;
+  end;
 end;
 
 //================== INSERCION SOLO DE NUMEROS JUNTO A CONTROL TECLAS PULSADAS  ====================

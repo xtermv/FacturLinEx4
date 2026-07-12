@@ -33,7 +33,7 @@ interface
 uses
   Classes, Sysutils, Lresources, Forms, Controls, Graphics, Dialogs, ComCtrls,
   Buttons, ZConnection, ZDataset, StdCtrls, ExtCtrls, LCLType, DBGrids,
-  db, DbCtrls, EditBtn, LR_DBSet, LR_Class, ExtDlgs, Process;
+  db, DbCtrls, EditBtn, LR_DBSet, LR_Class, ExtDlgs, Process, Types;
 
 
 type
@@ -358,6 +358,7 @@ type
     procedure frReport1GetValue(const ParName: String; var ParValue: Variant);
     procedure frReport1EnterRect(Memo: TStringList; View: TfrView);
   private
+    procedure AplicarEstiloModernoSeguro;
     { private declarations }
   public
     { public declarations }
@@ -513,8 +514,305 @@ Begin
   StaticText91.Caption:=txtMoneda;
   StaticText93.Caption:=txtMoneda;
 
+  AplicarEstiloModernoSeguro;
 end;
 
+
+
+procedure TFCaja.AplicarEstiloModernoSeguro;
+var
+  LTitle, LSub: TLabel;
+  I: Integer;
+
+  procedure AsignarIconoSimple(ABoton: TBitBtn; ATipo: Integer; ATamano: Integer = 18);
+  var
+    B: TBitmap;
+    C: TCanvas;
+    M: Integer;
+  begin
+    if not Assigned(ABoton) then Exit;
+
+    B := TBitmap.Create;
+    try
+      B.SetSize(ATamano, ATamano);
+      B.Transparent := True;
+      B.TransparentColor := clFuchsia;
+      C := B.Canvas;
+      C.Brush.Style := bsSolid;
+      C.Brush.Color := clFuchsia;
+      C.FillRect(Rect(0, 0, ATamano, ATamano));
+      C.Pen.Color := clNavy;
+      C.Pen.Width := 2;
+      C.Brush.Style := bsClear;
+      M := ATamano div 2;
+
+      case ATipo of
+        1: begin { cajon }
+             C.Rectangle(2, 5, ATamano - 2, ATamano - 2);
+             C.MoveTo(3, 8); C.LineTo(ATamano - 3, 8);
+             C.Rectangle(M - 2, 10, M + 2, 13);
+           end;
+        2: begin { primero }
+             C.MoveTo(3, 3); C.LineTo(3, ATamano - 3);
+             C.MoveTo(ATamano - 4, 3); C.LineTo(6, M);
+             C.LineTo(ATamano - 4, ATamano - 3);
+           end;
+        3: begin { ultimo }
+             C.MoveTo(ATamano - 3, 3); C.LineTo(ATamano - 3, ATamano - 3);
+             C.MoveTo(4, 3); C.LineTo(ATamano - 6, M);
+             C.LineTo(4, ATamano - 3);
+           end;
+        4: begin { reloj }
+             C.Ellipse(2, 2, ATamano - 2, ATamano - 2);
+             C.MoveTo(M, 4); C.LineTo(M, M);
+             C.LineTo(ATamano - 5, M + 2);
+           end;
+        5: begin { cerrar }
+             C.MoveTo(3, 3); C.LineTo(ATamano - 3, ATamano - 3);
+             C.MoveTo(ATamano - 3, 3); C.LineTo(3, ATamano - 3);
+           end;
+        6: begin { nuevo }
+             C.Rectangle(3, 3, ATamano - 3, ATamano - 3);
+             C.MoveTo(M, 6); C.LineTo(M, ATamano - 6);
+             C.MoveTo(6, M); C.LineTo(ATamano - 6, M);
+           end;
+        7: begin { borrar }
+             C.Rectangle(5, 6, ATamano - 5, ATamano - 2);
+             C.MoveTo(3, 5); C.LineTo(ATamano - 3, 5);
+             C.MoveTo(7, 2); C.LineTo(ATamano - 7, 2);
+           end;
+        8: begin { modificar }
+             C.MoveTo(3, ATamano - 3); C.LineTo(6, ATamano - 4);
+             C.LineTo(ATamano - 3, 7); C.LineTo(ATamano - 7, 3);
+             C.LineTo(4, ATamano - 6); C.LineTo(3, ATamano - 3);
+           end;
+        9: begin { anterior }
+             C.MoveTo(ATamano - 3, 3); C.LineTo(5, M);
+             C.LineTo(ATamano - 3, ATamano - 3);
+           end;
+        10: begin { siguiente }
+              C.MoveTo(3, 3); C.LineTo(ATamano - 5, M);
+              C.LineTo(3, ATamano - 3);
+            end;
+        11: begin { limpiar }
+              C.MoveTo(4, ATamano - 4); C.LineTo(ATamano - 5, 4);
+              C.LineTo(ATamano - 2, 7); C.LineTo(7, ATamano - 2);
+              C.LineTo(4, ATamano - 4);
+            end;
+        12: begin { recalcular }
+              C.Arc(2, 2, ATamano - 2, ATamano - 2, ATamano - 3, M, M, 2);
+              C.MoveTo(ATamano - 4, 3); C.LineTo(ATamano - 2, 8);
+              C.LineTo(ATamano - 7, 7);
+            end;
+        13: begin { cambio / efectivo }
+              C.MoveTo(3, 5); C.LineTo(ATamano - 5, 5);
+              C.LineTo(ATamano - 8, 2);
+              C.MoveTo(ATamano - 5, 5); C.LineTo(ATamano - 8, 8);
+              C.MoveTo(ATamano - 3, ATamano - 5); C.LineTo(5, ATamano - 5);
+              C.LineTo(8, ATamano - 8);
+              C.MoveTo(5, ATamano - 5); C.LineTo(8, ATamano - 2);
+            end;
+        14: begin { imprimir }
+              C.Rectangle(4, 2, ATamano - 4, 7);
+              C.Rectangle(2, 7, ATamano - 2, ATamano - 5);
+              C.Rectangle(5, ATamano - 9, ATamano - 5, ATamano - 2);
+            end;
+        15: begin { pagos }
+              C.Ellipse(2, 2, ATamano - 2, ATamano - 2);
+              C.MoveTo(M + 3, 5); C.LineTo(M - 2, 5);
+              C.LineTo(M - 4, M); C.LineTo(M + 3, M);
+              C.LineTo(M + 2, ATamano - 5); C.LineTo(M - 3, ATamano - 5);
+            end;
+        16: begin { calendario }
+              C.Rectangle(2, 4, ATamano - 2, ATamano - 2);
+              C.MoveTo(2, 8); C.LineTo(ATamano - 2, 8);
+              C.MoveTo(6, 2); C.LineTo(6, 6);
+              C.MoveTo(ATamano - 6, 2); C.LineTo(ATamano - 6, 6);
+            end;
+        17: begin { buscar }
+              C.Ellipse(2, 2, ATamano - 6, ATamano - 6);
+              C.MoveTo(ATamano - 7, ATamano - 7);
+              C.LineTo(ATamano - 2, ATamano - 2);
+            end;
+        18: begin { aceptar }
+              C.MoveTo(2, M); C.LineTo(M - 2, ATamano - 3);
+              C.LineTo(ATamano - 2, 3);
+            end;
+        19: begin { visualizar }
+              C.Arc(2, 4, ATamano - 2, ATamano - 4, 2, M, ATamano - 2, M);
+              C.Ellipse(M - 2, M - 2, M + 2, M + 2);
+            end;
+        20: begin { seleccionar }
+              C.Rectangle(2, 2, ATamano - 2, ATamano - 2);
+              C.MoveTo(4, M); C.LineTo(M - 1, ATamano - 5);
+              C.LineTo(ATamano - 4, 5);
+            end;
+        21: begin { lista/varios }
+              C.Rectangle(3, 2, ATamano - 3, ATamano - 2);
+              C.MoveTo(6, 6); C.LineTo(ATamano - 6, 6);
+              C.MoveTo(6, M); C.LineTo(ATamano - 6, M);
+              C.MoveTo(6, ATamano - 6); C.LineTo(ATamano - 6, ATamano - 6);
+            end;
+      end;
+
+      { Se fuerza un icono coherente incluso cuando el glyph antiguo no se
+        representaba correctamente en el tema actual. }
+      ABoton.Glyph.Clear;
+      ABoton.Glyph.Assign(B);
+      ABoton.NumGlyphs := 1;
+      ABoton.Layout := blGlyphLeft;
+      ABoton.Spacing := 4;
+      ABoton.Margin := -1;
+    finally
+      B.Free;
+    end;
+  end;
+
+begin
+  { Modernizacion conservadora: no se recoloca ni redimensiona ningun
+    componente funcional del arqueo. Se respeta la geometria del LFM. }
+  Caption := 'Arqueo de caja';
+  WindowState := wsMaximized;
+  { Fondo general azul grisaceo suave para evitar una pantalla excesivamente blanca. }
+  Color := $00E8E2DC;
+
+  Panel2.Caption := '';
+  Panel2.Align := alTop;
+  Panel2.Height := 64;
+  Panel2.BevelOuter := bvNone;
+  Panel2.Color := clNavy;
+
+  PageControl1.Align := alBottom;
+  PageControl1.ParentFont := False;
+  PageControl1.Font.Name := 'Sans';
+  PageControl1.Font.Height := -12;
+  TabSheet1.Caption := 'Arqueo y conteo';
+  TabSheet2.Caption := 'Consultas e informes';
+  TabSheet1.Color := $00E8E2DC;
+  TabSheet2.Color := $00E8E2DC;
+
+  LTitle := TLabel.Create(Self);
+  LTitle.Parent := Panel2;
+  LTitle.SetBounds(20, 7, 760, 27);
+  LTitle.Caption := 'ARQUEO DE CAJA';
+  LTitle.ParentFont := False;
+  LTitle.Font.Name := 'Sans';
+  LTitle.Font.Height := -20;
+  LTitle.Font.Style := [fsBold];
+  LTitle.Font.Color := clWhite;
+  LTitle.Transparent := True;
+  LTitle.Anchors := [akLeft, akTop, akRight];
+
+  LSub := TLabel.Create(Self);
+  LSub.Parent := Panel2;
+  LSub.SetBounds(22, 36, 1050, 18);
+  LSub.Caption := 'Conteo de efectivo, contraste con ventas, pagos y movimientos de caja.';
+  LSub.ParentFont := False;
+  LSub.Font.Name := 'Sans';
+  LSub.Font.Height := -11;
+  LSub.Font.Color := clSilver;
+  LSub.Transparent := True;
+  LSub.Anchors := [akLeft, akTop, akRight];
+
+  { Mantener textos cortos para que no se recorten en los bloques originales. }
+  GroupBox1.Caption := ' BILLETES ';
+  GroupBox2.Caption := ' MONEDAS ';
+  GroupBox3.Caption := ' INFORMACION DE CAJA ';
+  GroupBox4.Caption := ' RESULTADO DEL ARQUEO ';
+  GroupBox5.Caption := ' INFO. ADICIONAL ';
+  GroupBox6.Caption := ' FECHAS ';
+
+  Panel1.Caption := '';
+  Panel1.Color := $00E1D8CD;
+  Panel5.Caption := '';
+  Panel6.Caption := '';
+  Panel5.Color := $00E8E2DC;
+  Panel6.Color := $00E8E2DC;
+  Panel3.ParentFont := False;
+  Panel3.Font.Name := 'Sans';
+  Panel3.Font.Height := -14;
+  Panel3.Font.Style := [fsBold];
+
+  for I := 0 to ComponentCount - 1 do
+  begin
+    if Components[I] is TGroupBox then
+    begin
+      TGroupBox(Components[I]).ParentFont := False;
+      TGroupBox(Components[I]).Font.Name := 'Sans';
+      TGroupBox(Components[I]).Font.Height := -12;
+      TGroupBox(Components[I]).Font.Style := [fsBold];
+      TGroupBox(Components[I]).Font.Color := clNavy;
+      { Tarjetas suaves: se conserva el contraste de los campos sin llenar la pantalla de blanco. }
+      TGroupBox(Components[I]).Color := $00F0EBE4;
+      TGroupBox(Components[I]).ParentColor := False;
+    end
+    else if Components[I] is TBitBtn then
+    begin
+      TBitBtn(Components[I]).ParentFont := False;
+      TBitBtn(Components[I]).Font.Name := 'Sans';
+      TBitBtn(Components[I]).Font.Height := -11;
+    end
+    else if Components[I] is TEdit then
+    begin
+      TEdit(Components[I]).ParentFont := False;
+      TEdit(Components[I]).Font.Name := 'Sans';
+      if TEdit(Components[I]).ReadOnly then
+        TEdit(Components[I]).Color := $00E4E1DD
+      else
+        TEdit(Components[I]).Color := $00FCFBF9;
+    end;
+  end;
+
+  { Mejora visual de grids sin alterar posiciones, columnas ni eventos. }
+  DBGrid12.Color := clWhite;
+  DBGrid1.Color := clWhite;
+  DBGrid2.Color := clWhite;
+  DBGrid3.Color := clWhite;
+  DBGrid12.FixedColor := $00DDD3C9;
+  DBGrid1.FixedColor := $00DDD3C9;
+  DBGrid2.FixedColor := $00DDD3C9;
+  DBGrid3.FixedColor := $00DDD3C9;
+  DBGrid12.TitleFont.Style := [fsBold];
+  DBGrid1.TitleFont.Style := [fsBold];
+  DBGrid2.TitleFont.Style := [fsBold];
+  DBGrid3.TitleFont.Style := [fsBold];
+
+  Panel7.Caption := '';
+  Panel8.Caption := '';
+  Panel9.Caption := '';
+  Panel4.Caption := '';
+  Panel7.Color := $00E7DFD6;
+  Panel8.Color := $00E7DFD6;
+  Panel9.Color := $00E7DFD6;
+  Panel4.Color := $00E7DFD6;
+
+  { Iconos coherentes para todos los botones del arqueo. }
+  AsignarIconoSimple(BitBtn1, 5, 16);   { cerrar }
+  AsignarIconoSimple(BitBtn2, 6, 16);   { nuevo }
+  AsignarIconoSimple(BitBtn3, 7, 16);   { borrar }
+  AsignarIconoSimple(BitBtn4, 8, 16);   { modificar }
+  AsignarIconoSimple(BitBtn5, 9, 16);   { anterior }
+  AsignarIconoSimple(BitBtn6, 10, 16);  { siguiente }
+  AsignarIconoSimple(BitBtn7, 11, 16);  { limpiar }
+  AsignarIconoSimple(BitBtn8, 16, 14);  { fecha desde }
+  AsignarIconoSimple(BitBtn9, 17, 14);  { buscar arqueo }
+  AsignarIconoSimple(BitBtn10, 18, 14); { validar fecha }
+  AsignarIconoSimple(BitBtn11, 12, 16); { recalcular }
+  AsignarIconoSimple(BitBtn12, 13, 16); { cambio }
+  AsignarIconoSimple(BitBtn13, 4, 14);  { hora inicial }
+  AsignarIconoSimple(BitBtn14, 19, 18); { visualizar }
+  AsignarIconoSimple(BitBtn15, 14, 18); { imprimir }
+  AsignarIconoSimple(BitBtn16, 20, 18); { seleccionar }
+  AsignarIconoSimple(BitBtn17, 21, 18); { varios }
+  AsignarIconoSimple(BitBtn18, 5, 18);  { cerrar consulta }
+  AsignarIconoSimple(BitBtn19, 4, 14);  { hora final }
+  AsignarIconoSimple(BitBtn20, 18, 18); { aceptar }
+  AsignarIconoSimple(BitBtn21, 14, 16); { imprimir arqueo }
+  AsignarIconoSimple(BitBtn22, 15, 16); { pagos/ingresos }
+  AsignarIconoSimple(BitBtn23, 1, 18);  { cajon }
+  AsignarIconoSimple(BitBtn24, 3, 16);  { ultimo }
+  AsignarIconoSimple(BitBtn25, 2, 16);  { primero }
+end;
 
 //==================== CERRAR ======================
 Procedure TFCaja.Bitbtn1click(Sender: Tobject);

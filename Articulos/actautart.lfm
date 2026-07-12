@@ -4,8 +4,8 @@ object fActAutArt: TfActAutArt
   Top = 379
   Width = 793
   ActiveControl = Panel1
-  BorderIcons = [biSystemMenu]
-  BorderStyle = bsDialog
+  BorderIcons = [biSystemMenu, biMinimize, biMaximize]
+  BorderStyle = bsSizeable
   Caption = 'Actualización Automática de Artículos'
   ClientHeight = 594
   ClientWidth = 793
@@ -1178,8 +1178,9 @@ object fActAutArt: TfActAutArt
       end    
       item
         Alignment = taRightJustify
-        Title.Caption = ' '
-        Width = 70
+        Title.Alignment = taCenter
+        Title.Caption = 'NUEVO S/IVA'
+        Width = 115
       end    
       item
         Alignment = taRightJustify
@@ -1195,8 +1196,9 @@ object fActAutArt: TfActAutArt
       end    
       item
         Alignment = taRightJustify
-        Title.Caption = ' '
-        Width = 70
+        Title.Alignment = taCenter
+        Title.Caption = 'NUEVO C/IVA'
+        Width = 115
       end>
     FixedCols = 0
     RowCount = 1

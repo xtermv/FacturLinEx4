@@ -6,19 +6,19 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs,
-  StdCtrls, ExtCtrls, Process, FileUtil, Grids, IniFiles, 
-  uFLXRestoreRemote, BaseUnix, Global;
+  StdCtrls, ExtCtrls, Buttons, Process, FileUtil, Grids, IniFiles,
+  uFLXRestoreRemote, BaseUnix, Global, uFLXIcons;
 
 type
 
   { TfRestoreBackup }
 
   TfRestoreBackup = class(TForm)
-    btnActualizar: TButton;
-    btnCancelar: TButton;
-    btnExaminarRuta: TButton;
-    btnBackupAhora: TButton;
-    btnRestaurar: TButton;
+    btnActualizar: TBitBtn;
+    btnCancelar: TBitBtn;
+    btnExaminarRuta: TBitBtn;
+    btnBackupAhora: TBitBtn;
+    btnRestaurar: TBitBtn;
     chkBackupAntesRestore: TCheckBox;
     chkRestoreAria: TCheckBox;
     chkRestoreConf: TCheckBox;
@@ -28,6 +28,20 @@ type
     lblInfo: TLabel;
     lblRuta: TLabel;
     MemoInfo: TMemo;
+    imgHeader: TImage;
+    lblTitulo: TLabel;
+    lblSubtitulo: TLabel;
+    lblOpciones: TLabel;
+    lblSeguridad: TLabel;
+    pnlHeader: TPanel;
+    pnlRuta: TPanel;
+    pnlRutaAcciones: TPanel;
+    pnlMain: TPanel;
+    pnlLista: TPanel;
+    pnlInfo: TPanel;
+    pnlOpciones: TPanel;
+    pnlAcciones: TPanel;
+    pnlBotonesAccion: TPanel;
     SelectDirectoryDialog1: TSelectDirectoryDialog;
     procedure btnActualizarClick(Sender: TObject);
     procedure btnBackupAhoraClick(Sender: TObject);
@@ -96,7 +110,40 @@ end;
 { TfRestoreBackup }
 
 procedure TfRestoreBackup.FormCreate(Sender: TObject);
+var
+  FN: string;
 begin
+  { Imagen moderna común con el resto de FacturLinEx. La ausencia del icono
+    no afecta al funcionamiento del formulario. }
+  Color := RGBToColor(245, 248, 252);
+  pnlHeader.Color := RGBToColor(248, 251, 255);
+  pnlRuta.Color := RGBToColor(236, 244, 255);
+  pnlMain.Color := RGBToColor(245, 248, 252);
+  pnlLista.Color := RGBToColor(250, 252, 255);
+  pnlInfo.Color := RGBToColor(248, 251, 255);
+  pnlOpciones.Color := RGBToColor(236, 244, 255);
+  pnlAcciones.Color := RGBToColor(248, 251, 255);
+  pnlBotonesAccion.Color := pnlAcciones.Color;
+  pnlRutaAcciones.Color := pnlRuta.Color;
+
+  lblTitulo.Font.Color := RGBToColor(0, 32, 80);
+  lblSubtitulo.Font.Color := RGBToColor(45, 70, 105);
+  lblRuta.Font.Color := RGBToColor(0, 65, 145);
+  lblBackups.Font.Color := RGBToColor(0, 65, 145);
+  lblInfo.Font.Color := RGBToColor(0, 65, 145);
+  lblOpciones.Font.Color := RGBToColor(0, 65, 145);
+  lblSeguridad.Font.Color := RGBToColor(120, 55, 0);
+
+  FN := FLXIconFile('mantenimiento', 64);
+  if FN <> '' then
+    imgHeader.Picture.LoadFromFile(FN);
+
+  FLXSetBitBtnIcon(btnExaminarRuta, 'configuracion', 30);
+  FLXSetBitBtnIcon(btnActualizar, 'actualizar', 30);
+  FLXSetBitBtnIcon(btnBackupAhora, 'tend_exportar', 30);
+  FLXSetBitBtnIcon(btnRestaurar, 'mantenimiento', 30);
+  FLXSetBitBtnIcon(btnCancelar, 'cerrar', 30);
+
   FBackupPaths := TStringList.Create;
   FUsarPkExec := False; // para restore visible en terminal usaremos sudo
   chkRestoreConf.Checked := True;
@@ -354,16 +401,21 @@ begin
   GridBackups.FixedRows := 1;
   GridBackups.RowCount := 2;
   GridBackups.Options := GridBackups.Options + [goRowSelect];
+  GridBackups.DefaultRowHeight := 28;
+  GridBackups.FixedColor := RGBToColor(225, 238, 252);
+  GridBackups.AlternateColor := RGBToColor(248, 251, 255);
+  GridBackups.TitleFont.Style := [fsBold];
+  GridBackups.TitleFont.Color := RGBToColor(0, 32, 80);
   GridBackups.Cells[0, 0] := 'Fecha';
   GridBackups.Cells[1, 0] := 'Equipo';
   GridBackups.Cells[2, 0] := 'Base';
   GridBackups.Cells[3, 0] := 'Tamaño';
   GridBackups.Cells[4, 0] := 'Carpeta';
   GridBackups.ColWidths[0] := 170;
-  GridBackups.ColWidths[1] := 110;
-  GridBackups.ColWidths[2] := 110;
+  GridBackups.ColWidths[1] := 130;
+  GridBackups.ColWidths[2] := 130;
   GridBackups.ColWidths[3] := 120;
-  GridBackups.ColWidths[4] := 300;
+  GridBackups.ColWidths[4] := 340;
 end;
 
 procedure TfRestoreBackup.LimpiarGrid;

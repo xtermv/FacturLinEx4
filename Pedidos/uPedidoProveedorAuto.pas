@@ -115,6 +115,23 @@ unit uPedidoProveedorAuto;
   - Corrige Ult. venta para que sea ultima venta real positiva dentro del periodo/grupo,
     no solo la fecha maxima de cualquier movimiento del articulo.
 
+  v2.12:
+  - Anade modo Repos. pedidos: calcula reposicion solo sobre articulos presentes
+    en los ultimos N pedidos historicos del proveedor (hipedicc/hipedidd).
+  - Anade Anadir linea y Quitar linea manual. Las lineas manuales entran como
+    confianza ALTA, accion MANUAL, se guardan en borrador y entran al pedido real
+    si tienen Cantidad final mayor que 0.
+
+  v2.13:
+  - Anade selector Pedidos hist. para que Repos. pedidos use N pedidos historicos
+    del proveedor (por defecto 4).
+  - El checkbox Ref. compras pedidos usa esos mismos N pedidos como referencia
+    de seguridad.
+  - Calcula comprado total NP, media por pedido, maximo y ultima compra en uds.
+  - La venta sigue mandando, pero las compras historicas pueden subir confianza
+    si son coherentes o mandar a revisar si la propuesta se dispara o se queda
+    muy lejos de lo comprado habitualmente.
+
   Integracion esperada:
     uses uPedidoProveedorAuto;
 
@@ -138,12 +155,17 @@ type
     VendidoPeriodo: Double;
     VendidoHistorico: Double;
     VendidoTendencia: Double;
+    VendidoCobertura: Double; // unidades vendidas en los dias reales a cubrir (pedido + entrega)
     VentaDia: Double;
     Sugerido: Double;
     StockContado: Double;
     CantidadFinal: Double;
     UltVenta: string;
     UltCompra: string;
+    CompradoUlt4: Double;
+    MediaUlt4: Double;
+    MaxUlt4: Double;
+    UltCompraUds: Double;
     Coste: Double;
     PVP: Double;
     IVA: Double;
@@ -170,6 +192,9 @@ type
     FAutoPedido: TArrayLineaPedidoAuto;
     FAutoRevisar: TArrayLineaPedidoAuto;
     FAutoExcluidos: TArrayLineaPedidoAuto;
+    FUsarReposicionUlt4: Boolean;
+    FUsarReposicionReal: Boolean;
+    FSuppressSelToggle: Boolean;
 
     PanelTop: TPanel;
     PanelBottom: TPanel;
@@ -203,6 +228,9 @@ type
     chkExcluirRaros: TCheckBox;
     chkMostrarCero: TCheckBox;
     chkPocasVentasARevisar: TCheckBox;
+    chkUsarComprasUlt4Ref: TCheckBox;
+    lblNumPedidosHist: TLabel;
+    seNumPedidosHist: TSpinEdit;
     seUmbralPocasVentas: TSpinEdit;
     chkAbrirPDF: TCheckBox;
     lblPerfilAuto: TLabel;
@@ -213,6 +241,8 @@ type
     btnCalcular: TButton;
     btnPedidoDepurado: TButton;
     btnPedidoAuto: TButton;
+    btnReposicionUlt4: TButton;
+    btnReposicionReal: TButton;
     btnVerAuto: TButton;
     btnVerCompraSegura: TButton;
     btnVerRiesgos: TButton;
@@ -224,6 +254,15 @@ type
     btnRevisarSiempre: TButton;
     btnExcluirSiempre: TButton;
     btnQuitarDecision: TButton;
+    btnAnadirManual: TButton;
+    btnQuitarManual: TButton;
+    btnVerSimilares: TButton;
+    btnQuitarAhora: TButton;
+    btnQuitarMarcadas: TButton;
+    btnRevisarMarcadas: TButton;
+    btnExcluirMarcadas: TButton;
+    btnVerQuitadas: TButton;
+    btnDesmarcarTodas: TButton;
     btnMarcarPrincipal: TButton;
     btnEquivaleA: TButton;
     btnQuitarEquivalencia: TButton;
@@ -247,6 +286,8 @@ type
     procedure BtnCalcularClick(Sender: TObject);
     procedure BtnPedidoDepuradoClick(Sender: TObject);
     procedure BtnPedidoAutoClick(Sender: TObject);
+    procedure BtnReposicionUlt4Click(Sender: TObject);
+    procedure BtnReposicionRealClick(Sender: TObject);
     procedure BtnVerAutoClick(Sender: TObject);
     procedure BtnVerCompraSeguraClick(Sender: TObject);
     procedure BtnVerRiesgosClick(Sender: TObject);
@@ -258,6 +299,15 @@ type
     procedure BtnRevisarSiempreClick(Sender: TObject);
     procedure BtnExcluirSiempreClick(Sender: TObject);
     procedure BtnQuitarDecisionClick(Sender: TObject);
+    procedure BtnAnadirManualClick(Sender: TObject);
+    procedure BtnQuitarManualClick(Sender: TObject);
+    procedure BtnVerSimilaresClick(Sender: TObject);
+    procedure BtnQuitarAhoraClick(Sender: TObject);
+    procedure BtnQuitarMarcadasClick(Sender: TObject);
+    procedure BtnRevisarMarcadasClick(Sender: TObject);
+    procedure BtnExcluirMarcadasClick(Sender: TObject);
+    procedure BtnVerQuitadasClick(Sender: TObject);
+    procedure BtnDesmarcarTodasClick(Sender: TObject);
     procedure BtnMarcarPrincipalClick(Sender: TObject);
     procedure BtnEquivaleAClick(Sender: TObject);
     procedure BtnQuitarEquivalenciaClick(Sender: TObject);
@@ -296,6 +346,7 @@ type
     procedure VaciarListasAuto;
     procedure AddLineaAuto(var ALista: TArrayLineaPedidoAuto; const ALinea: TLineaPedidoAuto);
     procedure PintarListaAuto(const ALista: TArrayLineaPedidoAuto; const Titulo: string);
+    function LineaAutoQuitada(const L: TLineaPedidoAuto): Boolean;
     procedure MostrarSoloLineasRiesgo;
     procedure MostrarCompraSegura;
     procedure SincronizarListasAutoDesdeGrid;
@@ -305,6 +356,18 @@ type
     procedure RecalcularTodasCantidadesFinales;
     procedure OrdenarPorPrioridad(var Lineas: TArrayLineaPedidoAuto);
     procedure PintarLineasEnGrid(const Lineas: TArrayLineaPedidoAuto; const Limite: Integer);
+    procedure AnadirLineaManualAlGrid(const L: TLineaPedidoAuto);
+    procedure QuitarLineaManualSeleccionada;
+    procedure EliminarManualDeListas(const Codigo: string);
+    function ColSel: Integer;
+    function FilaMarcada(const ARow: Integer): Boolean;
+    procedure MarcarFila(const ARow: Integer; const AMarcada: Boolean);
+    procedure DesmarcarTodasLasLineas;
+    function ContarMarcadas: Integer;
+    function HayMarcadas: Boolean;
+    procedure AplicarAccionMarcadas(const AAccion: string);
+    procedure MostrarLineasQuitadas;
+    procedure MostrarSimilaresVisibles;
 
     function CodigoProveedorSeleccionado: Integer;
     function NombreProveedorSeleccionado: string;
@@ -312,6 +375,7 @@ type
     function TablaExiste(const NombreTabla: string): Boolean;
     function CampoExiste(const NombreTabla, NombreCampo: string): Boolean;
     function SQLComprasProveedor(const CodProveedor: Integer): string;
+    function SQLComprasProveedorUltimos4(const CodProveedor: Integer): string;
     function SQLVentas(const FechaDesdeHistorico, FechaHasta: TDateTime;
       const CodProveedor: Integer): string;
     function SQLFinal(const CodProveedor: Integer; const FechaDesdeHistorico,
@@ -323,6 +387,11 @@ type
     function EsColumnaFecha(const Col: Integer): Boolean;
     function TextoContiene(const Texto, Busqueda: string): Boolean;
     function ClaveDescripcionDuplicado(const S: string): string;
+    function NormalizarTextoSimilar(const S: string): string;
+    function ClaveDescripcionSimilar(const S: string): string;
+    function CantidadDescripcionSimilar(const S: string): Double;
+    function CantidadesCompatibles(const A, B: Double): Boolean;
+    function ValorFechaTexto(const S: string): TDateTime;
     function RedondearArriba(const Valor: Double): Double;
     function FechaSQL(const Fecha: TDateTime): string;
     function CSVSeguro(const S: string): string;
@@ -411,10 +480,13 @@ begin
   FListaProveedores := TStringList.Create;
   FSortCol := -1;
   FSortAsc := True;
+  FUsarReposicionUlt4 := False;
+  FUsarReposicionReal := False;
+  FSuppressSelToggle := False;
   VaciarListasAuto;
-  LogPedidoAuto('Apertura modulo pedido automatico v2.10. Tienda=' + FTienda);
+  LogPedidoAuto('Apertura modulo pedido automatico v2.14.5. Tienda=' + FTienda);
 
-  Caption := 'Propuesta de pedido por proveedor - v2.11.2 compra segura';
+  Caption := 'Propuesta de pedido por proveedor - v2.14.5 quitar oculta e indice numerico';
   Position := poScreenCenter;
   Width := 1250;
   Height := 720;
@@ -435,202 +507,128 @@ begin
 end;
 
 procedure TfPedidoProveedorAuto.ConstruirInterfaz;
+var
+  pnlCabecera, pnlProveedor, pnlBusca, pnlProveedorCentro, pnlProveedorAcciones: TPanel;
+  pnlParametros: TPanel;
+  gbAnalisis, gbReglas: TGroupBox;
+  pcAcciones: TPageControl;
+  tsCalculo, tsRevision, tsEquivalencias, tsSalida: TTabSheet;
+  pnlEstado, pnlGridCab: TPanel;
+  lblTitulo, lblSubtitulo, lblGridTitulo, lblGridAyuda: TLabel;
+
+  function NuevoBoton(AParent: TWinControl; ALeft, ATop, AWidth: Integer;
+    const ACaption, AHint: string; AClick: TNotifyEvent): TButton;
+  begin
+    Result := TButton.Create(Self);
+    Result.Parent := AParent;
+    Result.SetBounds(ALeft, ATop, AWidth, 30);
+    Result.Caption := ACaption;
+    Result.Hint := AHint;
+    Result.ShowHint := Trim(AHint) <> '';
+    Result.OnClick := AClick;
+  end;
+
+  procedure EstiloBotonPrincipal(B: TButton);
+  begin
+    if not Assigned(B) then Exit;
+    B.Font.Style := [fsBold];
+    B.Height := 34;
+  end;
+
 begin
+  Color := $00F3F5F7;
+  BorderStyle := bsSizeable;
+
   PanelTop := TPanel.Create(Self);
   PanelTop.Parent := Self;
   PanelTop.Align := alTop;
-  PanelTop.Height := 276;
+  PanelTop.Height := 500;
   PanelTop.BevelOuter := bvNone;
+  PanelTop.Color := $00F3F5F7;
+
+  { CABECERA }
+  pnlCabecera := TPanel.Create(Self);
+  pnlCabecera.Parent := PanelTop;
+  pnlCabecera.Align := alTop;
+  pnlCabecera.Height := 66;
+  pnlCabecera.BevelOuter := bvNone;
+  pnlCabecera.Color := clNavy;
+
+  lblTitulo := TLabel.Create(Self);
+  lblTitulo.Parent := pnlCabecera;
+  lblTitulo.Left := 18;
+  lblTitulo.Top := 10;
+  lblTitulo.Caption := 'PEDIDO AUTOMATICO POR PROVEEDOR';
+  lblTitulo.Font.Height := -20;
+  lblTitulo.Font.Style := [fsBold];
+  lblTitulo.Font.Color := clWhite;
+  lblTitulo.ParentFont := False;
+
+  lblSubtitulo := TLabel.Create(Self);
+  lblSubtitulo.Parent := pnlCabecera;
+  lblSubtitulo.Left := 20;
+  lblSubtitulo.Top := 38;
+  lblSubtitulo.Caption := 'Analisis de ventas, reposicion, revision y creacion del pedido desde una unica pantalla.';
+  lblSubtitulo.Font.Height := -12;
+  lblSubtitulo.Font.Color := clSilver;
+  lblSubtitulo.ParentFont := False;
+
+  btnCerrar := NuevoBoton(pnlCabecera, 0, 16, 110, 'Cerrar',
+    'Cerrar esta ventana', @BtnCerrarClick);
+  btnCerrar.Left := pnlCabecera.ClientWidth - 122;
+  btnCerrar.Top := 16;
+  btnCerrar.Anchors := [akTop, akRight];
+  btnCerrar.Font.Style := [fsBold];
+
+  { PROVEEDOR Y PERFIL }
+  pnlProveedor := TPanel.Create(Self);
+  pnlProveedor.Parent := PanelTop;
+  pnlProveedor.Align := alTop;
+  pnlProveedor.Height := 72;
+  pnlProveedor.BevelOuter := bvNone;
+  pnlProveedor.Color := clWhite;
+
+  pnlBusca := TPanel.Create(Self);
+  pnlBusca.Parent := pnlProveedor;
+  pnlBusca.Align := alLeft;
+  pnlBusca.Width := 410;
+  pnlBusca.BevelOuter := bvNone;
+  pnlBusca.ParentColor := True;
 
   lblBuscarProveedor := TLabel.Create(Self);
-  lblBuscarProveedor.Parent := PanelTop;
-  lblBuscarProveedor.Left := 10;
-  lblBuscarProveedor.Top := 12;
-  lblBuscarProveedor.Caption := 'Buscar proveedor:';
+  lblBuscarProveedor.Parent := pnlBusca;
+  lblBuscarProveedor.Left := 14;
+  lblBuscarProveedor.Top := 9;
+  lblBuscarProveedor.Caption := 'BUSCAR PROVEEDOR';
+  lblBuscarProveedor.Font.Style := [fsBold];
 
   edtBuscarProveedor := TEdit.Create(Self);
-  edtBuscarProveedor.Parent := PanelTop;
-  edtBuscarProveedor.Left := 125;
-  edtBuscarProveedor.Top := 8;
-  edtBuscarProveedor.Width := 210;
+  edtBuscarProveedor.Parent := pnlBusca;
+  edtBuscarProveedor.SetBounds(14, 32, 300, 29);
   edtBuscarProveedor.Hint := 'Escriba codigo o nombre del proveedor';
   edtBuscarProveedor.ShowHint := True;
   edtBuscarProveedor.OnChange := @EdtBuscarProveedorChange;
 
-  btnLimpiarProveedor := TButton.Create(Self);
-  btnLimpiarProveedor.Parent := PanelTop;
-  btnLimpiarProveedor.Left := 342;
-  btnLimpiarProveedor.Top := 8;
-  btnLimpiarProveedor.Width := 55;
-  btnLimpiarProveedor.Caption := 'Todos';
-  btnLimpiarProveedor.OnClick := @BtnLimpiarProveedorClick;
+  btnLimpiarProveedor := NuevoBoton(pnlBusca, 322, 31, 76, 'Todos',
+    'Mostrar todos los proveedores', @BtnLimpiarProveedorClick);
 
-  lblProveedor := TLabel.Create(Self);
-  lblProveedor.Parent := PanelTop;
-  lblProveedor.Left := 410;
-  lblProveedor.Top := 12;
-  lblProveedor.Caption := 'Proveedor:';
-
-  cbProveedor := TComboBox.Create(Self);
-  cbProveedor.Parent := PanelTop;
-  cbProveedor.Left := 485;
-  cbProveedor.Top := 8;
-  cbProveedor.Width := 430;
-  cbProveedor.Style := csDropDownList;
-  cbProveedor.OnChange := @CbProveedorChange;
-
-  // Boton Cerrar visible y sencillo, sin depender de Align ni del tamano final de la ventana.
-  // Se coloca en la primera fila del panel superior, separado de los botones de calculo/impresion.
-  btnCerrar := TButton.Create(Self);
-  btnCerrar.Parent := PanelTop;
-  btnCerrar.Left := 930;
-  btnCerrar.Top := 8;
-  btnCerrar.Width := 110;
-  btnCerrar.Height := 26;
-  btnCerrar.Caption := 'Cerrar';
-  btnCerrar.Hint := 'Cerrar esta ventana';
-  btnCerrar.ShowHint := True;
-  btnCerrar.OnClick := @BtnCerrarClick;
-  btnCerrar.Visible := True;
-  btnCerrar.BringToFront;
-
-  lblDiasCubrir := TLabel.Create(Self);
-  lblDiasCubrir.Parent := PanelTop;
-  lblDiasCubrir.Left := 10;
-  lblDiasCubrir.Top := 44;
-  lblDiasCubrir.Caption := 'Dias pedido a cubrir:';
-  lblDiasCubrir.Hint := 'Dias que quieres cubrir con el pedido. No se usa para contar ventas.';
-  lblDiasCubrir.ShowHint := True;
-
-  seDiasCubrir := TSpinEdit.Create(Self);
-  seDiasCubrir.Parent := PanelTop;
-  seDiasCubrir.Left := 150;
-  seDiasCubrir.Top := 40;
-  seDiasCubrir.Width := 70;
-  seDiasCubrir.MinValue := 1;
-  seDiasCubrir.MaxValue := 365;
-  seDiasCubrir.Value := 15;
-
-  lblDiasVentas := TLabel.Create(Self);
-  lblDiasVentas.Parent := PanelTop;
-  lblDiasVentas.Left := 235;
-  lblDiasVentas.Top := 44;
-  lblDiasVentas.Caption := 'Analizar ventas dias:';
-  lblDiasVentas.Hint := 'Dias hacia atras usados para calcular la venta media principal. No son los dias del pedido.';
-  lblDiasVentas.ShowHint := True;
-
-  seDiasVentas := TSpinEdit.Create(Self);
-  seDiasVentas.Parent := PanelTop;
-  seDiasVentas.Left := 365;
-  seDiasVentas.Top := 40;
-  seDiasVentas.Width := 70;
-  seDiasVentas.MinValue := 1;
-  seDiasVentas.MaxValue := 730;
-  seDiasVentas.Value := 60;
-  seDiasVentas.Hint := 'Periodo principal de analisis de ventas. Ejemplo: 60 dias.';
-  seDiasVentas.ShowHint := True;
-
-  lblDiasTendencia := TLabel.Create(Self);
-  lblDiasTendencia.Parent := PanelTop;
-  lblDiasTendencia.Left := 455;
-  lblDiasTendencia.Top := 44;
-  lblDiasTendencia.Caption := 'Tendencia dias:';
-  lblDiasTendencia.Hint := 'Periodo corto para detectar si el articulo esta vendiendo mas ultimamente.';
-  lblDiasTendencia.ShowHint := True;
-
-  seDiasTendencia := TSpinEdit.Create(Self);
-  seDiasTendencia.Parent := PanelTop;
-  seDiasTendencia.Left := 560;
-  seDiasTendencia.Top := 40;
-  seDiasTendencia.Width := 60;
-  seDiasTendencia.MinValue := 1;
-  seDiasTendencia.MaxValue := 120;
-  seDiasTendencia.Value := DayOf(Date);
-  if seDiasTendencia.Value < 7 then
-    seDiasTendencia.Value := 7;
-  seDiasTendencia.Hint := 'Por defecto usa aproximadamente los dias transcurridos del mes, minimo 7.';
-  seDiasTendencia.ShowHint := True;
-
-  chkUsarTendencia := TCheckBox.Create(Self);
-  chkUsarTendencia.Parent := PanelTop;
-  chkUsarTendencia.Left := 630;
-  chkUsarTendencia.Top := 42;
-  chkUsarTendencia.Width := 150;
-  chkUsarTendencia.Caption := 'Usar tendencia';
-  chkUsarTendencia.Hint := 'Si la venta corta es mayor que la media, refuerza el calculo para no quedarse corto.';
-  chkUsarTendencia.ShowHint := True;
-  chkUsarTendencia.Checked := True;
-
-  lblDiasHistorico := TLabel.Create(Self);
-  lblDiasHistorico.Parent := PanelTop;
-  lblDiasHistorico.Left := 780;
-  lblDiasHistorico.Top := 44;
-  lblDiasHistorico.Caption := 'Historico anterior:';
-
-  seDiasHistorico := TSpinEdit.Create(Self);
-  seDiasHistorico.Parent := PanelTop;
-  seDiasHistorico.Left := 900;
-  seDiasHistorico.Top := 40;
-  seDiasHistorico.Width := 60;
-  seDiasHistorico.MinValue := 1;
-  seDiasHistorico.MaxValue := 1460;
-  seDiasHistorico.Value := 180;
-
-  lblFactor := TLabel.Create(Self);
-  lblFactor.Parent := PanelTop;
-  lblFactor.Left := 970;
-  lblFactor.Top := 44;
-  lblFactor.Caption := 'Factor:';
-
-  edtFactor := TEdit.Create(Self);
-  edtFactor.Parent := PanelTop;
-  edtFactor.Left := 1020;
-  edtFactor.Top := 40;
-  edtFactor.Width := 55;
-  edtFactor.Text := '1,00';
-
-  lblMaxLineas := TLabel.Create(Self);
-  lblMaxLineas.Parent := PanelTop;
-  lblMaxLineas.Left := 1090;
-  lblMaxLineas.Top := 44;
-  lblMaxLineas.Caption := 'Max:';
-
-  seMaxLineas := TSpinEdit.Create(Self);
-  seMaxLineas.Parent := PanelTop;
-  seMaxLineas.Left := 1130;
-  seMaxLineas.Top := 40;
-  seMaxLineas.Width := 65;
-  seMaxLineas.MinValue := 10;
-  seMaxLineas.MaxValue := 500;
-  seMaxLineas.Value := 180;
-
-  chkMostrarCero := TCheckBox.Create(Self);
-  chkMostrarCero.Parent := PanelTop;
-  chkMostrarCero.Left := 1210;
-  chkMostrarCero.Top := 42;
-  chkMostrarCero.Width := 210;
-  chkMostrarCero.Caption := 'Mostrar sugerencia 0';
-  chkMostrarCero.Checked := False;
-
-  chkAbrirPDF := TCheckBox.Create(Self);
-  chkAbrirPDF.Parent := PanelTop;
-  chkAbrirPDF.Left := 1410;
-  chkAbrirPDF.Top := 42;
-  chkAbrirPDF.Width := 170;
-  chkAbrirPDF.Caption := 'Abrir PDF al generar';
-  chkAbrirPDF.Checked := True;
+  pnlProveedorAcciones := TPanel.Create(Self);
+  pnlProveedorAcciones.Parent := pnlProveedor;
+  pnlProveedorAcciones.Align := alRight;
+  pnlProveedorAcciones.Width := 390;
+  pnlProveedorAcciones.BevelOuter := bvNone;
+  pnlProveedorAcciones.ParentColor := True;
 
   lblPerfilAuto := TLabel.Create(Self);
-  lblPerfilAuto.Parent := PanelTop;
-  lblPerfilAuto.Left := 995;
-  lblPerfilAuto.Top := 82;
-  lblPerfilAuto.Caption := 'Perfil auto:';
+  lblPerfilAuto.Parent := pnlProveedorAcciones;
+  lblPerfilAuto.Left := 8;
+  lblPerfilAuto.Top := 9;
+  lblPerfilAuto.Caption := 'PERFIL DE CALCULO';
+  lblPerfilAuto.Font.Style := [fsBold];
 
   cbPerfilAuto := TComboBox.Create(Self);
-  cbPerfilAuto.Parent := PanelTop;
-  cbPerfilAuto.Left := 1070;
-  cbPerfilAuto.Top := 78;
-  cbPerfilAuto.Width := 120;
+  cbPerfilAuto.Parent := pnlProveedorAcciones;
+  cbPerfilAuto.SetBounds(8, 32, 125, 29);
   cbPerfilAuto.Style := csDropDownList;
   cbPerfilAuto.Items.Add('Semanal');
   cbPerfilAuto.Items.Add('Quincenal');
@@ -640,412 +638,393 @@ begin
   cbPerfilAuto.ShowHint := True;
   cbPerfilAuto.OnChange := @CbPerfilAutoChange;
 
-  lblDiasEntrega := TLabel.Create(Self);
-  lblDiasEntrega.Parent := PanelTop;
-  lblDiasEntrega.Left := 1205;
-  lblDiasEntrega.Top := 82;
-  lblDiasEntrega.Caption := 'Entrega dias:';
+  btnGuardarPerfil := NuevoBoton(pnlProveedorAcciones, 143, 31, 115, 'Guardar perfil',
+    'Guarda los parametros actuales para este proveedor y tienda', @BtnGuardarPerfilClick);
+  btnCargarPerfil := NuevoBoton(pnlProveedorAcciones, 268, 31, 110, 'Cargar perfil',
+    'Carga el perfil guardado para este proveedor', @BtnCargarPerfilClick);
 
+  pnlProveedorCentro := TPanel.Create(Self);
+  pnlProveedorCentro.Parent := pnlProveedor;
+  pnlProveedorCentro.Align := alClient;
+  pnlProveedorCentro.BevelOuter := bvNone;
+  pnlProveedorCentro.ParentColor := True;
+
+  lblProveedor := TLabel.Create(Self);
+  lblProveedor.Parent := pnlProveedorCentro;
+  lblProveedor.Left := 12;
+  lblProveedor.Top := 9;
+  lblProveedor.Caption := 'PROVEEDOR SELECCIONADO';
+  lblProveedor.Font.Style := [fsBold];
+
+  cbProveedor := TComboBox.Create(Self);
+  cbProveedor.Parent := pnlProveedorCentro;
+  cbProveedor.Left := 12;
+  cbProveedor.Top := 32;
+  cbProveedor.Width := pnlProveedorCentro.ClientWidth - 24;
+  if cbProveedor.Width < 180 then cbProveedor.Width := 180;
+  cbProveedor.Anchors := [akLeft, akTop, akRight];
+  cbProveedor.Style := csDropDownList;
+  cbProveedor.OnChange := @CbProveedorChange;
+
+  { PARAMETROS }
+  pnlParametros := TPanel.Create(Self);
+  pnlParametros.Parent := PanelTop;
+  pnlParametros.Align := alTop;
+  pnlParametros.Height := 190;
+  pnlParametros.BevelOuter := bvNone;
+  pnlParametros.Color := $00F3F5F7;
+
+  gbAnalisis := TGroupBox.Create(Self);
+  gbAnalisis.Parent := pnlParametros;
+  gbAnalisis.Align := alTop;
+  gbAnalisis.Height := 92;
+  gbAnalisis.Caption := '  ANALISIS Y COBERTURA  ';
+  gbAnalisis.Font.Style := [];
+  gbAnalisis.ParentFont := False;
+  gbAnalisis.Font.Height := -13;
+
+  lblDiasCubrir := TLabel.Create(Self);
+  lblDiasCubrir.Parent := gbAnalisis;
+  lblDiasCubrir.SetBounds(18, 24, 95, 18);
+  lblDiasCubrir.Caption := 'Dias a cubrir';
+  lblDiasCubrir.Hint := 'Dias que quieres cubrir con el pedido. No se usa para contar ventas.';
+  lblDiasCubrir.ShowHint := True;
+  seDiasCubrir := TSpinEdit.Create(Self);
+  seDiasCubrir.Parent := gbAnalisis;
+  seDiasCubrir.SetBounds(18, 48, 78, 28);
+  seDiasCubrir.MinValue := 1; seDiasCubrir.MaxValue := 365; seDiasCubrir.Value := 15;
+
+  lblDiasVentas := TLabel.Create(Self);
+  lblDiasVentas.Parent := gbAnalisis;
+  lblDiasVentas.SetBounds(135, 24, 105, 18);
+  lblDiasVentas.Caption := 'Ventas (dias)';
+  lblDiasVentas.Hint := 'Dias hacia atras usados para calcular la venta media principal. No son los dias del pedido.';
+  lblDiasVentas.ShowHint := True;
+  seDiasVentas := TSpinEdit.Create(Self);
+  seDiasVentas.Parent := gbAnalisis;
+  seDiasVentas.SetBounds(135, 48, 78, 28);
+  seDiasVentas.MinValue := 1; seDiasVentas.MaxValue := 730; seDiasVentas.Value := 60;
+  seDiasVentas.Hint := 'Periodo principal de analisis de ventas. Ejemplo: 60 dias.';
+  seDiasVentas.ShowHint := True;
+
+  lblDiasTendencia := TLabel.Create(Self);
+  lblDiasTendencia.Parent := gbAnalisis;
+  lblDiasTendencia.SetBounds(250, 24, 120, 18);
+  lblDiasTendencia.Caption := 'Tendencia (dias)';
+  lblDiasTendencia.Hint := 'Periodo corto para detectar si el articulo esta vendiendo mas ultimamente.';
+  lblDiasTendencia.ShowHint := True;
+  seDiasTendencia := TSpinEdit.Create(Self);
+  seDiasTendencia.Parent := gbAnalisis;
+  seDiasTendencia.SetBounds(250, 48, 78, 28);
+  seDiasTendencia.MinValue := 1; seDiasTendencia.MaxValue := 120;
+  seDiasTendencia.Value := DayOf(Date);
+  if seDiasTendencia.Value < 7 then seDiasTendencia.Value := 7;
+  seDiasTendencia.Hint := 'Por defecto usa aproximadamente los dias transcurridos del mes, minimo 7.';
+  seDiasTendencia.ShowHint := True;
+
+  chkUsarTendencia := TCheckBox.Create(Self);
+  chkUsarTendencia.Parent := gbAnalisis;
+  chkUsarTendencia.SetBounds(340, 47, 140, 24);
+  chkUsarTendencia.Caption := 'Usar tendencia';
+  chkUsarTendencia.Hint := 'Si la venta corta es mayor que la media, refuerza el calculo para no quedarse corto.';
+  chkUsarTendencia.ShowHint := True;
+  chkUsarTendencia.Checked := True;
+
+  lblDiasHistorico := TLabel.Create(Self);
+  lblDiasHistorico.Parent := gbAnalisis;
+  lblDiasHistorico.SetBounds(500, 24, 120, 18);
+  lblDiasHistorico.Caption := 'Historico anterior';
+  seDiasHistorico := TSpinEdit.Create(Self);
+  seDiasHistorico.Parent := gbAnalisis;
+  seDiasHistorico.SetBounds(500, 48, 84, 28);
+  seDiasHistorico.MinValue := 1; seDiasHistorico.MaxValue := 1460; seDiasHistorico.Value := 180;
+
+  lblDiasEntrega := TLabel.Create(Self);
+  lblDiasEntrega.Parent := gbAnalisis;
+  lblDiasEntrega.SetBounds(640, 24, 100, 18);
+  lblDiasEntrega.Caption := 'Entrega (dias)';
   seDiasEntrega := TSpinEdit.Create(Self);
-  seDiasEntrega.Parent := PanelTop;
-  seDiasEntrega.Left := 1290;
-  seDiasEntrega.Top := 78;
-  seDiasEntrega.Width := 55;
-  seDiasEntrega.MinValue := 0;
-  seDiasEntrega.MaxValue := 30;
-  seDiasEntrega.Value := 2;
+  seDiasEntrega.Parent := gbAnalisis;
+  seDiasEntrega.SetBounds(640, 48, 74, 28);
+  seDiasEntrega.MinValue := 0; seDiasEntrega.MaxValue := 30; seDiasEntrega.Value := 2;
   seDiasEntrega.Hint := 'Dias aproximados desde que haces el pedido hasta que entra la mercancia. El auto cubre dias pedido + entrega.';
   seDiasEntrega.ShowHint := True;
 
-  lblMinSugerido := TLabel.Create(Self);
-  lblMinSugerido.Parent := PanelTop;
-  lblMinSugerido.Left := 10;
-  lblMinSugerido.Top := 82;
-  lblMinSugerido.Caption := 'Min. sugerido:';
+  lblFactor := TLabel.Create(Self);
+  lblFactor.Parent := gbAnalisis;
+  lblFactor.SetBounds(760, 24, 60, 18);
+  lblFactor.Caption := 'Factor';
+  edtFactor := TEdit.Create(Self);
+  edtFactor.Parent := gbAnalisis;
+  edtFactor.SetBounds(760, 48, 68, 28);
+  edtFactor.Text := '1,00';
 
+  lblNumPedidosHist := TLabel.Create(Self);
+  lblNumPedidosHist.Parent := gbAnalisis;
+  lblNumPedidosHist.SetBounds(870, 24, 105, 18);
+  lblNumPedidosHist.Caption := 'Pedidos hist.';
+  seNumPedidosHist := TSpinEdit.Create(Self);
+  seNumPedidosHist.Parent := gbAnalisis;
+  seNumPedidosHist.SetBounds(870, 48, 72, 28);
+  seNumPedidosHist.MinValue := 1; seNumPedidosHist.MaxValue := 20; seNumPedidosHist.Value := 4;
+  seNumPedidosHist.Hint := 'Numero de ultimos pedidos historicos del proveedor a usar en Repos. pedidos, Repos. real y Ref. compras pedidos.';
+  seNumPedidosHist.ShowHint := True;
+
+  chkUsarComprasUlt4Ref := TCheckBox.Create(Self);
+  chkUsarComprasUlt4Ref.Parent := gbAnalisis;
+  chkUsarComprasUlt4Ref.SetBounds(980, 47, 190, 24);
+  chkUsarComprasUlt4Ref.Caption := 'Ref. compras pedidos';
+  chkUsarComprasUlt4Ref.Hint := 'Usa unidades compradas en los ultimos N pedidos como referencia. En Repos. real tambien descuenta saldo teorico compras - ventas.';
+  chkUsarComprasUlt4Ref.ShowHint := True;
+  chkUsarComprasUlt4Ref.Checked := True;
+
+  gbReglas := TGroupBox.Create(Self);
+  gbReglas.Parent := pnlParametros;
+  gbReglas.Align := alClient;
+  gbReglas.Caption := '  REGLAS Y LIMITES  ';
+  gbReglas.Font.Style := [];
+  gbReglas.ParentFont := False;
+  gbReglas.Font.Height := -13;
+
+  lblMinSugerido := TLabel.Create(Self);
+  lblMinSugerido.Parent := gbReglas;
+  lblMinSugerido.SetBounds(18, 24, 95, 18);
+  lblMinSugerido.Caption := 'Min. sugerido';
   seMinSugerido := TSpinEdit.Create(Self);
-  seMinSugerido.Parent := PanelTop;
-  seMinSugerido.Left := 105;
-  seMinSugerido.Top := 78;
-  seMinSugerido.Width := 60;
-  seMinSugerido.MinValue := 1;
-  seMinSugerido.MaxValue := 9999;
-  seMinSugerido.Value := 1;
+  seMinSugerido.Parent := gbReglas;
+  seMinSugerido.SetBounds(18, 48, 68, 28);
+  seMinSugerido.MinValue := 1; seMinSugerido.MaxValue := 9999; seMinSugerido.Value := 1;
 
   lblMinVentas := TLabel.Create(Self);
-  lblMinVentas.Parent := PanelTop;
-  lblMinVentas.Left := 185;
-  lblMinVentas.Top := 82;
-  lblMinVentas.Caption := 'Min. venta reciente:';
-
+  lblMinVentas.Parent := gbReglas;
+  lblMinVentas.SetBounds(130, 24, 110, 18);
+  lblMinVentas.Caption := 'Min. venta reciente';
   seMinVentas := TSpinEdit.Create(Self);
-  seMinVentas.Parent := PanelTop;
-  seMinVentas.Left := 320;
-  seMinVentas.Top := 78;
-  seMinVentas.Width := 60;
-  seMinVentas.MinValue := 1;
-  seMinVentas.MaxValue := 9999;
-  seMinVentas.Value := 1;
+  seMinVentas.Parent := gbReglas;
+  seMinVentas.SetBounds(130, 48, 68, 28);
+  seMinVentas.MinValue := 1; seMinVentas.MaxValue := 9999; seMinVentas.Value := 1;
+
+  lblMinHistorico := TLabel.Create(Self);
+  lblMinHistorico.Parent := gbReglas;
+  lblMinHistorico.SetBounds(250, 24, 115, 18);
+  lblMinHistorico.Caption := 'Min. hist. rotura';
+  seMinHistorico := TSpinEdit.Create(Self);
+  seMinHistorico.Parent := gbReglas;
+  seMinHistorico.SetBounds(250, 48, 68, 28);
+  seMinHistorico.MinValue := 1; seMinHistorico.MaxValue := 9999; seMinHistorico.Value := 3;
+
+  lblMaxLineas := TLabel.Create(Self);
+  lblMaxLineas.Parent := gbReglas;
+  lblMaxLineas.SetBounds(370, 24, 85, 18);
+  lblMaxLineas.Caption := 'Max. lineas';
+  seMaxLineas := TSpinEdit.Create(Self);
+  seMaxLineas.Parent := gbReglas;
+  seMaxLineas.SetBounds(370, 48, 68, 28);
+  seMaxLineas.MinValue := 10; seMaxLineas.MaxValue := 500; seMaxLineas.Value := 180;
 
   chkPocasVentasARevisar := TCheckBox.Create(Self);
-  chkPocasVentasARevisar.Parent := PanelTop;
-  chkPocasVentasARevisar.Left := 1360;
-  chkPocasVentasARevisar.Top := 80;
-  chkPocasVentasARevisar.Width := 155;
+  chkPocasVentasARevisar.Parent := gbReglas;
+  chkPocasVentasARevisar.SetBounds(500, 47, 165, 24);
   chkPocasVentasARevisar.Caption := 'Pocas ventas a dudas <';
   chkPocasVentasARevisar.Hint := 'Si esta marcado, articulos con venta reciente positiva inferior a este umbral pasan a Ver dudas, aunque parezcan buenos.';
   chkPocasVentasARevisar.ShowHint := True;
   chkPocasVentasARevisar.Checked := True;
-
   seUmbralPocasVentas := TSpinEdit.Create(Self);
-  seUmbralPocasVentas.Parent := PanelTop;
-  seUmbralPocasVentas.Left := 1518;
-  seUmbralPocasVentas.Top := 78;
-  seUmbralPocasVentas.Width := 55;
-  seUmbralPocasVentas.MinValue := 1;
-  seUmbralPocasVentas.MaxValue := 9999;
-  seUmbralPocasVentas.Value := 3;
+  seUmbralPocasVentas.Parent := gbReglas;
+  seUmbralPocasVentas.SetBounds(670, 45, 58, 28);
+  seUmbralPocasVentas.MinValue := 1; seUmbralPocasVentas.MaxValue := 9999; seUmbralPocasVentas.Value := 3;
   seUmbralPocasVentas.Hint := 'Por defecto 3: si vendio 1 o 2 unidades en el periodo, no entra automatico; va a revisar.';
   seUmbralPocasVentas.ShowHint := True;
 
-  lblMinHistorico := TLabel.Create(Self);
-  lblMinHistorico.Parent := PanelTop;
-  lblMinHistorico.Left := 400;
-  lblMinHistorico.Top := 82;
-  lblMinHistorico.Caption := 'Min. hist. rotura:';
-
-  seMinHistorico := TSpinEdit.Create(Self);
-  seMinHistorico.Parent := PanelTop;
-  seMinHistorico.Left := 525;
-  seMinHistorico.Top := 78;
-  seMinHistorico.Width := 60;
-  seMinHistorico.MinValue := 1;
-  seMinHistorico.MaxValue := 9999;
-  seMinHistorico.Value := 3;
-
   chkIncluirRoturas := TCheckBox.Create(Self);
-  chkIncluirRoturas.Parent := PanelTop;
-  chkIncluirRoturas.Left := 605;
-  chkIncluirRoturas.Top := 80;
-  chkIncluirRoturas.Width := 180;
+  chkIncluirRoturas.Parent := gbReglas;
+  chkIncluirRoturas.SetBounds(760, 47, 165, 24);
   chkIncluirRoturas.Caption := 'Incluir roturas stock';
   chkIncluirRoturas.Checked := True;
 
   chkExcluirRaros := TCheckBox.Create(Self);
-  chkExcluirRaros.Parent := PanelTop;
-  chkExcluirRaros.Left := 785;
-  chkExcluirRaros.Top := 80;
-  chkExcluirRaros.Width := 210;
+  chkExcluirRaros.Parent := gbReglas;
+  chkExcluirRaros.SetBounds(940, 47, 185, 24);
   chkExcluirRaros.Caption := 'Excluir coste 0 / PVP 999';
   chkExcluirRaros.Checked := False;
 
-  btnCalcular := TButton.Create(Self);
-  btnCalcular.Parent := PanelTop;
-  btnCalcular.Left := 10;
-  btnCalcular.Top := 112;
-  btnCalcular.Width := 130;
-  btnCalcular.Caption := 'Calcular todo';
-  btnCalcular.OnClick := @BtnCalcularClick;
+  chkMostrarCero := TCheckBox.Create(Self);
+  chkMostrarCero.Parent := gbReglas;
+  chkMostrarCero.SetBounds(1150, 47, 175, 24);
+  chkMostrarCero.Caption := 'Mostrar sugerencia 0';
+  chkMostrarCero.Checked := False;
 
-  btnPedidoDepurado := TButton.Create(Self);
-  btnPedidoDepurado.Parent := PanelTop;
-  btnPedidoDepurado.Left := 150;
-  btnPedidoDepurado.Top := 112;
-  btnPedidoDepurado.Width := 145;
-  btnPedidoDepurado.Caption := 'Pedido depurado';
-  btnPedidoDepurado.OnClick := @BtnPedidoDepuradoClick;
+  { ACCIONES AGRUPADAS }
+  pcAcciones := TPageControl.Create(Self);
+  pcAcciones.Parent := PanelTop;
+  pcAcciones.Align := alClient;
+  pcAcciones.TabPosition := tpTop;
 
-  btnPedidoAuto := TButton.Create(Self);
-  btnPedidoAuto.Parent := PanelTop;
-  btnPedidoAuto.Left := 305;
-  btnPedidoAuto.Top := 112;
-  btnPedidoAuto.Width := 145;
-  btnPedidoAuto.Caption := 'Auto proveedor';
-  btnPedidoAuto.Hint := 'Genera pedido automatico de alta confianza y separa dudas/excluidos';
-  btnPedidoAuto.ShowHint := True;
-  btnPedidoAuto.OnClick := @BtnPedidoAutoClick;
+  tsCalculo := TTabSheet.Create(Self);
+  tsCalculo.PageControl := pcAcciones;
+  tsCalculo.Caption := 'Calculo y vistas';
 
-  btnVerAuto := TButton.Create(Self);
-  btnVerAuto.Parent := PanelTop;
-  btnVerAuto.Left := 460;
-  btnVerAuto.Top := 112;
-  btnVerAuto.Width := 90;
-  btnVerAuto.Caption := 'Ver auto';
-  btnVerAuto.OnClick := @BtnVerAutoClick;
+  tsRevision := TTabSheet.Create(Self);
+  tsRevision.PageControl := pcAcciones;
+  tsRevision.Caption := 'Revision y seleccion';
 
-  btnVerCompraSegura := TButton.Create(Self);
-  btnVerCompraSegura.Parent := PanelTop;
-  btnVerCompraSegura.Left := 560;
-  btnVerCompraSegura.Top := 112;
-  btnVerCompraSegura.Width := 120;
-  btnVerCompraSegura.Caption := 'Compra segura';
-  btnVerCompraSegura.Hint := 'Muestra solo lineas ALTA, con cantidad final > 0 y sin riesgos basicos.';
-  btnVerCompraSegura.ShowHint := True;
-  btnVerCompraSegura.OnClick := @BtnVerCompraSeguraClick;
+  tsEquivalencias := TTabSheet.Create(Self);
+  tsEquivalencias.PageControl := pcAcciones;
+  tsEquivalencias.Caption := 'Equivalencias';
 
-  btnVerRiesgos := TButton.Create(Self);
-  btnVerRiesgos.Parent := PanelTop;
-  btnVerRiesgos.Left := 690;
-  btnVerRiesgos.Top := 112;
-  btnVerRiesgos.Width := 95;
-  btnVerRiesgos.Caption := 'Ver riesgos';
-  btnVerRiesgos.Hint := 'Muestra solo lineas que conviene revisar antes de crear el pedido real';
-  btnVerRiesgos.ShowHint := True;
-  btnVerRiesgos.OnClick := @BtnVerRiesgosClick;
+  tsSalida := TTabSheet.Create(Self);
+  tsSalida.PageControl := pcAcciones;
+  tsSalida.Caption := 'Borradores y salida';
 
-  btnVerRevisar := TButton.Create(Self);
-  btnVerRevisar.Parent := PanelTop;
-  btnVerRevisar.Left := 795;
-  btnVerRevisar.Top := 112;
-  btnVerRevisar.Width := 95;
-  btnVerRevisar.Caption := 'Ver dudas';
-  btnVerRevisar.OnClick := @BtnVerRevisarClick;
+  btnCalcular := NuevoBoton(tsCalculo, 12, 12, 130, 'Calcular todo', '', @BtnCalcularClick);
+  EstiloBotonPrincipal(btnCalcular);
+  btnPedidoDepurado := NuevoBoton(tsCalculo, 152, 12, 145, 'Pedido depurado', '', @BtnPedidoDepuradoClick);
+  EstiloBotonPrincipal(btnPedidoDepurado);
+  btnPedidoAuto := NuevoBoton(tsCalculo, 307, 12, 145, 'Auto proveedor',
+    'Genera pedido automatico de alta confianza y separa dudas/excluidos', @BtnPedidoAutoClick);
+  EstiloBotonPrincipal(btnPedidoAuto);
+  btnReposicionUlt4 := NuevoBoton(tsCalculo, 462, 12, 130, 'Repos. pedidos',
+    'Calcula reposicion solo con articulos presentes en los ultimos N pedidos historicos del proveedor.', @BtnReposicionUlt4Click);
+  btnReposicionReal := NuevoBoton(tsCalculo, 602, 12, 125, 'Repos. real',
+    'Cruza ventas reales a cubrir con compras recientes para descontar saldo teorico.', @BtnReposicionRealClick);
 
-  btnVerExcluidos := TButton.Create(Self);
-  btnVerExcluidos.Parent := PanelTop;
-  btnVerExcluidos.Left := 900;
-  btnVerExcluidos.Top := 112;
-  btnVerExcluidos.Width := 105;
-  btnVerExcluidos.Caption := 'Ver excluidos';
-  btnVerExcluidos.OnClick := @BtnVerExcluidosClick;
+  btnVerAuto := NuevoBoton(tsCalculo, 12, 52, 95, 'Ver auto', '', @BtnVerAutoClick);
+  btnVerCompraSegura := NuevoBoton(tsCalculo, 117, 52, 120, 'Compra segura',
+    'Muestra solo lineas ALTA, con cantidad final > 0 y sin riesgos basicos.', @BtnVerCompraSeguraClick);
+  btnVerRiesgos := NuevoBoton(tsCalculo, 247, 52, 100, 'Ver riesgos',
+    'Muestra solo lineas que conviene revisar antes de crear el pedido real', @BtnVerRiesgosClick);
+  btnVerRevisar := NuevoBoton(tsCalculo, 357, 52, 95, 'Ver dudas', '', @BtnVerRevisarClick);
+  btnVerExcluidos := NuevoBoton(tsCalculo, 462, 52, 105, 'Ver excluidos', '', @BtnVerExcluidosClick);
+  btnOrdenTienda := NuevoBoton(tsCalculo, 577, 52, 110, 'Orden tienda',
+    'Ordena por familia y descripcion para revisar lineal por lineal', @BtnOrdenTiendaClick);
+  btnRecalcularFinal := NuevoBoton(tsCalculo, 697, 52, 125, 'Recalcular final',
+    'Recalcula Cantidad final = Sugerido - Stock contado en todas las lineas', @BtnRecalcularFinalClick);
+  btnCompararAnterior := NuevoBoton(tsCalculo, 832, 52, 115, 'Comparar ant.',
+    'Compara el listado visible con el ultimo pedido real de este proveedor', @BtnCompararAnteriorClick);
 
-  btnGuardarPerfil := TButton.Create(Self);
-  btnGuardarPerfil.Parent := PanelTop;
-  btnGuardarPerfil.Left := 1020;
-  btnGuardarPerfil.Top := 112;
-  btnGuardarPerfil.Width := 115;
-  btnGuardarPerfil.Caption := 'Guardar perfil';
-  btnGuardarPerfil.Hint := 'Guarda los parametros actuales para este proveedor y tienda';
-  btnGuardarPerfil.ShowHint := True;
-  btnGuardarPerfil.OnClick := @BtnGuardarPerfilClick;
+  btnAceptarSiempre := NuevoBoton(tsRevision, 12, 12, 120, 'Aceptar siempre',
+    'Guarda que este articulo/proveedor debe entrar como alta confianza si tiene cantidad sugerida', @BtnAceptarSiempreClick);
+  btnRevisarSiempre := NuevoBoton(tsRevision, 142, 12, 120, 'Revisar siempre',
+    'Guarda que este articulo/proveedor debe ir siempre a dudas', @BtnRevisarSiempreClick);
+  btnExcluirSiempre := NuevoBoton(tsRevision, 272, 12, 120, 'Excluir siempre',
+    'Guarda que este articulo/proveedor no debe entrar en el pedido automatico', @BtnExcluirSiempreClick);
+  btnQuitarDecision := NuevoBoton(tsRevision, 402, 12, 110, 'Quitar regla',
+    'Elimina la decision guardada para este articulo/proveedor', @BtnQuitarDecisionClick);
+  btnAnadirManual := NuevoBoton(tsRevision, 522, 12, 110, 'Anadir linea',
+    'Anade manualmente un articulo al pedido visible y a Ver auto.', @BtnAnadirManualClick);
+  btnQuitarManual := NuevoBoton(tsRevision, 642, 12, 110, 'Quitar linea',
+    'Quita la linea manual seleccionada del grid y de las listas internas.', @BtnQuitarManualClick);
+  btnVerSimilares := NuevoBoton(tsRevision, 762, 12, 115, 'Ver similares',
+    'Agrupa posibles sustitutos por palabras en distinto orden y cantidades cercanas.', @BtnVerSimilaresClick);
+  btnQuitarAhora := NuevoBoton(tsRevision, 887, 12, 110, 'Quitar ahora',
+    'Quita la linea actual solo de este pedido.', @BtnQuitarAhoraClick);
 
-  btnCargarPerfil := TButton.Create(Self);
-  btnCargarPerfil.Parent := PanelTop;
-  btnCargarPerfil.Left := 1145;
-  btnCargarPerfil.Top := 112;
-  btnCargarPerfil.Width := 110;
-  btnCargarPerfil.Caption := 'Cargar perfil';
-  btnCargarPerfil.Hint := 'Carga el perfil guardado para este proveedor';
-  btnCargarPerfil.ShowHint := True;
-  btnCargarPerfil.OnClick := @BtnCargarPerfilClick;
+  btnQuitarMarcadas := NuevoBoton(tsRevision, 12, 52, 120, 'Quitar marc.',
+    'Quita solo de este pedido todas las lineas marcadas en la columna Sel.', @BtnQuitarMarcadasClick);
+  btnRevisarMarcadas := NuevoBoton(tsRevision, 142, 52, 120, 'Revisar marc.',
+    'Pasa las lineas marcadas a revisar solo en el estudio actual.', @BtnRevisarMarcadasClick);
+  btnExcluirMarcadas := NuevoBoton(tsRevision, 272, 52, 120, 'Excluir marc.',
+    'Guarda EXCLUIR SIEMPRE para todas las lineas marcadas. Pide confirmacion.', @BtnExcluirMarcadasClick);
+  btnVerQuitadas := NuevoBoton(tsRevision, 402, 52, 110, 'Ver quitadas',
+    'Muestra lineas quitadas solo del pedido actual.', @BtnVerQuitadasClick);
+  btnDesmarcarTodas := NuevoBoton(tsRevision, 522, 52, 110, 'Desmarcar',
+    'Limpia todas las marcas de seleccion.', @BtnDesmarcarTodasClick);
 
-  btnExportar := TButton.Create(Self);
-  btnExportar.Parent := PanelTop;
-  btnExportar.Left := 10;
-  btnExportar.Top := 148;
-  btnExportar.Width := 100;
-  btnExportar.Caption := 'Exportar CSV';
-  btnExportar.OnClick := @BtnExportarClick;
+  btnMarcarPrincipal := NuevoBoton(tsEquivalencias, 12, 16, 135, 'Marcar principal',
+    'Marca el articulo seleccionado como codigo principal para equivalencias de este proveedor', @BtnMarcarPrincipalClick);
+  btnEquivaleA := NuevoBoton(tsEquivalencias, 157, 16, 145, 'Equivale a...',
+    'Indica que el articulo seleccionado equivale a otro codigo principal. Sus ventas se sumaran al principal.', @BtnEquivaleAClick);
+  btnQuitarEquivalencia := NuevoBoton(tsEquivalencias, 312, 16, 145, 'Quitar equival.',
+    'Elimina la equivalencia guardada para el articulo seleccionado', @BtnQuitarEquivalenciaClick);
+  btnVerEquivalencias := NuevoBoton(tsEquivalencias, 467, 16, 145, 'Ver equival.',
+    'Muestra las equivalencias guardadas para este proveedor', @BtnVerEquivalenciasClick);
 
-  btnPDF := TButton.Create(Self);
-  btnPDF.Parent := PanelTop;
-  btnPDF.Left := 120;
-  btnPDF.Top := 148;
-  btnPDF.Width := 105;
-  btnPDF.Caption := 'Generar PDF';
-  btnPDF.OnClick := @BtnPDFClick;
+  btnGuardarBorrador := NuevoBoton(tsSalida, 12, 12, 125, 'Guardar borr.',
+    'Guarda la propuesta visible como borrador propio del modulo, sin crear pedido real', @BtnGuardarBorradorClick);
+  btnCargarBorrador := NuevoBoton(tsSalida, 147, 12, 125, 'Cargar borr.',
+    'Carga el ultimo borrador guardado para el proveedor seleccionado', @BtnCargarBorradorClick);
+  btnBorrarBorrador := NuevoBoton(tsSalida, 282, 12, 125, 'Borrar borr.',
+    'Borra el ultimo borrador guardado del proveedor seleccionado', @BtnBorrarBorradorClick);
+  btnCrearPedidoReal := NuevoBoton(tsSalida, 417, 12, 165, 'Crear pedido real',
+    'Crea un pedido real usando solo las lineas visibles con Cantidad final > 0. Pide confirmacion antes de insertar.', @BtnCrearPedidoRealClick);
+  EstiloBotonPrincipal(btnCrearPedidoReal);
+  btnHistorialCreados := NuevoBoton(tsSalida, 592, 12, 120, 'Hist. auto',
+    'Muestra los ultimos pedidos reales creados desde este modulo para este proveedor', @BtnHistorialCreadosClick);
 
-  btnImprimir := TButton.Create(Self);
-  btnImprimir.Parent := PanelTop;
-  btnImprimir.Left := 235;
-  btnImprimir.Top := 148;
-  btnImprimir.Width := 90;
-  btnImprimir.Caption := 'Imprimir';
-  btnImprimir.OnClick := @BtnImprimirClick;
+  btnExportar := NuevoBoton(tsSalida, 12, 52, 105, 'Exportar CSV', '', @BtnExportarClick);
+  btnPDF := NuevoBoton(tsSalida, 127, 52, 105, 'Generar PDF', '', @BtnPDFClick);
+  btnImprimir := NuevoBoton(tsSalida, 242, 52, 95, 'Imprimir', '', @BtnImprimirClick);
+  chkAbrirPDF := TCheckBox.Create(Self);
+  chkAbrirPDF.Parent := tsSalida;
+  chkAbrirPDF.SetBounds(350, 56, 170, 24);
+  chkAbrirPDF.Caption := 'Abrir PDF al generar';
+  chkAbrirPDF.Checked := True;
 
-  btnOrdenTienda := TButton.Create(Self);
-  btnOrdenTienda.Parent := PanelTop;
-  btnOrdenTienda.Left := 335;
-  btnOrdenTienda.Top := 148;
-  btnOrdenTienda.Width := 110;
-  btnOrdenTienda.Caption := 'Orden tienda';
-  btnOrdenTienda.Hint := 'Ordena por familia y descripcion para revisar lineal por lineal';
-  btnOrdenTienda.ShowHint := True;
-  btnOrdenTienda.OnClick := @BtnOrdenTiendaClick;
-
-  btnRecalcularFinal := TButton.Create(Self);
-  btnRecalcularFinal.Parent := PanelTop;
-  btnRecalcularFinal.Left := 455;
-  btnRecalcularFinal.Top := 148;
-  btnRecalcularFinal.Width := 125;
-  btnRecalcularFinal.Caption := 'Recalcular final';
-  btnRecalcularFinal.Hint := 'Recalcula Cantidad final = Sugerido - Stock contado en todas las lineas';
-  btnRecalcularFinal.ShowHint := True;
-  btnRecalcularFinal.OnClick := @BtnRecalcularFinalClick;
-
-  btnCompararAnterior := TButton.Create(Self);
-  btnCompararAnterior.Parent := PanelTop;
-  btnCompararAnterior.Left := 590;
-  btnCompararAnterior.Top := 148;
-  btnCompararAnterior.Width := 105;
-  btnCompararAnterior.Caption := 'Comparar ant.';
-  btnCompararAnterior.Hint := 'Compara el listado visible con el ultimo pedido real de este proveedor';
-  btnCompararAnterior.ShowHint := True;
-  btnCompararAnterior.OnClick := @BtnCompararAnteriorClick;
-
-  btnHistorialCreados := TButton.Create(Self);
-  btnHistorialCreados.Parent := PanelTop;
-  btnHistorialCreados.Left := 1210;
-  btnHistorialCreados.Top := 184;
-  btnHistorialCreados.Width := 120;
-  btnHistorialCreados.Caption := 'Hist. auto';
-  btnHistorialCreados.Hint := 'Muestra los ultimos pedidos reales creados desde este modulo para este proveedor';
-  btnHistorialCreados.ShowHint := True;
-  btnHistorialCreados.OnClick := @BtnHistorialCreadosClick;
-
-  btnAceptarSiempre := TButton.Create(Self);
-  btnAceptarSiempre.Parent := PanelTop;
-  btnAceptarSiempre.Left := 700;
-  btnAceptarSiempre.Top := 148;
-  btnAceptarSiempre.Width := 120;
-  btnAceptarSiempre.Caption := 'Aceptar siempre';
-  btnAceptarSiempre.Hint := 'Guarda que este articulo/proveedor debe entrar como alta confianza si tiene cantidad sugerida';
-  btnAceptarSiempre.ShowHint := True;
-  btnAceptarSiempre.OnClick := @BtnAceptarSiempreClick;
-
-  btnRevisarSiempre := TButton.Create(Self);
-  btnRevisarSiempre.Parent := PanelTop;
-  btnRevisarSiempre.Left := 830;
-  btnRevisarSiempre.Top := 148;
-  btnRevisarSiempre.Width := 120;
-  btnRevisarSiempre.Caption := 'Revisar siempre';
-  btnRevisarSiempre.Hint := 'Guarda que este articulo/proveedor debe ir siempre a dudas';
-  btnRevisarSiempre.ShowHint := True;
-  btnRevisarSiempre.OnClick := @BtnRevisarSiempreClick;
-
-  btnExcluirSiempre := TButton.Create(Self);
-  btnExcluirSiempre.Parent := PanelTop;
-  btnExcluirSiempre.Left := 960;
-  btnExcluirSiempre.Top := 148;
-  btnExcluirSiempre.Width := 120;
-  btnExcluirSiempre.Caption := 'Excluir siempre';
-  btnExcluirSiempre.Hint := 'Guarda que este articulo/proveedor no debe entrar en el pedido automatico';
-  btnExcluirSiempre.ShowHint := True;
-  btnExcluirSiempre.OnClick := @BtnExcluirSiempreClick;
-
-  btnQuitarDecision := TButton.Create(Self);
-  btnQuitarDecision.Parent := PanelTop;
-  btnQuitarDecision.Left := 1090;
-  btnQuitarDecision.Top := 148;
-  btnQuitarDecision.Width := 120;
-  btnQuitarDecision.Caption := 'Quitar regla';
-  btnQuitarDecision.Hint := 'Elimina la decision guardada para este articulo/proveedor';
-  btnQuitarDecision.ShowHint := True;
-  btnQuitarDecision.OnClick := @BtnQuitarDecisionClick;
-
-  btnMarcarPrincipal := TButton.Create(Self);
-  btnMarcarPrincipal.Parent := PanelTop;
-  btnMarcarPrincipal.Left := 10;
-  btnMarcarPrincipal.Top := 184;
-  btnMarcarPrincipal.Width := 130;
-  btnMarcarPrincipal.Caption := 'Marcar principal';
-  btnMarcarPrincipal.Hint := 'Marca el articulo seleccionado como codigo principal para equivalencias de este proveedor';
-  btnMarcarPrincipal.ShowHint := True;
-  btnMarcarPrincipal.OnClick := @BtnMarcarPrincipalClick;
-
-  btnEquivaleA := TButton.Create(Self);
-  btnEquivaleA.Parent := PanelTop;
-  btnEquivaleA.Left := 150;
-  btnEquivaleA.Top := 184;
-  btnEquivaleA.Width := 145;
-  btnEquivaleA.Caption := 'Equivale a...';
-  btnEquivaleA.Hint := 'Indica que el articulo seleccionado equivale a otro codigo principal. Sus ventas se sumaran al principal.';
-  btnEquivaleA.ShowHint := True;
-  btnEquivaleA.OnClick := @BtnEquivaleAClick;
-
-  btnQuitarEquivalencia := TButton.Create(Self);
-  btnQuitarEquivalencia.Parent := PanelTop;
-  btnQuitarEquivalencia.Left := 305;
-  btnQuitarEquivalencia.Top := 184;
-  btnQuitarEquivalencia.Width := 145;
-  btnQuitarEquivalencia.Caption := 'Quitar equival.';
-  btnQuitarEquivalencia.Hint := 'Elimina la equivalencia guardada para el articulo seleccionado';
-  btnQuitarEquivalencia.ShowHint := True;
-  btnQuitarEquivalencia.OnClick := @BtnQuitarEquivalenciaClick;
-
-  btnVerEquivalencias := TButton.Create(Self);
-  btnVerEquivalencias.Parent := PanelTop;
-  btnVerEquivalencias.Left := 460;
-  btnVerEquivalencias.Top := 184;
-  btnVerEquivalencias.Width := 145;
-  btnVerEquivalencias.Caption := 'Ver equival.';
-  btnVerEquivalencias.Hint := 'Muestra las equivalencias guardadas para este proveedor';
-  btnVerEquivalencias.ShowHint := True;
-  btnVerEquivalencias.OnClick := @BtnVerEquivalenciasClick;
-
-  btnGuardarBorrador := TButton.Create(Self);
-  btnGuardarBorrador.Parent := PanelTop;
-  btnGuardarBorrador.Left := 620;
-  btnGuardarBorrador.Top := 184;
-  btnGuardarBorrador.Width := 125;
-  btnGuardarBorrador.Caption := 'Guardar borr.';
-  btnGuardarBorrador.Hint := 'Guarda la propuesta visible como borrador propio del modulo, sin crear pedido real';
-  btnGuardarBorrador.ShowHint := True;
-  btnGuardarBorrador.OnClick := @BtnGuardarBorradorClick;
-
-  btnCargarBorrador := TButton.Create(Self);
-  btnCargarBorrador.Parent := PanelTop;
-  btnCargarBorrador.Left := 755;
-  btnCargarBorrador.Top := 184;
-  btnCargarBorrador.Width := 125;
-  btnCargarBorrador.Caption := 'Cargar borr.';
-  btnCargarBorrador.Hint := 'Carga el ultimo borrador guardado para el proveedor seleccionado';
-  btnCargarBorrador.ShowHint := True;
-  btnCargarBorrador.OnClick := @BtnCargarBorradorClick;
-
-  btnBorrarBorrador := TButton.Create(Self);
-  btnBorrarBorrador.Parent := PanelTop;
-  btnBorrarBorrador.Left := 890;
-  btnBorrarBorrador.Top := 184;
-  btnBorrarBorrador.Width := 125;
-  btnBorrarBorrador.Caption := 'Borrar borr.';
-  btnBorrarBorrador.Hint := 'Borra el ultimo borrador guardado del proveedor seleccionado';
-  btnBorrarBorrador.ShowHint := True;
-  btnBorrarBorrador.OnClick := @BtnBorrarBorradorClick;
-
-  btnCrearPedidoReal := TButton.Create(Self);
-  btnCrearPedidoReal.Parent := PanelTop;
-  btnCrearPedidoReal.Left := 1030;
-  btnCrearPedidoReal.Top := 184;
-  btnCrearPedidoReal.Width := 165;
-  btnCrearPedidoReal.Caption := 'Crear pedido real';
-  btnCrearPedidoReal.Hint := 'Crea un pedido real en pedicc/pedidd usando solo las lineas visibles con Cantidad final > 0. Pide confirmacion antes de insertar.';
-  btnCrearPedidoReal.ShowHint := True;
-  btnCrearPedidoReal.OnClick := @BtnCrearPedidoRealClick;
+  { ESTADO Y PROGRESO }
+  pnlEstado := TPanel.Create(Self);
+  pnlEstado.Parent := PanelTop;
+  pnlEstado.Align := alBottom;
+  pnlEstado.Height := 46;
+  pnlEstado.BevelOuter := bvNone;
+  pnlEstado.Color := $00E8EDF3;
 
   lblEstado := TLabel.Create(Self);
-  lblEstado.Parent := PanelTop;
-  lblEstado.Left := 10;
-  lblEstado.Top := 224;
-  lblEstado.Width := 1500;
-  lblEstado.Caption := 'Dias pedido = cobertura. Auto proveedor separa pedido claro, dudas y excluidos. Log activo en ~/.local/share/facturlinex/logs/.';
+  lblEstado.Parent := pnlEstado;
+  lblEstado.SetBounds(12, 6, 1100, 18);
+  lblEstado.Anchors := [akLeft, akTop, akRight];
+  lblEstado.AutoSize := False;
+  lblEstado.Caption := 'Dias pedido = cobertura. Repos. pedidos usa ultimos N pedidos. Sel marca lineas para acciones masivas.';
+  lblEstado.Font.Style := [fsBold];
 
   pbProgreso := TProgressBar.Create(Self);
-  pbProgreso.Parent := PanelTop;
-  pbProgreso.Left := 10;
-  pbProgreso.Top := 248;
-  pbProgreso.Width := 1500;
-  pbProgreso.Height := 16;
+  pbProgreso.Parent := pnlEstado;
+  pbProgreso.SetBounds(12, 28, 1100, 12);
+  pbProgreso.Anchors := [akLeft, akTop, akRight];
   pbProgreso.Min := 0;
   pbProgreso.Max := 100;
   pbProgreso.Position := 0;
   pbProgreso.Visible := False;
 
+  { GRID }
   PanelBottom := TPanel.Create(Self);
   PanelBottom.Parent := Self;
   PanelBottom.Align := alClient;
   PanelBottom.BevelOuter := bvNone;
+  PanelBottom.Color := clWhite;
+
+  pnlGridCab := TPanel.Create(Self);
+  pnlGridCab.Parent := PanelBottom;
+  pnlGridCab.Align := alTop;
+  pnlGridCab.Height := 38;
+  pnlGridCab.BevelOuter := bvNone;
+  pnlGridCab.Color := clWhite;
+
+  lblGridTitulo := TLabel.Create(Self);
+  lblGridTitulo.Parent := pnlGridCab;
+  lblGridTitulo.Left := 12;
+  lblGridTitulo.Top := 10;
+  lblGridTitulo.Caption := 'RESULTADO DEL ESTUDIO / PEDIDO';
+  lblGridTitulo.Font.Style := [fsBold];
+
+  lblGridAyuda := TLabel.Create(Self);
+  lblGridAyuda.Parent := pnlGridCab;
+  lblGridAyuda.Left := 330;
+  lblGridAyuda.Top := 10;
+  lblGridAyuda.Caption := 'Pulsa una cabecera para ordenar. Las acciones se aplican sobre la linea o seleccion visible.';
+  lblGridAyuda.Font.Color := clGray;
 
   Grid := TStringGrid.Create(Self);
   Grid.Parent := PanelBottom;
   Grid.Align := alClient;
   Grid.FixedRows := 1;
+  Grid.FixedColor := $00E8EDF3;
+  Grid.Color := clWhite;
+  Grid.DefaultRowHeight := 25;
   Grid.Options := Grid.Options + [goColSizing, goThumbTracking];
   Grid.OnHeaderClick := @GridHeaderClick;
   Grid.OnEditingDone := @GridEditingDone;
   Grid.OnSelectCell := @GridSelectCell;
 end;
-
 
 procedure TfPedidoProveedorAuto.ProgresoInicio(const AMensaje: string; const AMax: Integer);
 begin
@@ -1155,34 +1134,48 @@ end;
 
 procedure TfPedidoProveedorAuto.InicializarGrid;
 begin
-  FSortCol := -1;
-  FSortAsc := True;
-  Grid.ColCount := 20;
-  Grid.RowCount := 2;
+  FSuppressSelToggle := True;
+  try
+    FSortCol := -1;
+    FSortAsc := True;
+    Grid.ColCount := 26;
+    Grid.RowCount := 2;
 
-  Grid.Cells[0, 0] := 'Codigo';
-  Grid.Cells[1, 0] := 'Descripcion';
-  Grid.Cells[2, 0] := 'Vendido periodo';
-  Grid.Cells[3, 0] := 'Vend. tendencia';
-  Grid.Cells[4, 0] := 'Vendido historico';
-  Grid.Cells[5, 0] := 'Venta/dia usada';
-  Grid.Cells[6, 0] := 'Sugerido';
-  Grid.Cells[7, 0] := 'Stock contado';
-  Grid.Cells[8, 0] := 'Cantidad final';
-  Grid.Cells[9, 0] := 'Confianza';
-  Grid.Cells[10, 0] := 'Accion';
-  Grid.Cells[11, 0] := 'Ult. venta';
-  Grid.Cells[12, 0] := 'Ult. compra';
-  Grid.Cells[13, 0] := 'Coste';
-  Grid.Cells[14, 0] := 'PVP';
-  Grid.Cells[15, 0] := 'IVA';
-  Grid.Cells[16, 0] := 'Stock info';
-  Grid.Cells[17, 0] := 'Familia';
-  Grid.Cells[18, 0] := 'Estado';
-  Grid.Cells[19, 0] := 'Observaciones';
+    Grid.Cells[2, 0] := 'Codigo';
+    Grid.Cells[3, 0] := 'Descripcion';
+    Grid.Cells[4, 0] := 'Vendido periodo';
+    Grid.Cells[5, 0] := 'Vend. tendencia';
+    Grid.Cells[6, 0] := 'Vendido historico';
+    Grid.Cells[7, 0] := 'Venta/dia usada';
+    Grid.Cells[8, 0] := 'Sugerido';
+    Grid.Cells[9, 0] := 'Stock contado';
+    Grid.Cells[10, 0] := 'Cantidad final';
+    Grid.Cells[11, 0] := 'Confianza';
+    Grid.Cells[12, 0] := 'Accion';
+    Grid.Cells[13, 0] := 'Ult. venta';
+    Grid.Cells[14, 0] := 'Ult. compra';
+    Grid.Cells[15, 0] := 'Coste';
+    Grid.Cells[16, 0] := 'PVP';
+    Grid.Cells[17, 0] := 'IVA';
+    Grid.Cells[18, 0] := 'Stock info';
+    Grid.Cells[19, 0] := 'Familia';
+    Grid.Cells[20, 0] := 'Estado';
+    Grid.Cells[21, 0] := 'Observaciones';
+    Grid.Cells[22, 0] := 'Vend. cobertura';
+    Grid.Cells[23, 0] := 'Comprado ult. ped.';
+    Grid.Cells[24, 0] := 'Media/ped.';
+    Grid.Cells[25, 0] := 'Max/ped.';
+    Grid.Cells[0, 0] := '#';
+    Grid.Cells[1, 0] := 'Sel';
 
-  Grid.Rows[1].Clear;
-  AutoAjustarColumnas;
+    Grid.Rows[1].Clear;
+    Grid.Cells[1, 1] := '';
+    if Grid.ColCount > 2 then Grid.Col := 2;
+    if Grid.RowCount > 1 then Grid.Row := 1;
+    AutoAjustarColumnas;
+  finally
+    FSuppressSelToggle := False;
+  end;
 end;
 
 procedure TfPedidoProveedorAuto.CargarProveedores;
@@ -1522,7 +1515,7 @@ begin
   Result := '';
   if (Grid = nil) or (Grid.Row <= 0) or (Grid.Row >= Grid.RowCount) then
     Exit;
-  Result := Trim(Grid.Cells[0, Grid.Row]);
+  Result := Trim(Grid.Cells[2, Grid.Row]);
 end;
 
 procedure TfPedidoProveedorAuto.ActualizarDecisionFilaVisible(const Decision: string);
@@ -1532,26 +1525,26 @@ begin
 
   if SameText(Decision, 'ACEPTAR') then
   begin
-    Grid.Cells[9, Grid.Row] := 'ALTA';
-    Grid.Cells[10, Grid.Row] := 'ACEPTAR SIEMPRE';
+    Grid.Cells[11, Grid.Row] := 'ALTA';
+    Grid.Cells[12, Grid.Row] := 'ACEPTAR SIEMPRE';
   end
   else if SameText(Decision, 'REVISAR') then
   begin
-    Grid.Cells[9, Grid.Row] := 'MEDIA';
-    Grid.Cells[10, Grid.Row] := 'REVISAR SIEMPRE';
+    Grid.Cells[11, Grid.Row] := 'MEDIA';
+    Grid.Cells[12, Grid.Row] := 'REVISAR SIEMPRE';
   end
   else if SameText(Decision, 'EXCLUIR') then
   begin
-    Grid.Cells[9, Grid.Row] := 'BAJA';
-    Grid.Cells[10, Grid.Row] := 'EXCLUIR SIEMPRE';
+    Grid.Cells[11, Grid.Row] := 'BAJA';
+    Grid.Cells[12, Grid.Row] := 'EXCLUIR SIEMPRE';
   end
   else
   begin
-    Grid.Cells[10, Grid.Row] := '';
+    Grid.Cells[12, Grid.Row] := '';
   end;
 
   if Decision <> '' then
-    Grid.Cells[19, Grid.Row] := Grid.Cells[19, Grid.Row] + ' Decision guardada: ' + Decision + '.';
+    Grid.Cells[21, Grid.Row] := Grid.Cells[21, Grid.Row] + ' Decision guardada: ' + Decision + '.';
 end;
 
 procedure TfPedidoProveedorAuto.GuardarDecisionArticulo(const Decision: string);
@@ -1586,7 +1579,7 @@ begin
     Q.ParamByName('cod').AsInteger := CodProv;
     Q.ParamByName('art').AsString := CodArt;
     Q.ParamByName('dec').AsString := UpperCase(Decision);
-    Q.ParamByName('obs').AsString := Copy(Grid.Cells[1, Grid.Row], 1, 240);
+    Q.ParamByName('obs').AsString := Copy(Grid.Cells[3, Grid.Row], 1, 240);
     Q.ExecSQL;
     ActualizarDecisionFilaVisible(UpperCase(Decision));
     lblEstado.Caption := 'Decision ' + UpperCase(Decision) + ' guardada para articulo ' + CodArt +
@@ -2107,10 +2100,12 @@ const
 var
   I: Integer;
 begin
-  for I := 0 to Grid.ColCount - 1 do
+  Grid.Cells[0, 0] := '#';
+  Grid.Cells[1, 0] := 'Sel';
+  for I := 2 to Grid.ColCount - 1 do
   begin
-    if I <= High(Headers) then
-      Grid.Cells[I, 0] := Headers[I];
+    if (I - 2) <= High(Headers) then
+      Grid.Cells[I, 0] := Headers[I - 2];
   end;
 
   if (FSortCol >= 0) and (FSortCol < Grid.ColCount) then
@@ -2245,19 +2240,76 @@ begin
   end;
 end;
 
+
+function TfPedidoProveedorAuto.SQLComprasProveedorUltimos4(const CodProveedor: Integer): string;
+var
+  THiPedic: string;
+  THiPedid: string;
+  L: TStringList;
+  NumPedidosHist: Integer;
+begin
+  Result := '';
+  THiPedic := 'hipedicc' + FTienda;
+  THiPedid := 'hipedidd' + FTienda;
+  NumPedidosHist := seNumPedidosHist.Value;
+  if NumPedidosHist < 1 then NumPedidosHist := 1;
+  if NumPedidosHist > 20 then NumPedidosHist := 20;
+
+  // Modo reposicion segura: solo articulos que estuvieron en los ultimos N pedidos
+  // historicos del proveedor. Si no existe hipedicc/hipedidd o falta algun campo,
+  // devolvemos vacio y no tocamos nada.
+  if (not TablaExiste(THiPedic)) or (not TablaExiste(THiPedid)) then Exit;
+  if (not CampoExiste(THiPedic, 'HPC1')) or (not CampoExiste(THiPedic, 'HPC2')) or
+     (not CampoExiste(THiPedic, 'HPC3')) or (not CampoExiste(THiPedic, 'HPC4')) then Exit;
+  if (not CampoExiste(THiPedid, 'HPD1')) or (not CampoExiste(THiPedid, 'HPD2')) or
+     (not CampoExiste(THiPedid, 'HPD3')) or (not CampoExiste(THiPedid, 'HPD4')) or
+     (not CampoExiste(THiPedid, 'HPD6')) or (not CampoExiste(THiPedid, 'HPD8')) or
+     (not CampoExiste(THiPedid, 'HPD10')) then Exit;
+
+  L := TStringList.Create;
+  try
+    L.Add('SELECT Y.CODIGO, MAX(Y.FECHA) AS ULT_COMPRA, MAX(Y.COSTE) AS ULT_COSTE, ');
+    L.Add('SUM(Y.UDS) AS COMPRADO_ULT4, AVG(Y.UDS) AS MEDIA_ULT4, MAX(Y.UDS) AS MAX_ULT4, ');
+    L.Add('MAX(Y.UDS) AS ULT_COMPRA_UDS ');
+    L.Add('FROM (');
+    L.Add('SELECT HPD.HPD6 AS CODIGO, HPD.HPD3 AS SERIE, HPD.HPD4 AS NUMERO, ');
+    L.Add('MAX(HPD.HPD1) AS FECHA, MAX(HPD.HPD10) AS COSTE, ');
+    L.Add('SUM(CASE WHEN HPD.HPD8 > 0 THEN HPD.HPD8 ELSE 0 END) AS UDS ');
+    L.Add('FROM `' + THiPedid + '` HPD ');
+    L.Add('JOIN (SELECT HPC3 AS SERIE, HPC4 AS NUMERO FROM `' + THiPedic + '` ');
+    L.Add('WHERE HPC2 = ' + IntToStr(CodProveedor) + ' ');
+    L.Add('ORDER BY HPC1 DESC, HPC4 DESC LIMIT ' + IntToStr(NumPedidosHist) + ') U4 ');
+    L.Add('ON U4.SERIE = HPD.HPD3 AND U4.NUMERO = HPD.HPD4 ');
+    L.Add('WHERE HPD.HPD2 = ' + IntToStr(CodProveedor) + ' AND TRIM(HPD.HPD6) <> '''' ');
+    L.Add('GROUP BY HPD.HPD6, HPD.HPD3, HPD.HPD4) Y ');
+    L.Add('GROUP BY Y.CODIGO');
+    Result := StringReplace(Trim(L.Text), LineEnding, ' ', [rfReplaceAll]);
+  finally
+    L.Free;
+  end;
+end;
+
 function TfPedidoProveedorAuto.SQLVentas(const FechaDesdeHistorico,
   FechaHasta: TDateTime; const CodProveedor: Integer): string;
 var
   THis: string;
+  DiasCobertura: Integer;
+  FechaDesdeCobertura: TDateTime;
 begin
   Result := '';
   THis := 'hisopdd' + FTienda;
 
   if not TablaExiste(THis) then Exit;
 
+  DiasCobertura := seDiasCubrir.Value + seDiasEntrega.Value;
+  if DiasCobertura < 1 then DiasCobertura := 1;
+  FechaDesdeCobertura := IncDay(FechaHasta, -DiasCobertura + 1);
+
   if TablaExiste('pedido_auto_equivalencias') then
     Result :=
       'SELECT CODIGO, ' +
+      'SUM(CASE WHEN FECHA >= ' + FechaSQL(FechaDesdeCobertura) +
+      ' THEN UDS ELSE 0 END) AS VENTAS_COBERTURA, ' +
       'SUM(CASE WHEN FECHA >= ' + FechaSQL(IncDay(FechaHasta, -seDiasVentas.Value + 1)) +
       ' THEN UDS ELSE 0 END) AS VENTAS_PERIODO, ' +
       'SUM(CASE WHEN FECHA >= ' + FechaSQL(IncDay(FechaHasta, -seDiasTendencia.Value + 1)) +
@@ -2276,6 +2328,8 @@ begin
   else
     Result :=
       'SELECT CODIGO, ' +
+      'SUM(CASE WHEN FECHA >= ' + FechaSQL(FechaDesdeCobertura) +
+      ' THEN UDS ELSE 0 END) AS VENTAS_COBERTURA, ' +
       'SUM(CASE WHEN FECHA >= ' + FechaSQL(IncDay(FechaHasta, -seDiasVentas.Value + 1)) +
       ' THEN UDS ELSE 0 END) AS VENTAS_PERIODO, ' +
       'SUM(CASE WHEN FECHA >= ' + FechaSQL(IncDay(FechaHasta, -seDiasTendencia.Value + 1)) +
@@ -2306,10 +2360,16 @@ begin
     Exit;
   end;
 
-  ComprasSQL := SQLComprasProveedor(CodProveedor);
+  if FUsarReposicionUlt4 then
+    ComprasSQL := SQLComprasProveedorUltimos4(CodProveedor)
+  else
+    ComprasSQL := SQLComprasProveedor(CodProveedor);
   if ComprasSQL = '' then
   begin
-    ShowMessage('No encuentro tablas de pedidos/historico de compras para la tienda ' + FTienda + '.');
+    if FUsarReposicionUlt4 then
+      ShowMessage('No encuentro los ultimos ' + IntToStr(seNumPedidosHist.Value) + ' pedidos historicos de este proveedor en hipedicc/hipedidd, o la estructura no parece la esperada. No se ha modificado nada.')
+    else
+      ShowMessage('No encuentro tablas de pedidos/historico de compras para la tienda ' + FTienda + '.');
     Exit;
   end;
 
@@ -2320,14 +2380,25 @@ begin
     'A.A4 AS STOCK_INFO, A.A13 AS ULT_COMPRA_FICHA, A.A14 AS FAMILIA, ' +
     'A.A24 AS COSTE_FICHA, CP.ULT_COMPRA, CP.ULT_COSTE, ';
 
+  if FUsarReposicionUlt4 then
+    Result := Result +
+      'COALESCE(CP.COMPRADO_ULT4, 0) AS COMPRADO_ULT4, ' +
+      'COALESCE(CP.MEDIA_ULT4, 0) AS MEDIA_ULT4, ' +
+      'COALESCE(CP.MAX_ULT4, 0) AS MAX_ULT4, ' +
+      'COALESCE(CP.ULT_COMPRA_UDS, 0) AS ULT_COMPRA_UDS, '
+  else
+    Result := Result +
+      '0 AS COMPRADO_ULT4, 0 AS MEDIA_ULT4, 0 AS MAX_ULT4, 0 AS ULT_COMPRA_UDS, ';
+
   if VentasSQL <> '' then
     Result := Result +
+      'COALESCE(V.VENTAS_COBERTURA, 0) AS VENTAS_COBERTURA, ' +
       'COALESCE(V.VENTAS_PERIODO, 0) AS VENTAS_PERIODO, ' +
       'COALESCE(V.VENTAS_TENDENCIA, 0) AS VENTAS_TENDENCIA, ' +
       'COALESCE(V.VENTAS_HISTORICO, 0) AS VENTAS_HISTORICO, V.ULT_VENTA '
   else
     Result := Result +
-      '0 AS VENTAS_PERIODO, 0 AS VENTAS_TENDENCIA, 0 AS VENTAS_HISTORICO, NULL AS ULT_VENTA ';
+      '0 AS VENTAS_COBERTURA, 0 AS VENTAS_PERIODO, 0 AS VENTAS_TENDENCIA, 0 AS VENTAS_HISTORICO, NULL AS ULT_VENTA ';
 
   Result := Result +
     'FROM (' + ComprasSQL + ') CP ' +
@@ -2367,6 +2438,14 @@ begin
       end;
 end;
 
+function TfPedidoProveedorAuto.LineaAutoQuitada(const L: TLineaPedidoAuto): Boolean;
+var
+  T: string;
+begin
+  T := UpperCase(Trim(L.Accion + ' ' + L.Estado + ' ' + L.Observaciones));
+  Result := Pos('QUITADO', T) > 0;
+end;
+
 procedure TfPedidoProveedorAuto.PintarLineasEnGrid(const Lineas: TArrayLineaPedidoAuto;
   const Limite: Integer);
 var
@@ -2389,38 +2468,66 @@ begin
   R := 1;
   for I := 0 to MaxI do
   begin
+    // Las lineas quitadas solo deben verse desde Ver quitadas.
+    if LineaAutoQuitada(Lineas[I]) then
+      Continue;
+
     if R >= Grid.RowCount then
       Grid.RowCount := Grid.RowCount + 1;
 
-    Grid.Cells[0, R] := Lineas[I].Codigo;
-    Grid.Cells[1, R] := Lineas[I].Descripcion;
-    Grid.Cells[2, R] := FormatFloat('0.##', Lineas[I].VendidoPeriodo);
-    Grid.Cells[3, R] := FormatFloat('0.##', Lineas[I].VendidoTendencia);
-    Grid.Cells[4, R] := FormatFloat('0.##', Lineas[I].VendidoHistorico);
-    Grid.Cells[5, R] := FormatFloat('0.####', Lineas[I].VentaDia);
-    Grid.Cells[6, R] := FormatFloat('0.##', Lineas[I].Sugerido);
+    Grid.Cells[2, R] := Lineas[I].Codigo;
+    Grid.Cells[3, R] := Lineas[I].Descripcion;
+    Grid.Cells[4, R] := FormatFloat('0.##', Lineas[I].VendidoPeriodo);
+    Grid.Cells[5, R] := FormatFloat('0.##', Lineas[I].VendidoTendencia);
+    Grid.Cells[6, R] := FormatFloat('0.##', Lineas[I].VendidoHistorico);
+    Grid.Cells[7, R] := FormatFloat('0.####', Lineas[I].VentaDia);
+    Grid.Cells[8, R] := FormatFloat('0.##', Lineas[I].Sugerido);
     if Abs(Lineas[I].StockContado) > 0.0001 then
-      Grid.Cells[7, R] := FormatFloat('0.##', Lineas[I].StockContado)
+      Grid.Cells[9, R] := FormatFloat('0.##', Lineas[I].StockContado)
     else
-      Grid.Cells[7, R] := ''; // Stock contado manual en tienda
+      Grid.Cells[9, R] := ''; // Stock contado manual en tienda
     if Abs(Lineas[I].CantidadFinal) > 0.0001 then
-      Grid.Cells[8, R] := FormatFloat('0.##', Lineas[I].CantidadFinal)
+      Grid.Cells[10, R] := FormatFloat('0.##', Lineas[I].CantidadFinal)
     else
-      Grid.Cells[8, R] := FormatFloat('0.##', Lineas[I].Sugerido); // Cantidad final inicial
-    Grid.Cells[9, R] := Lineas[I].Confianza;
-    Grid.Cells[10, R] := Lineas[I].Accion;
-    Grid.Cells[11, R] := Lineas[I].UltVenta;
-    Grid.Cells[12, R] := Lineas[I].UltCompra;
-    Grid.Cells[13, R] := FormatFloat('0.000', Lineas[I].Coste);
-    Grid.Cells[14, R] := FormatFloat('0.00', Lineas[I].PVP);
-    Grid.Cells[15, R] := FormatFloat('0.##', Lineas[I].IVA);
-    Grid.Cells[16, R] := FormatFloat('0.##', Lineas[I].StockInfo);
-    Grid.Cells[17, R] := Lineas[I].Familia;
-    Grid.Cells[18, R] := Lineas[I].Estado;
-    Grid.Cells[19, R] := Lineas[I].Observaciones;
+      Grid.Cells[10, R] := FormatFloat('0.##', Lineas[I].Sugerido); // Cantidad final inicial
+    Grid.Cells[11, R] := Lineas[I].Confianza;
+    Grid.Cells[12, R] := Lineas[I].Accion;
+    Grid.Cells[13, R] := Lineas[I].UltVenta;
+    Grid.Cells[14, R] := Lineas[I].UltCompra;
+    Grid.Cells[15, R] := FormatFloat('0.000', Lineas[I].Coste);
+    Grid.Cells[16, R] := FormatFloat('0.00', Lineas[I].PVP);
+    Grid.Cells[17, R] := FormatFloat('0.##', Lineas[I].IVA);
+    Grid.Cells[18, R] := FormatFloat('0.##', Lineas[I].StockInfo);
+    Grid.Cells[19, R] := Lineas[I].Familia;
+    Grid.Cells[20, R] := Lineas[I].Estado;
+    Grid.Cells[21, R] := Lineas[I].Observaciones;
+    Grid.Cells[22, R] := FormatFloat('0.##', Lineas[I].VendidoCobertura);
+    Grid.Cells[23, R] := FormatFloat('0.##', Lineas[I].CompradoUlt4);
+    Grid.Cells[24, R] := FormatFloat('0.##', Lineas[I].MediaUlt4);
+    Grid.Cells[25, R] := FormatFloat('0.##', Lineas[I].MaxUlt4);
+    Grid.Cells[0, R] := IntToStr(R);
+    Grid.Cells[1, R] := '';
     Inc(R);
   end;
 
+  if R = 1 then
+  begin
+    Grid.Rows[1].Clear;
+    Grid.Cells[0, 1] := '';
+    Grid.Cells[1, 1] := '';
+  end;
+
+  FSuppressSelToggle := True;
+  try
+    DesmarcarTodasLasLineas;
+    if Grid.RowCount > 1 then
+    begin
+      Grid.Row := 1;
+      if Grid.ColCount > 2 then Grid.Col := 2;
+    end;
+  finally
+    FSuppressSelToggle := False;
+  end;
   AutoAjustarColumnas;
 end;
 
@@ -2436,6 +2543,7 @@ var
   VentasPeriodo: Double;
   VentasTendencia: Double;
   VentasHistorico: Double;
+  VentasCobertura: Double;
   VentaDia: Double;
   VentaDiaPeriodo: Double;
   VentaDiaTendencia: Double;
@@ -2458,6 +2566,10 @@ var
   MinVentas: Double;
   MinHistorico: Double;
   ExcluirRaros: Boolean;
+  CompradoUlt4: Double;
+  MediaUlt4: Double;
+  MaxUlt4: Double;
+  UltCompraUds: Double;
 
   procedure AddLinea(const ALinea: TLineaPedidoAuto);
   var
@@ -2522,6 +2634,7 @@ begin
       Inc(TotalLeidas);
       if (TotalLeidas mod 25) = 0 then
         ProgresoPaso('Analizando articulos comprados al proveedor... ' + IntToStr(TotalLeidas) + ' leidos', -1);
+      VentasCobertura := Q.FieldByName('VENTAS_COBERTURA').AsFloat;
       VentasPeriodo := Q.FieldByName('VENTAS_PERIODO').AsFloat;
       VentasTendencia := Q.FieldByName('VENTAS_TENDENCIA').AsFloat;
       VentasHistorico := Q.FieldByName('VENTAS_HISTORICO').AsFloat;
@@ -2579,6 +2692,10 @@ begin
 
       StockInfo := Q.FieldByName('STOCK_INFO').AsFloat;
       PVP := Q.FieldByName('PVP').AsFloat;
+      CompradoUlt4 := Q.FieldByName('COMPRADO_ULT4').AsFloat;
+      MediaUlt4 := Q.FieldByName('MEDIA_ULT4').AsFloat;
+      MaxUlt4 := Q.FieldByName('MAX_ULT4').AsFloat;
+      UltCompraUds := Q.FieldByName('ULT_COMPRA_UDS').AsFloat;
 
       UltCompra := '';
       if not Q.FieldByName('ULT_COMPRA').IsNull then
@@ -2628,12 +2745,17 @@ begin
         L.VendidoPeriodo := VentasPeriodo;
         L.VendidoTendencia := VentasTendencia;
         L.VendidoHistorico := VentasHistorico;
+        L.VendidoCobertura := VentasCobertura;
         L.VentaDia := VentaDia;
         L.Sugerido := Sugerido;
         L.StockContado := 0;
         L.CantidadFinal := Sugerido;
         L.UltVenta := UltVenta;
         L.UltCompra := UltCompra;
+        L.CompradoUlt4 := CompradoUlt4;
+        L.MediaUlt4 := MediaUlt4;
+        L.MaxUlt4 := MaxUlt4;
+        L.UltCompraUds := UltCompraUds;
         L.Coste := Coste;
         L.PVP := PVP;
         L.IVA := Q.FieldByName('IVA').AsFloat;
@@ -2793,6 +2915,243 @@ begin
 end;
 
 
+function TfPedidoProveedorAuto.NormalizarTextoSimilar(const S: string): string;
+var
+  I: Integer;
+  C: Char;
+  T: string;
+begin
+  T := UpperCase(S);
+  Result := '';
+  for I := 1 to Length(T) do
+  begin
+    C := T[I];
+    if C in ['A'..'Z', '0'..'9'] then
+      Result := Result + C
+    else
+      Result := Result + ' ';
+  end;
+  while Pos('  ', Result) > 0 do
+    Result := StringReplace(Result, '  ', ' ', [rfReplaceAll]);
+  Result := Trim(Result);
+end;
+
+function TfPedidoProveedorAuto.ClaveDescripcionSimilar(const S: string): string;
+var
+  Tokens: TStringList;
+  T, Tok: string;
+  I: Integer;
+  EsNumero: Boolean;
+begin
+  Result := '';
+  Tokens := TStringList.Create;
+  try
+    Tokens.Sorted := True;
+    Tokens.Duplicates := dupIgnore;
+    T := NormalizarTextoSimilar(S);
+    while T <> '' do
+    begin
+      I := Pos(' ', T);
+      if I > 0 then
+      begin
+        Tok := Copy(T, 1, I - 1);
+        Delete(T, 1, I);
+      end
+      else
+      begin
+        Tok := T;
+        T := '';
+      end;
+      Tok := Trim(Tok);
+      if Tok = '' then Continue;
+      EsNumero := True;
+      for I := 1 to Length(Tok) do
+        if not (Tok[I] in ['0'..'9']) then EsNumero := False;
+      if EsNumero then Continue;
+      if (Tok = 'DE') or (Tok = 'DEL') or (Tok = 'LA') or (Tok = 'EL') or
+         (Tok = 'LOS') or (Tok = 'LAS') or (Tok = 'CON') or (Tok = 'PARA') or
+         (Tok = 'ML') or (Tok = 'L') or (Tok = 'GR') or (Tok = 'G') or
+         (Tok = 'KG') or (Tok = 'UD') or (Tok = 'UDS') then Continue;
+      if (Tok = 'DETERGENTE') or (Tok = 'DETERG') then Tok := 'DET';
+      if (Tok = 'MULTIACCION') or (Tok = 'MULTIACCIONES') then Tok := 'MULTI';
+      Tokens.Add(Tok);
+    end;
+    for I := 0 to Tokens.Count - 1 do
+    begin
+      if Result <> '' then Result := Result + ' ';
+      Result := Result + Tokens[I];
+    end;
+    if Length(Result) < 5 then Result := '';
+  finally
+    Tokens.Free;
+  end;
+end;
+
+function TfPedidoProveedorAuto.CantidadDescripcionSimilar(const S: string): Double;
+var
+  T, Tok, NextTok: string;
+  I, P: Integer;
+  V: Double;
+  EsNumero: Boolean;
+  Lista: TStringList;
+begin
+  Result := 0;
+  Lista := TStringList.Create;
+  try
+    T := NormalizarTextoSimilar(S);
+    while T <> '' do
+    begin
+      P := Pos(' ', T);
+      if P > 0 then
+      begin
+        Tok := Copy(T, 1, P - 1);
+        Delete(T, 1, P);
+      end
+      else
+      begin
+        Tok := T;
+        T := '';
+      end;
+      if Tok <> '' then Lista.Add(Tok);
+    end;
+    for I := 0 to Lista.Count - 1 do
+    begin
+      Tok := Lista[I];
+      EsNumero := Tok <> '';
+      for P := 1 to Length(Tok) do
+        if not (Tok[P] in ['0'..'9']) then EsNumero := False;
+      if not EsNumero then Continue;
+      V := StrToFloatDef(Tok, 0);
+      NextTok := '';
+      if I + 1 < Lista.Count then NextTok := Lista[I + 1];
+      if (NextTok = 'L') or (NextTok = 'LT') or (NextTok = 'LITRO') or (NextTok = 'LITROS') then
+        V := V * 1000
+      else if (NextTok = 'KG') or (NextTok = 'KILO') or (NextTok = 'KILOS') then
+        V := V * 1000;
+      if V > Result then Result := V;
+    end;
+  finally
+    Lista.Free;
+  end;
+end;
+
+function TfPedidoProveedorAuto.CantidadesCompatibles(const A, B: Double): Boolean;
+var
+  MinV, Dif: Double;
+begin
+  Result := True;
+  if (A <= 0) or (B <= 0) then Exit;
+  MinV := Min(A, B);
+  Dif := Abs(A - B);
+  if MinV <= 500 then
+    Result := Dif <= 50
+  else if MinV <= 1000 then
+    Result := Dif <= (MinV * 0.15)
+  else
+    Result := Dif <= (MinV * 0.10);
+end;
+
+function TfPedidoProveedorAuto.ValorFechaTexto(const S: string): TDateTime;
+begin
+  Result := StrToDateDef(Trim(S), 0);
+end;
+
+procedure TfPedidoProveedorAuto.MostrarSimilaresVisibles;
+var
+  R, J, C, Dest, Grupo, Mejor: Integer;
+  KeyR, KeyJ, Msg: string;
+  CantR, CantJ, FechaR, FechaJ, BestFecha: Double;
+  TieneGrupo: Boolean;
+  Rows, Parts: TStringList;
+begin
+  if not HayDatosEnGrid then
+  begin
+    ShowMessage('No hay lineas visibles para buscar similares.');
+    Exit;
+  end;
+
+  Rows := TStringList.Create;
+  Parts := TStringList.Create;
+  try
+    Parts.StrictDelimiter := True;
+    Parts.Delimiter := #9;
+    Grupo := 0;
+
+    for R := 1 to Grid.RowCount - 1 do
+    begin
+      if Trim(Grid.Cells[2, R]) = '' then Continue;
+      KeyR := ClaveDescripcionSimilar(Grid.Cells[3, R]);
+      if KeyR = '' then Continue;
+      CantR := CantidadDescripcionSimilar(Grid.Cells[3, R]);
+      TieneGrupo := False;
+      Mejor := R;
+      BestFecha := Max(ValorFechaTexto(Grid.Cells[14, R]), ValorFechaTexto(Grid.Cells[13, R]));
+
+      for J := R + 1 to Grid.RowCount - 1 do
+      begin
+        if Trim(Grid.Cells[2, J]) = '' then Continue;
+        KeyJ := ClaveDescripcionSimilar(Grid.Cells[3, J]);
+        if KeyJ <> KeyR then Continue;
+        CantJ := CantidadDescripcionSimilar(Grid.Cells[3, J]);
+        if not CantidadesCompatibles(CantR, CantJ) then Continue;
+        TieneGrupo := True;
+        FechaJ := Max(ValorFechaTexto(Grid.Cells[14, J]), ValorFechaTexto(Grid.Cells[13, J]));
+        if FechaJ > BestFecha then
+        begin
+          BestFecha := FechaJ;
+          Mejor := J;
+        end;
+      end;
+
+      if TieneGrupo then
+      begin
+        Inc(Grupo);
+        for J := R to Grid.RowCount - 1 do
+        begin
+          if Trim(Grid.Cells[2, J]) = '' then Continue;
+          KeyJ := ClaveDescripcionSimilar(Grid.Cells[3, J]);
+          CantJ := CantidadDescripcionSimilar(Grid.Cells[3, J]);
+          if (KeyJ = KeyR) and CantidadesCompatibles(CantR, CantJ) then
+          begin
+            Msg := ' SIMILAR G' + IntToStr(Grupo) + ' clave [' + KeyR + '] cant aprox ' + FormatFloat('0.##', CantJ) + '.';
+            if J = Mejor then
+              Msg := Msg + ' RECOMENDADO por fecha compra/venta mas reciente.';
+            if Pos('SIMILAR G', Grid.Cells[21, J]) = 0 then
+              Grid.Cells[21, J] := Grid.Cells[21, J] + Msg;
+            Parts.Clear;
+            for C := 0 to Grid.ColCount - 1 do Parts.Add(Grid.Cells[C, J]);
+            Rows.Add(Parts.DelimitedText);
+          end;
+        end;
+      end;
+    end;
+
+    if Rows.Count = 0 then
+    begin
+      ShowMessage('No se han detectado similares claros en la vista actual.' + LineEnding +
+        'Regla: mismas palabras importantes aunque cambie el orden y cantidades cercanas.');
+      Exit;
+    end;
+
+    Grid.RowCount := Rows.Count + 1;
+    for R := 0 to Rows.Count - 1 do
+    begin
+      Parts.DelimitedText := Rows[R];
+      Dest := R + 1;
+      for C := 0 to Grid.ColCount - 1 do
+        if C < Parts.Count then Grid.Cells[C, Dest] := Parts[C] else Grid.Cells[C, Dest] := '';
+    end;
+    lblEstado.Caption := 'Similares detectados: ' + IntToStr(Rows.Count) +
+      ' linea(s). Revise grupos, marque duplicados y use Quitar marc. si solo quiere quitarlos de este pedido.';
+    FSortCol := -1;
+    ActualizarCabecerasOrden;
+  finally
+    Parts.Free;
+    Rows.Free;
+  end;
+end;
+
+
 procedure TfPedidoProveedorAuto.SincronizarListasAutoDesdeGrid;
 var
   R: Integer;
@@ -2806,25 +3165,29 @@ var
     begin
       if SameText(ALista[J].Codigo, Codigo) then
       begin
-        ALista[J].Descripcion := Grid.Cells[1, Row];
-        ALista[J].VendidoPeriodo := FloatSeguro(Grid.Cells[2, Row], ALista[J].VendidoPeriodo);
-        ALista[J].VendidoTendencia := FloatSeguro(Grid.Cells[3, Row], ALista[J].VendidoTendencia);
-        ALista[J].VendidoHistorico := FloatSeguro(Grid.Cells[4, Row], ALista[J].VendidoHistorico);
-        ALista[J].VentaDia := FloatSeguro(Grid.Cells[5, Row], ALista[J].VentaDia);
-        ALista[J].Sugerido := FloatSeguro(Grid.Cells[6, Row], ALista[J].Sugerido);
-        ALista[J].StockContado := FloatSeguro(Grid.Cells[7, Row], ALista[J].StockContado);
-        ALista[J].CantidadFinal := FloatSeguro(Grid.Cells[8, Row], ALista[J].CantidadFinal);
-        ALista[J].Confianza := Grid.Cells[9, Row];
-        ALista[J].Accion := Grid.Cells[10, Row];
-        ALista[J].UltVenta := Grid.Cells[11, Row];
-        ALista[J].UltCompra := Grid.Cells[12, Row];
-        ALista[J].Coste := FloatSeguro(Grid.Cells[13, Row], ALista[J].Coste);
-        ALista[J].PVP := FloatSeguro(Grid.Cells[14, Row], ALista[J].PVP);
-        ALista[J].IVA := FloatSeguro(Grid.Cells[15, Row], ALista[J].IVA);
-        ALista[J].StockInfo := FloatSeguro(Grid.Cells[16, Row], ALista[J].StockInfo);
-        ALista[J].Familia := Grid.Cells[17, Row];
-        ALista[J].Estado := Grid.Cells[18, Row];
-        ALista[J].Observaciones := Grid.Cells[19, Row];
+        ALista[J].Descripcion := Grid.Cells[3, Row];
+        ALista[J].VendidoPeriodo := FloatSeguro(Grid.Cells[4, Row], ALista[J].VendidoPeriodo);
+        ALista[J].VendidoTendencia := FloatSeguro(Grid.Cells[5, Row], ALista[J].VendidoTendencia);
+        ALista[J].VendidoHistorico := FloatSeguro(Grid.Cells[6, Row], ALista[J].VendidoHistorico);
+        ALista[J].VentaDia := FloatSeguro(Grid.Cells[7, Row], ALista[J].VentaDia);
+        ALista[J].Sugerido := FloatSeguro(Grid.Cells[8, Row], ALista[J].Sugerido);
+        ALista[J].StockContado := FloatSeguro(Grid.Cells[9, Row], ALista[J].StockContado);
+        ALista[J].CantidadFinal := FloatSeguro(Grid.Cells[10, Row], ALista[J].CantidadFinal);
+        ALista[J].Confianza := Grid.Cells[11, Row];
+        ALista[J].Accion := Grid.Cells[12, Row];
+        ALista[J].UltVenta := Grid.Cells[13, Row];
+        ALista[J].UltCompra := Grid.Cells[14, Row];
+        ALista[J].Coste := FloatSeguro(Grid.Cells[15, Row], ALista[J].Coste);
+        ALista[J].PVP := FloatSeguro(Grid.Cells[16, Row], ALista[J].PVP);
+        ALista[J].IVA := FloatSeguro(Grid.Cells[17, Row], ALista[J].IVA);
+        ALista[J].StockInfo := FloatSeguro(Grid.Cells[18, Row], ALista[J].StockInfo);
+        ALista[J].Familia := Grid.Cells[19, Row];
+        ALista[J].Estado := Grid.Cells[20, Row];
+        ALista[J].Observaciones := Grid.Cells[21, Row];
+        if Grid.ColCount > 22 then ALista[J].VendidoCobertura := FloatSeguro(Grid.Cells[22, Row], ALista[J].VendidoCobertura);
+        if Grid.ColCount > 23 then ALista[J].CompradoUlt4 := FloatSeguro(Grid.Cells[23, Row], ALista[J].CompradoUlt4);
+        if Grid.ColCount > 24 then ALista[J].MediaUlt4 := FloatSeguro(Grid.Cells[24, Row], ALista[J].MediaUlt4);
+        if Grid.ColCount > 25 then ALista[J].MaxUlt4 := FloatSeguro(Grid.Cells[25, Row], ALista[J].MaxUlt4);
         Exit;
       end;
     end;
@@ -2836,7 +3199,7 @@ begin
   if not HayDatosEnGrid then Exit;
   for R := 1 to Grid.RowCount - 1 do
   begin
-    Cod := Trim(Grid.Cells[0, R]);
+    Cod := Trim(Grid.Cells[2, R]);
     if Cod = '' then Continue;
     ActualizarLista(FAutoPedido, Cod, R);
     ActualizarLista(FAutoRevisar, Cod, R);
@@ -2851,15 +3214,15 @@ var
 begin
   Result := False;
   if (ARow <= 0) or (ARow >= Grid.RowCount) then Exit;
-  if Trim(Grid.Cells[0, ARow]) = '' then Exit;
+  if Trim(Grid.Cells[2, ARow]) = '' then Exit;
 
-  Cantidad := FloatSeguro(Grid.Cells[8, ARow], 0);
-  Coste := FloatSeguro(Grid.Cells[13, ARow], 0);
-  PVP := FloatSeguro(Grid.Cells[14, ARow], 0);
-  Conf := UpperCase(Trim(Grid.Cells[9, ARow]));
-  Accion := UpperCase(Trim(Grid.Cells[10, ARow]));
-  EstadoTxt := UpperCase(Trim(Grid.Cells[18, ARow]));
-  ObsTxt := UpperCase(Trim(Grid.Cells[19, ARow]));
+  Cantidad := FloatSeguro(Grid.Cells[10, ARow], 0);
+  Coste := FloatSeguro(Grid.Cells[15, ARow], 0);
+  PVP := FloatSeguro(Grid.Cells[16, ARow], 0);
+  Conf := UpperCase(Trim(Grid.Cells[11, ARow]));
+  Accion := UpperCase(Trim(Grid.Cells[12, ARow]));
+  EstadoTxt := UpperCase(Trim(Grid.Cells[20, ARow]));
+  ObsTxt := UpperCase(Trim(Grid.Cells[21, ARow]));
 
   // Solo nos interesan riesgos de lineas que podrian entrar al pedido real
   // o lineas que han sido marcadas manualmente como delicadas.
@@ -2982,6 +3345,216 @@ begin
   end;
 end;
 
+
+procedure TfPedidoProveedorAuto.AnadirLineaManualAlGrid(const L: TLineaPedidoAuto);
+var
+  R: Integer;
+begin
+  if (Grid.RowCount = 2) and (Trim(Grid.Cells[2, 1]) = '') then
+    R := 1
+  else
+  begin
+    R := Grid.RowCount;
+    Grid.RowCount := Grid.RowCount + 1;
+  end;
+
+  Grid.Cells[2, R] := L.Codigo;
+  Grid.Cells[3, R] := L.Descripcion;
+  Grid.Cells[4, R] := FormatFloat('0.##', L.VendidoPeriodo);
+  Grid.Cells[5, R] := FormatFloat('0.##', L.VendidoTendencia);
+  Grid.Cells[6, R] := FormatFloat('0.##', L.VendidoHistorico);
+  Grid.Cells[7, R] := FormatFloat('0.####', L.VentaDia);
+  Grid.Cells[8, R] := FormatFloat('0.##', L.Sugerido);
+  Grid.Cells[9, R] := '';
+  Grid.Cells[10, R] := FormatFloat('0.##', L.CantidadFinal);
+  Grid.Cells[11, R] := L.Confianza;
+  Grid.Cells[12, R] := L.Accion;
+  Grid.Cells[13, R] := L.UltVenta;
+  Grid.Cells[14, R] := L.UltCompra;
+  Grid.Cells[15, R] := FormatFloat('0.000', L.Coste);
+  Grid.Cells[16, R] := FormatFloat('0.00', L.PVP);
+  Grid.Cells[17, R] := FormatFloat('0.##', L.IVA);
+  Grid.Cells[18, R] := FormatFloat('0.##', L.StockInfo);
+  Grid.Cells[19, R] := L.Familia;
+  Grid.Cells[20, R] := L.Estado;
+  Grid.Cells[21, R] := L.Observaciones;
+  if Grid.ColCount > 22 then Grid.Cells[22, R] := FormatFloat('0.##', L.VendidoCobertura);
+  if Grid.ColCount > 23 then Grid.Cells[23, R] := FormatFloat('0.##', L.CompradoUlt4);
+  if Grid.ColCount > 24 then Grid.Cells[24, R] := FormatFloat('0.##', L.MediaUlt4);
+  if Grid.ColCount > 25 then Grid.Cells[25, R] := FormatFloat('0.##', L.MaxUlt4);
+  Grid.Cells[0, R] := IntToStr(R);
+  Grid.Cells[1, R] := '';
+  AutoAjustarColumnas;
+end;
+
+procedure TfPedidoProveedorAuto.EliminarManualDeListas(const Codigo: string);
+
+  procedure EliminarDeLista(var ALista: TArrayLineaPedidoAuto);
+  var
+    I, J, N: Integer;
+    Obs: string;
+  begin
+    I := Low(ALista);
+    while I <= High(ALista) do
+    begin
+      Obs := UpperCase(ALista[I].Accion + ' ' + ALista[I].Estado + ' ' + ALista[I].Observaciones);
+      if SameText(ALista[I].Codigo, Codigo) and (Pos('MANUAL', Obs) > 0) then
+      begin
+        N := Length(ALista);
+        for J := I to N - 2 do
+          ALista[J] := ALista[J + 1];
+        SetLength(ALista, N - 1);
+      end
+      else
+        Inc(I);
+    end;
+  end;
+
+begin
+  if Codigo = '' then Exit;
+  EliminarDeLista(FAutoPedido);
+  EliminarDeLista(FAutoRevisar);
+  EliminarDeLista(FAutoExcluidos);
+end;
+
+procedure TfPedidoProveedorAuto.QuitarLineaManualSeleccionada;
+var
+  R, C, I: Integer;
+  Cod, Marca: string;
+begin
+  if (Grid.Row <= 0) or (Grid.Row >= Grid.RowCount) then
+  begin
+    ShowMessage('Seleccione una linea manual para quitar.');
+    Exit;
+  end;
+
+  R := Grid.Row;
+  Cod := Trim(Grid.Cells[2, R]);
+  Marca := UpperCase(Grid.Cells[12, R] + ' ' + Grid.Cells[20, R] + ' ' + Grid.Cells[21, R]);
+  if (Cod = '') or (Pos('MANUAL', Marca) = 0) then
+  begin
+    ShowMessage('La linea seleccionada no parece una linea manual.' + LineEnding +
+      'Para no romper el estudio automatico, solo se quitan desde aqui las lineas anadidas manualmente.');
+    Exit;
+  end;
+
+  EliminarManualDeListas(Cod);
+
+  for I := R to Grid.RowCount - 2 do
+    for C := 0 to Grid.ColCount - 1 do
+      Grid.Cells[C, I] := Grid.Cells[C, I + 1];
+
+  if Grid.RowCount > 2 then
+    Grid.RowCount := Grid.RowCount - 1
+  else
+    Grid.Rows[1].Clear;
+
+  lblEstado.Caption := 'Linea manual quitada: ' + Cod + '. No se ha tocado ningun pedido real.';
+end;
+
+procedure TfPedidoProveedorAuto.BtnAnadirManualClick(Sender: TObject);
+var
+  TextoBusqueda, CantTxt: string;
+  Cantidad: Double;
+  Q: TZQuery;
+  TArti: string;
+  L: TLineaPedidoAuto;
+  CodProv: Integer;
+begin
+  CodProv := CodigoProveedorSeleccionado;
+  if CodProv <= 0 then
+  begin
+    ShowMessage('Seleccione un proveedor antes de anadir lineas manuales.');
+    Exit;
+  end;
+
+  TextoBusqueda := '';
+  if not InputQuery('Anadir linea manual', 'Codigo o texto de descripcion:', TextoBusqueda) then Exit;
+  TextoBusqueda := Trim(TextoBusqueda);
+  if TextoBusqueda = '' then Exit;
+
+  CantTxt := '1';
+  if not InputQuery('Anadir linea manual', 'Cantidad final a pedir:', CantTxt) then Exit;
+  Cantidad := FloatSeguro(CantTxt, 0);
+  if Cantidad <= 0 then
+  begin
+    ShowMessage('La cantidad debe ser mayor que cero.');
+    Exit;
+  end;
+
+  TArti := 'artitien' + FTienda;
+  if not TablaExiste(TArti) then
+  begin
+    ShowMessage('No existe la tabla de articulos: ' + TArti);
+    Exit;
+  end;
+
+  Q := TZQuery.Create(nil);
+  try
+    Q.Connection := FConn;
+    Q.SQL.Text := 'SELECT A0, A1, A2, A3, A4, A13, A14, A24 FROM `' + TArti + '` ' +
+      'WHERE A0 = :cod OR A1 LIKE :txt ORDER BY CASE WHEN A0 = :cod2 THEN 0 ELSE 1 END, A1 LIMIT 1';
+    Q.ParamByName('cod').AsString := TextoBusqueda;
+    Q.ParamByName('cod2').AsString := TextoBusqueda;
+    Q.ParamByName('txt').AsString := '%' + TextoBusqueda + '%';
+    Q.Open;
+    if Q.EOF then
+    begin
+      ShowMessage('No he encontrado ningun articulo con ese codigo o descripcion.' + LineEnding +
+        'De momento la busqueda manual mira codigo principal y descripcion.');
+      Exit;
+    end;
+
+    L.Codigo := Q.FieldByName('A0').AsString;
+    L.Descripcion := Q.FieldByName('A1').AsString;
+    L.VendidoPeriodo := 0;
+    L.VendidoTendencia := 0;
+    L.VendidoHistorico := 0;
+    L.VendidoCobertura := 0;
+    L.VentaDia := 0;
+    L.Sugerido := Cantidad;
+    L.StockContado := 0;
+    L.CantidadFinal := Cantidad;
+    L.UltVenta := '';
+    L.CompradoUlt4 := 0;
+    L.MediaUlt4 := 0;
+    L.MaxUlt4 := 0;
+    L.UltCompraUds := 0;
+    if not Q.FieldByName('A13').IsNull then
+      L.UltCompra := DateToStr(Q.FieldByName('A13').AsDateTime)
+    else
+      L.UltCompra := '';
+    L.Coste := Q.FieldByName('A24').AsFloat;
+    L.PVP := Q.FieldByName('A2').AsFloat;
+    L.IVA := Q.FieldByName('A3').AsFloat;
+    L.StockInfo := Q.FieldByName('A4').AsFloat;
+    L.Familia := Q.FieldByName('A14').AsString;
+    L.Estado := 'MANUAL';
+    L.Confianza := 'ALTA';
+    L.Accion := 'MANUAL';
+    L.Observaciones := 'Linea anadida manualmente por usuario. Revisar cantidad, coste y proveedor antes de crear pedido real.';
+    L.Prioridad := 99999999;
+
+    AddLineaAuto(FAutoPedido, L);
+    AnadirLineaManualAlGrid(L);
+    lblEstado.Caption := 'Linea manual anadida: ' + L.Codigo + ' - ' + L.Descripcion +
+      '. Entrara al pedido real si queda visible y Cantidad final > 0.';
+    LogPedidoAuto('Linea manual anadida proveedor=' + IntToStr(CodProv) + ' codigo=' + L.Codigo + ' cantidad=' + FormatFloat('0.##', Cantidad));
+  except
+    on E: Exception do
+    begin
+      LogErrorPedidoAuto('BtnAnadirManualClick', E);
+      ShowMessage('Error anadiendo linea manual:' + LineEnding + E.Message);
+    end;
+  end;
+  Q.Free;
+end;
+
+procedure TfPedidoProveedorAuto.BtnQuitarManualClick(Sender: TObject);
+begin
+  QuitarLineaManualSeleccionada;
+end;
+
 procedure TfPedidoProveedorAuto.MostrarCompraSegura;
 var
   Seguras: TArrayLineaPedidoAuto;
@@ -3019,7 +3592,47 @@ end;
 
 procedure TfPedidoProveedorAuto.BtnPedidoAutoClick(Sender: TObject);
 begin
+  FUsarReposicionUlt4 := False;
+  FUsarReposicionReal := False;
   CalcularAutoProveedor;
+end;
+
+procedure TfPedidoProveedorAuto.BtnReposicionUlt4Click(Sender: TObject);
+begin
+  // Modo existente: se mantiene como antes. Usa ultimos N pedidos como candidatos
+  // y la referencia de compras, pero no descuenta saldo teorico compras-ventas.
+  FUsarReposicionUlt4 := True;
+  FUsarReposicionReal := False;
+  try
+    CalcularAutoProveedor;
+    if HayDatosEnGrid then
+      if chkUsarComprasUlt4Ref.Checked then
+        lblEstado.Caption := lblEstado.Caption + ' Modo Repos. pedidos (' + IntToStr(seNumPedidosHist.Value) + ') con referencia de compras.'
+      else
+        lblEstado.Caption := lblEstado.Caption + ' Modo Repos. pedidos (' + IntToStr(seNumPedidosHist.Value) + '): candidatos limitados a historial reciente, sin referencia de unidades compradas.';
+  finally
+    FUsarReposicionUlt4 := False;
+    FUsarReposicionReal := False;
+  end;
+end;
+
+procedure TfPedidoProveedorAuto.BtnReposicionRealClick(Sender: TObject);
+begin
+  // Nuevo modo: parte de Repos. pedidos, pero cruza compras recientes y ventas
+  // de cobertura para calcular un saldo teorico y evitar compras innecesarias.
+  FUsarReposicionUlt4 := True;
+  FUsarReposicionReal := True;
+  try
+    CalcularAutoProveedor;
+    if HayDatosEnGrid then
+      if chkUsarComprasUlt4Ref.Checked then
+        lblEstado.Caption := lblEstado.Caption + ' Modo Repos. real (' + IntToStr(seNumPedidosHist.Value) + ' pedidos): ventas a cubrir - compras recientes, con saldo teorico.'
+      else
+        lblEstado.Caption := lblEstado.Caption + ' Modo Repos. real (' + IntToStr(seNumPedidosHist.Value) + ' pedidos): ventas a cubrir, sin descontar referencia de compras.';
+  finally
+    FUsarReposicionUlt4 := False;
+    FUsarReposicionReal := False;
+  end;
 end;
 
 procedure TfPedidoProveedorAuto.BtnVerAutoClick(Sender: TObject);
@@ -3060,6 +3673,7 @@ var
   VentasPeriodo: Double;
   VentasTendencia: Double;
   VentasHistorico: Double;
+  VentasCobertura: Double;
   VentaDia: Double;
   VentaDiaPeriodo: Double;
   VentaDiaTendencia: Double;
@@ -3087,6 +3701,14 @@ var
   PocasVentasARevisar: Boolean;
   UmbralPocasVentas: Integer;
   ForzarPocasVentasARevisar: Boolean;
+  UsarComprasUlt4Ref: Boolean;
+  CompradoUlt4: Double;
+  MediaUlt4: Double;
+  MaxUlt4: Double;
+  UltCompraUds: Double;
+  NumPedidosHist: Integer;
+  SaldoTeorico: Double;
+  SugeridoAntesAjuste: Double;
 
   procedure AddTodas(const ALinea: TLineaPedidoAuto);
   var
@@ -3120,6 +3742,10 @@ begin
   PocasVentasARevisar := chkPocasVentasARevisar.Checked;
   UmbralPocasVentas := seUmbralPocasVentas.Value;
   if UmbralPocasVentas < 1 then UmbralPocasVentas := 1;
+  UsarComprasUlt4Ref := FUsarReposicionUlt4 and chkUsarComprasUlt4Ref.Checked;
+  NumPedidosHist := seNumPedidosHist.Value;
+  if NumPedidosHist < 1 then NumPedidosHist := 1;
+  if NumPedidosHist > 20 then NumPedidosHist := 20;
 
   FechaHasta := Date;
   FechaDesdeVentas := IncDay(FechaHasta, -seDiasVentas.Value + 1);
@@ -3149,6 +3775,7 @@ begin
       Inc(TotalLeidas);
       if (TotalLeidas mod 25) = 0 then
         ProgresoPaso('Analizando pedido automatico... ' + IntToStr(TotalLeidas) + ' articulos leidos', -1);
+      VentasCobertura := Q.FieldByName('VENTAS_COBERTURA').AsFloat;
       VentasPeriodo := Q.FieldByName('VENTAS_PERIODO').AsFloat;
       VentasTendencia := Q.FieldByName('VENTAS_TENDENCIA').AsFloat;
       VentasHistorico := Q.FieldByName('VENTAS_HISTORICO').AsFloat;
@@ -3194,11 +3821,59 @@ begin
       end;
 
       Sugerido := RedondearArriba(VentaDia * DiasCoberturaAuto * Factor);
+      CompradoUlt4 := Q.FieldByName('COMPRADO_ULT4').AsFloat;
+      MediaUlt4 := Q.FieldByName('MEDIA_ULT4').AsFloat;
+      MaxUlt4 := Q.FieldByName('MAX_ULT4').AsFloat;
+      UltCompraUds := Q.FieldByName('ULT_COMPRA_UDS').AsFloat;
+
+      if FUsarReposicionReal and (VentasCobertura > 0) then
+      begin
+        Obs := Obs + ' Venta cobertura real (' + IntToStr(DiasCoberturaAuto) +
+          ' dias): ' + FormatFloat('0.##', VentasCobertura) + ' uds.';
+
+        if chkUsarComprasUlt4Ref.Checked and (CompradoUlt4 > 0) then
+        begin
+          SaldoTeorico := CompradoUlt4 - VentasCobertura;
+          Obs := Obs + ' Saldo teorico compras-ventas: ' +
+            FormatFloat('0.##', CompradoUlt4) + ' compradas - ' +
+            FormatFloat('0.##', VentasCobertura) + ' vendidas = ' +
+            FormatFloat('0.##', SaldoTeorico) + ' uds.';
+
+          if (Sugerido > 0) and (SaldoTeorico >= Sugerido) then
+          begin
+            Sugerido := 0;
+            Obs := Obs + ' Saldo teorico suficiente: no propone compra.';
+          end
+          else if (Sugerido > 0) and (SaldoTeorico > 0) then
+          begin
+            SugeridoAntesAjuste := Sugerido;
+            Sugerido := RedondearArriba(Sugerido - SaldoTeorico);
+            if Sugerido < 0 then Sugerido := 0;
+            Obs := Obs + ' Ajuste real: sugerido ' + FormatFloat('0.##', SugeridoAntesAjuste) +
+              ' - saldo ' + FormatFloat('0.##', SaldoTeorico) +
+              ' = ' + FormatFloat('0.##', Sugerido) + ' uds.';
+          end
+          else if (SaldoTeorico <= 0) and (VentasCobertura > Sugerido) then
+          begin
+            Sugerido := RedondearArriba(VentasCobertura * Factor);
+            Obs := Obs + ' Compras recientes no cubren la venta: se usa como minimo la venta de esos dias a cubrir.';
+          end;
+        end
+        else if VentasCobertura > Sugerido then
+        begin
+          Sugerido := RedondearArriba(VentasCobertura * Factor);
+          Obs := Obs + ' Reposicion real: se usa como minimo la venta de esos dias a cubrir.';
+        end;
+      end;
       Coste := Q.FieldByName('ULT_COSTE').AsFloat;
       if Coste <= 0 then
         Coste := Q.FieldByName('COSTE_FICHA').AsFloat;
       StockInfo := Q.FieldByName('STOCK_INFO').AsFloat;
       PVP := Q.FieldByName('PVP').AsFloat;
+      CompradoUlt4 := Q.FieldByName('COMPRADO_ULT4').AsFloat;
+      MediaUlt4 := Q.FieldByName('MEDIA_ULT4').AsFloat;
+      MaxUlt4 := Q.FieldByName('MAX_ULT4').AsFloat;
+      UltCompraUds := Q.FieldByName('ULT_COMPRA_UDS').AsFloat;
 
       UltCompra := '';
       if not Q.FieldByName('ULT_COMPRA').IsNull then
@@ -3215,6 +3890,18 @@ begin
       else
         Obs := Obs + ' Articulo encontrado en pedidos/compras anteriores de este proveedor.';
 
+      if FUsarReposicionUlt4 then
+      begin
+        if FUsarReposicionReal then
+          Obs := Obs + ' Modo Repos. real: candidato por aparecer en los ultimos ' + IntToStr(NumPedidosHist) + ' pedidos historicos del proveedor.'
+        else
+          Obs := Obs + ' Modo Repos. pedidos: candidato por aparecer en los ultimos ' + IntToStr(NumPedidosHist) + ' pedidos historicos del proveedor.';
+        if CompradoUlt4 > 0 then
+          Obs := Obs + ' Compras ' + IntToStr(NumPedidosHist) + 'P: total ' + FormatFloat('0.##', CompradoUlt4) +
+            ', media pedido ' + FormatFloat('0.##', MediaUlt4) +
+            ', max pedido ' + FormatFloat('0.##', MaxUlt4) + '.';
+      end;
+
       Score := 0;
       if Sugerido >= MinSugerido then Inc(Score, 20);
       if VentasPeriodo >= MinVentas then Inc(Score, 45);
@@ -3225,6 +3912,31 @@ begin
       if UltCompra <> '' then Inc(Score, 5);
       if Coste > 0 then Inc(Score, 10) else Dec(Score, 30);
       if (PVP > 0) and (Abs(PVP - 999) > 0.001) then Inc(Score, 10) else Dec(Score, 30);
+
+      if UsarComprasUlt4Ref and (CompradoUlt4 > 0) then
+      begin
+        if (Sugerido > 0) and (MediaUlt4 > 0) and
+          (Sugerido >= (MediaUlt4 * 0.50)) and
+          (Sugerido <= Max(MediaUlt4 * 1.50, MediaUlt4 + 2)) then
+        begin
+          Inc(Score, 5);
+          Obs := Obs + ' Referencia compras pedidos coherente con ventas.';
+        end;
+
+        if (Sugerido > 0) and (MaxUlt4 > 0) and
+          (Sugerido > (MaxUlt4 * 1.75)) then
+        begin
+          if Score > 79 then Score := 79;
+          Obs := Obs + ' Sugerido muy superior al maximo comprado en los ultimos ' + IntToStr(NumPedidosHist) + ' pedidos: revisar antes de comprar.';
+        end;
+
+        if (Sugerido > 0) and (MediaUlt4 >= 5) and
+          (Sugerido < (MediaUlt4 * 0.35)) then
+        begin
+          if Score > 79 then Score := 79;
+          Obs := Obs + ' Antes se compraba bastante mas que lo que ahora sugieren las ventas: revisar por posible stock acumulado, cambio o sustitucion.';
+        end;
+      end;
 
       if PocasVentasARevisar and (VentasPeriodo > 0) and
         (VentasPeriodo < UmbralPocasVentas) then
@@ -3263,12 +3975,17 @@ begin
       L.VendidoPeriodo := VentasPeriodo;
       L.VendidoTendencia := VentasTendencia;
       L.VendidoHistorico := VentasHistorico;
+      L.VendidoCobertura := VentasCobertura;
       L.VentaDia := VentaDia;
       L.Sugerido := Sugerido;
       L.StockContado := 0;
       L.CantidadFinal := Sugerido;
       L.UltVenta := UltVenta;
       L.UltCompra := UltCompra;
+      L.CompradoUlt4 := CompradoUlt4;
+      L.MediaUlt4 := MediaUlt4;
+      L.MaxUlt4 := MaxUlt4;
+      L.UltCompraUds := UltCompraUds;
       L.Coste := Coste;
       L.PVP := PVP;
       L.IVA := Q.FieldByName('IVA').AsFloat;
@@ -3519,9 +4236,9 @@ begin
     for I := 1 to Grid.RowCount - 2 do
       for J := I + 1 to Grid.RowCount - 1 do
       begin
-        Cmp := CompararCeldas(Grid.Cells[17, I], Grid.Cells[17, J], 17);
+        Cmp := CompararCeldas(Grid.Cells[19, I], Grid.Cells[19, J], 19);
         if Cmp = 0 then
-          Cmp := CompararCeldas(Grid.Cells[1, I], Grid.Cells[1, J], 1);
+          Cmp := CompararCeldas(Grid.Cells[3, I], Grid.Cells[3, J], 3);
 
         if Cmp > 0 then
         begin
@@ -3553,12 +4270,305 @@ end;
 
 procedure TfPedidoProveedorAuto.GridEditingDone(Sender: TObject);
 begin
-  if (Grid.Row > 0) and (Grid.Col in [7, 8]) then
+  if (Grid.Row > 0) and (Grid.Col in [9, 10]) then
   begin
-    if Grid.Col = 7 then
+    if Grid.Col = 9 then
       RecalcularCantidadFinalFila(Grid.Row)
     else
-      Grid.Cells[8, Grid.Row] := FormatFloat('0.##', Max(0, FloatSeguro(Grid.Cells[8, Grid.Row], 0)));
+      Grid.Cells[10, Grid.Row] := FormatFloat('0.##', Max(0, FloatSeguro(Grid.Cells[10, Grid.Row], 0)));
+  end;
+end;
+
+
+function TfPedidoProveedorAuto.ColSel: Integer;
+begin
+  Result := 1;
+end;
+
+function TfPedidoProveedorAuto.FilaMarcada(const ARow: Integer): Boolean;
+begin
+  Result := False;
+  if (Grid = nil) or (ARow <= 0) or (ARow >= Grid.RowCount) then Exit;
+  Result := Trim(Grid.Cells[ColSel, ARow]) <> '';
+end;
+
+procedure TfPedidoProveedorAuto.MarcarFila(const ARow: Integer; const AMarcada: Boolean);
+begin
+  if (Grid = nil) or (ARow <= 0) or (ARow >= Grid.RowCount) then Exit;
+  if Trim(Grid.Cells[2, ARow]) = '' then Exit;
+  if AMarcada then
+    Grid.Cells[ColSel, ARow] := 'X'
+  else
+    Grid.Cells[ColSel, ARow] := '';
+end;
+
+procedure TfPedidoProveedorAuto.DesmarcarTodasLasLineas;
+var
+  R: Integer;
+begin
+  if Grid = nil then Exit;
+  for R := 1 to Grid.RowCount - 1 do
+    Grid.Cells[ColSel, R] := '';
+end;
+
+function TfPedidoProveedorAuto.ContarMarcadas: Integer;
+var
+  R: Integer;
+begin
+  Result := 0;
+  if Grid = nil then Exit;
+  for R := 1 to Grid.RowCount - 1 do
+    if FilaMarcada(R) then Inc(Result);
+end;
+
+function TfPedidoProveedorAuto.HayMarcadas: Boolean;
+begin
+  Result := ContarMarcadas > 0;
+end;
+
+procedure TfPedidoProveedorAuto.BtnDesmarcarTodasClick(Sender: TObject);
+begin
+  DesmarcarTodasLasLineas;
+  lblEstado.Caption := 'Seleccion limpia.';
+end;
+
+procedure TfPedidoProveedorAuto.BtnQuitarAhoraClick(Sender: TObject);
+begin
+  if (Grid.Row <= 0) or (Grid.Row >= Grid.RowCount) or (Trim(Grid.Cells[2, Grid.Row]) = '') then
+  begin
+    ShowMessage('Seleccione una linea para quitar solo de este pedido.');
+    Exit;
+  end;
+  MarcarFila(Grid.Row, True);
+  AplicarAccionMarcadas('QUITAR');
+end;
+
+procedure TfPedidoProveedorAuto.BtnQuitarMarcadasClick(Sender: TObject);
+begin
+  AplicarAccionMarcadas('QUITAR');
+end;
+
+procedure TfPedidoProveedorAuto.BtnRevisarMarcadasClick(Sender: TObject);
+begin
+  AplicarAccionMarcadas('REVISAR');
+end;
+
+procedure TfPedidoProveedorAuto.BtnExcluirMarcadasClick(Sender: TObject);
+begin
+  AplicarAccionMarcadas('EXCLUIR');
+end;
+
+procedure TfPedidoProveedorAuto.BtnVerQuitadasClick(Sender: TObject);
+begin
+  MostrarLineasQuitadas;
+end;
+
+procedure TfPedidoProveedorAuto.BtnVerSimilaresClick(Sender: TObject);
+begin
+  MostrarSimilaresVisibles;
+end;
+
+procedure TfPedidoProveedorAuto.AplicarAccionMarcadas(const AAccion: string);
+var
+  R, C, N, OldRow, Dest: Integer;
+  Obs: string;
+  Rows, Parts: TStringList;
+begin
+  if not HayDatosEnGrid then
+  begin
+    ShowMessage('No hay lineas visibles.');
+    Exit;
+  end;
+
+  if not HayMarcadas then
+  begin
+    if (Grid.Row > 0) and (Grid.Row < Grid.RowCount) and (Trim(Grid.Cells[2, Grid.Row]) <> '') then
+      MarcarFila(Grid.Row, True)
+    else
+    begin
+      ShowMessage('Marque lineas en la columna Sel o seleccione una linea.');
+      Exit;
+    end;
+  end;
+
+  N := ContarMarcadas;
+  if SameText(AAccion, 'EXCLUIR') then
+    if MessageDlg('Excluir siempre', 'Va a guardar EXCLUIR SIEMPRE para ' + IntToStr(N) +
+      ' articulo(s). Esto es una regla permanente para este proveedor.' + LineEnding +
+      'Use Quitar marc. si solo quiere quitarlos de este pedido. Continuar?',
+      mtWarning, [mbYes, mbNo], 0) <> mrYes then Exit;
+
+  OldRow := Grid.Row;
+  for R := 1 to Grid.RowCount - 1 do
+  begin
+    if not FilaMarcada(R) then Continue;
+    Obs := Grid.Cells[21, R];
+    if SameText(AAccion, 'QUITAR') then
+    begin
+      Grid.Cells[10, R] := '0';
+      Grid.Cells[12, R] := 'QUITADO AHORA';
+      Grid.Cells[20, R] := 'QUITADO';
+      if Pos('Quitado solo de este pedido', Obs) = 0 then
+        Grid.Cells[21, R] := Obs + ' Quitado solo de este pedido; no crea regla permanente.';
+    end
+    else if SameText(AAccion, 'REVISAR') then
+    begin
+      Grid.Cells[11, R] := 'MEDIA';
+      Grid.Cells[12, R] := 'REVISAR AHORA';
+      Grid.Cells[20, R] := 'REVISAR';
+      if Pos('Pasado a revisar en este estudio', Obs) = 0 then
+        Grid.Cells[21, R] := Obs + ' Pasado a revisar en este estudio por seleccion multiple.';
+    end
+    else if SameText(AAccion, 'EXCLUIR') then
+    begin
+      Grid.Row := R;
+      GuardarDecisionArticulo('EXCLUIR');
+      Grid.Cells[10, R] := '0';
+      Grid.Cells[20, R] := 'EXCLUIDO';
+    end;
+    Grid.Cells[ColSel, R] := '';
+  end;
+  if (OldRow > 0) and (OldRow < Grid.RowCount) then Grid.Row := OldRow;
+  SincronizarListasAutoDesdeGrid;
+
+  // Quitar ahora debe ocultar del listado actual. La linea sigue guardada internamente
+  // y se puede consultar desde Ver quitadas.
+  if SameText(AAccion, 'QUITAR') then
+  begin
+    Rows := TStringList.Create;
+    Parts := TStringList.Create;
+    try
+      Parts.StrictDelimiter := True;
+      Parts.Delimiter := #9;
+      for R := 1 to Grid.RowCount - 1 do
+      begin
+        if Trim(Grid.Cells[2, R]) = '' then Continue;
+        if Pos('QUITADO', UpperCase(Grid.Cells[12, R] + ' ' + Grid.Cells[20, R] + ' ' + Grid.Cells[21, R])) > 0 then
+          Continue;
+        Parts.Clear;
+        for C := 0 to Grid.ColCount - 1 do Parts.Add(Grid.Cells[C, R]);
+        Rows.Add(Parts.DelimitedText);
+      end;
+
+      Grid.RowCount := Max(2, Rows.Count + 1);
+      for R := 1 to Grid.RowCount - 1 do Grid.Rows[R].Clear;
+      for R := 0 to Rows.Count - 1 do
+      begin
+        Parts.DelimitedText := Rows[R];
+        Dest := R + 1;
+        for C := 0 to Grid.ColCount - 1 do
+          if C < Parts.Count then Grid.Cells[C, Dest] := Parts[C] else Grid.Cells[C, Dest] := '';
+        Grid.Cells[0, Dest] := IntToStr(Dest);
+        Grid.Cells[1, Dest] := '';
+      end;
+      if Grid.RowCount > 1 then
+      begin
+        Grid.Row := 1;
+        if Grid.ColCount > 2 then Grid.Col := 2;
+      end;
+    finally
+      Parts.Free;
+      Rows.Free;
+    end;
+    lblEstado.Caption := 'QUITAR aplicado a ' + IntToStr(N) + ' linea(s). Ocultadas del listado actual; use Ver quitadas para consultarlas.';
+  end
+  else
+    lblEstado.Caption := AAccion + ' aplicado a ' + IntToStr(N) + ' linea(s).';
+end;
+
+procedure TfPedidoProveedorAuto.MostrarLineasQuitadas;
+var
+  R, C, Dest: Integer;
+  Rows, Parts, Codigos: TStringList;
+
+  procedure AddLineaQuitada(const L: TLineaPedidoAuto);
+  var
+    K: string;
+  begin
+    if not LineaAutoQuitada(L) then Exit;
+    K := UpperCase(Trim(L.Codigo));
+    if K = '' then Exit;
+    if Codigos.IndexOf(K) >= 0 then Exit;
+    Codigos.Add(K);
+
+    Parts.Clear;
+    Parts.Add('');
+    Parts.Add('');
+    Parts.Add(L.Codigo);
+    Parts.Add(L.Descripcion);
+    Parts.Add(FormatFloat('0.##', L.VendidoPeriodo));
+    Parts.Add(FormatFloat('0.##', L.VendidoTendencia));
+    Parts.Add(FormatFloat('0.##', L.VendidoHistorico));
+    Parts.Add(FormatFloat('0.####', L.VentaDia));
+    Parts.Add(FormatFloat('0.##', L.Sugerido));
+    if Abs(L.StockContado) > 0.0001 then
+      Parts.Add(FormatFloat('0.##', L.StockContado))
+    else
+      Parts.Add('');
+    Parts.Add(FormatFloat('0.##', L.CantidadFinal));
+    Parts.Add(L.Confianza);
+    Parts.Add(L.Accion);
+    Parts.Add(L.UltVenta);
+    Parts.Add(L.UltCompra);
+    Parts.Add(FormatFloat('0.000', L.Coste));
+    Parts.Add(FormatFloat('0.00', L.PVP));
+    Parts.Add(FormatFloat('0.##', L.IVA));
+    Parts.Add(FormatFloat('0.##', L.StockInfo));
+    Parts.Add(L.Familia);
+    Parts.Add(L.Estado);
+    Parts.Add(L.Observaciones);
+    Parts.Add(FormatFloat('0.##', L.VendidoCobertura));
+    Parts.Add(FormatFloat('0.##', L.CompradoUlt4));
+    Parts.Add(FormatFloat('0.##', L.MediaUlt4));
+    Parts.Add(FormatFloat('0.##', L.MaxUlt4));
+    Rows.Add(Parts.DelimitedText);
+  end;
+
+  procedure AddListaQuitadas(const ALista: TArrayLineaPedidoAuto);
+  var
+    I: Integer;
+  begin
+    for I := Low(ALista) to High(ALista) do
+      AddLineaQuitada(ALista[I]);
+  end;
+
+begin
+  Rows := TStringList.Create;
+  Parts := TStringList.Create;
+  Codigos := TStringList.Create;
+  try
+    Parts.StrictDelimiter := True;
+    Parts.Delimiter := #9;
+    Codigos.Sorted := True;
+    Codigos.Duplicates := dupIgnore;
+
+    // Las quitadas pueden estar ya ocultas del grid, asi que se leen desde las listas internas.
+    AddListaQuitadas(FAutoPedido);
+    AddListaQuitadas(FAutoRevisar);
+    AddListaQuitadas(FAutoExcluidos);
+
+    if Rows.Count = 0 then
+    begin
+      ShowMessage('No hay lineas quitadas en el pedido actual.');
+      Exit;
+    end;
+
+    InicializarGrid;
+    Grid.RowCount := Rows.Count + 1;
+    for R := 0 to Rows.Count - 1 do
+    begin
+      Parts.DelimitedText := Rows[R];
+      Dest := R + 1;
+      for C := 0 to Grid.ColCount - 1 do
+        if C < Parts.Count then Grid.Cells[C, Dest] := Parts[C] else Grid.Cells[C, Dest] := '';
+      Grid.Cells[0, Dest] := IntToStr(Dest);
+      Grid.Cells[1, Dest] := '';
+    end;
+    lblEstado.Caption := 'Mostrando lineas quitadas solo de este pedido: ' + IntToStr(Rows.Count) + '.';
+  finally
+    Codigos.Free;
+    Parts.Free;
+    Rows.Free;
   end;
 end;
 
@@ -3567,8 +4577,19 @@ procedure TfPedidoProveedorAuto.GridSelectCell(Sender: TObject; aCol, aRow: Inte
 begin
   CanSelect := True;
 
+  if (aRow > 0) and (aCol = ColSel) then
+  begin
+    Grid.Options := Grid.Options - [goEditing];
+    if not FSuppressSelToggle then
+    begin
+      MarcarFila(aRow, not FilaMarcada(aRow));
+      lblEstado.Caption := 'Lineas marcadas: ' + IntToStr(ContarMarcadas) + '. Use Quitar marc., Revisar marc. o Excluir marc.';
+    end;
+    Exit;
+  end;
+
   // Solo dejamos editar Stock contado y Cantidad final. El resto queda como tabla de consulta.
-  if (aRow > 0) and (aCol in [7, 8]) then
+  if (aRow > 0) and (aCol in [9, 10]) then
     Grid.Options := Grid.Options + [goEditing]
   else
     Grid.Options := Grid.Options - [goEditing];
@@ -3582,20 +4603,20 @@ var
 begin
   if (ARow <= 0) or (ARow >= Grid.RowCount) then Exit;
 
-  Sugerido := FloatSeguro(Grid.Cells[6, ARow], 0);
+  Sugerido := FloatSeguro(Grid.Cells[8, ARow], 0);
 
-  if Trim(Grid.Cells[7, ARow]) = '' then
+  if Trim(Grid.Cells[9, ARow]) = '' then
     CantidadFinal := Sugerido
   else
   begin
-    StockContado := FloatSeguro(Grid.Cells[7, ARow], 0);
+    StockContado := FloatSeguro(Grid.Cells[9, ARow], 0);
     CantidadFinal := Sugerido - StockContado;
     if CantidadFinal < 0 then
       CantidadFinal := 0;
     CantidadFinal := RedondearArriba(CantidadFinal);
   end;
 
-  Grid.Cells[8, ARow] := FormatFloat('0.##', CantidadFinal);
+  Grid.Cells[10, ARow] := FormatFloat('0.##', CantidadFinal);
 end;
 
 procedure TfPedidoProveedorAuto.RecalcularTodasCantidadesFinales;
@@ -3605,7 +4626,7 @@ begin
   if not HayDatosEnGrid then Exit;
 
   for R := 1 to Grid.RowCount - 1 do
-    if Trim(Grid.Cells[0, R]) <> '' then
+    if Trim(Grid.Cells[2, R]) <> '' then
       RecalcularCantidadFinalFila(R);
 end;
 
@@ -3631,12 +4652,15 @@ end;
 
 function TfPedidoProveedorAuto.EsColumnaNumerica(const Col: Integer): Boolean;
 begin
-  Result := Col in [2, 3, 4, 5, 6, 7, 8, 13, 14, 15, 16];
+  // Columna 0 = indice fijo numerico; 1 = Sel; 2 = Codigo; 3 = Descripcion.
+  // Tambien son numericas las columnas de unidades/importes/stock tras desplazar Sel a columna 1.
+  Result := Col in [0, 4, 5, 6, 7, 8, 9, 10, 15, 16, 17, 18, 22, 23, 24, 25];
 end;
 
 function TfPedidoProveedorAuto.EsColumnaFecha(const Col: Integer): Boolean;
 begin
-  Result := Col in [11, 12];
+  // Ult. venta y Ult. compra tras desplazar Sel a columna 1.
+  Result := Col in [13, 14];
 end;
 
 function TfPedidoProveedorAuto.TextoContiene(const Texto, Busqueda: string): Boolean;
@@ -3734,7 +4758,7 @@ end;
 function TfPedidoProveedorAuto.HayDatosEnGrid: Boolean;
 begin
   Result := (Grid <> nil) and (Grid.RowCount > 1) and
-    (Trim(Grid.Cells[0, 1]) <> '');
+    (Trim(Grid.Cells[2, 1]) <> '');
 end;
 
 function TfPedidoProveedorAuto.IntentarAbrirConPrograma(const Programa,
@@ -3825,7 +4849,7 @@ end;
 
 procedure TfPedidoProveedorAuto.GenerarPDFDesdeGrid(const NombreFichero: string);
 type
-  TColWidthsPDF = array[0..19] of Double;
+  TColWidthsPDF = array[0..21] of Double;
 var
   BaseW: TColWidthsPDF;
   PageW: Double;
@@ -4017,26 +5041,28 @@ begin
   FontSize := 5.8;
   HeaderFontSize := 5.6;
 
-  BaseW[0] := 34;   // Codigo
-  BaseW[1] := 105;  // Descripcion
-  BaseW[2] := 34;   // Vendido periodo
-  BaseW[3] := 34;   // Vendido tendencia
-  BaseW[4] := 34;   // Vendido historico
-  BaseW[5] := 31;   // Venta/dia
-  BaseW[6] := 29;   // Sugerido
-  BaseW[7] := 31;   // Stock contado
-  BaseW[8] := 31;   // Cantidad final
-  BaseW[9] := 34;   // Confianza
-  BaseW[10] := 42;  // Accion
-  BaseW[11] := 35;  // Ultima venta
-  BaseW[12] := 35;  // Ultima compra
-  BaseW[13] := 28;  // Coste
-  BaseW[14] := 26;  // PVP
-  BaseW[15] := 22;  // IVA
-  BaseW[16] := 26;  // Stock info
-  BaseW[17] := 24;  // Familia
-  BaseW[18] := 50;  // Estado
-  BaseW[19] := 105; // Observaciones
+  BaseW[0] := 12;   // Indice fijo
+  BaseW[1] := 12;   // Sel
+  BaseW[2] := 34;   // Codigo
+  BaseW[3] := 105;  // Descripcion
+  BaseW[4] := 34;   // Vendido periodo
+  BaseW[5] := 34;   // Vendido tendencia
+  BaseW[6] := 34;   // Vendido historico
+  BaseW[7] := 31;   // Venta/dia
+  BaseW[8] := 29;   // Sugerido
+  BaseW[9] := 31;   // Stock contado
+  BaseW[10] := 31;  // Cantidad final
+  BaseW[11] := 34;  // Confianza
+  BaseW[12] := 42;  // Accion
+  BaseW[13] := 35;  // Ultima venta
+  BaseW[14] := 35;  // Ultima compra
+  BaseW[15] := 28;  // Coste
+  BaseW[16] := 26;  // PVP
+  BaseW[17] := 22;  // IVA
+  BaseW[18] := 26;  // Stock info
+  BaseW[19] := 24;  // Familia
+  BaseW[20] := 50;  // Estado
+  BaseW[21] := 105; // Observaciones
 
   TotalBase := 0;
   for P := 0 to High(BaseW) do
@@ -4088,7 +5114,7 @@ end;
 
 procedure TfPedidoProveedorAuto.ImprimirGrid;
 type
-  TColWidthsPrint = array[0..19] of Integer;
+  TColWidthsPrint = array[0..21] of Integer;
 var
   BaseW: TColWidthsPrint;
   TotalBase: Integer;
@@ -4144,26 +5170,28 @@ begin
   if not HayDatosEnGrid then
     raise Exception.Create('No hay datos para imprimir.');
 
-  BaseW[0] := 34;
-  BaseW[1] := 105;
+  BaseW[0] := 12;
+  BaseW[1] := 12;
   BaseW[2] := 34;
-  BaseW[3] := 34;
+  BaseW[3] := 105;
   BaseW[4] := 34;
-  BaseW[5] := 31;
-  BaseW[6] := 29;
+  BaseW[5] := 34;
+  BaseW[6] := 34;
   BaseW[7] := 31;
-  BaseW[8] := 31;
-  BaseW[9] := 34;
-  BaseW[10] := 42;
-  BaseW[11] := 35;
-  BaseW[12] := 35;
-  BaseW[13] := 28;
-  BaseW[14] := 26;
-  BaseW[15] := 22;
+  BaseW[8] := 29;
+  BaseW[9] := 31;
+  BaseW[10] := 31;
+  BaseW[11] := 34;
+  BaseW[12] := 42;
+  BaseW[13] := 35;
+  BaseW[14] := 35;
+  BaseW[15] := 28;
   BaseW[16] := 26;
-  BaseW[17] := 24;
-  BaseW[18] := 50;
-  BaseW[19] := 105;
+  BaseW[17] := 22;
+  BaseW[18] := 26;
+  BaseW[19] := 24;
+  BaseW[20] := 50;
+  BaseW[21] := 105;
 
   TotalBase := 0;
   for Col := 0 to High(BaseW) do
@@ -4274,7 +5302,7 @@ var
   begin
     Result := 0;
     for RR := 1 to Grid.RowCount - 1 do
-      if Trim(Grid.Cells[0, RR]) <> '' then Inc(Result);
+      if Trim(Grid.Cells[2, RR]) <> '' then Inc(Result);
   end;
 
   procedure PrepararSQLLineas;
@@ -4404,20 +5432,20 @@ begin
     begin
       for R := 1 to Grid.RowCount - 1 do
       begin
-        if Trim(Grid.Cells[0, R]) = '' then Continue;
+        if Trim(Grid.Cells[2, R]) = '' then Continue;
         Inc(NumLinea);
         if (NumLinea mod 25) = 0 then
           ProgresoPaso('Guardando borrador vista... linea ' + IntToStr(NumLinea) + ' de ' + IntToStr(Lineas), NumLinea, Lineas);
         InsertarLineaValores(NumLinea,
-          Grid.Cells[0, R], Grid.Cells[1, R],
-          FloatSeguro(Grid.Cells[2, R], 0), FloatSeguro(Grid.Cells[3, R], 0),
+          Grid.Cells[2, R], Grid.Cells[3, R],
           FloatSeguro(Grid.Cells[4, R], 0), FloatSeguro(Grid.Cells[5, R], 0),
           FloatSeguro(Grid.Cells[6, R], 0), FloatSeguro(Grid.Cells[7, R], 0),
-          FloatSeguro(Grid.Cells[8, R], 0), Grid.Cells[9, R], Grid.Cells[10, R],
-          Grid.Cells[11, R], Grid.Cells[12, R], FloatSeguro(Grid.Cells[13, R], 0),
-          FloatSeguro(Grid.Cells[14, R], 0), FloatSeguro(Grid.Cells[15, R], 0),
-          FloatSeguro(Grid.Cells[16, R], 0), Grid.Cells[17, R], Grid.Cells[18, R],
-          Grid.Cells[19, R]);
+          FloatSeguro(Grid.Cells[8, R], 0), FloatSeguro(Grid.Cells[9, R], 0),
+          FloatSeguro(Grid.Cells[10, R], 0), Grid.Cells[11, R], Grid.Cells[12, R],
+          Grid.Cells[13, R], Grid.Cells[14, R], FloatSeguro(Grid.Cells[15, R], 0),
+          FloatSeguro(Grid.Cells[16, R], 0), FloatSeguro(Grid.Cells[17, R], 0),
+          FloatSeguro(Grid.Cells[18, R], 0), Grid.Cells[19, R], Grid.Cells[20, R],
+          Grid.Cells[21, R]);
       end;
     end;
 
@@ -4494,6 +5522,7 @@ begin
       L.VendidoPeriodo := Q.FieldByName('vendido_periodo').AsFloat;
       L.VendidoTendencia := Q.FieldByName('vendido_tendencia').AsFloat;
       L.VendidoHistorico := Q.FieldByName('vendido_historico').AsFloat;
+      L.VendidoCobertura := 0;
       L.VentaDia := Q.FieldByName('venta_dia').AsFloat;
       L.Sugerido := Q.FieldByName('sugerido').AsFloat;
       L.StockContado := Q.FieldByName('stock_contado').AsFloat;
@@ -4511,33 +5540,49 @@ begin
       L.Observaciones := Q.FieldByName('observaciones').AsString;
       L.Prioridad := (L.Sugerido * 100) + (L.VendidoPeriodo * 1000) + (L.VendidoTendencia * 500);
 
-      Grid.Cells[0, R] := L.Codigo;
-      Grid.Cells[1, R] := L.Descripcion;
-      Grid.Cells[2, R] := FormatFloat('0.##', L.VendidoPeriodo);
-      Grid.Cells[3, R] := FormatFloat('0.##', L.VendidoTendencia);
-      Grid.Cells[4, R] := FormatFloat('0.##', L.VendidoHistorico);
-      Grid.Cells[5, R] := FormatFloat('0.####', L.VentaDia);
-      Grid.Cells[6, R] := FormatFloat('0.##', L.Sugerido);
+      Grid.Cells[2, R] := L.Codigo;
+      Grid.Cells[3, R] := L.Descripcion;
+      Grid.Cells[4, R] := FormatFloat('0.##', L.VendidoPeriodo);
+      Grid.Cells[5, R] := FormatFloat('0.##', L.VendidoTendencia);
+      Grid.Cells[6, R] := FormatFloat('0.##', L.VendidoHistorico);
+      Grid.Cells[7, R] := FormatFloat('0.####', L.VentaDia);
+      Grid.Cells[8, R] := FormatFloat('0.##', L.Sugerido);
       if Abs(L.StockContado) > 0.0001 then
-        Grid.Cells[7, R] := FormatFloat('0.##', L.StockContado)
+        Grid.Cells[9, R] := FormatFloat('0.##', L.StockContado)
       else
-        Grid.Cells[7, R] := '';
-      Grid.Cells[8, R] := FormatFloat('0.##', L.CantidadFinal);
-      Grid.Cells[9, R] := L.Confianza;
-      Grid.Cells[10, R] := L.Accion;
-      Grid.Cells[11, R] := L.UltVenta;
-      Grid.Cells[12, R] := L.UltCompra;
-      Grid.Cells[13, R] := FormatFloat('0.000', L.Coste);
-      Grid.Cells[14, R] := FormatFloat('0.00', L.PVP);
-      Grid.Cells[15, R] := FormatFloat('0.##', L.IVA);
-      Grid.Cells[16, R] := FormatFloat('0.##', L.StockInfo);
-      Grid.Cells[17, R] := L.Familia;
-      Grid.Cells[18, R] := L.Estado;
-      Grid.Cells[19, R] := L.Observaciones;
+        Grid.Cells[9, R] := '';
+      Grid.Cells[10, R] := FormatFloat('0.##', L.CantidadFinal);
+      Grid.Cells[11, R] := L.Confianza;
+      Grid.Cells[12, R] := L.Accion;
+      Grid.Cells[13, R] := L.UltVenta;
+      Grid.Cells[14, R] := L.UltCompra;
+      Grid.Cells[15, R] := FormatFloat('0.000', L.Coste);
+      Grid.Cells[16, R] := FormatFloat('0.00', L.PVP);
+      Grid.Cells[17, R] := FormatFloat('0.##', L.IVA);
+      Grid.Cells[18, R] := FormatFloat('0.##', L.StockInfo);
+      Grid.Cells[19, R] := L.Familia;
+      Grid.Cells[20, R] := L.Estado;
+      Grid.Cells[21, R] := L.Observaciones;
+      if Grid.ColCount > 22 then Grid.Cells[22, R] := FormatFloat('0.##', L.VendidoCobertura);
+      if Grid.ColCount > 23 then Grid.Cells[23, R] := FormatFloat('0.##', L.CompradoUlt4);
+      if Grid.ColCount > 24 then Grid.Cells[24, R] := FormatFloat('0.##', L.MediaUlt4);
+      if Grid.ColCount > 25 then Grid.Cells[25, R] := FormatFloat('0.##', L.MaxUlt4);
+      Grid.Cells[0, R] := IntToStr(R);
+      Grid.Cells[1, R] := '';
 
       ClasificarLineaBorrador(L);
       Inc(R);
       Q.Next;
+    end;
+    FSuppressSelToggle := True;
+    try
+      if Grid.RowCount > 1 then
+      begin
+        Grid.Row := 1;
+        if Grid.ColCount > 2 then Grid.Col := 2;
+      end;
+    finally
+      FSuppressSelToggle := False;
     end;
     AutoAjustarColumnas;
     ProgresoFin('Borrador #' + IntToStr(BorradorID) + ' cargado. Total lineas: ' + IntToStr(R - 1) +
@@ -4877,13 +5922,13 @@ begin
 
     for R := 1 to Grid.RowCount - 1 do
     begin
-      Cod := Trim(Grid.Cells[0, R]);
-      Qty := FloatSeguro(Grid.Cells[8, R], 0);
+      Cod := Trim(Grid.Cells[2, R]);
+      Qty := FloatSeguro(Grid.Cells[10, R], 0);
       if (Cod = '') or (Qty <= 0) then Continue;
-      Desc := Grid.Cells[1, R];
+      Desc := Grid.Cells[3, R];
       AddQty(CurQty, CurDesc, Cod, Desc, Qty);
       TotalCur := TotalCur + Qty;
-      CosteCur := CosteCur + (Qty * FloatSeguro(Grid.Cells[13, R], 0));
+      CosteCur := CosteCur + (Qty * FloatSeguro(Grid.Cells[15, R], 0));
       if (R mod 25) = 0 then
         ProgresoPaso('Leyendo pedido visible... fila ' + IntToStr(R), R, Grid.RowCount + 50);
     end;
@@ -5017,8 +6062,8 @@ begin
   if Grid = nil then Exit;
   for R := 1 to Grid.RowCount - 1 do
   begin
-    if Trim(Grid.Cells[0, R]) = '' then Continue;
-    Cant := FloatSeguro(Grid.Cells[8, R], 0);
+    if Trim(Grid.Cells[2, R]) = '' then Continue;
+    Cant := FloatSeguro(Grid.Cells[10, R], 0);
     if Cant > 0 then
       Inc(Result);
   end;
@@ -5119,23 +6164,23 @@ begin
 
   for R := 1 to Grid.RowCount - 1 do
   begin
-    Codigo := Trim(Grid.Cells[0, R]);
-    Cantidad := FloatSeguro(Grid.Cells[8, R], 0);
+    Codigo := Trim(Grid.Cells[2, R]);
+    Cantidad := FloatSeguro(Grid.Cells[10, R], 0);
     if (Codigo = '') or (Cantidad <= 0) then Continue;
 
-    CosteSinIVA := FloatSeguro(Grid.Cells[13, R], 0);
-    IVA := FloatSeguro(Grid.Cells[15, R], 0);
-    PVP := FloatSeguro(Grid.Cells[14, R], 0);
+    CosteSinIVA := FloatSeguro(Grid.Cells[15, R], 0);
+    IVA := FloatSeguro(Grid.Cells[17, R], 0);
+    PVP := FloatSeguro(Grid.Cells[16, R], 0);
     CosteConIVA := CosteSinIVA * (1 + (IVA / 100));
     TotalCosteSin := TotalCosteSin + (CosteSinIVA * Cantidad);
     TotalCosteCon := TotalCosteCon + (CosteConIVA * Cantidad);
     TotalPVP := TotalPVP + (PVP * Cantidad);
     TotalUnidades := TotalUnidades + Cantidad;
 
-    Conf := UpperCase(Trim(Grid.Cells[9, R]));
-    Accion := UpperCase(Trim(Grid.Cells[10, R]));
-    EstadoTxt := UpperCase(Trim(Grid.Cells[18, R]));
-    ObsLinea := UpperCase(Trim(Grid.Cells[19, R]));
+    Conf := UpperCase(Trim(Grid.Cells[11, R]));
+    Accion := UpperCase(Trim(Grid.Cells[12, R]));
+    EstadoTxt := UpperCase(Trim(Grid.Cells[20, R]));
+    ObsLinea := UpperCase(Trim(Grid.Cells[21, R]));
 
     if Conf = 'ALTA' then Inc(CntAlta)
     else if Conf = 'MEDIA' then Inc(CntMedia)
@@ -5290,19 +6335,19 @@ begin
     Lin := 0;
     for R := 1 to Grid.RowCount - 1 do
     begin
-      Codigo := Trim(Grid.Cells[0, R]);
-      Cantidad := FloatSeguro(Grid.Cells[8, R], 0);
+      Codigo := Trim(Grid.Cells[2, R]);
+      Cantidad := FloatSeguro(Grid.Cells[10, R], 0);
       if (Codigo = '') or (Cantidad <= 0) then Continue;
       Inc(Lin);
 
-      Descripcion := Copy(Grid.Cells[1, R], 1, 50);
-      VendPeriodo := FloatSeguro(Grid.Cells[2, R], 0);
-      VendHistorico := FloatSeguro(Grid.Cells[4, R], 0);
-      CosteSinIVA := FloatSeguro(Grid.Cells[13, R], 0);
-      PVP := FloatSeguro(Grid.Cells[14, R], 0);
-      IVA := FloatSeguro(Grid.Cells[15, R], 0);
-      StockInfo := FloatSeguro(Grid.Cells[16, R], 0);
-      FamiliaTxt := Grid.Cells[17, R];
+      Descripcion := Copy(Grid.Cells[3, R], 1, 50);
+      VendPeriodo := FloatSeguro(Grid.Cells[4, R], 0);
+      VendHistorico := FloatSeguro(Grid.Cells[6, R], 0);
+      CosteSinIVA := FloatSeguro(Grid.Cells[15, R], 0);
+      PVP := FloatSeguro(Grid.Cells[16, R], 0);
+      IVA := FloatSeguro(Grid.Cells[17, R], 0);
+      StockInfo := FloatSeguro(Grid.Cells[18, R], 0);
+      FamiliaTxt := Grid.Cells[19, R];
       CosteConIVA := CosteSinIVA * (1 + (IVA / 100));
       if IVA > -99 then
         PVPSinIVA := PVP / (1 + (IVA / 100))
@@ -5400,28 +6445,34 @@ end;
 
 procedure TfPedidoProveedorAuto.AutoAjustarColumnas;
 begin
-  if Grid.ColCount < 20 then Exit;
+  if Grid.ColCount < 22 then Exit;
 
-  Grid.ColWidths[0] := 90;
-  Grid.ColWidths[1] := 245;
-  Grid.ColWidths[2] := 95;
-  Grid.ColWidths[3] := 95;
-  Grid.ColWidths[4] := 105;
+  Grid.ColWidths[2] := 90;
+  Grid.ColWidths[3] := 245;
+  Grid.ColWidths[4] := 95;
   Grid.ColWidths[5] := 95;
-  Grid.ColWidths[6] := 80;
-  Grid.ColWidths[7] := 90;
-  Grid.ColWidths[8] := 90;
-  Grid.ColWidths[9] := 80;
-  Grid.ColWidths[10] := 95;
-  Grid.ColWidths[11] := 85;
-  Grid.ColWidths[12] := 85;
-  Grid.ColWidths[13] := 70;
-  Grid.ColWidths[14] := 70;
-  Grid.ColWidths[15] := 55;
-  Grid.ColWidths[16] := 75;
-  Grid.ColWidths[17] := 60;
-  Grid.ColWidths[18] := 150;
-  Grid.ColWidths[19] := 430;
+  Grid.ColWidths[6] := 105;
+  Grid.ColWidths[7] := 95;
+  Grid.ColWidths[8] := 80;
+  Grid.ColWidths[9] := 90;
+  Grid.ColWidths[10] := 90;
+  Grid.ColWidths[11] := 80;
+  Grid.ColWidths[12] := 95;
+  Grid.ColWidths[13] := 85;
+  Grid.ColWidths[14] := 85;
+  Grid.ColWidths[15] := 70;
+  Grid.ColWidths[16] := 70;
+  Grid.ColWidths[17] := 55;
+  Grid.ColWidths[18] := 75;
+  Grid.ColWidths[19] := 60;
+  Grid.ColWidths[20] := 150;
+  Grid.ColWidths[21] := 380;
+  if Grid.ColCount > 22 then Grid.ColWidths[22] := 100;
+  if Grid.ColCount > 23 then Grid.ColWidths[23] := 110;
+  if Grid.ColCount > 24 then Grid.ColWidths[24] := 80;
+  if Grid.ColCount > 25 then Grid.ColWidths[25] := 80;
+  Grid.ColWidths[0] := 45;
+  Grid.ColWidths[1] := 45;
 end;
 
 end.

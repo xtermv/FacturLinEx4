@@ -1,5 +1,3 @@
-{ This is an automatically generated lazarus resource file }
-
 LazarusResources.Add('TFPagos','FORMDATA',[
   'TPF0'#7'TFPagos'#6'FPagos'#4'Left'#3#220#0#6'Height'#3#180#2#3'Top'#2'}'#5'W'
   +'idth'#3#196#3#13'ActiveControl'#7#6'Panel1'#7'Caption'#6#6'FPagos'#12'Clien'

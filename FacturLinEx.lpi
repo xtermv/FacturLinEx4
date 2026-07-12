@@ -77,7 +77,7 @@
         <MinVersion Valid="True"/>
       </Item9>
     </RequiredPackages>
-    <Units Count="89">
+    <Units Count="90">
       <Unit0>
         <Filename Value="FacturLinEx.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -1084,12 +1084,21 @@
         <CursorPos X="-1" Y="-1"/>
         <UsageCount Value="20"/>
       </Unit88>
+      <Unit89>
+        <Filename Value="Analisis\uDoctorFacturLinEx.pas"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="-1"/>
+        <WindowIndex Value="-1"/>
+        <TopLine Value="-1"/>
+        <CursorPos X="-1" Y="-1"/>
+        <UsageCount Value="20"/>
+      </Unit89>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>
     <SearchPaths>
-      <OtherUnitFiles Value="Tiendas;Facturas;Clientes;Articulos;Configuracion;Globales;Ventas;Proveedores;Familias;Usuarios;Departamentos;Varios/FormaPago;Varios/Rutas;Varios/Fabricantes;Albaranes;Historicos;Pedidos;ivas;Cajas;Comunicaciones;Puestos;Varios/Busquedas;Facturar;Etiquetas;Presupuestos;Varios;Produccion;CopiaSeg;AStock;copiaseg;Varios/Roles;Funciones;Varios/Modelo347;../../../Lazarus 3.8/mail4delphi-master/src;../../../../../.lazarus/onlinepackagemanager/packages/Indy10;../../../../../.lazarus/onlinepackagemanager/packages/Indy10/Protocols;verifactu;VFMonitor;dashboard"/>
+      <OtherUnitFiles Value="Tiendas;Facturas;Clientes;Articulos;Configuracion;Globales;Ventas;Proveedores;Familias;Usuarios;Departamentos;Varios/FormaPago;Varios/Rutas;Varios/Fabricantes;Albaranes;Historicos;Pedidos;ivas;Cajas;Comunicaciones;Puestos;Varios/Busquedas;Facturar;Etiquetas;Presupuestos;Varios;Produccion;CopiaSeg;AStock;copiaseg;Varios/Roles;Funciones;Varios/Modelo347;../../../Lazarus 3.8/mail4delphi-master/src;../../../../../.lazarus/onlinepackagemanager/packages/Indy10;../../../../../.lazarus/onlinepackagemanager/packages/Indy10/Protocols;verifactu;VFMonitor;dashboard;Analisis"/>
       <UnitOutputDirectory Value="Bin"/>
       <SrcPath Value="$(LazarusDir)/lcl;$(LazarusDir)/lcl/interfaces/$(LCLWidgetType)"/>
     </SearchPaths>

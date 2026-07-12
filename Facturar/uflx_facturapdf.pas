@@ -102,6 +102,11 @@ begin
   Result := FormatFloat('#,##0.00 Euros', AValue);
 end;
 
+function FormatPct(const AValue: Double): string;
+begin
+  Result := FormatFloat('0.00', AValue) + '%';
+end;
+
 //-- Nueva formula que intenta utilizar una carpeta editable para que se pueda guardar el pdf
 function TryEnsureWritableDir(const ADir: string; out AFinalDir: string): Boolean;
 var
@@ -218,7 +223,7 @@ var
   tablaCab, tablaDet: string;
   lineaDesc: string;
   // Campos temporales
-  BaseLinea, IVALinea, PUnit, Cantidad, ImporteLinea: Double;
+  BaseLinea, IVALinea, PUnit, Cantidad, ImporteLinea, DtoLinea: Double;
   SumBaseMostrada, SumIVAMostrada: Double;
   BaseRedondeada, IVARedondeado: Double;
   I: Integer;
@@ -357,6 +362,7 @@ begin
       Cantidad     := QDet.FieldByName('FD7').AsFloat;
       lineaDesc    := QDet.FieldByName('FD6').AsString;
       PUnit        := QDet.FieldByName('FD8').AsFloat;
+      DtoLinea     := QDet.FieldByName('FD10').AsFloat;  // % descuento de linea
       ImporteLinea := QDet.FieldByName('FD11').AsFloat;
       TipIva       := QDet.FieldByName('FD12').AsFloat;
 
@@ -395,6 +401,7 @@ begin
           FormatFloat('0.00', Cantidad) + '|' +
           lineaDesc + '|' +
           FormatEUR(PUnit) + '|' +
+          FormatPct(DtoLinea) + '|' +
           FormatEUR(ImporteLinea) + '|' +
           albaranText
         );
@@ -529,18 +536,20 @@ var
   sBaseR, sIVAR, sTotalR: String;
   S: String;
   SL: TStringList;
-  sCant, sDesc, sPUnit, sImp, sAlb, lastAlb: String;
-  sPUnitR, sImpR: string;
+  sCant, sDesc, sPUnit, sDto, sImp, sAlb, lastAlb: String;
+  sPUnitR, sDtoR, sImpR: string;
 const
   TotLabelX = 120.0;
   TotValueX = 180.0;
 
   ColCantX  = 15.0;
   ColDescX  = 30.0;
-  ColPUnitX = 135.0;
-  ColImpX   = 165.0;
+  ColPUnitX = 122.0;
+  ColDtoX   = 150.0;
+  ColImpX   = 168.0;
 
   LineNumWidth = 12;
+  DtoWidthChars = 8;
 
   IVABaseX  = 20.0;
   IVATipoX  = 55.0;
@@ -562,10 +571,11 @@ const
     LineH := 5;
 
     Page.SetFont(FontIdx, 9);
-    Page.WriteText(X,       Y, UTF8Encode('Cant.'));
-    Page.WriteText(X+15.0,  Y, UTF8Encode('Descripcion'));
-    Page.WriteText(X+120.0, Y, UTF8Encode('P.Unit'));
-    Page.WriteText(X+145.0, Y, UTF8Encode('Importe'));
+    Page.WriteText(ColCantX,  Y, UTF8Encode('Cant.'));
+    Page.WriteText(ColDescX,  Y, UTF8Encode('Descripcion'));
+    Page.WriteText(ColPUnitX, Y, UTF8Encode('PVP'));
+    Page.WriteText(ColDtoX,   Y, UTF8Encode('Dto %'));
+    Page.WriteText(ColImpX,   Y, UTF8Encode('Total'));
     Y := Y + LineH;
     Y := Y + LineH / 2;
 
@@ -717,10 +727,11 @@ begin
     Page.DrawRect(X, Y+1, 180, LineH, 1, False, True);
     Page.SetColor(clBlack);
     Page.SetFont(FontIdx, 9);
-    Page.WriteText(X,       Y, UTF8Encode('Cant.'));
-    Page.WriteText(X+15.0,  Y, PDFText('Descripcion'));
-    Page.WriteText(X+120.0, Y, UTF8Encode('P.Unit'));
-    Page.WriteText(X+145.0, Y, UTF8Encode('Importe'));
+    Page.WriteText(ColCantX,  Y, UTF8Encode('Cant.'));
+    Page.WriteText(ColDescX,  Y, PDFText('Descripcion'));
+    Page.WriteText(ColPUnitX, Y, UTF8Encode('PVP'));
+    Page.WriteText(ColDtoX,   Y, UTF8Encode('Dto %'));
+    Page.WriteText(ColImpX,   Y, UTF8Encode('Total'));
     Y := Y + LineH;
     Y := Y + LineH / 2;
 
@@ -743,15 +754,27 @@ begin
 
           if SL.Count>=4 then
           begin
-            sCant := SL[0];
-            sDesc := SL[1];
+            sCant  := SL[0];
+            sDesc  := SL[1];
             sPUnit := SL[2];
-            sImp := SL[3];
 
-            if SL.Count >= 5 then
-              sAlb := SL[4]
+            // Formato nuevo: Cant|Desc|PVP|Dto|Total|Albaran
+            // Compatibilidad: si llega una linea antigua, asumimos Dto 0.00%.
+            if SL.Count >= 6 then
+            begin
+              sDto := SL[3];
+              sImp := SL[4];
+              sAlb := SL[5];
+            end
             else
-              sAlb := '';
+            begin
+              sDto := FormatPct(0);
+              sImp := SL[3];
+              if SL.Count >= 5 then
+                sAlb := SL[4]
+              else
+                sAlb := '';
+            end;
 
             if (sAlb <> '') and (Pos('Albaran.:', sAlb) = 1) and (sAlb <> lastAlb) then
             begin
@@ -766,9 +789,11 @@ begin
             Page.WriteText(ColDescX, Y, PDFText(sDesc));
 
             sPUnitR := PadLeft(sPUnit, LineNumWidth);
+            sDtoR   := PadLeft(sDto,   DtoWidthChars);
             sImpR   := PadLeft(sImp,   LineNumWidth);
             Page.SetFont(FontIdxMono, 9);
             Page.WriteText(ColPUnitX, Y, PDFText(sPUnitR));
+            Page.WriteText(ColDtoX,   Y, PDFText(sDtoR));
             Page.WriteText(ColImpX,   Y, PDFText(sImpR));
           end;
 

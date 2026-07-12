@@ -104,6 +104,7 @@ type
     procedure RadioButton2Change(Sender: TObject);
     procedure RadioButton3Change(Sender: TObject);
   private
+    procedure AplicarEstiloModerno;
     { private declarations }
   public
     { public declarations }
@@ -189,6 +190,143 @@ begin
         dbProve.Active := False;
      end;
    Panel2.BringToFront;
+   AplicarEstiloModerno();
+end;
+
+
+procedure TEtiBarras.AplicarEstiloModerno;
+var
+  PnlCabecera: TPanel;
+  LTitulo, LSubtitulo: TLabel;
+  GBFiltros, GBOpciones: TGroupBox;
+  X: Integer;
+begin
+  Caption := 'Etiquetas y códigos de barras';
+  Position := poScreenCenter;
+  WindowState := wsMaximized;
+  Color := $00F4F6F8;
+  Constraints.MinWidth := 1020;
+  Constraints.MinHeight := 680;
+
+  Panel1.Caption := '';
+  Panel2.Caption := '';
+  Panel3.Caption := '';
+  Panel4.Caption := '';
+
+  Panel1.Align := alBottom;
+  Panel1.Height := 78;
+  Panel1.BevelOuter := bvNone;
+  Panel1.Color := clWhite;
+
+  Panel2.Align := alClient;
+  Panel2.BevelOuter := bvNone;
+  Panel2.Color := $00F4F6F8;
+
+  PnlCabecera := TPanel.Create(Self);
+  PnlCabecera.Parent := Panel2;
+  PnlCabecera.Align := alTop;
+  PnlCabecera.Height := 82;
+  PnlCabecera.BevelOuter := bvNone;
+  PnlCabecera.Color := clNavy;
+
+  LTitulo := TLabel.Create(Self);
+  LTitulo.Parent := PnlCabecera;
+  LTitulo.SetBounds(24, 13, 620, 30);
+  LTitulo.Caption := 'ETIQUETAS Y CÓDIGOS DE BARRAS';
+  LTitulo.ParentFont := False;
+  LTitulo.Font.Name := 'Sans';
+  LTitulo.Font.Height := -20;
+  LTitulo.Font.Style := [fsBold];
+  LTitulo.Font.Color := clWhite;
+
+  LSubtitulo := TLabel.Create(Self);
+  LSubtitulo.Parent := PnlCabecera;
+  LSubtitulo.SetBounds(25, 47, 720, 22);
+  LSubtitulo.Caption := 'Seleccione artículos, clientes o proveedores y controle el número de copias antes de generar.';
+  LSubtitulo.ParentFont := False;
+  LSubtitulo.Font.Name := 'Sans';
+  LSubtitulo.Font.Height := -12;
+  LSubtitulo.Font.Color := clSilver;
+
+  GBFiltros := TGroupBox.Create(Self);
+  GBFiltros.Parent := Panel2;
+  GBFiltros.SetBounds(20, 98, 720, 352);
+  GBFiltros.Caption := ' FILTROS DE SELECCIÓN ';
+  GBFiltros.ParentFont := False;
+  GBFiltros.Font.Name := 'Sans';
+  GBFiltros.Font.Height := -13;
+  GBFiltros.Font.Style := [fsBold];
+  GBFiltros.Color := clWhite;
+
+  Label1.Parent := GBFiltros; Edit1.Parent := GBFiltros; BitBtn7.Parent := GBFiltros;
+  Label2.Parent := GBFiltros; Edit2.Parent := GBFiltros; BitBtn8.Parent := GBFiltros;
+  Label3.Parent := GBFiltros; Edit3.Parent := GBFiltros; Edit4.Parent := GBFiltros; BitBtn9.Parent := GBFiltros;
+  Label4.Parent := GBFiltros; Edit5.Parent := GBFiltros; Edit6.Parent := GBFiltros; BitBtn10.Parent := GBFiltros;
+  Label5.Parent := GBFiltros; DateEdit1.Parent := GBFiltros;
+  Label6.Parent := GBFiltros; DateEdit2.Parent := GBFiltros;
+
+  Label1.SetBounds(18, 42, 120, 22); Edit1.SetBounds(145, 36, 170, 31); BitBtn7.SetBounds(322, 36, 32, 31);
+  Label2.SetBounds(370, 42, 120, 22); Edit2.SetBounds(492, 36, 170, 31); BitBtn8.SetBounds(668, 36, 32, 31);
+  Label3.SetBounds(18, 102, 120, 22); Edit3.SetBounds(145, 96, 82, 31); BitBtn9.SetBounds(233, 96, 32, 31); Edit4.SetBounds(272, 96, 428, 31);
+  Label4.SetBounds(18, 162, 120, 22); Edit5.SetBounds(145, 156, 82, 31); BitBtn10.SetBounds(233, 156, 32, 31); Edit6.SetBounds(272, 156, 428, 31);
+  Label5.SetBounds(18, 222, 122, 22); DateEdit1.SetBounds(145, 216, 136, 31);
+  Label6.SetBounds(356, 222, 122, 22); DateEdit2.SetBounds(484, 216, 136, 31);
+
+  GBOpciones := TGroupBox.Create(Self);
+  GBOpciones.Parent := Panel2;
+  GBOpciones.SetBounds(Panel2.ClientWidth - 270, 98, 250, 352);
+  GBOpciones.Anchors := [akTop, akRight];
+  GBOpciones.Caption := ' OPCIONES DE GENERACIÓN ';
+  GBOpciones.ParentFont := False;
+  GBOpciones.Font.Name := 'Sans';
+  GBOpciones.Font.Height := -13;
+  GBOpciones.Font.Style := [fsBold];
+  GBOpciones.Color := clWhite;
+
+  RadioGroup1.Parent := GBOpciones;
+  RadioGroup1.SetBounds(14, 28, 220, 78);
+  RadioGroup1.ParentFont := False;
+  RadioGroup1.Font.Style := [];
+  RadioGroup1.Color := clWhite;
+
+  Panel4.Parent := GBOpciones;
+  Panel4.SetBounds(14, 116, 220, 174);
+  Panel4.BevelOuter := bvLowered;
+  Panel4.Color := clWhite;
+  Label7.Left := 30;
+  Label7.Top := 10;
+  RadioButton1.SetBounds(10, 40, 198, 24);
+  RadioButton2.SetBounds(10, 68, 200, 24);
+  RadioButton3.SetBounds(10, 96, 150, 24);
+  Label8.SetBounds(28, 132, 88, 22);
+  Edit7.SetBounds(126, 127, 54, 29);
+
+  CheckBox1.Parent := GBOpciones;
+  CheckBox1.SetBounds(18, 306, 216, 24);
+  CheckBox1.ParentFont := False;
+  CheckBox1.Font.Style := [];
+
+  { Acciones principales }
+  X := 16;
+  BitBtn1.SetBounds(X, 11, 134, 56); BitBtn1.Layout := blGlyphLeft;
+  BitBtn2.SetBounds(X + 144, 11, 134, 56); BitBtn2.Layout := blGlyphLeft;
+  BitBtn3.SetBounds(X + 288, 11, 134, 56); BitBtn3.Caption := 'Proveedores'; BitBtn3.Layout := blGlyphLeft;
+  BitBtn4.SetBounds(X + 432, 11, 134, 56); BitBtn4.Caption := 'Generadas'; BitBtn4.Layout := blGlyphLeft;
+  BitBtn5.SetBounds(X + 576, 11, 134, 56); BitBtn5.Layout := blGlyphLeft;
+  BitBtn6.SetBounds(Panel1.ClientWidth - 150, 11, 134, 56);
+  BitBtn6.Anchors := [akTop, akRight];
+  BitBtn6.Layout := blGlyphLeft;
+
+  { Grid conservado y preparado para cuando sea utilizado }
+  Panel3.Align := alClient;
+  Panel3.BevelOuter := bvNone;
+  DBGrid1.Align := alClient;
+  DBGrid1.BorderSpacing.Around := 12;
+  DBGrid1.Color := clWhite;
+  DBGrid1.ParentFont := False;
+  DBGrid1.Font.Name := 'Sans';
+  DBGrid1.Font.Height := -13;
+  Panel2.BringToFront;
 end;
 
 procedure TEtiBarras.RadioButton1Change(Sender: TObject);

@@ -1,5 +1,3 @@
-{ This is an automatically generated lazarus resource file }
-
 LazarusResources.Add('TFLEtilineales','FORMDATA',[
   'TPF0'#14'TFLEtilineales'#13'FLEtilineales'#4'Left'#3#4#1#6'Height'#3#180#2#3
   +'Top'#3#25#1#5'Width'#3#248#3#13'ActiveControl'#7#15'PanelTituloGrid'#7'Capt'

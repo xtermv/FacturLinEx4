@@ -1167,17 +1167,16 @@ begin
   dbPedid.FieldByName('PD17').AsString:=Edit13.Text;//----------Importe total de costo (Con Iva)
   dbPedid.FieldByName('PD18').AsFloat:=StrToFloat(Edit7.Text)*StrToFloat(Edit12.Text);//---- Importe total PVP (Con Iva)
 
-  //---- Se coje la familia del fichero de articulos o de los pedidos
-  if Edit5.Enabled=True then
-    begin
-     //-- showmessage('Ojo es nuevo');
-     dbPedid.FieldByName('PD19').Value:=dbArti.FieldByName('A14').Value; //-- Familia
-    end
+  //---- Familia de la linea del pedido.
+  // Antes, al crear una linea nueva se tomaba siempre A14 de la ficha del articulo,
+  // aunque el usuario hubiese indicado/cambiado la familia en Edit32.
+  // Eso hacia que al aceptar el pedido no se trasladara la familia elegida al articulo.
+  if Trim(Edit32.Text)<>'' then
+    dbPedid.FieldByName('PD19').Value:=Edit32.Text //-- Familia indicada en la linea
+  else if (dbArti.Active) and (dbArti.RecordCount<>0) then
+    dbPedid.FieldByName('PD19').Value:=dbArti.FieldByName('A14').Value //-- Familia de ficha
   else
-    begin
-     //-- showmessage('Modificado con familia - '+Edit32.Text);
-     dbPedid.FieldByName('PD19').Value:=Edit32.Text;//-- Familia
-    end;
+    dbPedid.FieldByName('PD19').Clear;
 
   //---- Si crea la linea poner los datos de las ventas
   if Edit5.Enabled=True then
@@ -2595,6 +2594,8 @@ begin
           dbArti.FieldByName('A21').Value:=dbPedid.FieldByName('PD12').AsFloat;//--Precio sin iva.
           if dbPedid.FieldByName('PD10').AsFloat <> 0 then dbArti.FieldByName('A24').Value:=dbPedid.FieldByName('PD10').AsFloat;//--Costo.
           dbArti.FieldByName('A26').Value:=dbPedid.FieldByName('PD11').AsFloat;//--Margen.
+          if Trim(dbPedid.FieldByName('PD19').AsString)<>'' then
+            dbArti.FieldByName('A14').Value:=dbPedid.FieldByName('PD19').Value;//--Familia
           dbArti.Post;
           dbPedid.Next;
         end;

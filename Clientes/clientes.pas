@@ -276,6 +276,12 @@ Type
     procedure Edit1MouseLeave(Sender: TObject);
     procedure Edit22Exit(Sender: TObject);
     function ClienteDuplicado(): string;
+    function FLX_SQLValorDoble(const S: string): string;
+    function FLX_SoloDigitosTexto(const S: string): string;
+    function FLX_ClienteCodigoExiste(const ACodigo: string): Boolean;
+    function FLX_VerUltimoClienteNormal: string;
+    function FLX_VerSiguienteClienteSuperior: string;
+    function FLX_CodigoAltaClienteDesdeDocumento(const ADocumento: string; AMostrarAviso: Boolean): string;
     procedure Edit2KeyPress(Sender: TObject; var Key: char);
     procedure Edit51Enter(Sender: TObject);
     procedure Edit51Exit(Sender: TObject);
@@ -511,6 +517,108 @@ begin
  DataModule1.Mensaje('Información','Duplicidad en'+Duplicado+' Cliente :' +
                         dbClientes.FieldByName('C0').AsString+' ', 3000 , clGray);
 
+end;
+
+//================== CODIGO NUEVO CLIENTE CONFIGURABLE ==========
+function TFClientes.FLX_SQLValorDoble(const S: string): string;
+begin
+  // Escape minimo para consultas que usan comillas dobles, siguiendo el estilo existente.
+  Result := StringReplace(S, '\', '\\', [rfReplaceAll]);
+  Result := StringReplace(Result, '"', '\"', [rfReplaceAll]);
+end;
+
+function TFClientes.FLX_SoloDigitosTexto(const S: string): string;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 1 to Length(S) do
+    if S[I] in ['0'..'9'] then
+      Result := Result + S[I];
+end;
+
+function TFClientes.FLX_ClienteCodigoExiste(const ACodigo: string): Boolean;
+begin
+  Result := False;
+  if Trim(ACodigo)='' then Exit;
+  dbTrabajo.Active:=False;
+  dbTrabajo.SQL.Text:='SELECT C0 FROM clientes WHERE C0="'+FLX_SQLValorDoble(Trim(ACodigo))+'" LIMIT 1';
+  dbTrabajo.Active:=True;
+  Result := dbTrabajo.RecordCount>0;
+end;
+
+function TFClientes.FLX_VerUltimoClienteNormal: string;
+var
+  Nuevocl, Limite: integer;
+begin
+  // Mantiene la regla historica de la instalacion: buscar el siguiente codigo
+  // por debajo de la zona reservada del cliente contado/especial.
+  Limite := StrToIntDef(ClienteVario,999999)-9;
+  dbTrabajo.Active:=False;
+  dbTrabajo.Sql.Text:='SELECT * FROM clientes WHERE C0<"'+IntToStr(Limite)+'" ORDER BY C0 DESC LIMIT 1';
+  dbTrabajo.Active:=True;
+  if dbTrabajo.RecordCount=0 then Nuevocl:=1 else Nuevocl:=StrToIntDef(dbTrabajo.FieldByName('C0').AsString,0)+1;
+  if Nuevocl<=0 then Nuevocl:=1;
+  Result:=IntToStr(Nuevocl);
+end;
+
+function TFClientes.FLX_VerSiguienteClienteSuperior: string;
+var
+  Base: Integer;
+  Ultimo: Int64;
+begin
+  Base := ClientesCodigoSuperiorDesde;
+  if Base<=0 then Base:=999999;
+  Ultimo := Base;
+
+  dbTrabajo.Active:=False;
+  dbTrabajo.SQL.Text:='SELECT C0 FROM clientes '+
+    'WHERE C0 REGEXP "^[0-9]+$" '+
+    'AND CAST(C0 AS UNSIGNED) > '+IntToStr(Base)+' '+
+    'ORDER BY CAST(C0 AS UNSIGNED) DESC LIMIT 1';
+  dbTrabajo.Active:=True;
+
+  if dbTrabajo.RecordCount>0 then
+    if not TryStrToInt64(dbTrabajo.FieldByName('C0').AsString, Ultimo) then
+      Ultimo := Base;
+
+  Result := IntToStr(Ultimo+1);
+end;
+
+function TFClientes.FLX_CodigoAltaClienteDesdeDocumento(const ADocumento: string; AMostrarAviso: Boolean): string;
+var
+  Modo, Digitos: string;
+begin
+  Modo := UpperCase(Trim(ClientesModoCodigoAltaNIF));
+  if Modo='' then Modo:='SIGUIENTE_NORMAL';
+
+  if Modo='NIF_SIN_LETRA' then
+  begin
+    Digitos := FLX_SoloDigitosTexto(ADocumento);
+    if Digitos<>'' then
+    begin
+      if not FLX_ClienteCodigoExiste(Digitos) then
+      begin
+        Result := Digitos;
+        Exit;
+      end;
+      if AMostrarAviso then
+        DataModule1.Mensaje('Información',
+          'El codigo derivado del NIF/CIF ya existe. Se propone el siguiente codigo normal.',
+          3000, clGray);
+    end;
+    Result := FLX_VerUltimoClienteNormal;
+    Exit;
+  end;
+
+  if Modo='SIGUIENTE_SUPERIOR' then
+  begin
+    Result := FLX_VerSiguienteClienteSuperior;
+    Exit;
+  end;
+
+  // Modo por defecto: exactamente la numeracion normal/historica de la instalacion.
+  Result := FLX_VerUltimoClienteNormal;
 end;
 
 //================== BUSCAR CLIENTES =========================
@@ -830,23 +938,10 @@ end;
 //------- GENERAR CLIENTE NUEVO
 procedure TFClientes.btCodigoClick(Sender: TObject);
 begin
-  dbBusca.Active:=False;
-  dbBusca.Sql.Text:='SELECT * FROM clientes ORDER BY C0 DESC LIMIT 2';
-  dbBusca.Active:=True;
-  if dbBusca.RecordCount=0 then Edit1.Text:='1'
-    else
-     begin
-      if (dbBusca.RecordCount=1) and (dbBusca.FieldByName('C0').AsString=ClienteVario) then
-        Begin
-         Edit1.Text:='1';
-         Exit;
-        end;
-
-      if (dbBusca.RecordCount>1) and (dbBusca.FieldByName('C0').AsString=ClienteVario) then dbBusca.Next;
-      Edit1.Text:=IntToStr(dbBusca.FieldByName('C0').AsInteger+1);
-      if Edit1.Text=ClienteVario then edit1.Text:='1000000';
-     end;
-  dbBusca.Active:=False;
+  // Usar exactamente la misma logica que el aviso flotante y que ventas.
+  // Si en esta ficha ya se ha escrito NIF/CIF en Edit8 y el modo configurado
+  // es NIF_SIN_LETRA, se podra proponer ese codigo; si no, aplica el modo normal/superior.
+  Edit1.Text:=FLX_CodigoAltaClienteDesdeDocumento(Edit8.Text, True);
   edit2.SetFocus;   // pasamos el foco a la descripción
 end;
 
@@ -880,17 +975,12 @@ begin
 end;
 
 procedure TFClientes.Edit1MouseEnter(Sender: TObject);
-var
-  Ultimo : Integer;
 begin
   PanelNuevoCl.Visible:=True;
-  //------ Ver cual es el ultimo proveedor en nuestro file
-  dbTrabajo.Active:=False;
-  dbTrabajo.SQL.Text:='SELECT C0 FROM clientes where C0<"'+IntToStr(StrToInt(ClienteVario)-9)+'" ORDER BY C0 DESC';
-  dbTrabajo.Active:=True;
-  if dbTrabajo.RecordCount=0 then Ultimo:=1 else Ultimo:=dbTRabajo.FieldByName('C0').AsInteger+1;
-  //------ Cargar datos en pantalla
-  PanelNuevoCl.Caption:=IntToStr(Ultimo);end;
+  // Mismo codigo propuesto que aplicara el boton de crear codigo.
+  // AMostrarAviso=False evita mensajes emergentes solo por pasar el raton.
+  PanelNuevoCl.Caption:=FLX_CodigoAltaClienteDesdeDocumento(Edit8.Text, False);
+end;
 
 procedure TFClientes.Edit1MouseLeave(Sender: TObject);
 begin

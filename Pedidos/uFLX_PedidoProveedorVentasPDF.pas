@@ -29,7 +29,7 @@ unit uFLX_PedidoProveedorVentasPDF;
 interface
 
 uses
-  Classes, SysUtils, DateUtils, DB, ZConnection, ZDataset, Forms, Controls, Graphics, Dialogs, StdCtrls, Buttons, EditBtn;
+  Classes, SysUtils, DateUtils, DB, ZConnection, ZDataset, Forms, Controls, Graphics, Dialogs, StdCtrls, Buttons, EditBtn, ExtCtrls;
 
 type
   TPedidoProvOrden = (
@@ -72,7 +72,9 @@ function GenerarPedidoProveedorVentasPDF(
   const AImpresora: string = '';
   AAbrirPDF: Boolean = True;
   AFamiliaFiltro: TPedidoProvFamiliaFiltro = pffTodas;
-  const AFamilias: string = ''
+  const AFamilias: string = '';
+  AAutorFiltro: Integer = 0;
+  const AAutorNombre: string = ''
 ): TPedidoProvResultado;
 
 function PedidoProvOrdenCaption(AOrden: TPedidoProvOrden): string;
@@ -90,7 +92,7 @@ uses
   Process, Math;
 
 const
-  FLX_PEDPROVVENTASPDF_VERSION = '2026-05-16-v11-DATEPICKER';
+  FLX_PEDPROVVENTASPDF_VERSION = '2026-07-10-v12-FILTRO-AUTOR-FABRICANTE';
 
   PDF_PAGE_W = 595.28;  // A4 vertical en puntos
   PDF_PAGE_H = 841.89;
@@ -296,25 +298,57 @@ begin
   end;
 end;
 
-function FamiliaWhereSQL(AFiltro: TPedidoProvFamiliaFiltro; const AFamilias: string): string;
+function AutorFiltroCaption(AAutorFiltro: Integer; const AAutorNombre: string): string;
+begin
+  if AAutorFiltro > 0 then
+  begin
+    if Trim(AAutorNombre) <> '' then
+      Result := IntToStr(AAutorFiltro) + ' - ' + Trim(AAutorNombre)
+    else
+      Result := IntToStr(AAutorFiltro);
+  end
+  else
+    Result := 'Todos';
+end;
+
+function FiltrosWhereSQL(AFiltro: TPedidoProvFamiliaFiltro; const AFamilias: string; AAutorFiltro: Integer): string;
 var
   Lista: string;
+  Conds: string;
+
+  procedure AddCond(const ACond: string);
+  begin
+    if Trim(ACond) = '' then
+      Exit;
+
+    if Conds <> '' then
+      Conds := Conds + ' AND ';
+    Conds := Conds + '(' + ACond + ')';
+  end;
+
 begin
   Result := '';
+  Conds := '';
   Lista := CleanFamiliaList(AFamilias);
 
-  if AFiltro = pffTodas then
-    Exit;
+  if AFiltro <> pffTodas then
+  begin
+    if Lista = '' then
+      raise Exception.Create('Debe indicar una o varias familias. Ejemplo: 0, 58 o 58,59');
 
-  if Lista = '' then
-    raise Exception.Create('Debe indicar una o varias familias. Ejemplo: 0, 58 o 58,59');
-
-  case AFiltro of
-    pffSoloFamilias:
-      Result := 'WHERE COALESCE(A.A14, 0) IN (' + Lista + ') ' + LineEnding;
-    pffExcluirFamilias:
-      Result := 'WHERE COALESCE(A.A14, 0) NOT IN (' + Lista + ') ' + LineEnding;
+    case AFiltro of
+      pffSoloFamilias:
+        AddCond('COALESCE(A.A14, 0) IN (' + Lista + ')');
+      pffExcluirFamilias:
+        AddCond('COALESCE(A.A14, 0) NOT IN (' + Lista + ')');
+    end;
   end;
+
+  if AAutorFiltro > 0 then
+    AddCond('COALESCE(A.A20, 0) = :AUT');
+
+  if Conds <> '' then
+    Result := 'WHERE ' + Conds + ' ' + LineEnding;
 end;
 
 function CmpExpr(const AExpr: string): string;
@@ -328,7 +362,8 @@ function BuildFinalSQL(
   AOrden: TPedidoProvOrden;
   AOrdenDir: TPedidoProvOrdenDir;
   AFamiliaFiltro: TPedidoProvFamiliaFiltro;
-  const AFamilias: string
+  const AFamilias: string;
+  AAutorFiltro: Integer
 ): string;
 var
   TArt: string;
@@ -361,7 +396,7 @@ begin
     'FROM tmp_flx_pedprov_ventas_art VA ' + LineEnding +
     'INNER JOIN tmp_flx_pedprov_artprov AP ON AP.CodigoArt = VA.CodigoArt ' + LineEnding +
     'INNER JOIN ' + TArt + ' A ON ' + CmpExpr('A.A0') + ' = VA.CodigoArt ' + LineEnding +
-    FamiliaWhereSQL(AFamiliaFiltro, AFamilias) +
+    FiltrosWhereSQL(AFamiliaFiltro, AFamilias, AAutorFiltro) +
     'ORDER BY ' + OrderBySQL(AOrden, AOrdenDir);
 end;
 
@@ -525,7 +560,8 @@ function LoadRows(
   AOrden: TPedidoProvOrden;
   AOrdenDir: TPedidoProvOrdenDir;
   AFamiliaFiltro: TPedidoProvFamiliaFiltro;
-  const AFamilias: string
+  const AFamilias: string;
+  AAutorFiltro: Integer
 ): TPedidoProvRows;
 var
   Q: TZQuery;
@@ -552,8 +588,10 @@ begin
 
     Q.Connection := AConnection;
     Q.ReadOnly := True;
-    Q.SQL.Text := BuildFinalSQL(ASuffix, AOrden, AOrdenDir, AFamiliaFiltro, AFamilias);
+    Q.SQL.Text := BuildFinalSQL(ASuffix, AOrden, AOrdenDir, AFamiliaFiltro, AFamilias, AAutorFiltro);
     Q.ParamByName('PROV').AsInteger := ACodProveedor;
+    if AAutorFiltro > 0 then
+      Q.ParamByName('AUT').AsInteger := AAutorFiltro;
     Q.ParamByName('FECHAINI').AsDateTime := DateOf(FechaIniReal);
     Q.ParamByName('FECHAFIN').AsDateTime := DateOf(AFechaFin);
     Q.Open;
@@ -882,6 +920,7 @@ function BuildPDFPages(
   AOrden: TPedidoProvOrden;
   AOrdenDir: TPedidoProvOrdenDir;
   const AFamiliaTexto: string;
+  const AAutorTexto: string;
   out ATotalVendidas: Double
 ): TAnsiStringDynArray;
 var
@@ -897,28 +936,29 @@ var
 
     Content := Content + PdfText(25, 32, 14, 'Pedido orientativo por ventas de proveedor');
     Content := Content + PdfText(25, 52, 10, 'Proveedor: ' + IntToStr(ACodProveedor) + ' - ' + AProveedorNombre);
-    Content := Content + PdfText(25, 64, 9, 'Rango ventas: ' + DateToStr(AFechaIni) + ' a ' + DateToStr(AFechaFin));
-    Content := Content + PdfText(25, 80, 9, 'Familias: ' + AFamiliaTexto);
+    Content := Content + PdfText(25, 64, 9, 'Autor/Fabricante: ' + AAutorTexto);
+    Content := Content + PdfText(25, 76, 9, 'Rango ventas: ' + DateToStr(AFechaIni) + ' a ' + DateToStr(AFechaFin));
+    Content := Content + PdfText(25, 88, 9, 'Familias: ' + AFamiliaTexto);
 
     if AOrdenDir = podDesc then
       DirTxt := 'descendente'
     else
       DirTxt := 'ascendente';
 
-    Content := Content + PdfText(350, 80, 9, 'Orden: ' + PedidoProvOrdenCaption(AOrden) + ' ' + DirTxt);
+    Content := Content + PdfText(350, 88, 9, 'Orden: ' + PedidoProvOrdenCaption(AOrden) + ' ' + DirTxt);
 
-    Content := Content + PdfLine(25, 94, 570, 94);
+    Content := Content + PdfLine(25, 102, 570, 102);
 
-    Content := Content + PdfText(28, 111, 8, 'CODIGO');
-    Content := Content + PdfText(104, 111, 8, 'DESCRIPCION');
-    Content := Content + PdfTextRight(318, 111, 8, 'UDES');
-    Content := Content + PdfTextRight(370, 111, 8, 'COSTE');
-    Content := Content + PdfTextRight(418, 111, 8, 'PVP');
-    Content := Content + PdfTextRight(453, 111, 8, 'IVA');
-    Content := Content + PdfTextRight(510, 111, 8, 'STOCK');
-    Content := Content + PdfTextRight(570, 111, 8, 'ULT.PED.');
+    Content := Content + PdfText(28, 119, 8, 'CODIGO');
+    Content := Content + PdfText(104, 119, 8, 'DESCRIPCION');
+    Content := Content + PdfTextRight(318, 119, 8, 'UDES');
+    Content := Content + PdfTextRight(370, 119, 8, 'COSTE');
+    Content := Content + PdfTextRight(418, 119, 8, 'PVP');
+    Content := Content + PdfTextRight(453, 119, 8, 'IVA');
+    Content := Content + PdfTextRight(510, 119, 8, 'STOCK');
+    Content := Content + PdfTextRight(570, 119, 8, 'ULT.PED.');
 
-    Content := Content + PdfLine(25, 120, 570, 120);
+    Content := Content + PdfLine(25, 128, 570, 128);
   end;
 
   procedure AddFooter;
@@ -960,7 +1000,7 @@ begin
   repeat
     Content := '';
     AddHeader;
-    RowTop := 135;
+    RowTop := 143;
 
     if Length(ARows) = 0 then
     begin
@@ -1020,6 +1060,126 @@ begin
   ExecuteDetached('xdg-open', [AFileName]);
 end;
 
+
+function LoadAutorNombre(AConnection: TZConnection; ACodAutor: Integer): string;
+var
+  Q: TZQuery;
+begin
+  Result := '';
+  if ACodAutor <= 0 then
+  begin
+    Result := 'Todos';
+    Exit;
+  end;
+
+  Q := TZQuery.Create(nil);
+  try
+    Q.Connection := AConnection;
+    Q.ReadOnly := True;
+    Q.SQL.Text := 'SELECT AUT1 FROM `autofabri` WHERE AUT0 = :AUT0 LIMIT 1';
+    Q.ParamByName('AUT0').AsInteger := ACodAutor;
+    Q.Open;
+
+    if not Q.EOF then
+      Result := Trim(Q.FieldByName('AUT1').AsString);
+  finally
+    Q.Free;
+  end;
+
+  if Result = '' then
+    Result := 'Autor/Fabricante ' + IntToStr(ACodAutor);
+end;
+
+procedure LoadAutoresCombo(AConnection: TZConnection; ACombo: TComboBox);
+var
+  Q: TZQuery;
+begin
+  ACombo.Items.Clear;
+  ACombo.Items.Add('Todos');
+
+  Q := TZQuery.Create(nil);
+  try
+    try
+      Q.Connection := AConnection;
+      Q.ReadOnly := True;
+      Q.SQL.Text := 'SELECT AUT0, AUT1 FROM `autofabri` ORDER BY AUT1, AUT0';
+      Q.Open;
+
+      while not Q.EOF do
+      begin
+        ACombo.Items.Add(Trim(Q.FieldByName('AUT0').AsString) + ' - ' + Trim(Q.FieldByName('AUT1').AsString));
+        Q.Next;
+      end;
+    except
+      // Si alguna instalacion no tiene autofabri accesible, dejamos el filtro en Todos.
+    end;
+  finally
+    Q.Free;
+  end;
+
+  ACombo.ItemIndex := 0;
+end;
+
+function ResolverAutorTexto(AConnection: TZConnection; const ATexto: string; out ACodAutor: Integer; out ANombreAutor: string): Boolean;
+var
+  Q: TZQuery;
+  S: string;
+  P: Integer;
+  C: Integer;
+begin
+  Result := False;
+  ACodAutor := 0;
+  ANombreAutor := 'Todos';
+
+  S := Trim(ATexto);
+  if (S = '') or SameText(S, 'Todos') then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  P := Pos('-', S);
+  if P > 0 then
+    C := StrToIntDef(Trim(Copy(S, 1, P - 1)), -1)
+  else
+    C := StrToIntDef(S, -1);
+
+  if C > 0 then
+  begin
+    ACodAutor := C;
+    ANombreAutor := LoadAutorNombre(AConnection, C);
+    Result := True;
+    Exit;
+  end;
+
+  Q := TZQuery.Create(nil);
+  try
+    try
+      Q.Connection := AConnection;
+      Q.ReadOnly := True;
+      Q.SQL.Text :=
+        'SELECT AUT0, AUT1 FROM `autofabri` ' +
+        'WHERE AUT1 LIKE :TXT ' +
+        'ORDER BY AUT1, AUT0 LIMIT 1';
+      Q.ParamByName('TXT').AsString := '%' + S + '%';
+      Q.Open;
+
+      if not Q.EOF then
+      begin
+        ACodAutor := Q.FieldByName('AUT0').AsInteger;
+        ANombreAutor := Trim(Q.FieldByName('AUT1').AsString);
+        Result := True;
+      end;
+    except
+      Result := False;
+      ACodAutor := 0;
+      ANombreAutor := '';
+    end;
+  finally
+    Q.Free;
+  end;
+end;
+
 function GenerarPedidoProveedorVentasPDF(
   AConnection: TZConnection;
   const ATienda: string;
@@ -1032,7 +1192,9 @@ function GenerarPedidoProveedorVentasPDF(
   const AImpresora: string;
   AAbrirPDF: Boolean;
   AFamiliaFiltro: TPedidoProvFamiliaFiltro;
-  const AFamilias: string
+  const AFamilias: string;
+  AAutorFiltro: Integer;
+  const AAutorNombre: string
 ): TPedidoProvResultado;
 var
   Suffix: string;
@@ -1042,6 +1204,7 @@ var
   PDFFile: string;
   TotalVendidas: Double;
   FamiliaTexto: string;
+  AutorTexto: string;
 begin
   Result.ArchivoPDF := '';
   Result.Lineas := 0;
@@ -1062,12 +1225,21 @@ begin
 
     Suffix := CleanTiendaSuffix(ATienda);
     FamiliaTexto := FamiliaFiltroCaption(AFamiliaFiltro, AFamilias);
+    if AAutorFiltro > 0 then
+    begin
+      AutorTexto := Trim(AAutorNombre);
+      if AutorTexto = '' then
+        AutorTexto := LoadAutorNombre(AConnection, AAutorFiltro);
+      AutorTexto := AutorFiltroCaption(AAutorFiltro, AutorTexto);
+    end
+    else
+      AutorTexto := 'Todos';
 
     ProveedorNombre := LoadProveedorNombre(AConnection, ACodProveedor);
-    Rows := LoadRows(AConnection, Suffix, ACodProveedor, AFechaIni, AFechaFin, AOrden, AOrdenDir, AFamiliaFiltro, AFamilias);
+    Rows := LoadRows(AConnection, Suffix, ACodProveedor, AFechaIni, AFechaFin, AOrden, AOrdenDir, AFamiliaFiltro, AFamilias, AAutorFiltro);
 
     PDFFile := ResolvePDFFileName(ARutaPDF, ACodProveedor, AFechaIni, AFechaFin);
-    Pages := BuildPDFPages(Rows, ACodProveedor, ProveedorNombre, AFechaIni, AFechaFin, AOrden, AOrdenDir, FamiliaTexto, TotalVendidas);
+    Pages := BuildPDFPages(Rows, ACodProveedor, ProveedorNombre, AFechaIni, AFechaFin, AOrden, AOrdenDir, FamiliaTexto, AutorTexto, TotalVendidas);
 
     SaveSimplePDF(PDFFile, Pages);
 
@@ -1223,8 +1395,11 @@ procedure ShowFormFLXPedidoProveedorVentas(
 );
 var
   F: TForm;
-  LProv, LDesde, LHasta, LOrden, LDir, LFamModo, LFamCodigos, LFamLista: TLabel;
-  CProv, COrden, CDir, CFamModo, CFamLista: TComboBox;
+  pnlCab, pnlCliente, pnlBotones: TPanel;
+  gbProveedor, gbPeriodo, gbOrden, gbFiltros, gbSalida: TGroupBox;
+  LTitulo, LSubtitulo: TLabel;
+  LProv, LAutor, LDesde, LHasta, LOrden, LDir, LFamModo, LFamCodigos, LFamLista: TLabel;
+  CProv, CAutor, COrden, CDir, CFamModo, CFamLista: TComboBox;
   EDesde, EHasta: TDateEdit;
   EFam: TEdit;
   ChImprimir, ChAbrir: TCheckBox;
@@ -1234,6 +1409,8 @@ var
   FamFiltro: TPedidoProvFamiliaFiltro;
   CodProv: Integer;
   NomProv: string;
+  CodAutor: Integer;
+  NomAutor: string;
   FechaIni, FechaFin: TDateTime;
   R: TPedidoProvResultado;
   FamLista: string;
@@ -1257,70 +1434,159 @@ var
 begin
   F := TForm.Create(AOwner);
   try
-    F.Caption := 'Pedido por ventas de proveedor - v11 calendario';
+    F.Caption := 'Pedido por ventas de proveedor';
     F.Position := poScreenCenter;
     F.BorderStyle := bsDialog;
-    F.Width := 560;
-    F.Height := 445;
-    F.Color := clBtnFace;
+    F.Width := 840;
+    F.Height := 610;
+    F.Color := $00F3F5F7;
+    F.Font.Name := 'Sans';
+    F.Font.Height := -13;
+
+    pnlCab := TPanel.Create(F);
+    pnlCab.Parent := F;
+    pnlCab.Align := alTop;
+    pnlCab.Height := 76;
+    pnlCab.BevelOuter := bvNone;
+    pnlCab.Color := clNavy;
+
+    LTitulo := TLabel.Create(F);
+    LTitulo.Parent := pnlCab;
+    LTitulo.Left := 18;
+    LTitulo.Top := 12;
+    LTitulo.Caption := 'PEDIDO PDF POR VENTAS DE PROVEEDOR';
+    LTitulo.ParentFont := False;
+    LTitulo.Font.Name := 'Sans';
+    LTitulo.Font.Height := -20;
+    LTitulo.Font.Style := [fsBold];
+    LTitulo.Font.Color := clWhite;
+
+    LSubtitulo := TLabel.Create(F);
+    LSubtitulo.Parent := pnlCab;
+    LSubtitulo.Left := 20;
+    LSubtitulo.Top := 42;
+    LSubtitulo.Caption := 'Genera un PDF orientativo a partir de las ventas del periodo, con filtros por proveedor, autor/fabricante y familias.';
+    LSubtitulo.ParentFont := False;
+    LSubtitulo.Font.Name := 'Sans';
+    LSubtitulo.Font.Height := -12;
+    LSubtitulo.Font.Color := clSilver;
+
+    pnlCliente := TPanel.Create(F);
+    pnlCliente.Parent := F;
+    pnlCliente.Align := alClient;
+    pnlCliente.BevelOuter := bvNone;
+    pnlCliente.Color := $00F3F5F7;
+
+    gbProveedor := TGroupBox.Create(F);
+    gbProveedor.Parent := pnlCliente;
+    gbProveedor.SetBounds(16, 16, 800, 112);
+    gbProveedor.Caption := ' PROVEEDOR Y AUTOR / FABRICANTE ';
+    gbProveedor.ParentFont := False;
+    gbProveedor.Font.Name := 'Sans';
+    gbProveedor.Font.Height := -13;
+    gbProveedor.Font.Style := [fsBold];
 
     LProv := TLabel.Create(F);
-    LProv.Parent := F;
-    LProv.Left := 20;
-    LProv.Top := 22;
-    LProv.Caption := 'Proveedor:';
+    LProv.Parent := gbProveedor;
+    LProv.Left := 16;
+    LProv.Top := 28;
+    LProv.Caption := 'Proveedor';
+    LProv.ParentFont := False;
+    LProv.Font.Style := [];
 
     CProv := TComboBox.Create(F);
-    CProv.Parent := F;
-    CProv.Left := 150;
-    CProv.Top := 18;
-    CProv.Width := 370;
+    CProv.Parent := gbProveedor;
+    CProv.Left := 16;
+    CProv.Top := 48;
+    CProv.Width := 368;
     CProv.Style := csDropDown;
     CProv.Hint := 'Puede escribir codigo, parte del nombre o seleccionar de la lista';
     CProv.ShowHint := True;
     LoadProveedoresCombo(AConnection, CProv);
 
+    LAutor := TLabel.Create(F);
+    LAutor.Parent := gbProveedor;
+    LAutor.Left := 404;
+    LAutor.Top := 28;
+    LAutor.Caption := 'Autor / Fabricante';
+    LAutor.ParentFont := False;
+    LAutor.Font.Style := [];
+
+    CAutor := TComboBox.Create(F);
+    CAutor.Parent := gbProveedor;
+    CAutor.Left := 404;
+    CAutor.Top := 48;
+    CAutor.Width := 372;
+    CAutor.Style := csDropDown;
+    CAutor.Hint := 'Filtro opcional para bulto gordo. Deje Todos para no filtrar.';
+    CAutor.ShowHint := True;
+    LoadAutoresCombo(AConnection, CAutor);
+
+    gbPeriodo := TGroupBox.Create(F);
+    gbPeriodo.Parent := pnlCliente;
+    gbPeriodo.SetBounds(16, 138, 248, 106);
+    gbPeriodo.Caption := ' PERIODO ';
+    gbPeriodo.ParentFont := False;
+    gbPeriodo.Font.Name := 'Sans';
+    gbPeriodo.Font.Height := -13;
+    gbPeriodo.Font.Style := [fsBold];
+
     LDesde := TLabel.Create(F);
-    LDesde.Parent := F;
-    LDesde.Left := 20;
-    LDesde.Top := 58;
-    LDesde.Caption := 'Fecha inicial:';
+    LDesde.Parent := gbPeriodo;
+    LDesde.Left := 16;
+    LDesde.Top := 28;
+    LDesde.Caption := 'Fecha inicial';
+    LDesde.ParentFont := False;
+    LDesde.Font.Style := [];
 
     EDesde := TDateEdit.Create(F);
-    EDesde.Parent := F;
-    EDesde.Left := 150;
-    EDesde.Top := 54;
-    EDesde.Width := 120;
+    EDesde.Parent := gbPeriodo;
+    EDesde.Left := 16;
+    EDesde.Top := 48;
+    EDesde.Width := 96;
     EDesde.Date := IncDay(DateOf(Now), -14);
     EDesde.Hint := 'Seleccione la fecha inicial desde el calendario o escribala manualmente.';
     EDesde.ShowHint := True;
 
     LHasta := TLabel.Create(F);
-    LHasta.Parent := F;
-    LHasta.Left := 20;
-    LHasta.Top := 94;
-    LHasta.Caption := 'Fecha final:';
+    LHasta.Parent := gbPeriodo;
+    LHasta.Left := 132;
+    LHasta.Top := 28;
+    LHasta.Caption := 'Fecha final';
+    LHasta.ParentFont := False;
+    LHasta.Font.Style := [];
 
     EHasta := TDateEdit.Create(F);
-    EHasta.Parent := F;
-    EHasta.Left := 150;
-    EHasta.Top := 90;
-    EHasta.Width := 120;
+    EHasta.Parent := gbPeriodo;
+    EHasta.Left := 132;
+    EHasta.Top := 48;
+    EHasta.Width := 96;
     EHasta.Date := DateOf(Now);
     EHasta.Hint := 'Seleccione la fecha final desde el calendario o escribala manualmente.';
     EHasta.ShowHint := True;
 
+    gbOrden := TGroupBox.Create(F);
+    gbOrden.Parent := pnlCliente;
+    gbOrden.SetBounds(276, 138, 264, 106);
+    gbOrden.Caption := ' ORDENACION ';
+    gbOrden.ParentFont := False;
+    gbOrden.Font.Name := 'Sans';
+    gbOrden.Font.Height := -13;
+    gbOrden.Font.Style := [fsBold];
+
     LOrden := TLabel.Create(F);
-    LOrden.Parent := F;
-    LOrden.Left := 20;
-    LOrden.Top := 130;
-    LOrden.Caption := 'Ordenar por:';
+    LOrden.Parent := gbOrden;
+    LOrden.Left := 16;
+    LOrden.Top := 28;
+    LOrden.Caption := 'Ordenar por';
+    LOrden.ParentFont := False;
+    LOrden.Font.Style := [];
 
     COrden := TComboBox.Create(F);
-    COrden.Parent := F;
-    COrden.Left := 150;
-    COrden.Top := 126;
-    COrden.Width := 220;
+    COrden.Parent := gbOrden;
+    COrden.Left := 16;
+    COrden.Top := 48;
+    COrden.Width := 148;
     COrden.Style := csDropDownList;
     COrden.Items.Add('Codigo');
     COrden.Items.Add('Descripcion');
@@ -1333,31 +1599,73 @@ begin
     COrden.ItemIndex := 2;
 
     LDir := TLabel.Create(F);
-    LDir.Parent := F;
-    LDir.Left := 20;
-    LDir.Top := 166;
-    LDir.Caption := 'Direccion:';
+    LDir.Parent := gbOrden;
+    LDir.Left := 176;
+    LDir.Top := 28;
+    LDir.Caption := 'Direccion';
+    LDir.ParentFont := False;
+    LDir.Font.Style := [];
 
     CDir := TComboBox.Create(F);
-    CDir.Parent := F;
-    CDir.Left := 150;
-    CDir.Top := 162;
-    CDir.Width := 140;
+    CDir.Parent := gbOrden;
+    CDir.Left := 176;
+    CDir.Top := 48;
+    CDir.Width := 72;
     CDir.Style := csDropDownList;
     CDir.Items.Add('Ascendente');
     CDir.Items.Add('Descendente');
     CDir.ItemIndex := 1;
 
+    gbSalida := TGroupBox.Create(F);
+    gbSalida.Parent := pnlCliente;
+    gbSalida.SetBounds(552, 138, 264, 106);
+    gbSalida.Caption := ' SALIDA ';
+    gbSalida.ParentFont := False;
+    gbSalida.Font.Name := 'Sans';
+    gbSalida.Font.Height := -13;
+    gbSalida.Font.Style := [fsBold];
+
+    ChAbrir := TCheckBox.Create(F);
+    ChAbrir.Parent := gbSalida;
+    ChAbrir.Left := 16;
+    ChAbrir.Top := 34;
+    ChAbrir.Width := 180;
+    ChAbrir.Caption := 'Abrir PDF al terminar';
+    ChAbrir.Checked := True;
+    ChAbrir.ParentFont := False;
+    ChAbrir.Font.Style := [];
+
+    ChImprimir := TCheckBox.Create(F);
+    ChImprimir.Parent := gbSalida;
+    ChImprimir.Left := 16;
+    ChImprimir.Top := 62;
+    ChImprimir.Width := 180;
+    ChImprimir.Caption := 'Imprimir directamente';
+    ChImprimir.Checked := False;
+    ChImprimir.ParentFont := False;
+    ChImprimir.Font.Style := [];
+
+    gbFiltros := TGroupBox.Create(F);
+    gbFiltros.Parent := pnlCliente;
+    gbFiltros.SetBounds(16, 254, 800, 150);
+    gbFiltros.Caption := ' FILTRO DE FAMILIAS ';
+    gbFiltros.ParentFont := False;
+    gbFiltros.Font.Name := 'Sans';
+    gbFiltros.Font.Height := -13;
+    gbFiltros.Font.Style := [fsBold];
+
     LFamModo := TLabel.Create(F);
-    LFamModo.Parent := F;
-    LFamModo.Left := 20;
-    LFamModo.Top := 202;
-    LFamModo.Caption := 'Familias:';
+    LFamModo.Parent := gbFiltros;
+    LFamModo.Left := 16;
+    LFamModo.Top := 28;
+    LFamModo.Caption := 'Modo';
+    LFamModo.ParentFont := False;
+    LFamModo.Font.Style := [];
 
     CFamModo := TComboBox.Create(F);
-    CFamModo.Parent := F;
-    CFamModo.Left := 150;
-    CFamModo.Top := 198;
+    CFamModo.Parent := gbFiltros;
+    CFamModo.Left := 16;
+    CFamModo.Top := 48;
     CFamModo.Width := 220;
     CFamModo.Style := csDropDownList;
     CFamModo.Items.Add('Todas');
@@ -1366,66 +1674,63 @@ begin
     CFamModo.ItemIndex := 0;
 
     LFamCodigos := TLabel.Create(F);
-    LFamCodigos.Parent := F;
-    LFamCodigos.Left := 20;
-    LFamCodigos.Top := 238;
-    LFamCodigos.Caption := 'Codigos familia:';
+    LFamCodigos.Parent := gbFiltros;
+    LFamCodigos.Left := 256;
+    LFamCodigos.Top := 28;
+    LFamCodigos.Caption := 'Codigos familia';
+    LFamCodigos.ParentFont := False;
+    LFamCodigos.Font.Style := [];
 
     EFam := TEdit.Create(F);
-    EFam.Parent := F;
-    EFam.Left := 150;
-    EFam.Top := 234;
-    EFam.Width := 220;
+    EFam.Parent := gbFiltros;
+    EFam.Left := 256;
+    EFam.Top := 48;
+    EFam.Width := 520;
     EFam.Text := '';
     EFam.Hint := 'Ejemplo: 0, 58 o 58,59,60. Si selecciona una familia abajo y deja esto vacio, se usara esa familia.';
     EFam.ShowHint := True;
 
     LFamLista := TLabel.Create(F);
-    LFamLista.Parent := F;
-    LFamLista.Left := 20;
-    LFamLista.Top := 272;
-    LFamLista.Caption := 'Ver familias:';
+    LFamLista.Parent := gbFiltros;
+    LFamLista.Left := 16;
+    LFamLista.Top := 86;
+    LFamLista.Caption := 'Ver familias';
+    LFamLista.ParentFont := False;
+    LFamLista.Font.Style := [];
 
     CFamLista := TComboBox.Create(F);
-    CFamLista.Parent := F;
-    CFamLista.Left := 150;
-    CFamLista.Top := 268;
-    CFamLista.Width := 370;
+    CFamLista.Parent := gbFiltros;
+    CFamLista.Left := 16;
+    CFamLista.Top := 106;
+    CFamLista.Width := 760;
     CFamLista.Style := csDropDownList;
     CFamLista.Hint := 'Listado informativo. Para una sola familia puede seleccionarla aqui y dejar Codigos familia vacio.';
     CFamLista.ShowHint := True;
     LoadFamiliasCombo(AConnection, CleanTiendaSuffix(ATienda), CFamLista);
 
-    ChAbrir := TCheckBox.Create(F);
-    ChAbrir.Parent := F;
-    ChAbrir.Left := 20;
-    ChAbrir.Top := 318;
-    ChAbrir.Width := 210;
-    ChAbrir.Caption := 'Abrir PDF al terminar';
-    ChAbrir.Checked := True;
-
-    ChImprimir := TCheckBox.Create(F);
-    ChImprimir.Parent := F;
-    ChImprimir.Left := 240;
-    ChImprimir.Top := 318;
-    ChImprimir.Width := 190;
-    ChImprimir.Caption := 'Imprimir directamente';
-    ChImprimir.Checked := False;
+    pnlBotones := TPanel.Create(F);
+    pnlBotones.Parent := pnlCliente;
+    pnlBotones.SetBounds(16, 418, 800, 58);
+    pnlBotones.BevelOuter := bvNone;
+    pnlBotones.Color := $00F3F5F7;
 
     BOk := TBitBtn.Create(F);
-    BOk.Parent := F;
-    BOk.Left := 350;
-    BOk.Top := 370;
-    BOk.Width := 90;
+    BOk.Parent := pnlBotones;
+    BOk.Left := 588;
+    BOk.Top := 12;
+    BOk.Width := 100;
+    BOk.Height := 34;
     BOk.Kind := bkOK;
     BOk.Caption := 'Generar';
     BOk.ModalResult := mrOK;
+    BOk.Font.Style := [fsBold];
 
     BCancel := TBitBtn.Create(F);
-    BCancel.Parent := F;
-    BCancel.Left := 450;
-    BCancel.Top := 370;
-    BCancel.Width := 90;
+    BCancel.Parent := pnlBotones;
+    BCancel.Left := 696;
+    BCancel.Top := 12;
+    BCancel.Width := 100;
+    BCancel.Height := 34;
     BCancel.Kind := bkCancel;
     BCancel.Caption := 'Cancelar';
     BCancel.ModalResult := mrCancel;
@@ -1435,6 +1740,12 @@ begin
       if not ResolverProveedorTexto(AConnection, Trim(CProv.Text), CodProv, NomProv) then
       begin
         ShowMessage('Debe indicar un proveedor valido. Si escribe por nombre y hay varias coincidencias, seleccionelo en la lista.');
+        Exit;
+      end;
+
+      if not ResolverAutorTexto(AConnection, Trim(CAutor.Text), CodAutor, NomAutor) then
+      begin
+        ShowMessage('Debe indicar un autor/fabricante valido o dejar el filtro en Todos.');
         Exit;
       end;
 
@@ -1490,12 +1801,15 @@ begin
         '',
         ChAbrir.Checked,
         FamFiltro,
-        FamLista
+        FamLista,
+        CodAutor,
+        NomAutor
       );
 
       if R.ArchivoPDF <> '' then
         ShowMessage('PDF generado correctamente:' + LineEnding + R.ArchivoPDF + LineEnding +
           'Proveedor: ' + IntToStr(CodProv) + ' - ' + NomProv + LineEnding +
+          'Autor/Fabricante: ' + AutorFiltroCaption(CodAutor, NomAutor) + LineEnding +
           'Familias: ' + FamiliaFiltroCaption(FamFiltro, FamLista) + LineEnding +
           'Lineas: ' + IntToStr(R.Lineas));
     end;

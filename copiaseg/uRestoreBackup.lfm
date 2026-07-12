@@ -1,139 +1,317 @@
 object fRestoreBackup: TfRestoreBackup
-  Left = 360
-  Height = 610
-  Top = 150
-  Width = 1060
-  Caption = 'Restaurar copia de seguridad'
-  ClientHeight = 610
-  ClientWidth = 1060
+  Left = 260
+  Height = 760
+  Top = 110
+  Width = 1180
+  Caption = 'FacturLinEx - Restaurar copia de seguridad'
+  ClientHeight = 760
+  ClientWidth = 1180
+  Color = clBtnFace
+  Font.Height = -13
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnShow = FormShow
   Position = poScreenCenter
+  WindowState = wsMaximized
   LCLVersion = '3.0'
-  object lblRuta: TLabel
-    Left = 16
-    Height = 15
-    Top = 16
-    Width = 127
-    Caption = 'Carpeta de backups'
-  end
-  object edRutaBackups: TEdit
-    Left = 16
-    Height = 27
-    Top = 36
-    Width = 900
+  object pnlHeader: TPanel
+    Left = 0
+    Height = 104
+    Top = 0
+    Width = 1180
+    Align = alTop
+    BevelOuter = bvNone
+    ParentColor = False
     TabOrder = 0
+    object imgHeader: TImage
+      Left = 24
+      Height = 64
+      Top = 18
+      Width = 64
+      Stretch = True
+    end
+    object lblTitulo: TLabel
+      Left = 108
+      Height = 34
+      Top = 18
+      Width = 441
+      Caption = 'Restaurar copia de seguridad'
+      Font.Height = -27
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
+    object lblSubtitulo: TLabel
+      Left = 110
+      Height = 22
+      Top = 58
+      Width = 703
+      Caption = 'Selecciona una copia válida, revisa su información y decide exactamente qué elementos restaurar.'
+      Font.Height = -15
+      ParentFont = False
+    end
   end
-  object btnExaminarRuta: TButton
-    Left = 926
-    Height = 30
-    Top = 34
-    Width = 40
-    Caption = '...'
-    OnClick = btnExaminarRutaClick
+  object pnlRuta: TPanel
+    Left = 0
+    Height = 92
+    Top = 104
+    Width = 1180
+    Align = alTop
+    BevelOuter = bvNone
+    ParentColor = False
     TabOrder = 1
+    object lblRuta: TLabel
+      Left = 24
+      Height = 20
+      Top = 12
+      Width = 171
+      Caption = 'CARPETA DE COPIAS'
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
+    object pnlRutaAcciones: TPanel
+      Left = 930
+      Height = 92
+      Top = 0
+      Width = 250
+      Align = alRight
+      BevelOuter = bvNone
+      ParentColor = False
+      TabOrder = 0
+      object btnExaminarRuta: TBitBtn
+        Left = 8
+        Height = 58
+        Top = 26
+        Width = 108
+        Caption = 'Examinar'
+        Layout = blGlyphTop
+        OnClick = btnExaminarRutaClick
+        TabOrder = 0
+      end
+      object btnActualizar: TBitBtn
+        Left = 126
+        Height = 58
+        Top = 26
+        Width = 108
+        Caption = 'Cargar'
+        Layout = blGlyphTop
+        OnClick = btnActualizarClick
+        TabOrder = 1
+      end
+    end
+    object edRutaBackups: TEdit
+      Left = 24
+      Height = 31
+      Top = 40
+      Width = 888
+      Anchors = [akTop, akLeft, akRight]
+      Font.Height = -14
+      ParentFont = False
+      TabOrder = 1
+    end
   end
-  object btnActualizar: TButton
-    Left = 976
-    Height = 30
-    Top = 34
-    Width = 70
-    Caption = 'Cargar'
-    OnClick = btnActualizarClick
-    TabOrder = 2
-  end
-  object lblBackups: TLabel
-    Left = 16
-    Height = 15
-    Top = 80
-    Width = 170
-    Caption = 'Copias disponibles (selector PRO)'
-  end
-  object lblInfo: TLabel
-    Left = 16
-    Height = 15
-    Top = 332
-    Width = 128
-    Caption = 'Información de la copia'
-  end
-  object GridBackups: TStringGrid
-    Left = 16
-    Height = 236
-    Top = 100
-    Width = 1030
-    ColCount = 5
-    DefaultRowHeight = 24
-    FixedCols = 0
-    OnClick = GridBackupsClick
-    OnMouseDown = GridBackupsMouseDown
-    OnSelection = GridBackupsSelection
-    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goRowSelect]
-    RowCount = 2
-    TabOrder = 3
-  end
-  object MemoInfo: TMemo
-    Left = 16
-    Height = 200
-    Top = 352
-    Width = 1030
-    ReadOnly = True
-    ScrollBars = ssVertical
+  object pnlAcciones: TPanel
+    Left = 0
+    Height = 88
+    Top = 672
+    Width = 1180
+    Align = alBottom
+    BevelOuter = bvNone
+    ParentColor = False
     TabOrder = 4
+    object lblSeguridad: TLabel
+      Left = 24
+      Height = 44
+      Top = 22
+      Width = 510
+      AutoSize = False
+      Caption = 'La restauración sustituye datos del sistema. Revisa la copia seleccionada y las opciones antes de continuar.'
+      Font.Height = -14
+      Font.Style = [fsBold]
+      ParentFont = False
+      WordWrap = True
+    end
+    object pnlBotonesAccion: TPanel
+      Left = 610
+      Height = 88
+      Top = 0
+      Width = 570
+      Align = alRight
+      BevelOuter = bvNone
+      ParentColor = False
+      TabOrder = 0
+      object btnBackupAhora: TBitBtn
+        Left = 8
+        Height = 62
+        Top = 12
+        Width = 150
+        Caption = 'Backup ahora'
+        Font.Style = [fsBold]
+        Layout = blGlyphTop
+        OnClick = btnBackupAhoraClick
+        ParentFont = False
+        TabOrder = 0
+      end
+      object btnRestaurar: TBitBtn
+        Left = 168
+        Height = 62
+        Top = 12
+        Width = 150
+        Caption = 'Restaurar'
+        Font.Style = [fsBold]
+        Layout = blGlyphTop
+        OnClick = btnRestaurarClick
+        ParentFont = False
+        TabOrder = 1
+      end
+      object btnCancelar: TBitBtn
+        Left = 328
+        Height = 62
+        Top = 12
+        Width = 150
+        Caption = 'Cerrar'
+        Font.Style = [fsBold]
+        Layout = blGlyphTop
+        OnClick = btnCancelarClick
+        ParentFont = False
+        TabOrder = 2
+      end
+    end
   end
-  object chkBackupAntesRestore: TCheckBox
-    Left = 16
-    Height = 23
-    Top = 540
-    Width = 300
-    Caption = 'Crear backup actual antes de restaurar'
-    TabOrder = 5
+  object pnlOpciones: TPanel
+    Left = 0
+    Height = 116
+    Top = 556
+    Width = 1180
+    Align = alBottom
+    BevelOuter = bvNone
+    ParentColor = False
+    TabOrder = 3
+    object lblOpciones: TLabel
+      Left = 24
+      Height = 20
+      Top = 12
+      Width = 213
+      Caption = 'OPCIONES DE RESTAURACIÓN'
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
+    object chkBackupAntesRestore: TCheckBox
+      Left = 24
+      Height = 26
+      Top = 42
+      Width = 318
+      Caption = 'Crear backup actual antes de restaurar'
+      Font.Style = [fsBold]
+      ParentFont = False
+      TabOrder = 0
+    end
+    object chkRestoreConf: TCheckBox
+      Left = 24
+      Height = 26
+      Top = 76
+      Width = 238
+      Caption = 'Restaurar FacturConf.ini'
+      TabOrder = 1
+    end
+    object chkRestoreAria: TCheckBox
+      Left = 292
+      Height = 26
+      Top = 76
+      Width = 278
+      Caption = 'Restaurar ficheros globales Aria'
+      TabOrder = 2
+    end
   end
-  object chkRestoreConf: TCheckBox
-    Left = 16
-    Height = 23
-    Top = 568
-    Width = 220
-    Caption = 'Restaurar FacturConf.ini'
-    TabOrder = 6
-  end
-  object chkRestoreAria: TCheckBox
-    Left = 248
-    Height = 23
-    Top = 568
-    Width = 260
-    Caption = 'Restaurar ficheros globales Aria'
-    TabOrder = 7
-  end
-  object btnBackupAhora: TButton
-    Left = 716
-    Height = 30
-    Top = 564
-    Width = 110
-    Caption = 'Backup ahora'
-    OnClick = btnBackupAhoraClick
-    TabOrder = 8
-  end
-  object btnRestaurar: TButton
-    Left = 836
-    Height = 30
-    Top = 564
-    Width = 100
-    Caption = 'Restaurar'
-    OnClick = btnRestaurarClick
-    TabOrder = 9
-  end
-  object btnCancelar: TButton
-    Left = 946
-    Height = 30
-    Top = 564
-    Width = 100
-    Caption = 'Cancelar'
-    OnClick = btnCancelarClick
-    TabOrder = 10
+  object pnlMain: TPanel
+    Left = 0
+    Height = 360
+    Top = 196
+    Width = 1180
+    Align = alClient
+    BevelOuter = bvNone
+    ParentColor = False
+    TabOrder = 2
+    object pnlInfo: TPanel
+      Left = 790
+      Height = 360
+      Top = 0
+      Width = 390
+      Align = alRight
+      BevelOuter = bvNone
+      BorderSpacing.Left = 8
+      BorderSpacing.Right = 16
+      BorderSpacing.Top = 12
+      BorderSpacing.Bottom = 12
+      ParentColor = False
+      TabOrder = 1
+      object lblInfo: TLabel
+        Left = 0
+        Height = 30
+        Top = 0
+        Width = 374
+        Align = alTop
+        Caption = 'INFORMACIÓN DE LA COPIA'
+        Font.Style = [fsBold]
+        ParentFont = False
+      end
+      object MemoInfo: TMemo
+        Left = 0
+        Height = 306
+        Top = 30
+        Width = 374
+        Align = alClient
+        Color = clWhite
+        Font.Name = 'Monospace'
+        Font.Height = -12
+        ParentFont = False
+        ReadOnly = True
+        ScrollBars = ssVertical
+        TabOrder = 0
+      end
+    end
+    object pnlLista: TPanel
+      Left = 0
+      Height = 360
+      Top = 0
+      Width = 782
+      Align = alClient
+      BevelOuter = bvNone
+      BorderSpacing.Left = 16
+      BorderSpacing.Top = 12
+      BorderSpacing.Bottom = 12
+      ParentColor = False
+      TabOrder = 0
+      object lblBackups: TLabel
+        Left = 0
+        Height = 30
+        Top = 0
+        Width = 766
+        Align = alTop
+        Caption = 'COPIAS DISPONIBLES  ·  Pulsa una cabecera para ordenar'
+        Font.Style = [fsBold]
+        ParentFont = False
+      end
+      object GridBackups: TStringGrid
+        Left = 0
+        Height = 306
+        Top = 30
+        Width = 766
+        Align = alClient
+        AlternateColor = clWhite
+        ColCount = 5
+        DefaultRowHeight = 28
+        FixedCols = 0
+        OnClick = GridBackupsClick
+        OnMouseDown = GridBackupsMouseDown
+        OnSelection = GridBackupsSelection
+        Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goRowSelect]
+        RowCount = 2
+        TabOrder = 0
+      end
+    end
   end
   object SelectDirectoryDialog1: TSelectDirectoryDialog
-    left = 736
-    top = 560
+    left = 744
+    top = 704
   end
 end

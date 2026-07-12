@@ -128,6 +128,7 @@ type
     procedure TabSheet3Show(Sender: TObject);
 
   private
+    procedure AplicarEstiloModerno;
     { private declarations }
   public
     { public declarations }
@@ -175,6 +176,159 @@ begin
   if dbCambios.RecordCount>0 then Begin BitBtn9.Enabled:=True; BitBtn11.Enabled:=True end Else Begin BitBtn9.Enabled:=False; BitBtn11.Enabled:=False; end;
   PageControl1.ActivePage:=TabSheet1;
   LimpiaReg();
+  AplicarEstiloModerno();
+end;
+
+
+procedure TFEtiLineal.AplicarEstiloModerno;
+var
+  LTitulo, LSubtitulo, LAyuda: TLabel;
+  GBGenerar, GBPreparar: TGroupBox;
+  X: Integer;
+begin
+  Caption := 'Etiquetas de lineal';
+  Position := poScreenCenter;
+  WindowState := wsMaximized;
+  Color := $00F4F6F8;
+  Constraints.MinWidth := 1020;
+  Constraints.MinHeight := 680;
+
+  { Cabecera y acciones de impresión }
+  Panel2.Align := alTop;
+  Panel2.Height := 94;
+  Panel2.BevelOuter := bvNone;
+  Panel2.Color := clNavy;
+
+  LTitulo := TLabel.Create(Self);
+  LTitulo.Parent := Panel2;
+  LTitulo.SetBounds(22, 12, 390, 30);
+  LTitulo.Caption := 'GESTIÓN DE ETIQUETAS DE LINEAL';
+  LTitulo.ParentFont := False;
+  LTitulo.Font.Name := 'Sans';
+  LTitulo.Font.Height := -19;
+  LTitulo.Font.Style := [fsBold];
+  LTitulo.Font.Color := clWhite;
+
+  LSubtitulo := TLabel.Create(Self);
+  LSubtitulo.Parent := Panel2;
+  LSubtitulo.SetBounds(23, 47, 420, 22);
+  LSubtitulo.Caption := 'Genere, prepare, revise e imprima las etiquetas del establecimiento.';
+  LSubtitulo.ParentFont := False;
+  LSubtitulo.Font.Name := 'Sans';
+  LSubtitulo.Font.Height := -12;
+  LSubtitulo.Font.Color := clSilver;
+
+  RadioGroup2.Parent := Panel2;
+  RadioGroup2.SetBounds(430, 9, 190, 76);
+  RadioGroup2.Anchors := [akTop, akRight];
+  RadioGroup2.Color := clWhite;
+  RadioGroup2.ParentFont := False;
+  RadioGroup2.Font.Height := -12;
+
+  X := Panel2.ClientWidth - 374;
+  BitBtn9.SetBounds(X, 20, 112, 54);
+  BitBtn9.Anchors := [akTop, akRight];
+  BitBtn9.Layout := blGlyphLeft;
+  BitBtn10.SetBounds(X + 120, 20, 112, 54);
+  BitBtn10.Anchors := [akTop, akRight];
+  BitBtn10.Layout := blGlyphLeft;
+  BitBtn11.SetBounds(X + 240, 20, 112, 54);
+  BitBtn11.Anchors := [akTop, akRight];
+  BitBtn11.Layout := blGlyphLeft;
+
+  { Área central }
+  PageControl1.Align := alClient;
+  PageControl1.BorderSpacing.Around := 12;
+  PageControl1.ParentFont := False;
+  PageControl1.Font.Name := 'Sans';
+  PageControl1.Font.Height := -13;
+  TabSheet1.Color := clWhite;
+  TabSheet2.Color := clWhite;
+  TabSheet3.Color := clWhite;
+
+  GBGenerar := TGroupBox.Create(Self);
+  GBGenerar.Parent := TabSheet1;
+  GBGenerar.SetBounds(18, 18, 710, 286);
+  GBGenerar.Caption := ' FILTROS PARA GENERAR ETIQUETAS ';
+  GBGenerar.ParentFont := False;
+  GBGenerar.Font.Name := 'Sans';
+  GBGenerar.Font.Height := -13;
+  GBGenerar.Font.Style := [fsBold];
+  GBGenerar.Color := clWhite;
+
+  Label1.Parent := GBGenerar; Edit1.Parent := GBGenerar; BitBtn13.Parent := GBGenerar;
+  Label2.Parent := GBGenerar; Edit2.Parent := GBGenerar; BitBtn14.Parent := GBGenerar;
+  Label3.Parent := GBGenerar; Edit3.Parent := GBGenerar; Edit4.Parent := GBGenerar; BitBtn15.Parent := GBGenerar;
+  Label4.Parent := GBGenerar; Edit5.Parent := GBGenerar; Edit6.Parent := GBGenerar; BitBtn16.Parent := GBGenerar;
+  Label5.Parent := GBGenerar; DateEdit1.Parent := GBGenerar;
+  Label6.Parent := GBGenerar; DateEdit2.Parent := GBGenerar;
+
+  Label1.SetBounds(18, 38, 112, 22); Edit1.SetBounds(138, 32, 168, 31); BitBtn13.SetBounds(312, 32, 32, 31);
+  Label2.SetBounds(365, 38, 112, 22); Edit2.SetBounds(482, 32, 168, 31); BitBtn14.SetBounds(656, 32, 32, 31);
+  Label3.SetBounds(18, 94, 112, 22); Edit3.SetBounds(138, 88, 82, 31); BitBtn15.SetBounds(226, 88, 32, 31); Edit4.SetBounds(264, 88, 424, 31);
+  Label4.SetBounds(18, 150, 112, 22); Edit5.SetBounds(138, 144, 82, 31); BitBtn16.SetBounds(226, 144, 32, 31); Edit6.SetBounds(264, 144, 424, 31);
+  Label5.SetBounds(18, 206, 118, 22); DateEdit1.SetBounds(138, 200, 130, 31);
+  Label6.SetBounds(340, 206, 118, 22); DateEdit2.SetBounds(462, 200, 130, 31);
+
+  RadioGroup1.Parent := TabSheet1;
+  RadioGroup1.SetBounds(TabSheet1.ClientWidth - 246, 18, 220, 112);
+  RadioGroup1.Anchors := [akTop, akRight];
+  RadioGroup1.Color := clWhite;
+  RadioGroup1.ParentFont := False;
+  RadioGroup1.Font.Height := -13;
+
+  LAyuda := TLabel.Create(Self);
+  LAyuda.Parent := TabSheet1;
+  LAyuda.SetBounds(TabSheet1.ClientWidth - 242, 148, 214, 90);
+  LAyuda.Anchors := [akTop, akRight];
+  LAyuda.AutoSize := False;
+  LAyuda.WordWrap := True;
+  LAyuda.Caption := 'Seleccione el origen de los códigos y complete únicamente los filtros que necesite.';
+  LAyuda.ParentFont := False;
+  LAyuda.Font.Name := 'Sans';
+  LAyuda.Font.Height := -12;
+  LAyuda.Font.Color := $00606060;
+
+  GBPreparar := TGroupBox.Create(Self);
+  GBPreparar.Parent := TabSheet2;
+  GBPreparar.SetBounds(20, 20, 760, 284);
+  GBPreparar.Caption := ' DATOS DE LA ETIQUETA ';
+  GBPreparar.ParentFont := False;
+  GBPreparar.Font.Name := 'Sans';
+  GBPreparar.Font.Height := -13;
+  GBPreparar.Font.Style := [fsBold];
+  GBPreparar.Color := clWhite;
+
+  Label7.Parent := GBPreparar; Edit7.Parent := GBPreparar;
+  Label8.Parent := GBPreparar; Combo1.Parent := GBPreparar; Edit8.Parent := GBPreparar;
+  Label9.Parent := GBPreparar; Edit9.Parent := GBPreparar;
+  Label7.SetBounds(22, 46, 120, 22); Edit7.SetBounds(154, 40, 190, 31);
+  Label8.SetBounds(22, 108, 120, 22); Combo1.SetBounds(154, 102, 560, 31); Edit8.SetBounds(154, 102, 560, 31);
+  Label9.SetBounds(22, 170, 120, 22); Edit9.SetBounds(154, 164, 160, 31);
+
+  DBGrid1.Align := alClient;
+  DBGrid1.BorderSpacing.Around := 12;
+  DBGrid1.Color := clWhite;
+  DBGrid1.ParentFont := False;
+  DBGrid1.Font.Name := 'Sans';
+  DBGrid1.Font.Height := -13;
+
+  { Barra inferior de mantenimiento y navegación }
+  Panel1.Align := alBottom;
+  Panel1.Height := 74;
+  Panel1.BevelOuter := bvNone;
+  Panel1.Color := clWhite;
+
+  BitBtn1.SetBounds(12, 10, 112, 52); BitBtn1.Layout := blGlyphLeft;
+  BitBtn2.SetBounds(132, 10, 112, 52); BitBtn2.Layout := blGlyphLeft;
+  BitBtn3.SetBounds(252, 10, 112, 52); BitBtn3.Layout := blGlyphLeft;
+  BitBtn4.SetBounds(372, 10, 112, 52); BitBtn4.Caption := 'Refrescar'; BitBtn4.Layout := blGlyphLeft;
+  BitBtn5.SetBounds(492, 10, 112, 52); BitBtn5.Layout := blGlyphLeft;
+  BitBtn6.SetBounds(612, 10, 112, 52); BitBtn6.Layout := blGlyphLeft;
+  BitBtn7.SetBounds(732, 10, 112, 52); BitBtn7.Layout := blGlyphLeft;
+  BitBtn8.SetBounds(Panel1.ClientWidth - 124, 10, 112, 52);
+  BitBtn8.Anchors := [akTop, akRight];
+  BitBtn8.Layout := blGlyphLeft;
 end;
 
 procedure TFEtiLineal.BitBtn1Click(Sender: TObject);

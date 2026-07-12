@@ -61,6 +61,11 @@ var
   RoturaStock: String;
 
   ClienteVario: String;
+  // Configuracion cliente desde NIF/CIF escrito en codigo de venta.
+  // Por defecto conserva el comportamiento historico: buscar NIF y usar siguiente codigo normal.
+  ClientesBuscarNIFDesdeCodigo: String;
+  ClientesModoCodigoAltaNIF: String;
+  ClientesCodigoSuperiorDesde: Integer;
   CgSegCajon: String;
   txtMoneda: string;
 
@@ -396,6 +401,19 @@ begin
 
     ClienteVario:= IniReader.ReadString('CGeneral','CgClienteVario','');
     if ClienteVario='' then ClienteVario:='999999';
+
+    ClientesBuscarNIFDesdeCodigo:=UpperCase(Trim(IniReader.ReadString('CGeneral','ClientesBuscarNIFDesdeCodigo','S')));
+    if (ClientesBuscarNIFDesdeCodigo<>'S') and (ClientesBuscarNIFDesdeCodigo<>'N') then
+      ClientesBuscarNIFDesdeCodigo:='S';
+
+    ClientesModoCodigoAltaNIF:=UpperCase(Trim(IniReader.ReadString('CGeneral','ClientesModoCodigoAltaNIF','SIGUIENTE_NORMAL')));
+    if (ClientesModoCodigoAltaNIF<>'SIGUIENTE_NORMAL') and
+       (ClientesModoCodigoAltaNIF<>'NIF_SIN_LETRA') and
+       (ClientesModoCodigoAltaNIF<>'SIGUIENTE_SUPERIOR') then
+      ClientesModoCodigoAltaNIF:='SIGUIENTE_NORMAL';
+
+    ClientesCodigoSuperiorDesde:=StrToIntDef(Trim(IniReader.ReadString('CGeneral','ClientesCodigoSuperiorDesde','999999')),999999);
+    if ClientesCodigoSuperiorDesde<0 then ClientesCodigoSuperiorDesde:=999999;
 
     CgSegCajon:= IniReader.ReadString('CGeneral','CgSeguroCajon','');
 
