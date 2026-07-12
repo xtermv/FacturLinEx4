@@ -9,7 +9,7 @@ procedure MostrarConfigActualizacionesFLX(const AIniFile, ACurrentExecutable: st
 implementation
 
 uses
-  Classes, SysUtils, Forms, Controls, StdCtrls, ExtCtrls, Dialogs, IniFiles, Process, ComCtrls, ZDataset, BaseUnix, Global;
+  Classes, SysUtils, Forms, Controls, Graphics, StdCtrls, ExtCtrls, Dialogs, IniFiles, Process, ComCtrls, ZDataset, BaseUnix, Global;
 
 const
   FLX_UPD_SECTION = 'Actualizaciones';
@@ -418,6 +418,8 @@ type
   private
     FIniFile: string;
     FCurrentExecutable: string;
+    PnlHeader: TPanel;
+    GBInfo: TGroupBox;
     Page: TPageControl;
     TabConfig, TabDB, TabHist, TabRec, TabReport: TTabSheet;
     GBConfig, GBGen, GBDBInfo, GBDBCheck, GBHist, GBRec, GBReport: TGroupBox;
@@ -476,36 +478,84 @@ var
 begin
   L := TLabel.Create(Self);
   L.Parent := AParent;
-  L.Left := 12;
-  L.Top := Y + 4;
+  L.Left := 18;
+  L.Top := Y + 5;
   L.Caption := ACaption;
+  L.ParentFont := False;
+  L.Font.Name := 'Sans';
+  L.Font.Height := -13;
+  L.Font.Style := [];
+  L.Font.Color := $00404040;
 
   Result := TEdit.Create(Self);
   Result.Parent := AParent;
-  Result.Left := 165;
+  Result.Left := 190;
   Result.Top := Y;
   Result.Width := AWidth;
+  Result.Height := 27;
   Result.Text := AText;
-  Inc(Y, 30);
+  Result.ParentFont := False;
+  Result.Font.Name := 'Sans';
+  Result.Font.Height := -13;
+  Result.Font.Style := [];
+  Inc(Y, 34);
 end;
 
 function TFLXUpdateConfigForm.AddCheck(AParent: TWinControl; const ACaption: string; AChecked: Boolean; var Y: Integer): TCheckBox;
 begin
   Result := TCheckBox.Create(Self);
   Result.Parent := AParent;
-  Result.Left := 165;
+  Result.Left := 190;
   Result.Top := Y;
-  Result.Width := 320;
-  Result.Height := 26;
+  Result.Width := 360;
+  Result.Height := 28;
   Result.Caption := ACaption;
   Result.Checked := AChecked;
-  Inc(Y, 28);
+  Result.ParentFont := False;
+  Result.Font.Name := 'Sans';
+  Result.Font.Height := -13;
+  Result.Font.Style := [];
+  Inc(Y, 30);
 end;
 
 constructor TFLXUpdateConfigForm.CreateConfig(AOwner: TComponent; const AIniFile, ACurrentExecutable: string);
 var
-  Y: Integer;
-  L: TLabel;
+  Y, YIzq, YDer: Integer;
+  L, LTitle, LSubTitle: TLabel;
+
+  procedure PrepararTab(ATab: TTabSheet);
+  begin
+    ATab.Color := $00F3F5F7;
+    ATab.ParentFont := False;
+    ATab.Font.Name := 'Sans';
+    ATab.Font.Height := -13;
+  end;
+
+  procedure PrepararGrupo(AGrupo: TGroupBox; const ACaption: string);
+  begin
+    AGrupo.Caption := ACaption;
+    AGrupo.Color := clWhite;
+    AGrupo.ParentColor := False;
+    AGrupo.ParentFont := False;
+    AGrupo.Font.Name := 'Sans';
+    AGrupo.Font.Height := -13;
+    AGrupo.Font.Style := [];
+  end;
+
+  procedure PrepararBoton(ABoton: TButton; const ACaption: string; AClick: TNotifyEvent; APrincipal: Boolean = False);
+  begin
+    ABoton.Caption := ACaption;
+    ABoton.Height := 34;
+    ABoton.OnClick := AClick;
+    ABoton.ParentFont := False;
+    ABoton.Font.Name := 'Sans';
+    ABoton.Font.Height := -13;
+    if APrincipal then
+      ABoton.Font.Style := [fsBold]
+    else
+      ABoton.Font.Style := [];
+  end;
+
 begin
   inherited CreateNew(AOwner, 1);
   FIniFile := AIniFile;
@@ -513,119 +563,150 @@ begin
 
   Caption := 'Configuración de actualizaciones FacturLinEx';
   Position := poScreenCenter;
-  Width := 900;
-  Height := 820;
-  Constraints.MinWidth := 840;
+  BorderStyle := bsSizeable;
+  BorderIcons := [biSystemMenu, biMinimize, biMaximize];
+  WindowState := wsMaximized;
+  Width := 1280;
+  Height := 860;
+  Constraints.MinWidth := 1000;
   Constraints.MinHeight := 760;
+  Color := $00F3F5F7;
+  ParentFont := False;
+  Font.Name := 'Sans';
+  Font.Height := -13;
   OnResize := @FormResize;
+
+  PnlHeader := TPanel.Create(Self);
+  PnlHeader.Parent := Self;
+  PnlHeader.Align := alTop;
+  PnlHeader.Height := 76;
+  PnlHeader.BevelOuter := bvNone;
+  PnlHeader.Color := clNavy;
+
+  LTitle := TLabel.Create(Self);
+  LTitle.Parent := PnlHeader;
+  LTitle.Left := 20;
+  LTitle.Top := 11;
+  LTitle.Caption := 'ACTUALIZADOR Y MANTENIMIENTO FACTURLINEX';
+  LTitle.ParentFont := False;
+  LTitle.Font.Name := 'Sans';
+  LTitle.Font.Height := -21;
+  LTitle.Font.Style := [fsBold];
+  LTitle.Font.Color := clWhite;
+
+  LSubTitle := TLabel.Create(Self);
+  LSubTitle.Parent := PnlHeader;
+  LSubTitle.Left := 22;
+  LSubTitle.Top := 43;
+  LSubTitle.Caption := 'Configuración del actualizador, publicación de versiones, estructura BBDD, historial, recuperación e informe del puesto.';
+  LSubTitle.ParentFont := False;
+  LSubTitle.Font.Name := 'Sans';
+  LSubTitle.Font.Height := -12;
+  LSubTitle.Font.Color := clSilver;
+
+  BtnCerrar := TButton.Create(Self);
+  BtnCerrar.Parent := PnlHeader;
+  BtnCerrar.Width := 110;
+  BtnCerrar.Height := 34;
+  BtnCerrar.Left := PnlHeader.Width - BtnCerrar.Width - 72;
+  BtnCerrar.Top := 20;
+  BtnCerrar.Anchors := [akTop, akRight];
+  PrepararBoton(BtnCerrar, 'Cerrar', @BtnCerrarClick, False);
 
   Page := TPageControl.Create(Self);
   Page.Parent := Self;
   Page.Align := alClient;
+  Page.TabPosition := tpTop;
 
   TabConfig := TTabSheet.Create(Self);
   TabConfig.PageControl := Page;
-  TabConfig.Caption := 'Configuración';
+  TabConfig.Caption := 'Actualizador';
+  PrepararTab(TabConfig);
 
   TabDB := TTabSheet.Create(Self);
   TabDB.PageControl := Page;
   TabDB.Caption := 'Base de datos';
+  PrepararTab(TabDB);
 
   TabHist := TTabSheet.Create(Self);
   TabHist.PageControl := Page;
   TabHist.Caption := 'Historial';
+  PrepararTab(TabHist);
 
   TabRec := TTabSheet.Create(Self);
   TabRec.PageControl := Page;
   TabRec.Caption := 'Recuperación';
+  PrepararTab(TabRec);
 
   TabReport := TTabSheet.Create(Self);
   TabReport.PageControl := Page;
   TabReport.Caption := 'Informe';
+  PrepararTab(TabReport);
 
-  { IMPORTANTE: diseño fijo y simple.
-    No usamos Align para los botones para evitar que desaparezcan en LXDE/LXQt/Openbox
-    por cambios de tamaño o por orden de creación de paneles. }
-
+  { CONFIGURACION }
   GBConfig := TGroupBox.Create(Self);
   GBConfig.Parent := TabConfig;
-  GBConfig.Caption := 'Configuración local del actualizador';
-  GBConfig.SetBounds(10, 10, ClientWidth - 20, 365);
+  PrepararGrupo(GBConfig, ' CONFIGURACIÓN LOCAL DEL ACTUALIZADOR ');
 
-  Y := 25;
-  EdURL := AddLabelEdit(GBConfig, 'Origen / URL:', '', Y, 660);
-  EdExeLocal := AddLabelEdit(GBConfig, 'Ejecutable local:', '/usr/bin/FacturLinEx', Y, 660);
-  EdCanal := AddLabelEdit(GBConfig, 'Canal:', 'estable', Y, 180);
-  EdVersionLocal := AddLabelEdit(GBConfig, 'Versión local:', '', Y, 180);
-  EdTmp := AddLabelEdit(GBConfig, 'Ruta temporal:', '/tmp/facturlinex_update', Y, 660);
-  EdLog := AddLabelEdit(GBConfig, 'Log:', '', Y, 660);
+  Y := 28;
+  EdURL := AddLabelEdit(GBConfig, 'Origen / URL', '', Y, 900);
+  EdExeLocal := AddLabelEdit(GBConfig, 'Ejecutable local', '/usr/bin/FacturLinEx', Y, 900);
+  EdCanal := AddLabelEdit(GBConfig, 'Canal', 'estable', Y, 200);
+  EdVersionLocal := AddLabelEdit(GBConfig, 'Versión local', '', Y, 200);
+  EdTmp := AddLabelEdit(GBConfig, 'Ruta temporal', '/tmp/facturlinex_update', Y, 900);
+  EdLog := AddLabelEdit(GBConfig, 'Fichero de log', '', Y, 900);
 
-  { CheckBox en dos columnas para que no se corten en temas GTK/LXQt
-    con fuentes grandes y para dejar sitio a futuras opciones. }
-  CkActivar := AddCheck(GBConfig, 'Activar actualizador', False, Y);
-  CkPreparar := AddCheck(GBConfig, 'Preparar descarga antes de instalar', True, Y);
-  CkSinSHA := AddCheck(GBConfig, 'Permitir instalar sin SHA256 (NO recomendado)', False, Y);
+  YIzq := Y + 2;
+  CkActivar := AddCheck(GBConfig, 'Activar actualizador', False, YIzq);
+  CkPreparar := AddCheck(GBConfig, 'Preparar descarga antes de instalar', True, YIzq);
+  CkSinSHA := AddCheck(GBConfig, 'Permitir instalar sin SHA256 (NO recomendado)', False, YIzq);
 
-  Y := CkActivar.Top;
-  CkComprobar := AddCheck(GBConfig, 'Comprobar al inicio', True, Y);
-  CkInstalar := AddCheck(GBConfig, 'Permitir instalación real con pkexec', False, Y);
-  CkReiniciar := AddCheck(GBConfig, 'Reiniciar FacturLinEx tras actualizar', False, Y);
-
-  CkComprobar.Left := 500;
-  CkInstalar.Left := 500;
-  CkReiniciar.Left := 500;
+  YDer := Y + 2;
+  CkComprobar := AddCheck(GBConfig, 'Comprobar al inicio', True, YDer);
+  CkInstalar := AddCheck(GBConfig, 'Permitir instalación real con pkexec', False, YDer);
+  CkReiniciar := AddCheck(GBConfig, 'Reiniciar FacturLinEx tras actualizar', False, YDer);
 
   GBGen := TGroupBox.Create(Self);
   GBGen.Parent := TabConfig;
-  GBGen.Caption := 'Generador de version.ini para publicar una nueva versión';
-  GBGen.SetBounds(10, 385, ClientWidth - 20, 190);
+  PrepararGrupo(GBGen, ' PUBLICAR UNA NUEVA VERSIÓN / GENERAR VERSION.INI ');
 
-  Y := 25;
-  EdGenExe := AddLabelEdit(GBGen, 'Nuevo ejecutable:', '', Y, 660);
-  EdGenVersion := AddLabelEdit(GBGen, 'Nueva versión:', '', Y, 180);
-  EdGenCanal := AddLabelEdit(GBGen, 'Canal:', 'estable', Y, 180);
-  EdGenFichero := AddLabelEdit(GBGen, 'Fichero publicado:', 'FacturLinEx', Y, 260);
-  EdGenDBVersion := AddLabelEdit(GBGen, 'Versión estructura BBDD:', '', Y, 180);
-  EdGenSalida := AddLabelEdit(GBGen, 'Carpeta salida:', '', Y, 660);
+  Y := 28;
+  EdGenExe := AddLabelEdit(GBGen, 'Nuevo ejecutable', '', Y, 900);
+  EdGenVersion := AddLabelEdit(GBGen, 'Nueva versión', '', Y, 200);
+  EdGenCanal := AddLabelEdit(GBGen, 'Canal', 'estable', Y, 200);
+  EdGenFichero := AddLabelEdit(GBGen, 'Fichero publicado', 'FacturLinEx', Y, 280);
+  EdGenDBVersion := AddLabelEdit(GBGen, 'Versión estructura BBDD', '', Y, 200);
+  EdGenSalida := AddLabelEdit(GBGen, 'Carpeta de salida', '', Y, 900);
 
   BtnUsarLocal := TButton.Create(Self);
   BtnUsarLocal.Parent := TabConfig;
-  BtnUsarLocal.Caption := 'Usar ejecutable local';
-  BtnUsarLocal.SetBounds(175, 585, 170, 32);
-  BtnUsarLocal.OnClick := @BtnUsarLocalClick;
+  BtnUsarLocal.Width := 180;
+  PrepararBoton(BtnUsarLocal, 'Usar ejecutable local', @BtnUsarLocalClick, False);
 
   BtnGenerar := TButton.Create(Self);
   BtnGenerar.Parent := TabConfig;
-  BtnGenerar.Caption := 'Generar version.ini';
-  BtnGenerar.SetBounds(360, 585, 170, 32);
-  BtnGenerar.OnClick := @BtnGenerarClick;
+  BtnGenerar.Width := 180;
+  PrepararBoton(BtnGenerar, 'Generar version.ini', @BtnGenerarClick, False);
 
   BtnGuardar := TButton.Create(Self);
   BtnGuardar.Parent := TabConfig;
-  BtnGuardar.Caption := 'Guardar configuración';
-  BtnGuardar.SetBounds(545, 585, 170, 32);
-  BtnGuardar.OnClick := @BtnGuardarClick;
+  BtnGuardar.Width := 190;
+  PrepararBoton(BtnGuardar, 'Guardar configuración', @BtnGuardarClick, True);
 
-  BtnCerrar := TButton.Create(Self);
-  BtnCerrar.Parent := TabConfig;
-  BtnCerrar.Caption := 'Cerrar';
-  BtnCerrar.SetBounds(ClientWidth - 140, 585, 120, 32);
-  BtnCerrar.Anchors := [akTop, akRight];
-  BtnCerrar.OnClick := @BtnCerrarClick;
-  BtnCerrar.BringToFront;
-
-  L := TLabel.Create(Self);
-  L.Parent := TabConfig;
-  L.Left := 10;
-  L.Top := 625;
-  L.Caption := 'Información / resultado:';
+  GBInfo := TGroupBox.Create(Self);
+  GBInfo.Parent := TabConfig;
+  PrepararGrupo(GBInfo, ' INFORMACIÓN Y RESULTADO ');
 
   MemoInfo := TMemo.Create(Self);
-  MemoInfo.Parent := TabConfig;
-  MemoInfo.SetBounds(10, 645, ClientWidth - 20, ClientHeight - 655);
-  MemoInfo.Anchors := [akLeft, akTop, akRight, akBottom];
+  MemoInfo.Parent := GBInfo;
+  MemoInfo.Align := alClient;
+  MemoInfo.BorderSpacing.Around := 10;
   MemoInfo.ScrollBars := ssAutoBoth;
   MemoInfo.ReadOnly := True;
+  MemoInfo.Color := clWhite;
+  MemoInfo.ParentFont := False;
+  MemoInfo.Font.Name := 'Monospace';
+  MemoInfo.Font.Height := -12;
   MemoInfo.Lines.Text :=
     'Notas:' + LineEnding +
     '- El origen puede ser una carpeta local, una ruta montada o una URL http/https.' + LineEnding +
@@ -634,166 +715,171 @@ begin
     '- Si falta la carpeta logs, se creará automáticamente.' + LineEnding +
     '- Guardar configuración actualiza la sección [Actualizaciones] de FacturConf.ini.';
 
-
+  { BASE DE DATOS }
   GBDBInfo := TGroupBox.Create(Self);
   GBDBInfo.Parent := TabDB;
-  GBDBInfo.Caption := 'Comprobación de estructura de base de datos (solo lectura)';
-  GBDBInfo.SetBounds(10, 10, TabDB.ClientWidth - 20, 155);
+  PrepararGrupo(GBDBInfo, ' COMPROBACIÓN DE ESTRUCTURA DE BASE DE DATOS ');
 
   L := TLabel.Create(Self);
   L.Parent := GBDBInfo;
-  L.Left := 12;
-  L.Top := 28;
-  L.Caption := 'SQL referencia:';
+  L.Left := 18;
+  L.Top := 30;
+  L.Caption := 'SQL de referencia';
 
   EdDBSql := TEdit.Create(Self);
   EdDBSql.Parent := GBDBInfo;
-  EdDBSql.Left := 115;
-  EdDBSql.Top := 24;
-  EdDBSql.Width := 560;
+  EdDBSql.Left := 150;
+  EdDBSql.Top := 25;
+  EdDBSql.Height := 27;
 
   L := TLabel.Create(Self);
   L.Parent := GBDBInfo;
-  L.Left := 12;
-  L.Top := 62;
-  L.Caption := 'Versión estructura:';
+  L.Left := 18;
+  L.Top := 70;
+  L.Caption := 'Versión estructura';
 
   EdDBVersion := TEdit.Create(Self);
   EdDBVersion.Parent := GBDBInfo;
-  EdDBVersion.Left := 115;
-  EdDBVersion.Top := 58;
-  EdDBVersion.Width := 180;
+  EdDBVersion.Left := 150;
+  EdDBVersion.Top := 65;
+  EdDBVersion.Width := 190;
+  EdDBVersion.Height := 27;
   EdDBVersion.Text := '';
-
-  BtnDBVerVersion := TButton.Create(Self);
-  BtnDBVerVersion.Parent := GBDBInfo;
-  BtnDBVerVersion.Caption := 'Ver versión BBDD';
-  BtnDBVerVersion.SetBounds(310, 56, 150, 30);
-  BtnDBVerVersion.OnClick := @BtnDBVerVersionClick;
-
-  BtnDBMarcarVersion := TButton.Create(Self);
-  BtnDBMarcarVersion.Parent := GBDBInfo;
-  BtnDBMarcarVersion.Caption := 'Marcar versión aplicada';
-  BtnDBMarcarVersion.SetBounds(475, 56, 180, 30);
-  BtnDBMarcarVersion.OnClick := @BtnDBMarcarVersionClick;
 
   BtnDBExaminar := TButton.Create(Self);
   BtnDBExaminar.Parent := GBDBInfo;
-  BtnDBExaminar.Caption := 'Examinar';
-  BtnDBExaminar.SetBounds(690, 22, 100, 30);
-  BtnDBExaminar.OnClick := @BtnDBExaminarClick;
+  BtnDBExaminar.Width := 110;
+  PrepararBoton(BtnDBExaminar, 'Examinar', @BtnDBExaminarClick, False);
+
+  BtnDBVerVersion := TButton.Create(Self);
+  BtnDBVerVersion.Parent := GBDBInfo;
+  BtnDBVerVersion.Width := 155;
+  PrepararBoton(BtnDBVerVersion, 'Ver versión BBDD', @BtnDBVerVersionClick, False);
+
+  BtnDBMarcarVersion := TButton.Create(Self);
+  BtnDBMarcarVersion.Parent := GBDBInfo;
+  BtnDBMarcarVersion.Width := 185;
+  PrepararBoton(BtnDBMarcarVersion, 'Marcar versión aplicada', @BtnDBMarcarVersionClick, False);
 
   BtnDBComprobar := TButton.Create(Self);
   BtnDBComprobar.Parent := GBDBInfo;
-  BtnDBComprobar.Caption := 'Comprobar estructura';
-  BtnDBComprobar.SetBounds(115, 100, 180, 34);
-  BtnDBComprobar.OnClick := @BtnDBComprobarClick;
+  BtnDBComprobar.Width := 185;
+  PrepararBoton(BtnDBComprobar, 'Comprobar estructura', @BtnDBComprobarClick, True);
 
   BtnDBGenerarPlan := TButton.Create(Self);
   BtnDBGenerarPlan.Parent := GBDBInfo;
-  BtnDBGenerarPlan.Caption := 'Generar SQL sugerido';
-  BtnDBGenerarPlan.SetBounds(310, 100, 180, 34);
-  BtnDBGenerarPlan.OnClick := @BtnDBGenerarPlanClick;
+  BtnDBGenerarPlan.Width := 185;
+  PrepararBoton(BtnDBGenerarPlan, 'Generar SQL sugerido', @BtnDBGenerarPlanClick, False);
 
   BtnDBAplicarPlan := TButton.Create(Self);
   BtnDBAplicarPlan.Parent := GBDBInfo;
-  BtnDBAplicarPlan.Caption := 'Aplicar SQL sugerido';
-  BtnDBAplicarPlan.SetBounds(505, 100, 180, 34);
-  BtnDBAplicarPlan.OnClick := @BtnDBAplicarPlanClick;
+  BtnDBAplicarPlan.Width := 185;
+  PrepararBoton(BtnDBAplicarPlan, 'Aplicar SQL sugerido', @BtnDBAplicarPlanClick, False);
 
   L := TLabel.Create(Self);
   L.Parent := GBDBInfo;
-  L.Left := 700;
-  L.Top := 108;
-  L.Caption := 'Hace copia antes de ejecutar.';
+  L.Left := 760;
+  L.Top := 126;
+  L.Caption := 'Se realiza una copia antes de ejecutar.';
+  L.Font.Color := clGray;
 
   GBDBCheck := TGroupBox.Create(Self);
   GBDBCheck.Parent := TabDB;
-  GBDBCheck.Caption := 'Resultado';
-  GBDBCheck.SetBounds(10, 175, TabDB.ClientWidth - 20, TabDB.ClientHeight - 185);
+  PrepararGrupo(GBDBCheck, ' RESULTADO DEL ANÁLISIS ');
 
   MemoDB := TMemo.Create(Self);
   MemoDB.Parent := GBDBCheck;
-  MemoDB.SetBounds(10, 25, GBDBCheck.ClientWidth - 20, GBDBCheck.ClientHeight - 35);
-  MemoDB.Anchors := [akLeft, akTop, akRight, akBottom];
+  MemoDB.Align := alClient;
+  MemoDB.BorderSpacing.Around := 10;
   MemoDB.ScrollBars := ssAutoBoth;
   MemoDB.ReadOnly := True;
+  MemoDB.Color := clWhite;
+  MemoDB.ParentFont := False;
+  MemoDB.Font.Name := 'Monospace';
+  MemoDB.Font.Height := -12;
   MemoDB.Lines.Text :=
     'Fase BBDD v7: diagnóstico, plan SQL seguro, copia previa, historial y versión de estructura.' + LineEnding +
     'Seleccione un .sql de estructura generado con mysqldump --no-data y pulse Comprobar estructura.' + LineEnding +
     'Después puede generar un SQL sugerido para revisar. La aplicación del plan hace copia previa, pide confirmación y registra historial.';
 
+  { HISTORIAL }
   GBHist := TGroupBox.Create(Self);
   GBHist.Parent := TabHist;
-  GBHist.Caption := 'Historial de actualizaciones de estructura';
-  GBHist.SetBounds(10, 10, TabHist.ClientWidth - 20, TabHist.ClientHeight - 20);
+  PrepararGrupo(GBHist, ' HISTORIAL DE ACTUALIZACIONES DE ESTRUCTURA ');
 
   BtnHistRefrescar := TButton.Create(Self);
   BtnHistRefrescar.Parent := GBHist;
-  BtnHistRefrescar.Caption := 'Refrescar historial';
-  BtnHistRefrescar.SetBounds(12, 25, 170, 34);
-  BtnHistRefrescar.OnClick := @BtnHistRefrescarClick;
+  BtnHistRefrescar.SetBounds(14, 28, 180, 34);
+  PrepararBoton(BtnHistRefrescar, 'Refrescar historial', @BtnHistRefrescarClick, True);
 
   MemoHist := TMemo.Create(Self);
   MemoHist.Parent := GBHist;
-  MemoHist.SetBounds(10, 70, GBHist.ClientWidth - 20, GBHist.ClientHeight - 80);
+  MemoHist.SetBounds(12, 76, 700, 400);
   MemoHist.Anchors := [akLeft, akTop, akRight, akBottom];
   MemoHist.ScrollBars := ssAutoBoth;
   MemoHist.ReadOnly := True;
+  MemoHist.Color := clWhite;
+  MemoHist.ParentFont := False;
+  MemoHist.Font.Name := 'Monospace';
+  MemoHist.Font.Height := -12;
   MemoHist.Lines.Text :=
     'Aquí se mostrará el historial de cambios de estructura registrados en flx_update_history.' + LineEnding +
     'Pulse Refrescar historial para consultar la base de datos activa.';
 
+  { RECUPERACION }
   GBRec := TGroupBox.Create(Self);
   GBRec.Parent := TabRec;
-  GBRec.Caption := 'Recuperación y rollback revisable';
-  GBRec.SetBounds(10, 10, TabRec.ClientWidth - 20, TabRec.ClientHeight - 20);
+  PrepararGrupo(GBRec, ' RECUPERACIÓN Y ROLLBACK REVISABLE ');
 
   BtnRecRefrescar := TButton.Create(Self);
   BtnRecRefrescar.Parent := GBRec;
-  BtnRecRefrescar.Caption := 'Refrescar recuperación';
-  BtnRecRefrescar.SetBounds(12, 25, 190, 34);
-  BtnRecRefrescar.OnClick := @BtnRecRefrescarClick;
+  BtnRecRefrescar.SetBounds(14, 28, 200, 34);
+  PrepararBoton(BtnRecRefrescar, 'Refrescar recuperación', @BtnRecRefrescarClick, True);
 
   BtnRecGenerar := TButton.Create(Self);
   BtnRecGenerar.Parent := GBRec;
-  BtnRecGenerar.Caption := 'Generar rollback .sh';
-  BtnRecGenerar.SetBounds(220, 25, 190, 34);
-  BtnRecGenerar.OnClick := @BtnRecGenerarClick;
+  BtnRecGenerar.SetBounds(226, 28, 200, 34);
+  PrepararBoton(BtnRecGenerar, 'Generar rollback .sh', @BtnRecGenerarClick, False);
 
   MemoRec := TMemo.Create(Self);
   MemoRec.Parent := GBRec;
-  MemoRec.SetBounds(10, 70, GBRec.ClientWidth - 20, GBRec.ClientHeight - 80);
+  MemoRec.SetBounds(12, 76, 700, 400);
   MemoRec.Anchors := [akLeft, akTop, akRight, akBottom];
   MemoRec.ScrollBars := ssAutoBoth;
   MemoRec.ReadOnly := True;
+  MemoRec.Color := clWhite;
+  MemoRec.ParentFont := False;
+  MemoRec.Font.Name := 'Monospace';
+  MemoRec.Font.Height := -12;
   MemoRec.Lines.Text :=
     'Esta pestaña localiza copias .bak del ejecutable, ficheros temporales y genera un script rollback revisable.' + LineEnding +
     'No ejecuta el rollback automáticamente.';
 
+  { INFORME }
   GBReport := TGroupBox.Create(Self);
   GBReport.Parent := TabReport;
-  GBReport.Caption := 'Informe de mantenimiento del puesto';
-  GBReport.SetBounds(10, 10, TabReport.ClientWidth - 20, TabReport.ClientHeight - 20);
+  PrepararGrupo(GBReport, ' INFORME DE MANTENIMIENTO DEL PUESTO ');
 
   BtnReportGenerar := TButton.Create(Self);
   BtnReportGenerar.Parent := GBReport;
-  BtnReportGenerar.Caption := 'Generar informe';
-  BtnReportGenerar.SetBounds(12, 25, 170, 34);
-  BtnReportGenerar.OnClick := @BtnReportGenerarClick;
+  BtnReportGenerar.SetBounds(14, 28, 180, 34);
+  PrepararBoton(BtnReportGenerar, 'Generar informe', @BtnReportGenerarClick, True);
 
   BtnReportTodo := TButton.Create(Self);
   BtnReportTodo.Parent := GBReport;
-  BtnReportTodo.Caption := 'Comprobar todo';
-  BtnReportTodo.SetBounds(200, 25, 170, 34);
-  BtnReportTodo.OnClick := @BtnReportTodoClick;
+  BtnReportTodo.SetBounds(206, 28, 180, 34);
+  PrepararBoton(BtnReportTodo, 'Comprobar todo', @BtnReportTodoClick, False);
 
   MemoReport := TMemo.Create(Self);
   MemoReport.Parent := GBReport;
-  MemoReport.SetBounds(10, 70, GBReport.ClientWidth - 20, GBReport.ClientHeight - 80);
+  MemoReport.SetBounds(12, 76, 700, 400);
   MemoReport.Anchors := [akLeft, akTop, akRight, akBottom];
   MemoReport.ScrollBars := ssAutoBoth;
   MemoReport.ReadOnly := True;
+  MemoReport.Color := clWhite;
+  MemoReport.ParentFont := False;
+  MemoReport.Font.Name := 'Monospace';
+  MemoReport.Font.Height := -12;
   MemoReport.Lines.Text :=
     'Genera un informe de diagnóstico del actualizador, ejecutable, BBDD, historial y recuperación.' + LineEnding +
     'Comprobar todo realiza una revisión completa de solo lectura y genera el informe.' + LineEnding +
@@ -805,68 +891,93 @@ end;
 
 procedure TFLXUpdateConfigForm.RecolocarControles;
 var
-  WEdit: Integer;
+  W, H, EditW, ColDer, InfoTop, InfoH: Integer;
 begin
-  WEdit := TabConfig.ClientWidth - 220;
-  if WEdit < 300 then WEdit := 300;
+  if not Assigned(Page) then Exit;
 
-  GBConfig.SetBounds(10, 10, TabConfig.ClientWidth - 20, 365);
-  GBGen.SetBounds(10, 385, TabConfig.ClientWidth - 20, 190);
+  if Assigned(PnlHeader) and Assigned(BtnCerrar) then
+    BtnCerrar.Left := PnlHeader.ClientWidth - BtnCerrar.Width - 72;
 
-  EdURL.Width := WEdit;
-  EdExeLocal.Width := WEdit;
-  EdTmp.Width := WEdit;
-  EdLog.Width := WEdit;
-  EdGenExe.Width := WEdit;
-  EdGenSalida.Width := WEdit;
+  W := TabConfig.ClientWidth;
+  H := TabConfig.ClientHeight;
+  if W <= 0 then Exit;
 
-  { CheckBox en dos columnas dentro del grupo de configuración }
-  CkActivar.Left := 165;
-  CkPreparar.Left := 165;
-  CkSinSHA.Left := 165;
-  CkComprobar.Left := 500;
-  CkInstalar.Left := 500;
-  CkReiniciar.Left := 500;
+  GBConfig.SetBounds(14, 14, W - 28, 350);
+  EditW := GBConfig.ClientWidth - 210;
+  if EditW < 420 then EditW := 420;
+  EdURL.Width := EditW;
+  EdExeLocal.Width := EditW;
+  EdTmp.Width := EditW;
+  EdLog.Width := EditW;
 
-  CkActivar.Width := 320;
-  CkPreparar.Width := 320;
-  CkSinSHA.Width := 320;
-  CkComprobar.Width := GBConfig.ClientWidth - CkComprobar.Left - 15;
-  CkInstalar.Width := GBConfig.ClientWidth - CkInstalar.Left - 15;
-  CkReiniciar.Width := GBConfig.ClientWidth - CkReiniciar.Left - 15;
-  if CkComprobar.Width < 260 then CkComprobar.Width := 260;
-  if CkInstalar.Width < 260 then CkInstalar.Width := 260;
-  if CkReiniciar.Width < 260 then CkReiniciar.Width := 260;
+  ColDer := GBConfig.ClientWidth div 2 + 35;
+  CkActivar.Left := 190;
+  CkPreparar.Left := 190;
+  CkSinSHA.Left := 190;
+  CkComprobar.Left := ColDer;
+  CkInstalar.Left := ColDer;
+  CkReiniciar.Left := ColDer;
+  CkActivar.Width := ColDer - 205;
+  CkPreparar.Width := ColDer - 205;
+  CkSinSHA.Width := ColDer - 205;
+  CkComprobar.Width := GBConfig.ClientWidth - ColDer - 20;
+  CkInstalar.Width := GBConfig.ClientWidth - ColDer - 20;
+  CkReiniciar.Width := GBConfig.ClientWidth - ColDer - 20;
 
-  BtnCerrar.Left := TabConfig.ClientWidth - BtnCerrar.Width - 20;
-  MemoInfo.SetBounds(10, 645, TabConfig.ClientWidth - 20, TabConfig.ClientHeight - 655);
+  GBGen.SetBounds(14, 376, W - 28, 250);
+  EditW := GBGen.ClientWidth - 210;
+  if EditW < 420 then EditW := 420;
+  EdGenExe.Width := EditW;
+  EdGenSalida.Width := EditW;
+
+  BtnUsarLocal.SetBounds(18, 640, 180, 34);
+  BtnGenerar.SetBounds(210, 640, 180, 34);
+  BtnGuardar.SetBounds(W - 208, 640, 190, 34);
+
+  InfoTop := 686;
+  InfoH := H - InfoTop - 14;
+  if InfoH < 100 then InfoH := 100;
+  GBInfo.SetBounds(14, InfoTop, W - 28, InfoH);
 
   if Assigned(GBDBInfo) then
   begin
-    GBDBInfo.SetBounds(10, 10, TabDB.ClientWidth - 20, 155);
-    EdDBSql.Width := GBDBInfo.ClientWidth - 240;
-    BtnDBExaminar.Left := EdDBSql.Left + EdDBSql.Width + 10;
-    if Assigned(BtnDBGenerarPlan) then BtnDBGenerarPlan.Left := BtnDBComprobar.Left + BtnDBComprobar.Width + 15;
-    if Assigned(BtnDBAplicarPlan) then BtnDBAplicarPlan.Left := BtnDBGenerarPlan.Left + BtnDBGenerarPlan.Width + 15;
-    GBDBCheck.SetBounds(10, 175, TabDB.ClientWidth - 20, TabDB.ClientHeight - 185);
-    MemoDB.SetBounds(10, 25, GBDBCheck.ClientWidth - 20, GBDBCheck.ClientHeight - 35);
+    W := TabDB.ClientWidth;
+    H := TabDB.ClientHeight;
+    GBDBInfo.SetBounds(14, 14, W - 28, 184);
+    EdDBSql.Width := GBDBInfo.ClientWidth - 300;
+    if EdDBSql.Width < 360 then EdDBSql.Width := 360;
+    BtnDBExaminar.SetBounds(EdDBSql.Left + EdDBSql.Width + 12, 22, 110, 34);
+    BtnDBVerVersion.SetBounds(360, 62, 155, 34);
+    BtnDBMarcarVersion.SetBounds(528, 62, 185, 34);
+    BtnDBComprobar.SetBounds(150, 112, 185, 36);
+    BtnDBGenerarPlan.SetBounds(350, 112, 185, 36);
+    BtnDBAplicarPlan.SetBounds(550, 112, 185, 36);
+    GBDBCheck.SetBounds(14, 210, W - 28, H - 224);
   end;
+
   if Assigned(GBHist) then
   begin
-    GBHist.SetBounds(10, 10, TabHist.ClientWidth - 20, TabHist.ClientHeight - 20);
-    MemoHist.SetBounds(10, 70, GBHist.ClientWidth - 20, GBHist.ClientHeight - 80);
+    W := TabHist.ClientWidth;
+    H := TabHist.ClientHeight;
+    GBHist.SetBounds(14, 14, W - 28, H - 28);
+    MemoHist.SetBounds(12, 76, GBHist.ClientWidth - 24, GBHist.ClientHeight - 88);
   end;
+
   if Assigned(GBRec) then
   begin
-    GBRec.SetBounds(10, 10, TabRec.ClientWidth - 20, TabRec.ClientHeight - 20);
-    MemoRec.SetBounds(10, 70, GBRec.ClientWidth - 20, GBRec.ClientHeight - 80);
+    W := TabRec.ClientWidth;
+    H := TabRec.ClientHeight;
+    GBRec.SetBounds(14, 14, W - 28, H - 28);
+    MemoRec.SetBounds(12, 76, GBRec.ClientWidth - 24, GBRec.ClientHeight - 88);
   end;
+
   if Assigned(GBReport) then
   begin
-    GBReport.SetBounds(10, 10, TabReport.ClientWidth - 20, TabReport.ClientHeight - 20);
-    MemoReport.SetBounds(10, 70, GBReport.ClientWidth - 20, GBReport.ClientHeight - 80);
+    W := TabReport.ClientWidth;
+    H := TabReport.ClientHeight;
+    GBReport.SetBounds(14, 14, W - 28, H - 28);
+    MemoReport.SetBounds(12, 76, GBReport.ClientWidth - 24, GBReport.ClientHeight - 88);
   end;
-  if MemoInfo.Height < 90 then MemoInfo.Height := 90;
 end;
 
 procedure TFLXUpdateConfigForm.FormResize(Sender: TObject);

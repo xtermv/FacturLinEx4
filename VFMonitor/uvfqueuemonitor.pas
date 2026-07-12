@@ -5,7 +5,7 @@ unit uvfqueuemonitor;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Dialogs, StdCtrls, ExtCtrls,
+  Classes, SysUtils, Forms, Controls, Dialogs, StdCtrls, ExtCtrls, Buttons, EditBtn,
   DBGrids, DB, Graphics, Grids, LCLType, // RGBToColor + Canvas
   ZConnection, ZDataset;
 
@@ -25,13 +25,15 @@ type
     FSortField: string;
     FSortDesc: Boolean;
 
-    TopPanel: TPanel;
-    BtnRefresh, BtnRetry, BtnDetail, BtnClose: TButton;
+    TopPanel, HeaderPanel, ActionPanel, GridHeaderPanel: TPanel;
+    FilterGroup: TGroupBox;
+    LbTitle, LbSubtitle, LbGridTitle, LbGridHint: TLabel;
+    BtnRefresh, BtnRetry, BtnDetail, BtnClose: TBitBtn;
     CbEstado: TComboBox;
     EdSerie, EdNumero, EdCliente: TEdit;
 
-    // Sin TDateTimePicker: usamos TEdit
-    EdDesde, EdHasta: TEdit;
+    // Fechas con calendario desplegable integrado
+    EdDesde, EdHasta: TDateEdit;
     LbTienda, LbEstado, LbSerie, LbNumero, LbCliente, LbDesde, LbHasta: TLabel;
 
     Grid: TDBGrid;
@@ -39,6 +41,7 @@ type
     Q: TZQuery;
 
     procedure CreateUI;
+    procedure AssignButtonGlyph(ABtn: TBitBtn; AKind: Integer);
     procedure PopulateEstado;
     procedure RefreshData;
     procedure SetupGridColumns;
@@ -123,8 +126,8 @@ begin
   PopulateEstado;
 
   // Valores por defecto: últimos 30 días
-  EdDesde.Text := FormatDateTime('yyyy"-"mm"-"dd', Date - 30);
-  EdHasta.Text := FormatDateTime('yyyy"-"mm"-"dd', Date);
+  EdDesde.Date := Date - 30;
+  EdHasta.Date := Date;
 
   FSortField := 'fecha';
   FSortDesc := True;
@@ -132,133 +135,300 @@ begin
   RefreshData;
 end;
 
-procedure TfrmVFQMonitor.CreateUI;
+procedure TfrmVFQMonitor.AssignButtonGlyph(ABtn: TBitBtn; AKind: Integer);
+var
+  B: TBitmap;
+  C: TCanvas;
 begin
+  if ABtn = nil then Exit;
+
+  B := TBitmap.Create;
+  try
+    B.PixelFormat := pf24bit;
+    B.SetSize(20, 20);
+    B.Transparent := True;
+    B.TransparentColor := clFuchsia;
+
+    C := B.Canvas;
+    C.Brush.Color := clFuchsia;
+    C.Brush.Style := bsSolid;
+    C.FillRect(Rect(0, 0, 20, 20));
+    C.Brush.Style := bsClear;
+    C.Pen.Color := clNavy;
+    C.Pen.Width := 2;
+
+    case AKind of
+      1: begin { refrescar }
+           C.MoveTo(4, 8); C.LineTo(4, 4); C.LineTo(8, 4);
+           C.MoveTo(4, 4); C.LineTo(7, 7);
+           C.MoveTo(5, 11); C.LineTo(7, 14); C.LineTo(11, 16); C.LineTo(15, 14);
+           C.MoveTo(16, 12); C.LineTo(16, 16); C.LineTo(12, 16);
+           C.MoveTo(16, 16); C.LineTo(13, 13);
+           C.MoveTo(15, 9); C.LineTo(13, 6); C.LineTo(9, 4);
+         end;
+      2: begin { reintentar / reenviar }
+           C.MoveTo(3, 9); C.LineTo(3, 4); C.LineTo(8, 4);
+           C.MoveTo(3, 4); C.LineTo(7, 8);
+           C.MoveTo(5, 13); C.LineTo(8, 16); C.LineTo(13, 16); C.LineTo(17, 12);
+           C.MoveTo(14, 5); C.LineTo(17, 8); C.LineTo(17, 12);
+           C.MoveTo(17, 12); C.LineTo(13, 12);
+         end;
+      3: begin { detalle }
+           C.Rectangle(3, 3, 12, 16);
+           C.MoveTo(6, 7); C.LineTo(10, 7);
+           C.MoveTo(6, 10); C.LineTo(10, 10);
+           C.Ellipse(10, 10, 17, 17);
+           C.MoveTo(16, 16); C.LineTo(19, 19);
+         end;
+      4: begin { cerrar }
+           C.MoveTo(5, 5); C.LineTo(15, 15);
+           C.MoveTo(15, 5); C.LineTo(5, 15);
+         end;
+    end;
+
+    ABtn.Glyph.Assign(B);
+    ABtn.NumGlyphs := 1;
+    ABtn.Layout := blGlyphLeft;
+    ABtn.Spacing := 6;
+  finally
+    B.Free;
+  end;
+end;
+
+procedure TfrmVFQMonitor.CreateUI;
+var
+  HeaderRight: TPanel;
+begin
+  Color := clWhite;
+  Font.Name := 'Sans';
+  Font.Height := -13;
+
   TopPanel := TPanel.Create(Self);
   TopPanel.Parent := Self;
   TopPanel.Align := alTop;
-  TopPanel.Height := 110;
+  TopPanel.Height := 276;
+  TopPanel.BevelOuter := bvNone;
+  TopPanel.Color := clWhite;
 
-  // 2) Botón cerrar a la derecha
-  BtnClose := TButton.Create(Self);
-  BtnClose.Parent := TopPanel;
+  HeaderPanel := TPanel.Create(Self);
+  HeaderPanel.Parent := TopPanel;
+  HeaderPanel.Align := alTop;
+  HeaderPanel.Height := 78;
+  HeaderPanel.BevelOuter := bvNone;
+  HeaderPanel.Color := clNavy;
+
+  LbTitle := TLabel.Create(Self);
+  LbTitle.Parent := HeaderPanel;
+  LbTitle.Left := 18;
+  LbTitle.Top := 11;
+  LbTitle.Caption := 'MONITOR VERIFACTU';
+  LbTitle.ParentFont := False;
+  LbTitle.Font.Name := 'Sans';
+  LbTitle.Font.Height := -22;
+  LbTitle.Font.Style := [fsBold];
+  LbTitle.Font.Color := clWhite;
+
+  LbSubtitle := TLabel.Create(Self);
+  LbSubtitle.Parent := HeaderPanel;
+  LbSubtitle.Left := 18;
+  LbSubtitle.Top := 43;
+  LbSubtitle.Caption := 'Consulta la cola, revisa el resultado de AEAT y gestiona reintentos de forma controlada.';
+  LbSubtitle.ParentFont := False;
+  LbSubtitle.Font.Name := 'Sans';
+  LbSubtitle.Font.Height := -12;
+  LbSubtitle.Font.Color := clSilver;
+
+  HeaderRight := TPanel.Create(Self);
+  HeaderRight.Parent := HeaderPanel;
+  HeaderRight.Align := alRight;
+  HeaderRight.Width := 190;
+  HeaderRight.BevelOuter := bvNone;
+  HeaderRight.ParentColor := True;
+
+  BtnClose := TBitBtn.Create(Self);
+  BtnClose.Parent := HeaderRight;
   BtnClose.Caption := 'Cerrar';
-  BtnClose.Width := 90;
-  BtnClose.Top := 8;
-  BtnClose.Left := TopPanel.Width - BtnClose.Width - 10;
-  BtnClose.Anchors := [akTop, akRight];
+  BtnClose.SetBounds(18, 20, 112, 34);
   BtnClose.OnClick := @BtnCloseClick;
+  AssignButtonGlyph(BtnClose, 4);
 
-  LbTienda := TLabel.Create(Self);
-  LbTienda.Parent := TopPanel;
-  LbTienda.Caption := 'Tienda: ' + FTienda;
-  LbTienda.Left := 10;
-  LbTienda.Top := 10;
+  FilterGroup := TGroupBox.Create(Self);
+  FilterGroup.Parent := TopPanel;
+  FilterGroup.SetBounds(14, 88, TopPanel.ClientWidth - 28, 104);
+  FilterGroup.Anchors := [akLeft, akTop, akRight];
+  FilterGroup.Caption := ' FILTROS DE CONSULTA ';
+  FilterGroup.ParentFont := False;
+  FilterGroup.Font.Name := 'Sans';
+  FilterGroup.Font.Height := -13;
+  FilterGroup.Font.Style := [fsBold];
 
   LbEstado := TLabel.Create(Self);
-  LbEstado.Parent := TopPanel;
-  LbEstado.Caption := 'Estado:';
-  LbEstado.Left := 10;
-  LbEstado.Top := 44;
+  LbEstado.Parent := FilterGroup;
+  LbEstado.Caption := 'Estado';
+  LbEstado.Left := 16;
+  LbEstado.Top := 22;
+  LbEstado.ParentFont := False;
+  LbEstado.Font.Style := [];
 
   CbEstado := TComboBox.Create(Self);
-  CbEstado.Parent := TopPanel;
-  CbEstado.Left := 70;
-  CbEstado.Top := 40;
-  CbEstado.Width := 160;
+  CbEstado.Parent := FilterGroup;
+  CbEstado.SetBounds(16, 42, 170, 28);
   CbEstado.Style := csDropDownList;
   CbEstado.OnChange := @CbEstadoChange;
 
   LbSerie := TLabel.Create(Self);
-  LbSerie.Parent := TopPanel;
-  LbSerie.Caption := 'Serie (cola):';
-  LbSerie.Left := 245;
-  LbSerie.Top := 44;
+  LbSerie.Parent := FilterGroup;
+  LbSerie.Caption := 'Serie de cola';
+  LbSerie.Left := 202;
+  LbSerie.Top := 22;
+  LbSerie.ParentFont := False;
+  LbSerie.Font.Style := [];
 
   EdSerie := TEdit.Create(Self);
-  EdSerie.Parent := TopPanel;
-  EdSerie.Left := 325;
-  EdSerie.Top := 40;
-  EdSerie.Width := 140;
+  EdSerie.Parent := FilterGroup;
+  EdSerie.SetBounds(202, 42, 132, 28);
 
   LbNumero := TLabel.Create(Self);
-  LbNumero.Parent := TopPanel;
-  LbNumero.Caption := 'Número:';
-  LbNumero.Left := 475;
-  LbNumero.Top := 44;
+  LbNumero.Parent := FilterGroup;
+  LbNumero.Caption := 'Número';
+  LbNumero.Left := 350;
+  LbNumero.Top := 22;
+  LbNumero.ParentFont := False;
+  LbNumero.Font.Style := [];
 
   EdNumero := TEdit.Create(Self);
-  EdNumero.Parent := TopPanel;
-  EdNumero.Left := 535;
-  EdNumero.Top := 40;
-  EdNumero.Width := 90;
+  EdNumero.Parent := FilterGroup;
+  EdNumero.SetBounds(350, 42, 92, 28);
 
   LbCliente := TLabel.Create(Self);
-  LbCliente.Parent := TopPanel;
-  LbCliente.Caption := 'Cliente:';
-  LbCliente.Left := 635;
-  LbCliente.Top := 44;
+  LbCliente.Parent := FilterGroup;
+  LbCliente.Caption := 'Cliente';
+  LbCliente.Left := 458;
+  LbCliente.Top := 22;
+  LbCliente.ParentFont := False;
+  LbCliente.Font.Style := [];
 
   EdCliente := TEdit.Create(Self);
-  EdCliente.Parent := TopPanel;
-  EdCliente.Left := 695;
-  EdCliente.Top := 40;
-  EdCliente.Width := 90;
+  EdCliente.Parent := FilterGroup;
+  EdCliente.SetBounds(458, 42, 96, 28);
 
   LbDesde := TLabel.Create(Self);
-  LbDesde.Parent := TopPanel;
-  LbDesde.Caption := 'Desde (YYYY-MM-DD):';
-  LbDesde.Left := 800;
-  LbDesde.Top := 44;
+  LbDesde.Parent := FilterGroup;
+  LbDesde.Caption := 'Desde';
+  LbDesde.Left := 570;
+  LbDesde.Top := 22;
+  LbDesde.ParentFont := False;
+  LbDesde.Font.Style := [];
 
-  EdDesde := TEdit.Create(Self);
-  EdDesde.Parent := TopPanel;
-  EdDesde.Left := 940;
-  EdDesde.Top := 40;
-  EdDesde.Width := 110;
+  EdDesde := TDateEdit.Create(Self);
+  EdDesde.Parent := FilterGroup;
+  EdDesde.SetBounds(570, 42, 142, 28);
+  EdDesde.DateFormat := 'yyyy-mm-dd';
+  EdDesde.DefaultToday := True;
+  EdDesde.ButtonWidth := 28;
+  EdDesde.ButtonHint := 'Seleccionar fecha desde el calendario';
+  EdDesde.ShowHint := True;
 
   LbHasta := TLabel.Create(Self);
-  LbHasta.Parent := TopPanel;
-  LbHasta.Caption := 'Hasta (YYYY-MM-DD):';
-  LbHasta.Left := 1060;
-  LbHasta.Top := 44;
+  LbHasta.Parent := FilterGroup;
+  LbHasta.Caption := 'Hasta';
+  LbHasta.Left := 728;
+  LbHasta.Top := 22;
+  LbHasta.ParentFont := False;
+  LbHasta.Font.Style := [];
 
-  EdHasta := TEdit.Create(Self);
-  EdHasta.Parent := TopPanel;
-  EdHasta.Left := 1195;
-  EdHasta.Top := 40;
-  EdHasta.Width := 110;
+  EdHasta := TDateEdit.Create(Self);
+  EdHasta.Parent := FilterGroup;
+  EdHasta.SetBounds(728, 42, 142, 28);
+  EdHasta.DateFormat := 'yyyy-mm-dd';
+  EdHasta.DefaultToday := True;
+  EdHasta.ButtonWidth := 28;
+  EdHasta.ButtonHint := 'Seleccionar fecha hasta el calendario';
+  EdHasta.ShowHint := True;
 
-  BtnRefresh := TButton.Create(Self);
-  BtnRefresh.Parent := TopPanel;
+  LbTienda := TLabel.Create(Self);
+  LbTienda.Parent := FilterGroup;
+  LbTienda.Caption := 'Tienda activa: ' + FTienda;
+  LbTienda.SetBounds(904, 43, 250, 24);
+  LbTienda.ParentFont := False;
+  LbTienda.Font.Name := 'Sans';
+  LbTienda.Font.Height := -13;
+  LbTienda.Font.Style := [fsBold];
+  LbTienda.Font.Color := clNavy;
+
+  ActionPanel := TPanel.Create(Self);
+  ActionPanel.Parent := TopPanel;
+  ActionPanel.SetBounds(14, 200, TopPanel.ClientWidth - 28, 40);
+  ActionPanel.Anchors := [akLeft, akTop, akRight];
+  ActionPanel.BevelOuter := bvNone;
+  ActionPanel.Color := clWhite;
+
+  BtnRefresh := TBitBtn.Create(Self);
+  BtnRefresh.Parent := ActionPanel;
   BtnRefresh.Caption := 'Refrescar';
-  BtnRefresh.Left := 245;
-  BtnRefresh.Top := 75;
+  BtnRefresh.SetBounds(0, 4, 120, 32);
   BtnRefresh.OnClick := @BtnRefreshClick;
+  AssignButtonGlyph(BtnRefresh, 1);
 
-  BtnRetry := TButton.Create(Self);
-  BtnRetry.Parent := TopPanel;
-  BtnRetry.Caption := 'Reintentar / Reenviar';
-  BtnRetry.Left := 340;
-  BtnRetry.Top := 75;
-  BtnRetry.Width := 160;
+  BtnRetry := TBitBtn.Create(Self);
+  BtnRetry.Parent := ActionPanel;
+  BtnRetry.Caption := 'Reintentar / reenviar';
+  BtnRetry.SetBounds(130, 4, 180, 32);
+  BtnRetry.ParentFont := False;
+  BtnRetry.Font.Style := [fsBold];
   BtnRetry.OnClick := @BtnRetryClick;
+  AssignButtonGlyph(BtnRetry, 2);
 
-  BtnDetail := TButton.Create(Self);
-  BtnDetail.Parent := TopPanel;
+  BtnDetail := TBitBtn.Create(Self);
+  BtnDetail.Parent := ActionPanel;
   BtnDetail.Caption := 'Ver detalle';
-  BtnDetail.Left := 510;
-  BtnDetail.Top := 75;
+  BtnDetail.SetBounds(320, 4, 125, 32);
   BtnDetail.OnClick := @BtnDetailClick;
+  AssignButtonGlyph(BtnDetail, 3);
+
+  LbGridHint := TLabel.Create(Self);
+  LbGridHint.Parent := ActionPanel;
+  LbGridHint.Left := 470;
+  LbGridHint.Top := 12;
+  LbGridHint.Caption := 'Doble clic para abrir el detalle. Pulsa una cabecera para ordenar.';
+  LbGridHint.ParentFont := False;
+  LbGridHint.Font.Name := 'Sans';
+  LbGridHint.Font.Height := -12;
+  LbGridHint.Font.Color := clGray;
+
+  GridHeaderPanel := TPanel.Create(Self);
+  GridHeaderPanel.Parent := TopPanel;
+  GridHeaderPanel.Align := alBottom;
+  GridHeaderPanel.Height := 36;
+  GridHeaderPanel.BevelOuter := bvNone;
+  GridHeaderPanel.Color := RGBToColor(226, 230, 235);
+
+  LbGridTitle := TLabel.Create(Self);
+  LbGridTitle.Parent := GridHeaderPanel;
+  LbGridTitle.Left := 10;
+  LbGridTitle.Top := 10;
+  LbGridTitle.Caption := 'REGISTROS DE LA COLA VERIFACTU';
+  LbGridTitle.ParentFont := False;
+  LbGridTitle.Font.Name := 'Sans';
+  LbGridTitle.Font.Height := -13;
+  LbGridTitle.Font.Style := [fsBold];
+  LbGridTitle.Font.Color := RGBToColor(35, 45, 58);
 
   Grid := TDBGrid.Create(Self);
   Grid.Parent := Self;
   Grid.Align := alClient;
   Grid.Options := Grid.Options + [dgTitles, dgIndicator, dgRowSelect, dgAutoSizeColumns];
+  Grid.Color := clWhite;
+  Grid.FixedColor := RGBToColor(226, 230, 235);
+  Grid.ParentFont := False;
+  Grid.Font.Name := 'Sans';
+  Grid.Font.Height := -12;
+  Grid.TitleFont.Name := 'Sans';
+  Grid.TitleFont.Height := -12;
+  Grid.TitleFont.Style := [fsBold];
   Grid.OnDblClick := @GridDblClick;
   Grid.OnTitleClick := @GridTitleClick;
 
-  // 3) Coloreado de filas
   Grid.DefaultDrawing := False;
   Grid.OnDrawColumnCell := @GridDrawColumnCell;
 end;
@@ -372,8 +542,13 @@ begin
   Cliente := Trim(EdCliente.Text);
   HaveNum := TryStrToInt(Trim(EdNumero.Text), Num);
 
-  if not ParseDateISO(EdDesde.Text, D1) then D1 := Date - 30;
-  if not ParseDateISO(EdHasta.Text, D2) then D2 := Date;
+  D1 := EdDesde.Date;
+  if D1 <= 0 then
+    if not ParseDateISO(EdDesde.Text, D1) then D1 := Date - 30;
+
+  D2 := EdHasta.Date;
+  if D2 <= 0 then
+    if not ParseDateISO(EdHasta.Text, D2) then D2 := Date;
 
   if FSortDesc then SortDir := ' DESC' else SortDir := ' ASC';
   SortExpr := SortExprForField(FSortField);

@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
-  IniFiles, uFLX_CryptoIni;
+  Buttons, IniFiles, uFLX_CryptoIni, uFLXIcons;
 
 type
   TEncryptSecretEvent = function(const AValue: string): string of object;
@@ -37,9 +37,9 @@ type
   { TfBackupFTPConfig }
 
   TfBackupFTPConfig = class(TForm)
-    btnCancelar: TButton;
-    btnCerrar: TButton;
-    btnGuardar: TButton;
+    btnCancelar: TBitBtn;
+    btnCerrar: TBitBtn;
+    btnGuardar: TBitBtn;
     cbArchiveFormat: TComboBox;
     cbProto: TComboBox;
     chkCompress: TCheckBox;
@@ -63,6 +63,19 @@ type
     lblProto: TLabel;
     lblRemoteDir: TLabel;
     lblUser: TLabel;
+    imgHeader: TImage;
+    lblTitulo: TLabel;
+    lblSubtitulo: TLabel;
+    lblConexion: TLabel;
+    lblArchivo: TLabel;
+    lblLimpieza: TLabel;
+    pnlHeader: TPanel;
+    pnlContenido: TPanel;
+    pnlConexion: TPanel;
+    pnlArchivo: TPanel;
+    pnlLimpieza: TPanel;
+    pnlFooter: TPanel;
+    pnlFooterButtons: TPanel;
     procedure btnCancelarClick(Sender: TObject);
     procedure btnCerrarClick(Sender: TObject);
     procedure btnGuardarClick(Sender: TObject);
@@ -175,7 +188,32 @@ end;
 { TfBackupFTPConfig }
 
 procedure TfBackupFTPConfig.FormCreate(Sender: TObject);
+var
+  FN: string;
 begin
+  Color := RGBToColor(245, 248, 252);
+  pnlHeader.Color := RGBToColor(248, 251, 255);
+  pnlContenido.Color := RGBToColor(245, 248, 252);
+  pnlConexion.Color := RGBToColor(250, 252, 255);
+  pnlArchivo.Color := RGBToColor(248, 251, 255);
+  pnlLimpieza.Color := RGBToColor(236, 244, 255);
+  pnlFooter.Color := RGBToColor(248, 251, 255);
+  pnlFooterButtons.Color := pnlFooter.Color;
+
+  lblTitulo.Font.Color := RGBToColor(0, 32, 80);
+  lblSubtitulo.Font.Color := RGBToColor(45, 70, 105);
+  lblConexion.Font.Color := RGBToColor(0, 65, 145);
+  lblArchivo.Font.Color := RGBToColor(0, 65, 145);
+  lblLimpieza.Font.Color := RGBToColor(0, 65, 145);
+  lblNote.Font.Color := RGBToColor(45, 70, 105);
+
+  FN := FLXIconFile('configuracion', 64);
+  if FN <> '' then
+    imgHeader.Picture.LoadFromFile(FN);
+
+  FLXSetBitBtnIcon(btnGuardar, 'configuracion', 30);
+  FLXSetBitBtnIcon(btnCancelar, 'cerrar', 30);
+
   cbProto.Items.Clear;
   cbProto.Items.Add('FTP');
   cbProto.Items.Add('FTPS');

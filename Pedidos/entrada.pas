@@ -199,6 +199,9 @@ type
     procedure AsignarFechaOClear(AField: TField; ADateEdit: TDateEdit);
     procedure RecalcularTotalesSegunSeleccionAceptada();
     procedure AplicarValoresAceptadosAHistoricoDetalle();
+    function HistPreciosTableName: string;
+    procedure EnsureHistPreciosTable;
+    procedure RegistrarCambioPrecioPedido(const ACodigo, ADescripcion, ACampo, AAnterior, ANuevo, AMotivo: string);
   public
     { public declarations }
   end; 
@@ -228,6 +231,54 @@ implementation
 
 uses
   Global, Funciones, CambiPrecio;
+
+function FLX_CleanIdentEntrada(const S: string): string;
+var
+  I: Integer;
+  C: Char;
+begin
+  Result := '';
+  for I := 1 to Length(S) do
+  begin
+    C := S[I];
+    if (C in ['A'..'Z']) or (C in ['a'..'z']) or (C in ['0'..'9']) or (C = '_') then
+      Result := Result + C;
+  end;
+end;
+
+function FLX_SQLIdentEntrada(const S: string): string;
+begin
+  Result := '`' + StringReplace(S, '`', '', [rfReplaceAll]) + '`';
+end;
+
+function FLX_NormalizaValorPrecioHistEntrada(const S: string): string;
+var
+  V: Double;
+  T: string;
+begin
+  T := Trim(S);
+  if T = '' then
+  begin
+    Result := '';
+    Exit;
+  end;
+
+  if not TryStrToFloat(T, V) then
+  begin
+    T := StringReplace(T, '.', DefaultFormatSettings.DecimalSeparator, [rfReplaceAll]);
+    T := StringReplace(T, ',', DefaultFormatSettings.DecimalSeparator, [rfReplaceAll]);
+  end;
+
+  if TryStrToFloat(T, V) then
+    Result := FormatFloat('0.0000', V)
+  else
+    Result := Trim(S);
+end;
+
+function FLX_Trim255Entrada(const S: string): string;
+begin
+  Result := Copy(Trim(S), 1, 255);
+end;
 
 //===================== FUNCIONES INTERNAS SEGURAS =====================
 function TFEntrada.TextoAFloat(const S: String): Double;
@@ -260,6 +311,88 @@ end;
 function TFEntrada.RedondearCentimos(AValue: Double): Double;
 begin
   Result:=Round(AValue*100)/100;
+end;
+
+function TFEntrada.HistPreciosTableName: string;
+begin
+  Result := 'flx_hist_precios' + FLX_CleanIdentEntrada(Tienda);
+end;
+
+procedure TFEntrada.EnsureHistPreciosTable;
+var
+  Q: TZQuery;
+  T, EngineSQL, Engine: string;
+begin
+  T := HistPreciosTableName;
+  Engine := Trim(MotorDB);
+  EngineSQL := '';
+  if SameText(Engine, 'MyISAM') then EngineSQL := ' ENGINE=MyISAM'
+  else if SameText(Engine, 'Aria') then EngineSQL := ' ENGINE=Aria'
+  else if SameText(Engine, 'InnoDB') then EngineSQL := ' ENGINE=InnoDB';
+
+  Q := TZQuery.Create(nil);
+  try
+    if Assigned(dbTrabajo.Connection) then
+      Q.Connection := dbTrabajo.Connection
+    else if Assigned(dbArti.Connection) then
+      Q.Connection := dbArti.Connection;
+
+    Q.SQL.Text :=
+      'CREATE TABLE IF NOT EXISTS ' + FLX_SQLIdentEntrada(T) + ' (' +
+      'id BIGINT NOT NULL AUTO_INCREMENT, ' +
+      'fecha DATE NOT NULL, ' +
+      'hora TIME NOT NULL, ' +
+      'usuario VARCHAR(100) NOT NULL DEFAULT '''', ' +
+      'codigo VARCHAR(60) NOT NULL DEFAULT '''', ' +
+      'descripcion VARCHAR(255) NOT NULL DEFAULT '''', ' +
+      'campo VARCHAR(40) NOT NULL DEFAULT '''', ' +
+      'valor_anterior VARCHAR(80) NOT NULL DEFAULT '''', ' +
+      'valor_nuevo VARCHAR(80) NOT NULL DEFAULT '''', ' +
+      'motivo VARCHAR(255) NOT NULL DEFAULT '''', ' +
+      'PRIMARY KEY (id), ' +
+      'KEY idx_fecha (fecha,hora), ' +
+      'KEY idx_codigo (codigo), ' +
+      'KEY idx_campo (campo)' +
+      ')' + EngineSQL + ' DEFAULT CHARSET=utf8';
+    Q.ExecSQL;
+  finally
+    Q.Free;
+  end;
+end;
+
+procedure TFEntrada.RegistrarCambioPrecioPedido(const ACodigo, ADescripcion, ACampo, AAnterior, ANuevo, AMotivo: string);
+var
+  Q: TZQuery;
+  T, AntesN, DespuesN: string;
+begin
+  AntesN := FLX_NormalizaValorPrecioHistEntrada(AAnterior);
+  DespuesN := FLX_NormalizaValorPrecioHistEntrada(ANuevo);
+  if AntesN = DespuesN then Exit;
+
+  T := HistPreciosTableName;
+  Q := TZQuery.Create(nil);
+  try
+    if Assigned(dbTrabajo.Connection) then
+      Q.Connection := dbTrabajo.Connection
+    else if Assigned(dbArti.Connection) then
+      Q.Connection := dbArti.Connection;
+
+    Q.SQL.Text := 'INSERT INTO ' + FLX_SQLIdentEntrada(T) +
+      ' (fecha,hora,usuario,codigo,descripcion,campo,valor_anterior,valor_nuevo,motivo) ' +
+      ' VALUES (:fecha,:hora,:usuario,:codigo,:descripcion,:campo,:valor_anterior,:valor_nuevo,:motivo)';
+    Q.ParamByName('fecha').AsString := FormatDateTime('yyyy-mm-dd', Date);
+    Q.ParamByName('hora').AsString := FormatDateTime('hh:nn:ss', Time);
+    Q.ParamByName('usuario').AsString := UsuarioActivo;
+    Q.ParamByName('codigo').AsString := ACodigo;
+    Q.ParamByName('descripcion').AsString := FLX_Trim255Entrada(ADescripcion);
+    Q.ParamByName('campo').AsString := ACampo;
+    Q.ParamByName('valor_anterior').AsString := AntesN;
+    Q.ParamByName('valor_nuevo').AsString := DespuesN;
+    Q.ParamByName('motivo').AsString := FLX_Trim255Entrada(AMotivo);
+    Q.ExecSQL;
+  finally
+    Q.Free;
+  end;
 end;
 
 //----------------- Total calculado desde las bases e impuestos mostrados
@@ -590,8 +723,13 @@ procedure TFEntrada.BitBtn30Click(Sender: TObject);
 var
   TxtQ: String;
   HayTransaccion: Boolean;
+  HistPreciosOK: Boolean;
+  AvisoHistPrecios: String;
+  OldA2, OldA21, OldA24, OldDesc, OldCodArt, MotivoHist: String;
 begin
   ProgressBar1.Position:=0; ProgressBar1.Caption:='0';
+  HistPreciosOK:=True;
+  AvisoHistPrecios:='';
   NormalizarImportesVencimientos();
   PintarTotalVencimientos();
 
@@ -655,6 +793,19 @@ begin
       dbPedid.Next;
     end;
 
+  // El historico de precios se prepara antes de abrir la transaccion.
+  // En MariaDB un CREATE TABLE puede hacer commit implicito; por eso no se
+  // mezcla con la aceptacion del pedido.
+  try
+    EnsureHistPreciosTable;
+  except
+    on E: Exception do
+      begin
+        HistPreciosOK:=False;
+        AvisoHistPrecios:=E.Message;
+      end;
+  end;
+
   HayTransaccion:=False;
   Panel11.Visible:=False; DBGrid1.Repaint;
   Panel1.Visible:=True; Panel1.Repaint;
@@ -676,6 +827,12 @@ begin
         if dbArti.RecordCount=0 then
           raise Exception.Create('Articulo no encontrado al aceptar: '+dbPedid.FieldByName('PD6').AsString);
 
+        OldCodArt:=dbArti.FieldByName('A0').AsString;
+        OldDesc:=dbArti.FieldByName('A1').AsString;
+        OldA2:=dbArti.FieldByName('A2').AsString;
+        OldA21:=dbArti.FieldByName('A21').AsString;
+        OldA24:=dbArti.FieldByName('A24').AsString;
+
         PreciohaCambiado:=False;
         PintaLineas();//------------ Pintar las lineas conforme se acepta el pedido
         if PreciohaCambiado=True then
@@ -692,6 +849,24 @@ begin
         LeerDatosArticulo();//------ Consultar los datos finales del articulo tras la decision del dialogo
         if dbArti.RecordCount=0 then
           raise Exception.Create('Articulo no encontrado despues del cambio de precio: '+dbPedid.FieldByName('PD6').AsString);
+
+        if HistPreciosOK then
+        begin
+          try
+            MotivoHist:='Entrada/aceptacion de pedido proveedor '+dbPedic.FieldByName('PC2').AsString+
+                        ' serie '+dbPedic.FieldByName('PC3').AsString+
+                        ' numero '+dbPedic.FieldByName('PC4').AsString;
+            RegistrarCambioPrecioPedido(OldCodArt, OldDesc, 'A2 PVP con IVA', OldA2, dbArti.FieldByName('A2').AsString, MotivoHist);
+            RegistrarCambioPrecioPedido(OldCodArt, OldDesc, 'A21 PVP sin IVA', OldA21, dbArti.FieldByName('A21').AsString, MotivoHist);
+            RegistrarCambioPrecioPedido(OldCodArt, OldDesc, 'A24 coste', OldA24, dbArti.FieldByName('A24').AsString, MotivoHist);
+          except
+            on E: Exception do
+              begin
+                HistPreciosOK:=False;
+                AvisoHistPrecios:=E.Message;
+              end;
+          end;
+        end;
 
         ActuArticulos();//---------- Actualizar Articulos
         ActuEstaArti();//----------- Estadistica de articulos
@@ -715,7 +890,10 @@ begin
 
     if HayTransaccion then
       dbTrabajo.Connection.Commit;
-    Showmessage('PEDIDO ACEPTADO CORRECTAMENTE!');
+    if AvisoHistPrecios<>'' then
+      Showmessage('PEDIDO ACEPTADO CORRECTAMENTE, pero no se pudo registrar el historico de precios: '+AvisoHistPrecios)
+    else
+      Showmessage('PEDIDO ACEPTADO CORRECTAMENTE!');
   except
     on E: Exception do
       begin
@@ -757,7 +935,12 @@ begin
  dbArti.FieldByName('A31').Value:=dbPedid.FieldByName('PD29').AsFloat;//--- Dto %2
  dbArti.FieldByName('A32').Value:=dbPedic.FieldByName('PC2').Value;//------ Cgo. ultimo proveedor
  dbArti.FieldByName('A37').Value:=dbPedid.FieldByName('PD30').AsFloat;//--- Margen sobre PVP
- dbArti.FieldByName('A14').Value:=dbPedid.FieldByName('PD19').Value; //------- Familia
+ // Familia: trasladar desde la linea del pedido solo si viene informada.
+ // Evita borrar la familia existente por una PD19 vacia en pedidos antiguos.
+ if (dbPedid.FindField('PD19')<>nil) and
+    (Trim(dbPedid.FieldByName('PD19').AsString)<>'') and
+    (Trim(dbPedid.FieldByName('PD19').AsString)<>'0') then
+   dbArti.FieldByName('A14').Value:=dbPedid.FieldByName('PD19').Value;
  dbArti.Post;
 end;
 //---------------- Estadistica de articulos

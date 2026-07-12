@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, DateUtils, Math, IniFiles, Forms, Controls, Graphics, Dialogs, ExtCtrls,
-  StdCtrls, ComCtrls, DBGrids, DB, ZConnection, ZDataset, LCLIntf;
+  StdCtrls, ComCtrls, Buttons, DBGrids, Grids, DB, ZConnection, ZDataset, LCLIntf;
 
 procedure ShowFormDashboardProductividad(AOwner: TComponent; AConnection: TZConnection; const ATienda: string);
 
@@ -89,6 +89,7 @@ type
     pcPrincipal: TPageControl;
     tsDashboard: TTabSheet;
     tsHoy: TTabSheet;
+    tsCuadroGestion: TTabSheet;
     tsVentasAbiertas: TTabSheet;
     tsCierreTarde: TTabSheet;
     tsDiagnostico: TTabSheet;
@@ -140,6 +141,25 @@ type
     lblHoyHoraPico: TLabel;
     lblHoyImportePico: TLabel;
 
+    dtCGDesdeAct: TEdit;
+    dtCGHastaAct: TEdit;
+    dtCGDesdeComp: TEdit;
+    dtCGHastaComp: TEdit;
+    btnCGCalDesdeAct: TButton;
+    btnCGCalHastaAct: TButton;
+    btnCGCalDesdeComp: TButton;
+    btnCGCalHastaComp: TButton;
+    btnCGDia: TButton;
+    btnCGMes: TButton;
+    btnCGAno: TButton;
+    btnCGPeriodo: TButton;
+    btnCGRefrescar: TButton;
+    lblCGFacturacion: TLabel;
+    lblCGMargen: TLabel;
+    lblCGClientes: TLabel;
+    lblCGArticulos: TLabel;
+    lblCGCesta: TLabel;
+
     qPagos: TZQuery;
     qTopArticulos: TZQuery;
     qTopFamilias: TZQuery;
@@ -147,6 +167,11 @@ type
     qHoyResumen: TZQuery;
     qHoyHoras: TZQuery;
     qHoyPagos: TZQuery;
+    qCGResumen: TZQuery;
+    qCGNegocio: TZQuery;
+    qCGHoras: TZQuery;
+    qCGMargen: TZQuery;
+    qCGEmpleados: TZQuery;
     qVNAResumen: TZQuery;
     qVNATickets: TZQuery;
     qVNADetalle: TZQuery;
@@ -254,6 +279,11 @@ type
     dsHoras: TDataSource;
     dsHoyHoras: TDataSource;
     dsHoyPagos: TDataSource;
+    dsCGResumen: TDataSource;
+    dsCGNegocio: TDataSource;
+    dsCGHoras: TDataSource;
+    dsCGMargen: TDataSource;
+    dsCGEmpleados: TDataSource;
     dsVNAResumen: TDataSource;
     dsVNATickets: TDataSource;
     dsVNADetalle: TDataSource;
@@ -359,6 +389,12 @@ type
     gridHoras: TDBGrid;
     gridHoyHoras: TDBGrid;
     gridHoyPagos: TDBGrid;
+    gridCGResumen: TDBGrid;
+    gridCGNegocio: TDBGrid;
+    gridCGHoras: TDBGrid;
+    gridCGMargen: TDBGrid;
+    gridCGEmpleados: TDBGrid;
+    memoCGAnalisis: TMemo;
     gridVNAResumen: TDBGrid;
     gridVNATickets: TDBGrid;
     gridVNADetalle: TDBGrid;
@@ -475,6 +511,10 @@ type
     pbHoyTicketsHora: TPaintBox;
     pbHoyImportesHora: TPaintBox;
     pbHoyPagos: TPaintBox;
+    pbCGNegocio: TPaintBox;
+    pbCGHoras: TPaintBox;
+    pbCGMargen: TPaintBox;
+    pbCGEmpleados: TPaintBox;
     pbGrafAnoActualAnterior: TPaintBox;
     pbGrafTicketMedioHora: TPaintBox;
     pbGrafTicketsHora: TPaintBox;
@@ -495,6 +535,22 @@ type
     FHoyPagoImportes: array[0..19] of Double;
     FHoyHoraImportes: array[0..23] of Double;
     FHoyHoraTickets: array[0..23] of Integer;
+
+    FCGNegocioCount: Integer;
+    FCGNegocioNombres: TString20Array;
+    FCGNegocioActual: TDouble20Array;
+    FCGNegocioComp: TDouble20Array;
+    FCGMargenCount: Integer;
+    FCGMargenNombres: TString20Array;
+    FCGMargenActual: TDouble20Array;
+    FCGMargenComp: TDouble20Array;
+    FCGHoraImportesAct: TDoubleHourArray;
+    FCGHoraImportesComp: TDoubleHourArray;
+    FCGHoraTicketsAct: TIntegerHourArray;
+    FCGHoraTicketsComp: TIntegerHourArray;
+    FCGEmpleadoCount: Integer;
+    FCGEmpleadoNombres: TString20Array;
+    FCGEmpleadoImportes: TDouble20Array;
 
     FGAnoActualYear: Integer;
     FGAnoAnteriorYear: Integer;
@@ -522,6 +578,7 @@ type
     procedure CrearFiltro;
     procedure CrearTabDashboard;
     procedure CrearTabHoy;
+    procedure CrearTabCuadroGestion;
     procedure CrearTabVentasAbiertas;
     procedure CrearTabCierreTarde;
     procedure CrearTabDiagnostico;
@@ -611,6 +668,30 @@ type
     procedure CargarHoyResumen;
     procedure CargarHoyHoras;
     procedure CargarHoyPagos;
+    procedure CargarCuadroGestion;
+    function CGFechasValidas(out AActDesde, AActHasta, ACompDesde, ACompHasta: TDateTime): Boolean;
+    procedure CGSetPeriodoDia(Sender: TObject);
+    procedure CGSetPeriodoMes(Sender: TObject);
+    procedure CGSetPeriodoAno(Sender: TObject);
+    procedure CGPeriodoManual(Sender: TObject);
+    procedure CGRefrescarClick(Sender: TObject);
+    procedure CGCalDesdeActClick(Sender: TObject);
+    procedure CGCalHastaActClick(Sender: TObject);
+    procedure CGCalDesdeCompClick(Sender: TObject);
+    procedure CGCalHastaCompClick(Sender: TObject);
+    procedure CargarCGResumen;
+    procedure CargarCGNegocio;
+    procedure CargarCGHoras;
+    procedure CargarCGMargen;
+    procedure CargarCGEmpleados;
+    procedure CargarCGAnalisis;
+    procedure ActualizarTarjetasCG;
+    procedure PintarCGNegocio(Sender: TObject);
+    procedure PintarCGHoras(Sender: TObject);
+    procedure PintarCGMargen(Sender: TObject);
+    procedure PintarCGEmpleados(Sender: TObject);
+    procedure PintarBarrasComparativas(APaintBox: TPaintBox; const ATitulo, ALeg1, ALeg2: string; const ANombres: TString20Array; const AActual, AComp: TDouble20Array; ACount: Integer; const APrefijo, ASufijo: string);
+    procedure PintarBarrasHorasComparativas(APaintBox: TPaintBox; const ATitulo: string; const AAct, AComp: TIntegerHourArray);
     procedure CargarVentasAbiertas;
     procedure CargarVNAResumen;
     procedure CargarVNATickets;
@@ -794,6 +875,11 @@ type
     procedure AlertaFamiliaCero(Sender: TObject);
     procedure AlertaSinProveedor(Sender: TObject);
     procedure AlertaStockCeroVendido30(Sender: TObject);
+
+    procedure AplicarEstiloVisualDashboard;
+    procedure EstilizarControl(AControl: TControl);
+    procedure EstilizarDBGrid(Grid: TDBGrid);
+    procedure DashboardGridPrepareCanvas(Sender: TObject; DataCol: Integer; Column: TColumn; AState: TGridDrawState);
   public
     constructor Create(AOwner: TComponent); override;
     procedure Inicializar(AConnection: TZConnection; const ATienda: string);
@@ -833,6 +919,8 @@ begin
   BorderStyle := bsDialog;
   Width := 315;
   Height := 330;
+  Color := RGBToColor(245,248,252);
+  Font.Color := RGBToColor(0,32,80);
 
   if AFechaInicial > 0 then
     BaseFecha := AFechaInicial
@@ -849,6 +937,8 @@ begin
   btnPrev.Width := 34;
   btnPrev.Height := 28;
   btnPrev.Caption := '<';
+  btnPrev.Font.Style := [fsBold];
+  btnPrev.Font.Color := RGBToColor(0,32,80);
   btnPrev.OnClick := @PrevClick;
 
   lblTitulo := TLabel.Create(Self);
@@ -858,6 +948,8 @@ begin
   lblTitulo.Width := 210;
   lblTitulo.Alignment := taCenter;
   lblTitulo.Font.Style := [fsBold];
+  lblTitulo.Font.Size := 10;
+  lblTitulo.Font.Color := RGBToColor(0,32,80);
 
   btnNext := TButton.Create(Self);
   btnNext.Parent := Self;
@@ -866,6 +958,8 @@ begin
   btnNext.Width := 34;
   btnNext.Height := 28;
   btnNext.Caption := '>';
+  btnNext.Font.Style := [fsBold];
+  btnNext.Font.Color := RGBToColor(0,32,80);
   btnNext.OnClick := @NextClick;
 
   for I := 0 to 6 do
@@ -878,6 +972,7 @@ begin
     L.Alignment := taCenter;
     L.Caption := DiasSemana[I];
     L.Font.Style := [fsBold];
+    L.Font.Color := RGBToColor(0,32,80);
   end;
 
   for I := 1 to 42 do
@@ -892,6 +987,7 @@ begin
     FDayButtons[I].Height := 28;
     FDayButtons[I].Caption := '';
     FDayButtons[I].Tag := 0;
+    FDayButtons[I].Font.Color := RGBToColor(38,62,92);
     FDayButtons[I].OnClick := @DiaClick;
   end;
 
@@ -902,6 +998,8 @@ begin
   btnHoy.Width := 120;
   btnHoy.Height := 30;
   btnHoy.Caption := 'Hoy';
+  btnHoy.Font.Style := [fsBold];
+  btnHoy.Font.Color := RGBToColor(0,32,80);
   btnHoy.OnClick := @HoyClick;
 
   btnCancelar := TButton.Create(Self);
@@ -911,6 +1009,7 @@ begin
   btnCancelar.Width := 120;
   btnCancelar.Height := 30;
   btnCancelar.Caption := 'Cancelar';
+  btnCancelar.Font.Color := RGBToColor(0,32,80);
   btnCancelar.Cancel := True;
   btnCancelar.ModalResult := mrCancel;
 
@@ -972,6 +1071,8 @@ begin
     FDayButtons[I].Tag := 0;
     FDayButtons[I].Enabled := False;
     FDayButtons[I].Font.Style := [];
+    FDayButtons[I].Font.Color := RGBToColor(90,105,125);
+    FDayButtons[I].Color := clBtnFace;
   end;
 
   PrimerDia := EncodeDate(FYear, FMonth, 1);
@@ -990,8 +1091,14 @@ begin
       Btn.Caption := IntToStr(D);
       Btn.Tag := D;
       Btn.Enabled := True;
+      Btn.Font.Color := RGBToColor(38,62,92);
       if (SelY = FYear) and (SelM = FMonth) and (SelD = D) then
+      begin
+        Btn.Caption := '[' + IntToStr(D) + ']';
         Btn.Font.Style := [fsBold];
+        Btn.Font.Color := clWhite;
+        Btn.Color := RGBToColor(0,82,160);
+      end;
     end;
   end;
 end;
@@ -1032,6 +1139,11 @@ begin
   qHoyResumen.Connection := FConn;
   qHoyHoras.Connection := FConn;
   qHoyPagos.Connection := FConn;
+  qCGResumen.Connection := FConn;
+  qCGNegocio.Connection := FConn;
+  qCGHoras.Connection := FConn;
+  qCGMargen.Connection := FConn;
+  qCGEmpleados.Connection := FConn;
   qVNAResumen.Connection := FConn;
   qVNATickets.Connection := FConn;
   qVNADetalle.Connection := FConn;
@@ -1173,6 +1285,10 @@ begin
   tsHoy.PageControl := pcPrincipal;
   tsHoy.Caption := 'Hoy';
 
+  tsCuadroGestion := TTabSheet.Create(Self);
+  tsCuadroGestion.PageControl := pcPrincipal;
+  tsCuadroGestion.Caption := 'Cuadro gestion';
+
   tsVentasAbiertas := TTabSheet.Create(Self);
   tsVentasAbiertas.PageControl := pcPrincipal;
   tsVentasAbiertas.Caption := 'Ventas ab.';
@@ -1255,6 +1371,7 @@ begin
 
   CrearTabDashboard;
   CrearTabHoy;
+  CrearTabCuadroGestion;
   CrearTabVentasAbiertas;
   CrearTabCierreTarde;
   CrearTabDiagnostico;
@@ -1279,6 +1396,155 @@ begin
   OrdenarPestanasPrincipales;
   CargarOrdenPestanas;
   RellenarSelectoresPestanas;
+  AplicarEstiloVisualDashboard;
+end;
+
+
+procedure TFDashboardProductividad.DashboardGridPrepareCanvas(Sender: TObject; DataCol: Integer; Column: TColumn; AState: TGridDrawState);
+begin
+  if not (Sender is TDBGrid) then Exit;
+
+  with TDBGrid(Sender).Canvas do
+  begin
+    Font.Color := clBlack;
+    if gdSelected in AState then
+    begin
+      Brush.Color := RGBToColor(214,232,252);
+      Font.Color := clBlack;
+      Font.Style := [];
+    end
+    else if gdFixed in AState then
+    begin
+      Brush.Color := RGBToColor(232,238,247);
+      Font.Color := RGBToColor(0,32,80);
+      Font.Style := [fsBold];
+    end
+    else
+    begin
+      Brush.Color := clWhite;
+      Font.Color := clBlack;
+      Font.Style := [];
+    end;
+  end;
+end;
+
+procedure TFDashboardProductividad.EstilizarDBGrid(Grid: TDBGrid);
+begin
+  if Grid = nil then Exit;
+
+  Grid.Color := clWhite;
+  Grid.Font.Color := clBlack;
+  Grid.Font.Size := 9;
+  Grid.DefaultRowHeight := 24;
+  Grid.TitleFont.Color := RGBToColor(0,32,80);
+  Grid.TitleFont.Style := [fsBold];
+  Grid.FixedColor := RGBToColor(232,238,247);
+  Grid.Options := Grid.Options + [dgTitles, dgColLines, dgRowLines, dgRowSelect, dgAlwaysShowSelection];
+  Grid.OnPrepareCanvas := @DashboardGridPrepareCanvas;
+end;
+
+procedure TFDashboardProductividad.EstilizarControl(AControl: TControl);
+var
+  I: Integer;
+  P: TPanel;
+  G: TGroupBox;
+begin
+  if AControl = nil then Exit;
+
+  if AControl is TPanel then
+  begin
+    P := TPanel(AControl);
+    if P = pnlFiltro then
+    begin
+      P.Color := RGBToColor(235,243,255);
+      P.BevelOuter := bvNone;
+    end
+    else
+    begin
+      if P.Color = clDefault then
+        P.Color := RGBToColor(245,248,252);
+      if P.BevelOuter <> bvLowered then
+        P.BevelOuter := bvNone;
+
+      // Tarjetas/KPI compactas: aspecto más limpio sin cambiar medidas.
+      if (P.Height >= 60) and (P.Height <= 110) and (P.Width >= 140) and (P.Width <= 260) then
+      begin
+        P.Color := RGBToColor(250,252,255);
+        P.BevelOuter := bvLowered;
+      end;
+    end;
+  end
+  else if AControl is TGroupBox then
+  begin
+    G := TGroupBox(AControl);
+    G.Color := RGBToColor(250,252,255);
+    G.Font.Color := RGBToColor(0,32,80);
+    G.Font.Style := [fsBold];
+  end
+  else if AControl is TDBGrid then
+    EstilizarDBGrid(TDBGrid(AControl))
+  else if AControl is TLabel then
+  begin
+    TLabel(AControl).Transparent := True;
+    if fsBold in TLabel(AControl).Font.Style then
+      TLabel(AControl).Font.Color := RGBToColor(0,32,80)
+    else
+      TLabel(AControl).Font.Color := RGBToColor(38,62,92);
+  end
+  else if AControl is TEdit then
+  begin
+    TEdit(AControl).Color := clWhite;
+    TEdit(AControl).Font.Color := clBlack;
+  end
+  else if AControl is TComboBox then
+  begin
+    TComboBox(AControl).Color := clWhite;
+    TComboBox(AControl).Font.Color := clBlack;
+  end
+  else if AControl is TMemo then
+  begin
+    TMemo(AControl).Color := RGBToColor(252,254,255);
+    TMemo(AControl).Font.Color := clBlack;
+  end
+  else if AControl is TSplitter then
+    TSplitter(AControl).Color := RGBToColor(230,236,245)
+  else if AControl is TBitBtn then
+  begin
+    TBitBtn(AControl).Font.Color := RGBToColor(0,32,80);
+    if TBitBtn(AControl).Height < 28 then
+      TBitBtn(AControl).Height := 28;
+  end
+  else if AControl is TButton then
+  begin
+    TButton(AControl).Font.Color := RGBToColor(0,32,80);
+    if TButton(AControl).Height < 25 then
+      TButton(AControl).Height := 25;
+  end;
+
+  if AControl is TWinControl then
+    for I := 0 to TWinControl(AControl).ControlCount - 1 do
+      EstilizarControl(TWinControl(AControl).Controls[I]);
+end;
+
+procedure TFDashboardProductividad.AplicarEstiloVisualDashboard;
+begin
+  Color := RGBToColor(245,248,252);
+
+  if pcPrincipal <> nil then
+  begin
+    pcPrincipal.Color := RGBToColor(245,248,252);
+    pcPrincipal.Font.Color := RGBToColor(0,32,80);
+    pcPrincipal.Font.Style := [fsBold];
+  end;
+
+  EstilizarControl(Self);
+
+  // El filtro superior se mantiene compacto, pero con un aspecto más moderno.
+  if pnlFiltro <> nil then
+  begin
+    pnlFiltro.Height := 70;
+    pnlFiltro.Color := RGBToColor(235,243,255);
+  end;
 end;
 
 
@@ -1295,26 +1561,27 @@ begin
   // Evita los Access Violation de las pruebas con pestanas dinamicas en GTK.
   P(tsDashboard, 0);
   P(tsHoy, 1);
-  P(tsDiagnostico, 2);
-  P(tsComparativa, 3);
-  P(tsComparativaAvanzada, 4);
-  P(tsVentasAbiertas, 5);
-  P(tsCierreTarde, 6);
-  P(tsEstudios, 7);
-  P(tsRentabilidad, 8);
-  P(tsAlertas, 9);
-  P(tsRotacion, 10);
-  P(tsTendencias, 11);
-  P(tsClientes, 12);
-  P(tsPuestos, 13);
-  P(tsPromociones, 14);
-  P(tsCompras, 15);
-  P(tsReposicion, 16);
-  P(tsPicking, 17);
-  P(tsCalidad, 18);
-  P(tsVeriFactu, 19);
-  P(tsGraficas, 20);
-  P(tsConsultaLibre, 21);
+  P(tsCuadroGestion, 2);
+  P(tsDiagnostico, 3);
+  P(tsComparativa, 4);
+  P(tsComparativaAvanzada, 5);
+  P(tsVentasAbiertas, 6);
+  P(tsCierreTarde, 7);
+  P(tsEstudios, 8);
+  P(tsRentabilidad, 9);
+  P(tsAlertas, 10);
+  P(tsRotacion, 11);
+  P(tsTendencias, 12);
+  P(tsClientes, 13);
+  P(tsPuestos, 14);
+  P(tsPromociones, 15);
+  P(tsCompras, 16);
+  P(tsReposicion, 17);
+  P(tsPicking, 18);
+  P(tsCalidad, 19);
+  P(tsVeriFactu, 20);
+  P(tsGraficas, 21);
+  P(tsConsultaLibre, 22);
 end;
 
 
@@ -1323,6 +1590,7 @@ begin
   Result := '';
   if APage = tsDashboard then Result := 'dashboard'
   else if APage = tsHoy then Result := 'hoy'
+  else if APage = tsCuadroGestion then Result := 'cuadro_gestion'
   else if APage = tsDiagnostico then Result := 'diagnostico'
   else if APage = tsComparativa then Result := 'comparativa'
   else if APage = tsComparativaAvanzada then Result := 'comp_fechas'
@@ -1353,6 +1621,7 @@ begin
   K := LowerCase(Trim(AID));
   if K = 'dashboard' then Result := tsDashboard
   else if K = 'hoy' then Result := tsHoy
+  else if K = 'cuadro_gestion' then Result := tsCuadroGestion
   else if K = 'diagnostico' then Result := tsDiagnostico
   else if K = 'comparativa' then Result := tsComparativa
   else if K = 'comp_fechas' then Result := tsComparativaAvanzada
@@ -2118,6 +2387,319 @@ begin
   pbHoyPagos.OnPaint := @HoyPagosPaint;
 end;
 
+
+
+procedure TFDashboardProductividad.CrearTabCuadroGestion;
+var
+  pnlParams, pnlCards, pnlBody, pnlTop, pnlBottom: TPanel;
+  gbNegocio, gbHoras, gbMargen, gbEmpleados, gbResumen: TGroupBox;
+  spTop, spBottom, spFilas, spResumen: TSplitter;
+  L: TLabel;
+
+  procedure Etiqueta(const ACaption: string; AX, AY: Integer);
+  begin
+    L := TLabel.Create(Self);
+    L.Parent := pnlParams;
+    L.Caption := ACaption;
+    L.Left := AX;
+    L.Top := AY;
+  end;
+
+  procedure CrearTarjeta(var LValor: TLabel; const Titulo: string; ALeft: Integer);
+  var
+    P: TPanel;
+    LTit: TLabel;
+  begin
+    P := TPanel.Create(Self);
+    P.Parent := pnlCards;
+    P.Left := ALeft;
+    P.Top := 8;
+    P.Width := 205;
+    P.Height := 74;
+    P.BevelOuter := bvLowered;
+
+    LTit := TLabel.Create(Self);
+    LTit.Parent := P;
+    LTit.Caption := Titulo;
+    LTit.Left := 8;
+    LTit.Top := 8;
+    LTit.Font.Style := [fsBold];
+
+    LValor := TLabel.Create(Self);
+    LValor.Parent := P;
+    LValor.Caption := '-';
+    LValor.Left := 8;
+    LValor.Top := 34;
+    LValor.Font.Size := 12;
+    LValor.Font.Style := [fsBold];
+  end;
+
+  procedure CrearBotonCal(var B: TButton; AX, AY: Integer; AOnClick: TNotifyEvent);
+  begin
+    B := TButton.Create(Self);
+    B.Parent := pnlParams;
+    B.Left := AX;
+    B.Top := AY;
+    B.Width := 26;
+    B.Height := 24;
+    B.Caption := '...';
+    B.OnClick := AOnClick;
+  end;
+
+begin
+  pnlParams := TPanel.Create(Self);
+  pnlParams.Parent := tsCuadroGestion;
+  pnlParams.Align := alTop;
+  pnlParams.Height := 78;
+  pnlParams.BevelOuter := bvNone;
+
+  Etiqueta('Periodo actual:', 8, 10);
+  dtCGDesdeAct := TEdit.Create(Self);
+  dtCGDesdeAct.Parent := pnlParams;
+  dtCGDesdeAct.Left := 105;
+  dtCGDesdeAct.Top := 6;
+  dtCGDesdeAct.Width := 90;
+  dtCGHastaAct := TEdit.Create(Self);
+  dtCGHastaAct.Parent := pnlParams;
+  dtCGHastaAct.Left := 230;
+  dtCGHastaAct.Top := 6;
+  dtCGHastaAct.Width := 90;
+  Etiqueta('a', 208, 10);
+  CrearBotonCal(btnCGCalDesdeAct, 196, 6, @CGCalDesdeActClick);
+  CrearBotonCal(btnCGCalHastaAct, 322, 6, @CGCalHastaActClick);
+
+  Etiqueta('Comparar con:', 8, 43);
+  dtCGDesdeComp := TEdit.Create(Self);
+  dtCGDesdeComp.Parent := pnlParams;
+  dtCGDesdeComp.Left := 105;
+  dtCGDesdeComp.Top := 39;
+  dtCGDesdeComp.Width := 90;
+  dtCGHastaComp := TEdit.Create(Self);
+  dtCGHastaComp.Parent := pnlParams;
+  dtCGHastaComp.Left := 230;
+  dtCGHastaComp.Top := 39;
+  dtCGHastaComp.Width := 90;
+  Etiqueta('a', 208, 43);
+  CrearBotonCal(btnCGCalDesdeComp, 196, 39, @CGCalDesdeCompClick);
+  CrearBotonCal(btnCGCalHastaComp, 322, 39, @CGCalHastaCompClick);
+
+  btnCGDia := TButton.Create(Self);
+  btnCGDia.Parent := pnlParams;
+  btnCGDia.Left := 365;
+  btnCGDia.Top := 6;
+  btnCGDia.Width := 70;
+  btnCGDia.Height := 25;
+  btnCGDia.Caption := 'Dia';
+  btnCGDia.OnClick := @CGSetPeriodoDia;
+
+  btnCGMes := TButton.Create(Self);
+  btnCGMes.Parent := pnlParams;
+  btnCGMes.Left := 440;
+  btnCGMes.Top := 6;
+  btnCGMes.Width := 70;
+  btnCGMes.Height := 25;
+  btnCGMes.Caption := 'Mes';
+  btnCGMes.OnClick := @CGSetPeriodoMes;
+
+  btnCGAno := TButton.Create(Self);
+  btnCGAno.Parent := pnlParams;
+  btnCGAno.Left := 515;
+  btnCGAno.Top := 6;
+  btnCGAno.Width := 70;
+  btnCGAno.Height := 25;
+  btnCGAno.Caption := 'Ano';
+  btnCGAno.OnClick := @CGSetPeriodoAno;
+
+  btnCGPeriodo := TButton.Create(Self);
+  btnCGPeriodo.Parent := pnlParams;
+  btnCGPeriodo.Left := 590;
+  btnCGPeriodo.Top := 6;
+  btnCGPeriodo.Width := 80;
+  btnCGPeriodo.Height := 25;
+  btnCGPeriodo.Caption := 'Periodo';
+  btnCGPeriodo.OnClick := @CGPeriodoManual;
+
+  btnCGRefrescar := TButton.Create(Self);
+  btnCGRefrescar.Parent := pnlParams;
+  btnCGRefrescar.Left := 365;
+  btnCGRefrescar.Top := 39;
+  btnCGRefrescar.Width := 120;
+  btnCGRefrescar.Height := 25;
+  btnCGRefrescar.Caption := 'Actualizar cuadro';
+  btnCGRefrescar.OnClick := @CGRefrescarClick;
+
+  L := TLabel.Create(Self);
+  L.Parent := pnlParams;
+  L.Left := 500;
+  L.Top := 44;
+  L.Caption := 'Independiente del filtro general. Por defecto: hoy vs mismo dia del ano anterior.';
+
+  SetEditFecha(dtCGDesdeAct, SysUtils.Date);
+  SetEditFecha(dtCGHastaAct, SysUtils.Date);
+  SetEditFecha(dtCGDesdeComp, IncYear(SysUtils.Date, -1));
+  SetEditFecha(dtCGHastaComp, IncYear(SysUtils.Date, -1));
+
+  pnlCards := TPanel.Create(Self);
+  pnlCards.Parent := tsCuadroGestion;
+  pnlCards.Align := alTop;
+  pnlCards.Height := 92;
+  pnlCards.BevelOuter := bvNone;
+
+  CrearTarjeta(lblCGFacturacion, 'Facturacion', 8);
+  CrearTarjeta(lblCGMargen, 'Margen indicativo', 220);
+  CrearTarjeta(lblCGClientes, 'Clientes', 432);
+  CrearTarjeta(lblCGArticulos, 'Articulos / uds', 644);
+  CrearTarjeta(lblCGCesta, 'Cesta media euros', 856);
+
+  pnlBody := TPanel.Create(Self);
+  pnlBody.Parent := tsCuadroGestion;
+  pnlBody.Align := alClient;
+  pnlBody.BevelOuter := bvNone;
+
+  gbResumen := TGroupBox.Create(Self);
+  gbResumen.Parent := pnlBody;
+  gbResumen.Align := alTop;
+  // v36 fix3: resumen + lectura analitica al lado, como cuadro de ayuda.
+  gbResumen.Height := 145;
+  gbResumen.Caption := 'Resumen comparativo / lectura inteligente';
+
+  qCGResumen := CrearQuery;
+  dsCGResumen := TDataSource.Create(Self);
+  dsCGResumen.DataSet := qCGResumen;
+  gridCGResumen := TDBGrid.Create(Self);
+  gridCGResumen.Parent := gbResumen;
+  gridCGResumen.Align := alLeft;
+  gridCGResumen.Width := 900;
+  gridCGResumen.DataSource := dsCGResumen;
+  gridCGResumen.ReadOnly := True;
+  gridCGResumen.Options := gridCGResumen.Options + [dgDisplayMemoText];
+
+  spResumen := TSplitter.Create(Self);
+  spResumen.Parent := gbResumen;
+  spResumen.Align := alLeft;
+  spResumen.Width := 5;
+
+  memoCGAnalisis := TMemo.Create(Self);
+  memoCGAnalisis.Parent := gbResumen;
+  memoCGAnalisis.Align := alClient;
+  memoCGAnalisis.ReadOnly := True;
+  memoCGAnalisis.ScrollBars := ssVertical;
+  memoCGAnalisis.WordWrap := True;
+  memoCGAnalisis.Lines.Text := 'Actualiza el cuadro para ver la lectura analitica.';
+
+  spFilas := TSplitter.Create(Self);
+  spFilas.Parent := pnlBody;
+  spFilas.Align := alTop;
+  spFilas.Height := 5;
+
+  pnlTop := TPanel.Create(Self);
+  pnlTop.Parent := pnlBody;
+  pnlTop.Align := alTop;
+  pnlTop.Height := 245;
+  pnlTop.BevelOuter := bvNone;
+
+  gbNegocio := TGroupBox.Create(Self);
+  gbNegocio.Parent := pnlTop;
+  gbNegocio.Align := alLeft;
+  gbNegocio.Width := 620;
+  gbNegocio.Caption := 'Cifra de negocio por negocio / familia';
+
+  qCGNegocio := CrearQuery;
+  dsCGNegocio := TDataSource.Create(Self);
+  dsCGNegocio.DataSet := qCGNegocio;
+  gridCGNegocio := TDBGrid.Create(Self);
+  gridCGNegocio.Parent := gbNegocio;
+  gridCGNegocio.Align := alBottom;
+  gridCGNegocio.Height := 82;
+  gridCGNegocio.DataSource := dsCGNegocio;
+  gridCGNegocio.ReadOnly := True;
+  gridCGNegocio.Options := gridCGNegocio.Options + [dgDisplayMemoText];
+  pbCGNegocio := TPaintBox.Create(Self);
+  pbCGNegocio.Parent := gbNegocio;
+  pbCGNegocio.Align := alClient;
+  pbCGNegocio.OnPaint := @PintarCGNegocio;
+
+  spTop := TSplitter.Create(Self);
+  spTop.Parent := pnlTop;
+  spTop.Align := alLeft;
+  spTop.Width := 5;
+
+  gbHoras := TGroupBox.Create(Self);
+  gbHoras.Parent := pnlTop;
+  gbHoras.Align := alClient;
+  gbHoras.Caption := 'Frecuencia clientes / tickets por hora';
+
+  qCGHoras := CrearQuery;
+  dsCGHoras := TDataSource.Create(Self);
+  dsCGHoras.DataSet := qCGHoras;
+  gridCGHoras := TDBGrid.Create(Self);
+  gridCGHoras.Parent := gbHoras;
+  gridCGHoras.Align := alBottom;
+  gridCGHoras.Height := 82;
+  gridCGHoras.DataSource := dsCGHoras;
+  gridCGHoras.ReadOnly := True;
+  gridCGHoras.Options := gridCGHoras.Options + [dgDisplayMemoText];
+  pbCGHoras := TPaintBox.Create(Self);
+  pbCGHoras.Parent := gbHoras;
+  pbCGHoras.Align := alClient;
+  pbCGHoras.OnPaint := @PintarCGHoras;
+
+  spBottom := TSplitter.Create(Self);
+  spBottom.Parent := pnlBody;
+  spBottom.Align := alTop;
+  spBottom.Height := 5;
+
+  pnlBottom := TPanel.Create(Self);
+  pnlBottom.Parent := pnlBody;
+  pnlBottom.Align := alClient;
+  pnlBottom.BevelOuter := bvNone;
+
+  gbMargen := TGroupBox.Create(Self);
+  gbMargen.Parent := pnlBottom;
+  gbMargen.Align := alLeft;
+  gbMargen.Width := 620;
+  gbMargen.Caption := 'Margen indicativo por negocio / familia';
+
+  qCGMargen := CrearQuery;
+  dsCGMargen := TDataSource.Create(Self);
+  dsCGMargen.DataSet := qCGMargen;
+  gridCGMargen := TDBGrid.Create(Self);
+  gridCGMargen.Parent := gbMargen;
+  gridCGMargen.Align := alBottom;
+  gridCGMargen.Height := 82;
+  gridCGMargen.DataSource := dsCGMargen;
+  gridCGMargen.ReadOnly := True;
+  gridCGMargen.Options := gridCGMargen.Options + [dgDisplayMemoText];
+  pbCGMargen := TPaintBox.Create(Self);
+  pbCGMargen.Parent := gbMargen;
+  pbCGMargen.Align := alClient;
+  pbCGMargen.OnPaint := @PintarCGMargen;
+
+  spBottom := TSplitter.Create(Self);
+  spBottom.Parent := pnlBottom;
+  spBottom.Align := alLeft;
+  spBottom.Width := 5;
+
+  gbEmpleados := TGroupBox.Create(Self);
+  gbEmpleados.Parent := pnlBottom;
+  gbEmpleados.Align := alClient;
+  gbEmpleados.Caption := 'Empleados / usuario y cifra de negocio';
+
+  qCGEmpleados := CrearQuery;
+  dsCGEmpleados := TDataSource.Create(Self);
+  dsCGEmpleados.DataSet := qCGEmpleados;
+  gridCGEmpleados := TDBGrid.Create(Self);
+  gridCGEmpleados.Parent := gbEmpleados;
+  gridCGEmpleados.Align := alBottom;
+  gridCGEmpleados.Height := 82;
+  gridCGEmpleados.DataSource := dsCGEmpleados;
+  gridCGEmpleados.ReadOnly := True;
+  gridCGEmpleados.Options := gridCGEmpleados.Options + [dgDisplayMemoText];
+  pbCGEmpleados := TPaintBox.Create(Self);
+  pbCGEmpleados.Parent := gbEmpleados;
+  pbCGEmpleados.Align := alClient;
+  pbCGEmpleados.OnPaint := @PintarCGEmpleados;
+end;
 
 procedure TFDashboardProductividad.CrearTabVentasAbiertas;
 var
@@ -4842,15 +5424,23 @@ end;
 function TFDashboardProductividad.TablaExiste(const ANombre: string): Boolean;
 var
   Q: TZQuery;
+  NombreTabla: string;
 begin
   Result := False;
+
+  // Tabla() devuelve el nombre preparado para SQL, entre acentos graves
+  // (`usuarios0000`). Para INFORMATION_SCHEMA hay que consultar el nombre
+  // real de tabla, sin esos acentos graves. Esto afectaba a usuarios+tienda
+  // y por eso no se leia USU9 en Cuadro gestion.
+  NombreTabla := StringReplace(ANombre, '`', '', [rfReplaceAll]);
+
   Q := CrearQuery;
   try
     Q.SQL.Text :=
       'SELECT COUNT(*) AS existe ' +
       'FROM information_schema.tables ' +
       'WHERE table_schema = DATABASE() AND table_name = :tabla';
-    Q.ParamByName('tabla').AsString := ANombre;
+    Q.ParamByName('tabla').AsString := NombreTabla;
     Q.Open;
     Result := CampoInteger(Q, 'existe') > 0;
     Q.Close;
@@ -6205,6 +6795,14 @@ begin
       AnyadirDataSetCSV(L, 'Hoy - Tickets e importes por hora', qHoyHoras);
       AnyadirDataSetCSV(L, 'Hoy - Formas de pago', qHoyPagos);
     end
+    else if pcPrincipal.ActivePage = tsCuadroGestion then
+    begin
+      AnyadirDataSetCSV(L, 'Cuadro gestion - Resumen comparativo', qCGResumen);
+      AnyadirDataSetCSV(L, 'Cuadro gestion - Cifra por negocio', qCGNegocio);
+      AnyadirDataSetCSV(L, 'Cuadro gestion - Frecuencia por hora', qCGHoras);
+      AnyadirDataSetCSV(L, 'Cuadro gestion - Margen por negocio', qCGMargen);
+      AnyadirDataSetCSV(L, 'Cuadro gestion - Empleados', qCGEmpleados);
+    end
     else if pcPrincipal.ActivePage = tsVentasAbiertas then
     begin
       AnyadirDataSetCSV(L, 'Ventas abiertas - Resumen por caja', qVNAResumen);
@@ -6407,6 +7005,14 @@ begin
       AnyadirDataSetHTML(L, 'Hoy - Resumen actual', qHoyResumen);
       AnyadirDataSetHTML(L, 'Hoy - Tickets e importes por hora', qHoyHoras);
       AnyadirDataSetHTML(L, 'Hoy - Formas de pago', qHoyPagos);
+    end
+    else if pcPrincipal.ActivePage = tsCuadroGestion then
+    begin
+      AnyadirDataSetHTML(L, 'Cuadro gestion - Resumen comparativo', qCGResumen);
+      AnyadirDataSetHTML(L, 'Cuadro gestion - Cifra por negocio', qCGNegocio);
+      AnyadirDataSetHTML(L, 'Cuadro gestion - Frecuencia por hora', qCGHoras);
+      AnyadirDataSetHTML(L, 'Cuadro gestion - Margen por negocio', qCGMargen);
+      AnyadirDataSetHTML(L, 'Cuadro gestion - Empleados', qCGEmpleados);
     end
     else if pcPrincipal.ActivePage = tsVentasAbiertas then
     begin
@@ -6715,6 +7321,7 @@ begin
 
   CargarResumen;
   CargarHoy;
+  CargarCuadroGestion;
   CargarVentasAbiertas;
   CargarCierreTarde;
   CargarDiagnostico;
@@ -6929,15 +7536,22 @@ end;
 function TFDashboardProductividad.ColumnaExiste(const ANombreTabla, ANombreCampo: string): Boolean;
 var
   Q: TZQuery;
+  NombreTabla: string;
 begin
   Result := False;
+
+  // Igual que en TablaExiste: INFORMATION_SCHEMA espera usuarios0000,
+  // no `usuarios0000`. Sin esta limpieza, ColumnaExiste podia devolver
+  // False aunque USU9 existiera realmente.
+  NombreTabla := StringReplace(ANombreTabla, '`', '', [rfReplaceAll]);
+
   Q := CrearQuery;
   try
     Q.SQL.Text :=
       'SELECT COUNT(*) AS existe ' +
       'FROM information_schema.columns ' +
       'WHERE table_schema = DATABASE() AND table_name = :tabla AND column_name = :campo';
-    Q.ParamByName('tabla').AsString := ANombreTabla;
+    Q.ParamByName('tabla').AsString := NombreTabla;
     Q.ParamByName('campo').AsString := ANombreCampo;
     Q.Open;
     Result := CampoInteger(Q, 'existe') > 0;
@@ -7024,6 +7638,865 @@ begin
       'WHERE COALESCE(`V2`,0) >= 0';
     Sep := ' UNION ALL ';
   end;
+end;
+
+
+function TFDashboardProductividad.CGFechasValidas(out AActDesde, AActHasta, ACompDesde, ACompHasta: TDateTime): Boolean;
+begin
+  Result := False;
+  if not ParseFecha(dtCGDesdeAct.Text, AActDesde) then
+  begin
+    ShowMessage('Fecha inicial del periodo actual no valida.');
+    Exit;
+  end;
+  if not ParseFecha(dtCGHastaAct.Text, AActHasta) then
+  begin
+    ShowMessage('Fecha final del periodo actual no valida.');
+    Exit;
+  end;
+  if not ParseFecha(dtCGDesdeComp.Text, ACompDesde) then
+  begin
+    ShowMessage('Fecha inicial de comparacion no valida.');
+    Exit;
+  end;
+  if not ParseFecha(dtCGHastaComp.Text, ACompHasta) then
+  begin
+    ShowMessage('Fecha final de comparacion no valida.');
+    Exit;
+  end;
+  if AActHasta < AActDesde then
+  begin
+    ShowMessage('El periodo actual tiene la fecha final anterior a la inicial.');
+    Exit;
+  end;
+  if ACompHasta < ACompDesde then
+  begin
+    ShowMessage('El periodo de comparacion tiene la fecha final anterior a la inicial.');
+    Exit;
+  end;
+  Result := True;
+end;
+
+procedure TFDashboardProductividad.CGSetPeriodoDia(Sender: TObject);
+begin
+  SetEditFecha(dtCGDesdeAct, SysUtils.Date);
+  SetEditFecha(dtCGHastaAct, SysUtils.Date);
+  SetEditFecha(dtCGDesdeComp, IncYear(SysUtils.Date, -1));
+  SetEditFecha(dtCGHastaComp, IncYear(SysUtils.Date, -1));
+  CargarCuadroGestion;
+end;
+
+procedure TFDashboardProductividad.CGSetPeriodoMes(Sender: TObject);
+var
+  D1, D2: TDateTime;
+begin
+  D1 := EncodeDate(YearOf(SysUtils.Date), MonthOf(SysUtils.Date), 1);
+  D2 := SysUtils.Date;
+  SetEditFecha(dtCGDesdeAct, D1);
+  SetEditFecha(dtCGHastaAct, D2);
+  SetEditFecha(dtCGDesdeComp, IncYear(D1, -1));
+  SetEditFecha(dtCGHastaComp, IncYear(D2, -1));
+  CargarCuadroGestion;
+end;
+
+procedure TFDashboardProductividad.CGSetPeriodoAno(Sender: TObject);
+var
+  D1, D2: TDateTime;
+begin
+  D1 := EncodeDate(YearOf(SysUtils.Date), 1, 1);
+  D2 := SysUtils.Date;
+  SetEditFecha(dtCGDesdeAct, D1);
+  SetEditFecha(dtCGHastaAct, D2);
+  SetEditFecha(dtCGDesdeComp, IncYear(D1, -1));
+  SetEditFecha(dtCGHastaComp, IncYear(D2, -1));
+  CargarCuadroGestion;
+end;
+
+procedure TFDashboardProductividad.CGPeriodoManual(Sender: TObject);
+begin
+  ShowMessage('Modo periodo: ajusta las cuatro fechas manualmente y pulsa Actualizar cuadro.');
+end;
+
+procedure TFDashboardProductividad.CGRefrescarClick(Sender: TObject);
+begin
+  CargarCuadroGestion;
+end;
+
+procedure TFDashboardProductividad.CGCalDesdeActClick(Sender: TObject);
+begin
+  AbrirCalendarioFecha(dtCGDesdeAct);
+end;
+
+procedure TFDashboardProductividad.CGCalHastaActClick(Sender: TObject);
+begin
+  AbrirCalendarioFecha(dtCGHastaAct);
+end;
+
+procedure TFDashboardProductividad.CGCalDesdeCompClick(Sender: TObject);
+begin
+  AbrirCalendarioFecha(dtCGDesdeComp);
+end;
+
+procedure TFDashboardProductividad.CGCalHastaCompClick(Sender: TObject);
+begin
+  AbrirCalendarioFecha(dtCGHastaComp);
+end;
+
+procedure TFDashboardProductividad.CargarCuadroGestion;
+begin
+  if (qCGResumen = nil) or (dtCGDesdeAct = nil) then Exit;
+  CargarCGResumen;
+  CargarCGNegocio;
+  CargarCGHoras;
+  CargarCGMargen;
+  CargarCGEmpleados;
+  ActualizarTarjetasCG;
+  CargarCGAnalisis;
+  if pbCGNegocio <> nil then pbCGNegocio.Invalidate;
+  if pbCGHoras <> nil then pbCGHoras.Invalidate;
+  if pbCGMargen <> nil then pbCGMargen.Invalidate;
+  if pbCGEmpleados <> nil then pbCGEmpleados.Invalidate;
+end;
+
+procedure TFDashboardProductividad.CargarCGResumen;
+var
+  AD1, AD2, CD1, CD2: TDateTime;
+begin
+  if not CGFechasValidas(AD1, AD2, CD1, CD2) then Exit;
+
+  qCGResumen.Close;
+  qCGResumen.SQL.Text :=
+    'SELECT periodo, ROUND(facturacion,2) AS facturacion, ROUND(margen,2) AS margen_indicativo, clientes, ROUND(articulos,2) AS articulos, tickets, ROUND(facturacion/NULLIF(tickets,0),2) AS cesta_media ' +
+    'FROM ( ' +
+    ' SELECT ''Actual'' AS periodo, ' +
+    '   (SELECT COALESCE(SUM(IF(COALESCE(HO11,0)<>0,HO11,HO9)),0) FROM ' + Tabla('hisopcc') + ' WHERE HO0 BETWEEN :ad1 AND :ad2 AND HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(HO16,'''')<>''A'') AS facturacion, ' +
+    '   (SELECT COALESCE(SUM(D.HOD12-(D.HOD8*COALESCE(A.A24,0))),0) FROM ' + Tabla('hisopdd') + ' D JOIN ' + Tabla('hisopcc') + ' C ON C.HO0=D.HOD0 AND C.HO1=D.HOD1 AND C.HO2=D.HOD2 AND C.HO3=D.HOD3 AND C.HO4=D.HOD4 LEFT JOIN ' + Tabla('artitien') + ' A ON A.A0=D.HOD6 WHERE C.HO0 BETWEEN :ad3 AND :ad4 AND C.HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(C.HO16,'''')<>''A'') AS margen, ' +
+    '   (SELECT COUNT(DISTINCT CASE WHEN COALESCE(HO8,0)<>0 THEN CONCAT(''C'',HO8) ELSE CONCAT(''T'',HO0,''-'',HO1,''-'',HO2,''-'',HO3,''-'',HO4) END) FROM ' + Tabla('hisopcc') + ' WHERE HO0 BETWEEN :ad5 AND :ad6 AND HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(HO16,'''')<>''A'') AS clientes, ' +
+    '   (SELECT COALESCE(SUM(D.HOD8),0) FROM ' + Tabla('hisopdd') + ' D JOIN ' + Tabla('hisopcc') + ' C ON C.HO0=D.HOD0 AND C.HO1=D.HOD1 AND C.HO2=D.HOD2 AND C.HO3=D.HOD3 AND C.HO4=D.HOD4 WHERE C.HO0 BETWEEN :ad7 AND :ad8 AND C.HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(C.HO16,'''')<>''A'') AS articulos, ' +
+    '   (SELECT COUNT(*) FROM ' + Tabla('hisopcc') + ' WHERE HO0 BETWEEN :ad9 AND :ad10 AND HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(HO16,'''')<>''A'') AS tickets ' +
+    ' UNION ALL SELECT ''Comparacion'', ' +
+    '   (SELECT COALESCE(SUM(IF(COALESCE(HO11,0)<>0,HO11,HO9)),0) FROM ' + Tabla('hisopcc') + ' WHERE HO0 BETWEEN :cd1 AND :cd2 AND HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(HO16,'''')<>''A''), ' +
+    '   (SELECT COALESCE(SUM(D.HOD12-(D.HOD8*COALESCE(A.A24,0))),0) FROM ' + Tabla('hisopdd') + ' D JOIN ' + Tabla('hisopcc') + ' C ON C.HO0=D.HOD0 AND C.HO1=D.HOD1 AND C.HO2=D.HOD2 AND C.HO3=D.HOD3 AND C.HO4=D.HOD4 LEFT JOIN ' + Tabla('artitien') + ' A ON A.A0=D.HOD6 WHERE C.HO0 BETWEEN :cd3 AND :cd4 AND C.HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(C.HO16,'''')<>''A''), ' +
+    '   (SELECT COUNT(DISTINCT CASE WHEN COALESCE(HO8,0)<>0 THEN CONCAT(''C'',HO8) ELSE CONCAT(''T'',HO0,''-'',HO1,''-'',HO2,''-'',HO3,''-'',HO4) END) FROM ' + Tabla('hisopcc') + ' WHERE HO0 BETWEEN :cd5 AND :cd6 AND HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(HO16,'''')<>''A''), ' +
+    '   (SELECT COALESCE(SUM(D.HOD8),0) FROM ' + Tabla('hisopdd') + ' D JOIN ' + Tabla('hisopcc') + ' C ON C.HO0=D.HOD0 AND C.HO1=D.HOD1 AND C.HO2=D.HOD2 AND C.HO3=D.HOD3 AND C.HO4=D.HOD4 WHERE C.HO0 BETWEEN :cd7 AND :cd8 AND C.HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(C.HO16,'''')<>''A''), ' +
+    '   (SELECT COUNT(*) FROM ' + Tabla('hisopcc') + ' WHERE HO0 BETWEEN :cd9 AND :cd10 AND HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(HO16,'''')<>''A'') ' +
+    ') X';
+  qCGResumen.ParamByName('ad1').AsDateTime := AD1; qCGResumen.ParamByName('ad2').AsDateTime := AD2;
+  qCGResumen.ParamByName('ad3').AsDateTime := AD1; qCGResumen.ParamByName('ad4').AsDateTime := AD2;
+  qCGResumen.ParamByName('ad5').AsDateTime := AD1; qCGResumen.ParamByName('ad6').AsDateTime := AD2;
+  qCGResumen.ParamByName('ad7').AsDateTime := AD1; qCGResumen.ParamByName('ad8').AsDateTime := AD2;
+  qCGResumen.ParamByName('ad9').AsDateTime := AD1; qCGResumen.ParamByName('ad10').AsDateTime := AD2;
+  qCGResumen.ParamByName('cd1').AsDateTime := CD1; qCGResumen.ParamByName('cd2').AsDateTime := CD2;
+  qCGResumen.ParamByName('cd3').AsDateTime := CD1; qCGResumen.ParamByName('cd4').AsDateTime := CD2;
+  qCGResumen.ParamByName('cd5').AsDateTime := CD1; qCGResumen.ParamByName('cd6').AsDateTime := CD2;
+  qCGResumen.ParamByName('cd7').AsDateTime := CD1; qCGResumen.ParamByName('cd8').AsDateTime := CD2;
+  qCGResumen.ParamByName('cd9').AsDateTime := CD1; qCGResumen.ParamByName('cd10').AsDateTime := CD2;
+  qCGResumen.Open;
+
+  AjustarCampo(qCGResumen, 'periodo', 'Periodo', 14);
+  AjustarCampoMoneda(qCGResumen, 'facturacion', 'Facturacion', 13);
+  AjustarCampoMoneda(qCGResumen, 'margen_indicativo', 'Margen indic.', 13);
+  AjustarCampoNumero(qCGResumen, 'clientes', 'Clientes', 10, '#,##0');
+  AjustarCampoNumero(qCGResumen, 'articulos', 'Articulos/uds', 12, '#,##0.##');
+  AjustarCampoNumero(qCGResumen, 'tickets', 'Tickets', 10, '#,##0');
+  AjustarCampoMoneda(qCGResumen, 'cesta_media', 'Cesta media', 12);
+end;
+
+procedure TFDashboardProductividad.CargarCGNegocio;
+var
+  AD1, AD2, CD1, CD2: TDateTime;
+  I: Integer;
+begin
+  for I := 0 to 19 do
+  begin
+    FCGNegocioNombres[I] := '';
+    FCGNegocioActual[I] := 0;
+    FCGNegocioComp[I] := 0;
+  end;
+  FCGNegocioCount := 0;
+  if not CGFechasValidas(AD1, AD2, CD1, CD2) then Exit;
+
+  qCGNegocio.Close;
+  qCGNegocio.SQL.Text :=
+    'SELECT negocio, ROUND(SUM(actual),2) AS actual, ROUND(SUM(comparacion),2) AS comparacion, ' +
+    '       ROUND(SUM(actual)-SUM(comparacion),2) AS diferencia, ' +
+    '       ROUND((SUM(actual)-SUM(comparacion))/NULLIF(SUM(comparacion),0)*100,2) AS diferencia_pct ' +
+    'FROM ( ' +
+    ' SELECT COALESCE(F.F1,''Sin familia'') AS negocio, COALESCE(SUM(D.HOD14),0) AS actual, 0 AS comparacion ' +
+    ' FROM ' + Tabla('hisopdd') + ' D JOIN ' + Tabla('hisopcc') + ' C ON C.HO0=D.HOD0 AND C.HO1=D.HOD1 AND C.HO2=D.HOD2 AND C.HO3=D.HOD3 AND C.HO4=D.HOD4 ' +
+    ' LEFT JOIN ' + Tabla('artitien') + ' A ON A.A0=D.HOD6 LEFT JOIN ' + Tabla('familias') + ' F ON F.F0=A.A14 ' +
+    ' WHERE C.HO0 BETWEEN :ad1 AND :ad2 AND C.HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(C.HO16,'''')<>''A'' GROUP BY COALESCE(F.F1,''Sin familia'') ' +
+    ' UNION ALL ' +
+    ' SELECT COALESCE(F.F1,''Sin familia''), 0, COALESCE(SUM(D.HOD14),0) ' +
+    ' FROM ' + Tabla('hisopdd') + ' D JOIN ' + Tabla('hisopcc') + ' C ON C.HO0=D.HOD0 AND C.HO1=D.HOD1 AND C.HO2=D.HOD2 AND C.HO3=D.HOD3 AND C.HO4=D.HOD4 ' +
+    ' LEFT JOIN ' + Tabla('artitien') + ' A ON A.A0=D.HOD6 LEFT JOIN ' + Tabla('familias') + ' F ON F.F0=A.A14 ' +
+    ' WHERE C.HO0 BETWEEN :cd1 AND :cd2 AND C.HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(C.HO16,'''')<>''A'' GROUP BY COALESCE(F.F1,''Sin familia'') ' +
+    ') S GROUP BY negocio ORDER BY actual DESC LIMIT 20';
+  qCGNegocio.ParamByName('ad1').AsDateTime := AD1; qCGNegocio.ParamByName('ad2').AsDateTime := AD2;
+  qCGNegocio.ParamByName('cd1').AsDateTime := CD1; qCGNegocio.ParamByName('cd2').AsDateTime := CD2;
+  qCGNegocio.Open;
+
+  qCGNegocio.DisableControls;
+  try
+    I := 0;
+    qCGNegocio.First;
+    while (not qCGNegocio.EOF) and (I <= 19) do
+    begin
+      FCGNegocioNombres[I] := qCGNegocio.FieldByName('negocio').AsString;
+      FCGNegocioActual[I] := CampoDouble(qCGNegocio, 'actual');
+      FCGNegocioComp[I] := CampoDouble(qCGNegocio, 'comparacion');
+      Inc(I);
+      qCGNegocio.Next;
+    end;
+    FCGNegocioCount := I;
+    qCGNegocio.First;
+  finally
+    qCGNegocio.EnableControls;
+  end;
+
+  AjustarCampo(qCGNegocio, 'negocio', 'Negocio / familia', 28);
+  AjustarCampoMoneda(qCGNegocio, 'actual', 'Actual', 12);
+  AjustarCampoMoneda(qCGNegocio, 'comparacion', 'Comparacion', 12);
+  AjustarCampoMoneda(qCGNegocio, 'diferencia', 'Dif.', 12);
+  AjustarCampoNumero(qCGNegocio, 'diferencia_pct', 'Dif %', 9, '#,##0.00 %');
+end;
+
+procedure TFDashboardProductividad.CargarCGHoras;
+var
+  AD1, AD2, CD1, CD2: TDateTime;
+  I, H: Integer;
+begin
+  for I := 0 to 23 do
+  begin
+    FCGHoraImportesAct[I] := 0;
+    FCGHoraImportesComp[I] := 0;
+    FCGHoraTicketsAct[I] := 0;
+    FCGHoraTicketsComp[I] := 0;
+  end;
+  if not CGFechasValidas(AD1, AD2, CD1, CD2) then Exit;
+
+  qCGHoras.Close;
+  qCGHoras.SQL.Text :=
+    'SELECT hora, CONCAT(LPAD(hora,2,''0''), '':00'') AS franja, SUM(tickets_act) AS tickets_actual, SUM(tickets_comp) AS tickets_comparacion, ' +
+    '       ROUND(SUM(importe_act),2) AS importe_actual, ROUND(SUM(importe_comp),2) AS importe_comparacion ' +
+    'FROM ( ' +
+    ' SELECT HOUR(HO1) AS hora, COUNT(*) AS tickets_act, 0 AS tickets_comp, COALESCE(SUM(IF(COALESCE(HO11,0)<>0,HO11,HO9)),0) AS importe_act, 0 AS importe_comp ' +
+    ' FROM ' + Tabla('hisopcc') + ' WHERE HO0 BETWEEN :ad1 AND :ad2 AND HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(HO16,'''')<>''A'' GROUP BY HOUR(HO1) ' +
+    ' UNION ALL ' +
+    ' SELECT HOUR(HO1), 0, COUNT(*), 0, COALESCE(SUM(IF(COALESCE(HO11,0)<>0,HO11,HO9)),0) ' +
+    ' FROM ' + Tabla('hisopcc') + ' WHERE HO0 BETWEEN :cd1 AND :cd2 AND HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(HO16,'''')<>''A'' GROUP BY HOUR(HO1) ' +
+    ') S GROUP BY hora ORDER BY hora';
+  qCGHoras.ParamByName('ad1').AsDateTime := AD1; qCGHoras.ParamByName('ad2').AsDateTime := AD2;
+  qCGHoras.ParamByName('cd1').AsDateTime := CD1; qCGHoras.ParamByName('cd2').AsDateTime := CD2;
+  qCGHoras.Open;
+
+  qCGHoras.DisableControls;
+  try
+    qCGHoras.First;
+    while not qCGHoras.EOF do
+    begin
+      H := CampoInteger(qCGHoras, 'hora');
+      if (H >= 0) and (H <= 23) then
+      begin
+        FCGHoraTicketsAct[H] := CampoInteger(qCGHoras, 'tickets_actual');
+        FCGHoraTicketsComp[H] := CampoInteger(qCGHoras, 'tickets_comparacion');
+        FCGHoraImportesAct[H] := CampoDouble(qCGHoras, 'importe_actual');
+        FCGHoraImportesComp[H] := CampoDouble(qCGHoras, 'importe_comparacion');
+      end;
+      qCGHoras.Next;
+    end;
+    qCGHoras.First;
+  finally
+    qCGHoras.EnableControls;
+  end;
+
+  AjustarCampo(qCGHoras, 'franja', 'Hora', 8);
+  AjustarCampoNumero(qCGHoras, 'tickets_actual', 'Tickets act.', 10, '#,##0');
+  AjustarCampoNumero(qCGHoras, 'tickets_comparacion', 'Tickets comp.', 10, '#,##0');
+  AjustarCampoMoneda(qCGHoras, 'importe_actual', 'Importe act.', 12);
+  AjustarCampoMoneda(qCGHoras, 'importe_comparacion', 'Importe comp.', 12);
+end;
+
+procedure TFDashboardProductividad.CargarCGMargen;
+var
+  AD1, AD2, CD1, CD2: TDateTime;
+  I: Integer;
+begin
+  for I := 0 to 19 do
+  begin
+    FCGMargenNombres[I] := '';
+    FCGMargenActual[I] := 0;
+    FCGMargenComp[I] := 0;
+  end;
+  FCGMargenCount := 0;
+  if not CGFechasValidas(AD1, AD2, CD1, CD2) then Exit;
+
+  qCGMargen.Close;
+  qCGMargen.SQL.Text :=
+    'SELECT negocio, ROUND(SUM(actual),2) AS actual, ROUND(SUM(comparacion),2) AS comparacion, ' +
+    '       ROUND(SUM(actual)-SUM(comparacion),2) AS diferencia, ' +
+    '       ROUND((SUM(actual)-SUM(comparacion))/NULLIF(SUM(comparacion),0)*100,2) AS diferencia_pct ' +
+    'FROM ( ' +
+    ' SELECT COALESCE(F.F1,''Sin familia'') AS negocio, COALESCE(SUM(D.HOD12-(D.HOD8*COALESCE(A.A24,0))),0) AS actual, 0 AS comparacion ' +
+    ' FROM ' + Tabla('hisopdd') + ' D JOIN ' + Tabla('hisopcc') + ' C ON C.HO0=D.HOD0 AND C.HO1=D.HOD1 AND C.HO2=D.HOD2 AND C.HO3=D.HOD3 AND C.HO4=D.HOD4 ' +
+    ' LEFT JOIN ' + Tabla('artitien') + ' A ON A.A0=D.HOD6 LEFT JOIN ' + Tabla('familias') + ' F ON F.F0=A.A14 ' +
+    ' WHERE C.HO0 BETWEEN :ad1 AND :ad2 AND C.HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(C.HO16,'''')<>''A'' GROUP BY COALESCE(F.F1,''Sin familia'') ' +
+    ' UNION ALL ' +
+    ' SELECT COALESCE(F.F1,''Sin familia''), 0, COALESCE(SUM(D.HOD12-(D.HOD8*COALESCE(A.A24,0))),0) ' +
+    ' FROM ' + Tabla('hisopdd') + ' D JOIN ' + Tabla('hisopcc') + ' C ON C.HO0=D.HOD0 AND C.HO1=D.HOD1 AND C.HO2=D.HOD2 AND C.HO3=D.HOD3 AND C.HO4=D.HOD4 ' +
+    ' LEFT JOIN ' + Tabla('artitien') + ' A ON A.A0=D.HOD6 LEFT JOIN ' + Tabla('familias') + ' F ON F.F0=A.A14 ' +
+    ' WHERE C.HO0 BETWEEN :cd1 AND :cd2 AND C.HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(C.HO16,'''')<>''A'' GROUP BY COALESCE(F.F1,''Sin familia'') ' +
+    ') S GROUP BY negocio ORDER BY actual DESC LIMIT 20';
+  qCGMargen.ParamByName('ad1').AsDateTime := AD1; qCGMargen.ParamByName('ad2').AsDateTime := AD2;
+  qCGMargen.ParamByName('cd1').AsDateTime := CD1; qCGMargen.ParamByName('cd2').AsDateTime := CD2;
+  qCGMargen.Open;
+
+  qCGMargen.DisableControls;
+  try
+    I := 0;
+    qCGMargen.First;
+    while (not qCGMargen.EOF) and (I <= 19) do
+    begin
+      FCGMargenNombres[I] := qCGMargen.FieldByName('negocio').AsString;
+      FCGMargenActual[I] := CampoDouble(qCGMargen, 'actual');
+      FCGMargenComp[I] := CampoDouble(qCGMargen, 'comparacion');
+      Inc(I);
+      qCGMargen.Next;
+    end;
+    FCGMargenCount := I;
+    qCGMargen.First;
+  finally
+    qCGMargen.EnableControls;
+  end;
+
+  AjustarCampo(qCGMargen, 'negocio', 'Negocio / familia', 28);
+  AjustarCampoMoneda(qCGMargen, 'actual', 'Actual', 12);
+  AjustarCampoMoneda(qCGMargen, 'comparacion', 'Comparacion', 12);
+  AjustarCampoMoneda(qCGMargen, 'diferencia', 'Dif.', 12);
+  AjustarCampoNumero(qCGMargen, 'diferencia_pct', 'Dif %', 9, '#,##0.00 %');
+end;
+
+procedure TFDashboardProductividad.CargarCGEmpleados;
+var
+  AD1, AD2, CD1, CD2: TDateTime;
+  I: Integer;
+  TieneUsuarios, TieneUSU9, TieneUSU1: Boolean;
+  EmpExpr, JoinUsuarios, NombreUsuarioExpr: string;
+begin
+  for I := 0 to 19 do
+  begin
+    FCGEmpleadoNombres[I] := '';
+    FCGEmpleadoImportes[I] := 0;
+  end;
+  FCGEmpleadoCount := 0;
+  if not CGFechasValidas(AD1, AD2, CD1, CD2) then Exit;
+
+  // Si existe la tabla de usuarios, mostramos codigo + nombre corto.
+  // En FacturLinEx el nombre visible en el boton del usuario esta en USU9.
+  // Si USU9 no existe en alguna instalacion antigua, se intenta USU1 como
+  // reserva; si tampoco existe, se conserva solo el codigo original.
+  TieneUsuarios := TablaExiste(Tabla('usuarios')) and ColumnaExiste(Tabla('usuarios'), 'USU0');
+  TieneUSU9 := False;
+  TieneUSU1 := False;
+  if TieneUsuarios then
+  begin
+    TieneUSU9 := ColumnaExiste(Tabla('usuarios'), 'USU9');
+    TieneUSU1 := ColumnaExiste(Tabla('usuarios'), 'USU1');
+  end;
+
+  if TieneUsuarios and (TieneUSU9 or TieneUSU1) then
+  begin
+    JoinUsuarios := ' LEFT JOIN ' + Tabla('usuarios') + ' U ON U.USU0=C.HO7 ';
+    if TieneUSU9 and TieneUSU1 then
+      NombreUsuarioExpr := 'COALESCE(NULLIF(TRIM(U.USU9),''''), NULLIF(TRIM(U.USU1),''''), ''Sin nombre'')'
+    else if TieneUSU9 then
+      NombreUsuarioExpr := 'COALESCE(NULLIF(TRIM(U.USU9),''''), ''Sin nombre'')'
+    else
+      NombreUsuarioExpr := 'COALESCE(NULLIF(TRIM(U.USU1),''''), ''Sin nombre'')';
+
+    EmpExpr := 'CONCAT(COALESCE(NULLIF(TRIM(CAST(C.HO7 AS CHAR)),''''),''?''), '' - '', ' + NombreUsuarioExpr + ')';
+  end
+  else
+  begin
+    JoinUsuarios := '';
+    EmpExpr := 'COALESCE(NULLIF(TRIM(CAST(C.HO7 AS CHAR)),''''),''Sin usuario'')';
+  end;
+
+  qCGEmpleados.Close;
+  qCGEmpleados.SQL.Text :=
+    'SELECT ' + EmpExpr + ' AS empleado, COUNT(*) AS tickets, ' +
+    '       ROUND(COALESCE(SUM(IF(COALESCE(C.HO11,0)<>0,C.HO11,C.HO9)),0),2) AS facturacion, ' +
+    '       ROUND(COALESCE(AVG(IF(COALESCE(C.HO11,0)<>0,C.HO11,C.HO9)),0),2) AS ticket_medio ' +
+    'FROM ' + Tabla('hisopcc') + ' C ' + JoinUsuarios +
+    'WHERE C.HO0 BETWEEN :ad1 AND :ad2 AND C.HO5 IN (''NS'',''NT'',''FA'') AND COALESCE(C.HO16,'''')<>''A'' ' +
+    'GROUP BY empleado ORDER BY facturacion DESC LIMIT 20';
+  qCGEmpleados.ParamByName('ad1').AsDateTime := AD1; qCGEmpleados.ParamByName('ad2').AsDateTime := AD2;
+  qCGEmpleados.Open;
+
+  qCGEmpleados.DisableControls;
+  try
+    I := 0;
+    qCGEmpleados.First;
+    while (not qCGEmpleados.EOF) and (I <= 19) do
+    begin
+      FCGEmpleadoNombres[I] := qCGEmpleados.FieldByName('empleado').AsString;
+      FCGEmpleadoImportes[I] := CampoDouble(qCGEmpleados, 'facturacion');
+      Inc(I);
+      qCGEmpleados.Next;
+    end;
+    FCGEmpleadoCount := I;
+    qCGEmpleados.First;
+  finally
+    qCGEmpleados.EnableControls;
+  end;
+
+  AjustarCampo(qCGEmpleados, 'empleado', 'Empleado / usuario', 32);
+  AjustarCampoNumero(qCGEmpleados, 'tickets', 'Tickets', 8, '#,##0');
+  AjustarCampoMoneda(qCGEmpleados, 'facturacion', 'Facturacion', 12);
+  AjustarCampoMoneda(qCGEmpleados, 'ticket_medio', 'Ticket medio', 12);
+end;
+
+procedure TFDashboardProductividad.CargarCGAnalisis;
+var
+  L: TStringList;
+  AD1, AD2, CD1, CD2: TDateTime;
+  FactAct, FactComp, MargAct, MargComp, CliAct, CliComp, ArtAct, ArtComp, TicketsAct, TicketsComp, CestaAct, CestaComp: Double;
+  PctFact, PctMarg, PctCli, PctArt, PctTickets, PctCesta, MargenPctAct, MargenPctComp: Double;
+  I, HoraTopTickets, HoraTopImporte: Integer;
+  TopTickets: Integer;
+  TopImporte: Double;
+  TopFamilia, TopMargenFamilia, TopEmpleado: string;
+  TopFamiliaImp, TopMargenImp, TopEmpleadoImp: Double;
+
+  function DifPct(const A, B: Double): Double;
+  begin
+    if Abs(B) < 0.0001 then
+      Result := 0
+    else
+      Result := ((A - B) / B) * 100;
+  end;
+
+  function TxtPct(const P: Double): string;
+  begin
+    Result := FormatFloat('+#,##0.00;-#,##0.00;0.00', P) + '%';
+  end;
+
+  function Tendencia(const P: Double): string;
+  begin
+    if P > 3 then Result := 'sube'
+    else if P < -3 then Result := 'baja'
+    else Result := 'se mantiene';
+  end;
+
+  procedure LeerResumen;
+  begin
+    FactAct := 0; FactComp := 0; MargAct := 0; MargComp := 0; CliAct := 0; CliComp := 0;
+    ArtAct := 0; ArtComp := 0; TicketsAct := 0; TicketsComp := 0; CestaAct := 0; CestaComp := 0;
+    if (qCGResumen = nil) or (not qCGResumen.Active) then Exit;
+    qCGResumen.DisableControls;
+    try
+      qCGResumen.First;
+      while not qCGResumen.EOF do
+      begin
+        if SameText(qCGResumen.FieldByName('periodo').AsString, 'Actual') then
+        begin
+          FactAct := CampoDouble(qCGResumen, 'facturacion');
+          MargAct := CampoDouble(qCGResumen, 'margen_indicativo');
+          CliAct := CampoDouble(qCGResumen, 'clientes');
+          ArtAct := CampoDouble(qCGResumen, 'articulos');
+          TicketsAct := CampoDouble(qCGResumen, 'tickets');
+          CestaAct := CampoDouble(qCGResumen, 'cesta_media');
+        end
+        else
+        begin
+          FactComp := CampoDouble(qCGResumen, 'facturacion');
+          MargComp := CampoDouble(qCGResumen, 'margen_indicativo');
+          CliComp := CampoDouble(qCGResumen, 'clientes');
+          ArtComp := CampoDouble(qCGResumen, 'articulos');
+          TicketsComp := CampoDouble(qCGResumen, 'tickets');
+          CestaComp := CampoDouble(qCGResumen, 'cesta_media');
+        end;
+        qCGResumen.Next;
+      end;
+      qCGResumen.First;
+    finally
+      qCGResumen.EnableControls;
+    end;
+  end;
+
+begin
+  if memoCGAnalisis = nil then Exit;
+  L := TStringList.Create;
+  try
+    if not CGFechasValidas(AD1, AD2, CD1, CD2) then
+    begin
+      L.Text := 'No se pueden interpretar los datos: revisa las fechas del cuadro.';
+      memoCGAnalisis.Lines.Assign(L);
+      Exit;
+    end;
+
+    LeerResumen;
+    PctFact := DifPct(FactAct, FactComp);
+    PctMarg := DifPct(MargAct, MargComp);
+    PctCli := DifPct(CliAct, CliComp);
+    PctArt := DifPct(ArtAct, ArtComp);
+    PctTickets := DifPct(TicketsAct, TicketsComp);
+    PctCesta := DifPct(CestaAct, CestaComp);
+    MargenPctAct := 0;
+    MargenPctComp := 0;
+    if Abs(FactAct) > 0.0001 then MargenPctAct := (MargAct / FactAct) * 100;
+    if Abs(FactComp) > 0.0001 then MargenPctComp := (MargComp / FactComp) * 100;
+
+    HoraTopTickets := -1; TopTickets := 0;
+    HoraTopImporte := -1; TopImporte := 0;
+    for I := 0 to 23 do
+    begin
+      if FCGHoraTicketsAct[I] > TopTickets then
+      begin
+        TopTickets := FCGHoraTicketsAct[I];
+        HoraTopTickets := I;
+      end;
+      if FCGHoraImportesAct[I] > TopImporte then
+      begin
+        TopImporte := FCGHoraImportesAct[I];
+        HoraTopImporte := I;
+      end;
+    end;
+
+    TopFamilia := '';
+    TopFamiliaImp := 0;
+    if FCGNegocioCount > 0 then
+    begin
+      TopFamilia := FCGNegocioNombres[0];
+      TopFamiliaImp := FCGNegocioActual[0];
+    end;
+    TopMargenFamilia := '';
+    TopMargenImp := 0;
+    if FCGMargenCount > 0 then
+    begin
+      TopMargenFamilia := FCGMargenNombres[0];
+      TopMargenImp := FCGMargenActual[0];
+    end;
+    TopEmpleado := '';
+    TopEmpleadoImp := 0;
+    if FCGEmpleadoCount > 0 then
+    begin
+      TopEmpleado := FCGEmpleadoNombres[0];
+      TopEmpleadoImp := FCGEmpleadoImportes[0];
+    end;
+
+    L.Add('LECTURA DEL CUADRO');
+    L.Add('Actual: ' + FormatDateTime('dd/mm/yyyy', AD1) + ' - ' + FormatDateTime('dd/mm/yyyy', AD2) +
+          ' | Comparacion: ' + FormatDateTime('dd/mm/yyyy', CD1) + ' - ' + FormatDateTime('dd/mm/yyyy', CD2));
+    L.Add('');
+    L.Add('- Facturacion: ' + Dinero(FactAct) + ' frente a ' + Dinero(FactComp) +
+          ' (' + TxtPct(PctFact) + '). La venta ' + Tendencia(PctFact) + '.');
+    L.Add('- Margen indicativo: ' + Dinero(MargAct) + ' frente a ' + Dinero(MargComp) +
+          ' (' + TxtPct(PctMarg) + '). Margen sobre venta actual: ' + FormatFloat('#,##0.00', MargenPctAct) + '%.');
+    L.Add('- Clientes/tickets: clientes ' + TxtPct(PctCli) + ', tickets ' + TxtPct(PctTickets) +
+          ', cesta media ' + Dinero(CestaAct) + ' (' + TxtPct(PctCesta) + ').');
+
+    if HoraTopTickets >= 0 then
+      L.Add('- Hora con mas tickets: ' + Format('%.2d:00', [HoraTopTickets]) + ' con ' + IntToStr(TopTickets) + ' tickets.');
+    if HoraTopImporte >= 0 then
+      L.Add('- Hora con mas facturacion: ' + Format('%.2d:00', [HoraTopImporte]) + ' con ' + Dinero(TopImporte) + '.');
+    if TopFamilia <> '' then
+      L.Add('- Familia con mas venta: ' + TopFamilia + ' (' + Dinero(TopFamiliaImp) + ').');
+    if TopMargenFamilia <> '' then
+      L.Add('- Familia con mas margen: ' + TopMargenFamilia + ' (' + Dinero(TopMargenImp) + ').');
+    if TopEmpleado <> '' then
+      L.Add('- Empleado/usuario con mas facturacion: ' + TopEmpleado + ' (' + Dinero(TopEmpleadoImp) + ').');
+
+    L.Add('');
+    L.Add('ACCIONES RECOMENDADAS');
+    if PctMarg < PctFact - 5 then
+      L.Add('1. Revisar descuentos, costes y articulos de bajo margen: la venta va mejor que el margen, por lo que puede haber perdida de rentabilidad.')
+    else if MargenPctAct < 15 then
+      L.Add('1. Margen global bajo: revisar precios de familias principales y posibles articulos vendidos por debajo de coste.')
+    else
+      L.Add('1. Margen razonable: mantener vigilancia sobre descuentos y costes anormales.');
+
+    if PctCli < -5 then
+      L.Add('2. Hay menos clientes que en la comparacion. Conviene revisar captacion, escaparate, promociones y horas con baja entrada.')
+    else if PctCli > 5 then
+      L.Add('2. La entrada de clientes mejora. Aprovechar las horas fuertes para tener reposicion y personal preparado.')
+    else
+      L.Add('2. Clientes estables. Usar las horas fuertes para reforzar reposicion y atencion.');
+
+    if (PctCesta > 5) and (PctCli < 0) then
+      L.Add('3. Menos clientes pero cesta mayor: el cliente que entra compra mas. Interesa atraer mas trafico sin bajar margen.')
+    else if (PctCesta < -5) then
+      L.Add('3. Baja la cesta media: revisar ventas cruzadas, promociones y exposicion de productos complementarios.')
+    else
+      L.Add('3. Cesta media estable: centrar mejora en familias, horarios y margen.');
+
+    if HoraTopTickets >= 0 then
+      L.Add('4. Planificar personal/reposicion antes de las ' + Format('%.2d:00', [HoraTopTickets]) + ', que es la franja con mas tickets.');
+    if TopFamilia <> '' then
+      L.Add('5. Revisar la familia principal (' + TopFamilia + '): si concentra mucha venta, asegurar stock y precio correcto.');
+  finally
+    memoCGAnalisis.Lines.Assign(L);
+    L.Free;
+  end;
+end;
+
+procedure TFDashboardProductividad.ActualizarTarjetasCG;
+var
+  FactAct, FactComp, MargAct, MargComp, CliAct, CliComp, ArtAct, ArtComp, CestaAct, CestaComp: Double;
+
+  function FmtPct(const A, B: Double): string;
+  var
+    P: Double;
+  begin
+    if Abs(B) < 0.0001 then
+      Result := ''
+    else
+    begin
+      P := ((A - B) / B) * 100;
+      Result := ' (' + FormatFloat('+#,##0.00;-#,##0.00;0.00', P) + '%)';
+    end;
+  end;
+
+  procedure LeerResumen;
+  begin
+    FactAct := 0; FactComp := 0; MargAct := 0; MargComp := 0; CliAct := 0; CliComp := 0; ArtAct := 0; ArtComp := 0; CestaAct := 0; CestaComp := 0;
+    if (qCGResumen = nil) or (not qCGResumen.Active) then Exit;
+    qCGResumen.DisableControls;
+    try
+      qCGResumen.First;
+      while not qCGResumen.EOF do
+      begin
+        if SameText(qCGResumen.FieldByName('periodo').AsString, 'Actual') then
+        begin
+          FactAct := CampoDouble(qCGResumen, 'facturacion');
+          MargAct := CampoDouble(qCGResumen, 'margen_indicativo');
+          CliAct := CampoDouble(qCGResumen, 'clientes');
+          ArtAct := CampoDouble(qCGResumen, 'articulos');
+          CestaAct := CampoDouble(qCGResumen, 'cesta_media');
+        end
+        else
+        begin
+          FactComp := CampoDouble(qCGResumen, 'facturacion');
+          MargComp := CampoDouble(qCGResumen, 'margen_indicativo');
+          CliComp := CampoDouble(qCGResumen, 'clientes');
+          ArtComp := CampoDouble(qCGResumen, 'articulos');
+          CestaComp := CampoDouble(qCGResumen, 'cesta_media');
+        end;
+        qCGResumen.Next;
+      end;
+      qCGResumen.First;
+    finally
+      qCGResumen.EnableControls;
+    end;
+  end;
+
+begin
+  LeerResumen;
+  if lblCGFacturacion <> nil then lblCGFacturacion.Caption := Dinero(FactAct) + FmtPct(FactAct, FactComp);
+  if lblCGMargen <> nil then lblCGMargen.Caption := Dinero(MargAct) + FmtPct(MargAct, MargComp);
+  if lblCGClientes <> nil then lblCGClientes.Caption := FormatFloat('#,##0', CliAct) + FmtPct(CliAct, CliComp);
+  if lblCGArticulos <> nil then lblCGArticulos.Caption := FormatFloat('#,##0.##', ArtAct) + FmtPct(ArtAct, ArtComp);
+  if lblCGCesta <> nil then lblCGCesta.Caption := Dinero(CestaAct) + FmtPct(CestaAct, CestaComp);
+end;
+
+procedure TFDashboardProductividad.PintarBarrasComparativas(APaintBox: TPaintBox; const ATitulo, ALeg1, ALeg2: string; const ANombres: TString20Array; const AActual, AComp: TDouble20Array; ACount: Integer; const APrefijo, ASufijo: string);
+var
+  C: TCanvas;
+  W,H,I,Y,LeftM,BarH,MaxNameW,PlotW,B1,B2: Integer;
+  MaxV: Double;
+  Nom, Val: string;
+begin
+  if APaintBox = nil then Exit;
+  C := APaintBox.Canvas;
+  W := APaintBox.Width;
+  H := APaintBox.Height;
+  C.Brush.Color := clWhite;
+  C.FillRect(Rect(0,0,W,H));
+  C.Font.Color := clBlack;
+  C.Font.Style := [fsBold];
+  C.TextOut(8,6,ATitulo);
+  C.Font.Style := [];
+  if ALeg2 <> '' then
+    C.TextOut(W-210, 8, ALeg1 + ' / ' + ALeg2)
+  else
+    C.TextOut(W-120, 8, ALeg1);
+  if ACount <= 0 then
+  begin
+    C.TextOut(12,34,'Sin datos para pintar.');
+    Exit;
+  end;
+  MaxV := 0;
+  for I := 0 to ACount-1 do
+  begin
+    if Abs(AActual[I]) > MaxV then MaxV := Abs(AActual[I]);
+    if Abs(AComp[I]) > MaxV then MaxV := Abs(AComp[I]);
+  end;
+  if MaxV <= 0.004 then
+  begin
+    C.TextOut(12,34,'No hay importes en el periodo.');
+    Exit;
+  end;
+  MaxNameW := 150;
+  LeftM := MaxNameW + 8;
+  PlotW := W - LeftM - 80;
+  BarH := Max(8, (H - 42) div Max(ACount,1) div 2);
+  for I := 0 to ACount-1 do
+  begin
+    Y := 32 + I * Max(18, BarH*2 + 5);
+    if Y + BarH*2 > H-4 then Break;
+    Nom := ANombres[I];
+    if Length(Nom) > 24 then Nom := Copy(Nom,1,24);
+    C.TextOut(4, Y, Nom);
+    B1 := Round((Abs(AActual[I]) / MaxV) * PlotW);
+    B2 := Round((Abs(AComp[I]) / MaxV) * PlotW);
+    C.Brush.Color := clSkyBlue;
+    C.Rectangle(LeftM, Y, LeftM+B1, Y+BarH);
+    if ALeg2 <> '' then
+    begin
+      C.Brush.Color := clMoneyGreen;
+      C.Rectangle(LeftM, Y+BarH+2, LeftM+B2, Y+BarH*2+2);
+    end;
+    C.Brush.Style := bsClear;
+    Val := APrefijo + FormatFloat('#,##0.##', AActual[I]) + ASufijo;
+    C.TextOut(LeftM+B1+4, Y-1, Val);
+    C.Brush.Style := bsSolid;
+  end;
+end;
+
+procedure TFDashboardProductividad.PintarBarrasHorasComparativas(APaintBox: TPaintBox; const ATitulo: string; const AAct, AComp: TIntegerHourArray);
+var
+  C: TCanvas;
+  W,H,I,X,YBase,PlotTop,PlotH,PlotW,BarW,B1,B2,MaxV: Integer;
+  Step: Double;
+
+  procedure TextoVerticalClaro(const S: string; AX, ABarTop: Integer; AColor: TColor);
+  var
+    J, TW, TH, LabelW, LabelH, LY, OldSize: Integer;
+    OldStyle: TFontStyles;
+    OldColor: TColor;
+  begin
+    if S = '' then Exit;
+
+    OldSize := C.Font.Size;
+    OldStyle := C.Font.Style;
+    OldColor := C.Font.Color;
+    C.Font.Size := 8;
+    C.Font.Style := [fsBold];
+    TW := C.TextWidth('8');
+    TH := C.TextHeight('8');
+    LabelW := TW + 6;
+    LabelH := Length(S) * TH + 4;
+
+    // v36 fix2: los numeros horizontales se mezclaban cuando habia dos barras
+    // juntas por hora. Se pintan en vertical y con fondo blanco para que la
+    // lectura sea clara incluso en monitores pequenos o con muchos tickets.
+    LY := ABarTop - LabelH - 2;
+    if LY < 22 then
+      LY := 22;
+    if AX + LabelW > W - 2 then
+      AX := W - LabelW - 2;
+    if AX < 2 then
+      AX := 2;
+
+    C.Brush.Color := clWhite;
+    C.Pen.Color := clSilver;
+    C.Rectangle(AX, LY, AX + LabelW, LY + LabelH);
+    C.Brush.Style := bsClear;
+    C.Font.Color := AColor;
+    for J := 1 to Length(S) do
+      C.TextOut(AX + 3, LY + 2 + (J-1) * TH, S[J]);
+    C.Brush.Style := bsSolid;
+    C.Font.Size := OldSize;
+    C.Font.Style := OldStyle;
+    C.Font.Color := OldColor;
+  end;
+
+begin
+  if APaintBox = nil then Exit;
+  C := APaintBox.Canvas;
+  W := APaintBox.Width;
+  H := APaintBox.Height;
+  C.Brush.Color := clWhite;
+  C.FillRect(Rect(0,0,W,H));
+  C.Font.Color := clBlack;
+  C.Font.Style := [fsBold];
+  C.TextOut(8,6,ATitulo);
+  C.Font.Style := [];
+  MaxV := 0;
+  for I := 0 to 23 do
+  begin
+    if AAct[I] > MaxV then MaxV := AAct[I];
+    if AComp[I] > MaxV then MaxV := AComp[I];
+  end;
+  if MaxV <= 0 then
+  begin
+    C.TextOut(12,34,'Sin tickets en los periodos.');
+    Exit;
+  end;
+
+  // Mas margen superior para numeros verticales y legibles.
+  PlotTop := 58;
+  YBase := H - 34;
+  PlotH := Max(10, YBase - PlotTop - 10);
+  PlotW := W - 44;
+  Step := PlotW / 24;
+  BarW := Max(5, Round(Step / 3));
+
+  // Leyenda sencilla.
+  C.Brush.Color := clSkyBlue;
+  C.Rectangle(W-190, 10, W-178, 22);
+  C.TextOut(W-174, 8, 'Actual');
+  C.Brush.Color := clMoneyGreen;
+  C.Rectangle(W-112, 10, W-100, 22);
+  C.TextOut(W-96, 8, 'Comparacion');
+
+  C.Pen.Color := clGray;
+  C.Line(28, PlotTop, 28, YBase);
+  C.Line(28, YBase, W-8, YBase);
+  for I := 0 to 23 do
+  begin
+    X := 30 + Round(I * Step);
+    B1 := Round((AAct[I] / MaxV) * PlotH);
+    B2 := Round((AComp[I] / MaxV) * PlotH);
+
+    C.Brush.Color := clSkyBlue;
+    C.Rectangle(X, YBase-B1, X+BarW, YBase);
+    C.Brush.Color := clMoneyGreen;
+    C.Rectangle(X+BarW+2, YBase-B2, X+BarW*2+2, YBase);
+
+    if (I mod 2)=0 then
+      C.TextOut(X-2, YBase+4, IntToStr(I));
+
+    if AAct[I] > 0 then
+      TextoVerticalClaro(IntToStr(AAct[I]), X + (BarW div 2) - 5, YBase-B1, clNavy);
+
+    if AComp[I] > 0 then
+      TextoVerticalClaro(IntToStr(AComp[I]), X + BarW + 2 + (BarW div 2) - 5, YBase-B2, clGreen);
+  end;
+end;
+
+procedure TFDashboardProductividad.PintarCGNegocio(Sender: TObject);
+begin
+  PintarBarrasComparativas(Sender as TPaintBox, 'Cifra de negocio por negocio', 'Actual', 'Comparacion', FCGNegocioNombres, FCGNegocioActual, FCGNegocioComp, FCGNegocioCount, '', '');
+end;
+
+procedure TFDashboardProductividad.PintarCGHoras(Sender: TObject);
+begin
+  PintarBarrasHorasComparativas(Sender as TPaintBox, 'Frecuencia clientes / tickets por hora', FCGHoraTicketsAct, FCGHoraTicketsComp);
+end;
+
+procedure TFDashboardProductividad.PintarCGMargen(Sender: TObject);
+begin
+  PintarBarrasComparativas(Sender as TPaintBox, 'Margen indicativo por negocio', 'Actual', 'Comparacion', FCGMargenNombres, FCGMargenActual, FCGMargenComp, FCGMargenCount, '', '');
+end;
+
+procedure TFDashboardProductividad.PintarCGEmpleados(Sender: TObject);
+var
+  Zeros: TDouble20Array;
+  I: Integer;
+begin
+  for I := 0 to 19 do Zeros[I] := 0;
+  PintarBarrasComparativas(Sender as TPaintBox, 'Empleados / cifra de negocio', 'Actual', '', FCGEmpleadoNombres, FCGEmpleadoImportes, Zeros, FCGEmpleadoCount, '', '');
 end;
 
 procedure TFDashboardProductividad.CargarVentasAbiertas;

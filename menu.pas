@@ -289,6 +289,31 @@ Type
     procedure AddPedidoTemporadaAutoButton;
     procedure DashboardProductividadClick(Sender: TObject);
     procedure AddDashboardProductividadButton;
+    procedure DoctorFacturLinExClick(Sender: TObject);
+    procedure AddDoctorFacturLinExButton;
+    procedure AlertasFacturLinExClick(Sender: TObject);
+    procedure AddAlertasFacturLinExButton;
+    procedure AsistenteFacturLinExClick(Sender: TObject);
+    procedure AddAsistenteFacturLinExButton;
+    procedure HistoricoPreciosFacturLinExClick(Sender: TObject);
+    procedure AddHistoricoPreciosFacturLinExButton;
+    procedure RentabilidadFacturLinExClick(Sender: TObject);
+    procedure AddRentabilidadFacturLinExButton;
+    procedure ComparadorProveedoresFacturLinExClick(Sender: TObject);
+    procedure AddComparadorProveedoresFacturLinExButton;
+    procedure AsesorComprasFacturLinExClick(Sender: TObject);
+    procedure AddAsesorComprasFacturLinExButton;
+    procedure CentroInteligenciaFacturLinExClick(Sender: TObject);
+    procedure AddCentroInteligenciaFacturLinExButton;
+    procedure CentroMantenimientoFacturLinExClick(Sender: TObject);
+    procedure AddCentroMantenimientoFacturLinExButton;
+    procedure TendenciasFacturLinExClick(Sender: TObject);
+    procedure AddTendenciasFacturLinExButton;
+    procedure PrediccionesFacturLinExClick(Sender: TObject);
+    procedure AddPrediccionesFacturLinExButton;
+    procedure AccionesRecomendadasFacturLinExClick(Sender: TObject);
+    procedure AddAccionesRecomendadasFacturLinExButton;
+    procedure CompactarBotonesInteligenciaFLX;
     procedure FLXUpdateConfigClick(Sender: TObject);
     procedure AddFLXUpdateConfigButton;
     procedure btnEnviarAhoraClick(Sender: TObject);
@@ -374,7 +399,7 @@ uses
    uVF_Integration, uVeriChain, uVeriChainCheck, uVF_QueueResult, uvfqueuemonitor,
    uVF_Stub, uVFSenderAEAT, uVeriSIFForm, uFLX_Log, uFLX_Backup, uFLX_CryptoIni,
    uBackupFTPConfig, uRestoreBackup, uBackupUnpackHelper, uFLXRestoreRemote,
-   uFLX_PedidoProveedorVentasPDF, uPedidoProveedorAuto, uPedidoTemporadaAuto, uDashboardProductividad, uFLXUpdater, uFLXUpdateConfig, Types, BaseUnix;
+   uFLX_PedidoProveedorVentasPDF, uPedidoProveedorAuto, uPedidoTemporadaAuto, uDashboardProductividad, uDoctorFacturLinEx, uAlertasFacturLinEx, uAsistenteFacturLinEx, uHistoricoPreciosFacturLinEx, uRentabilidadFacturLinEx, uComparadorProveedoresFacturLinEx, uAsesorComprasFacturLinEx, uCentroInteligenciaFacturLinEx, uCentroMantenimientoFacturLinEx, uTendenciasFacturLinEx, uPrediccionesFacturLinEx, uAccionesRecomendadasFacturLinEx, uFLXUpdater, uFLXUpdateConfig, Types, BaseUnix;
 
 //====================================================================
 // ==== CONSTANTE PARA TRABAJAR EN LA BARRA DE ESTADO VERI*FACTU =====
@@ -851,7 +876,23 @@ Begin
      AddPedidoProveedorAutoButton;
      AddPedidoTemporadaAutoButton;
      AddDashboardProductividadButton;
-     AddFLXUpdateConfigButton;
+     AddDoctorFacturLinExButton;
+     AddAlertasFacturLinExButton;
+     AddAsistenteFacturLinExButton;
+     AddHistoricoPreciosFacturLinExButton;
+     AddRentabilidadFacturLinExButton;
+     AddComparadorProveedoresFacturLinExButton;
+     AddAsesorComprasFacturLinExButton;
+     AddCentroInteligenciaFacturLinExButton;
+     AddCentroMantenimientoFacturLinExButton;
+     AddTendenciasFacturLinExButton;
+     AddPrediccionesFacturLinExButton;
+     AddAccionesRecomendadasFacturLinExButton;
+     CompactarBotonesInteligenciaFLX;
+     // No crear un segundo botón de actualizador en Utilidades.
+     // El botón antiguo "Actualizar BBDD" se reutiliza y redirige
+     // al actualizador moderno mediante ActualizaBBDD -> FLXUpdateConfigClick.
+     //AddFLXUpdateConfigButton;
      UpdateVFStatusBar;
 
 End;
@@ -1253,6 +1294,30 @@ end;
 procedure TFMenu.AddPedidoProvVentasButton;
 var
   B: TBitBtn;
+  Png: TPortableNetworkGraphic;
+  Icono: string;
+  I: Integer;
+  Rutas: TStringList;
+
+  procedure AddIconPath(const APath: string);
+  var
+    S: string;
+  begin
+    S := Trim(APath);
+    if S <> '' then
+      if Rutas.IndexOf(S) < 0 then
+        Rutas.Add(S);
+  end;
+
+  procedure AddIconPathsFromBase(const ABase: string);
+  var
+    BDir: string;
+  begin
+    BDir := IncludeTrailingPathDelimiter(ABase);
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'pedido_ventas_proveedor.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'PEDIDO_VENTAS_PROVEEDOR.png');
+  end;
+
 begin
   if FindComponent('BitBtnPedidoVentasProveedor') <> nil then Exit;
 
@@ -1262,11 +1327,61 @@ begin
   B.Left := BitBtn57.Left + BitBtn57.Width + 8;
   B.Top := BitBtn57.Top;
   B.Width := BitBtn57.Width;
+  if B.Width < 115 then
+    B.Width := 115;
   B.Height := BitBtn57.Height;
   B.Caption := 'Pedido ventas prov.';
   B.Hint := 'Generar PDF de pedido orientativo por ventas de proveedor';
   B.ShowHint := True;
+  B.Layout := blGlyphTop;
+  B.Spacing := 4;
+  B.NumGlyphs := 1;
   B.OnClick := @PedidoProvVentasClick;
+
+  if ColorBotones <> '' then
+    B.Color := StringToColor(ColorBotones);
+
+  Icono := '';
+  Rutas := TStringList.Create;
+  try
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'pedido_ventas_proveedor.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'PEDIDO_VENTAS_PROVEEDOR.png');
+
+    AddIconPathsFromBase(RutaBin);
+    AddIconPathsFromBase(RutaIni);
+    AddIconPathsFromBase(RutaSql);
+    AddIconPathsFromBase(ExtractFilePath(ParamStr(0)));
+    AddIconPathsFromBase(ExtractFilePath(Application.ExeName));
+    AddIconPathsFromBase(GetCurrentDir);
+    AddIconPathsFromBase(ExpandFileName(ExtractFilePath(ParamStr(0)) + '..' + DirectorySeparator));
+    AddIconPathsFromBase(ExpandFileName(GetCurrentDir + DirectorySeparator + '..' + DirectorySeparator));
+
+    for I := 0 to Rutas.Count - 1 do
+      if FileExists(Rutas[I]) then
+      begin
+        Icono := Rutas[I];
+        Break;
+      end;
+  finally
+    Rutas.Free;
+  end;
+
+  if FileExists(Icono) then
+  begin
+    Png := TPortableNetworkGraphic.Create;
+    try
+      Png.LoadFromFile(Icono);
+      B.Glyph.Assign(Png);
+      B.NumGlyphs := 1;
+      B.Invalidate;
+    finally
+      Png.Free;
+    end;
+  end
+  else
+  begin
+    B.Hint := B.Hint + ' (icono no encontrado: Imagenes/pedido_ventas_proveedor.png)';
+  end;
 end;
 
 procedure TFMenu.PedidoProvVentasClick(Sender: TObject);
@@ -1623,12 +1738,1581 @@ begin
 end;
 
 
+
+procedure TFMenu.AddCentroInteligenciaFacturLinExButton;
+var
+  TS: TTabSheet;
+  B: TBitBtn;
+  Png: TPortableNetworkGraphic;
+  Icono: string;
+  I: Integer;
+  MaxRight: Integer;
+  C: TControl;
+  Rutas: TStringList;
+
+  procedure AddIconPath(const APath: string);
+  var S: string;
+  begin
+    S := Trim(APath);
+    if S <> '' then
+      if Rutas.IndexOf(S) < 0 then Rutas.Add(S);
+  end;
+
+  procedure AddIconPathsFromBase(const ABase: string);
+  var BDir: string;
+  begin
+    BDir := IncludeTrailingPathDelimiter(ABase);
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'inteligencia_centro.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'inteligencia_centro.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'inteligencia.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'dashboard.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'utiles.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'inteligencia.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'dashboard.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'utiles.png');
+  end;
+
+begin
+  if FindComponent('BitBtnCentroInteligenciaFacturLinEx') <> nil then Exit;
+
+  TS := TTabSheet(FindComponent('TabSheetInteligenciaFLX'));
+  if TS = nil then
+  begin
+    TS := TTabSheet.Create(Self);
+    TS.Name := 'TabSheetInteligenciaFLX';
+    TS.PageControl := PageControl1;
+    TS.Caption := 'Inteligencia';
+    try TS.PageIndex := TabSheet9.PageIndex; except end;
+  end;
+
+  MaxRight := 0;
+  for I := 0 to TS.ControlCount - 1 do
+  begin
+    C := TS.Controls[I];
+    if (C is TBitBtn) and (C.Top < 90) then
+      if (C.Left + C.Width) > MaxRight then
+        MaxRight := C.Left + C.Width;
+  end;
+  if MaxRight < 16 then MaxRight := 16;
+
+  B := TBitBtn.Create(Self);
+  B.Name := 'BitBtnCentroInteligenciaFacturLinEx';
+  B.Parent := TS;
+  B.Left := MaxRight + 16;
+  B.Top := 18;
+  B.Width := 145;
+  B.Height := 84;
+  B.Caption := 'Centro Intelig.';
+  B.Hint := 'Centro de Inteligencia FacturLinEx: revisión ejecutiva completa';
+  B.ShowHint := True;
+  B.Layout := blGlyphTop;
+  B.Spacing := 4;
+  B.NumGlyphs := 1;
+  B.OnClick := @CentroInteligenciaFacturLinExClick;
+
+  if ColorBotones <> '' then B.Color := StringToColor(ColorBotones);
+
+  Icono := '';
+  Rutas := TStringList.Create;
+  try
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'inteligencia_centro.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'inteligencia_centro.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'inteligencia.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'dashboard.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'utiles.png');
+    AddIconPathsFromBase(RutaBin);
+    AddIconPathsFromBase(RutaIni);
+    AddIconPathsFromBase(RutaSql);
+    AddIconPathsFromBase(ExtractFilePath(ParamStr(0)));
+    AddIconPathsFromBase(ExtractFilePath(Application.ExeName));
+    AddIconPathsFromBase(GetCurrentDir);
+    AddIconPathsFromBase(ExpandFileName(ExtractFilePath(ParamStr(0)) + '..' + DirectorySeparator));
+    AddIconPathsFromBase(ExpandFileName(GetCurrentDir + DirectorySeparator + '..' + DirectorySeparator));
+    for I := 0 to Rutas.Count - 1 do
+      if FileExists(Rutas[I]) then begin Icono := Rutas[I]; Break; end;
+  finally
+    Rutas.Free;
+  end;
+
+  if FileExists(Icono) then
+  begin
+    Png := TPortableNetworkGraphic.Create;
+    try
+      Png.LoadFromFile(Icono);
+      B.Glyph.Assign(Png);
+      B.NumGlyphs := 1;
+      B.Invalidate;
+    finally
+      Png.Free;
+    end;
+  end
+  else
+    B.Hint := B.Hint + ' (icono no encontrado)';
+
+  B.Visible := True;
+  B.BringToFront;
+  B.Repaint;
+end;
+
+
+procedure TFMenu.CompactarBotonesInteligenciaFLX;
+const
+  BTN_W = 104;
+  BTN_H = 82;
+  GAP_X = 6;
+  GAP_Y = 8;
+  START_X = 10;
+  START_Y = 10;
+var
+  TS: TTabSheet;
+  Names: array[0..11] of string;
+  IconFiles: array[0..11] of string;
+  I, N, Cols, X, Y, WArea: Integer;
+  B: TBitBtn;
+
+  function FirstExistingIntelligenceIcon(const AFile: string): string;
+  var
+    BDir: string;
+
+    procedure TryPath(const APath: string);
+    begin
+      if (Result = '') and FileExists(APath) then
+        Result := APath;
+    end;
+
+    procedure TryBase(const ABase: string);
+    begin
+      if Trim(ABase) = '' then Exit;
+      BDir := IncludeTrailingPathDelimiter(ABase);
+      TryPath(BDir + 'Imagenes' + DirectorySeparator + AFile);
+      TryPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + AFile);
+      TryPath(BDir + AFile);
+      TryPath(BDir + '30x30' + DirectorySeparator + AFile);
+    end;
+
+  begin
+    Result := '';
+
+    // 1) Si RutaIconos apunta directamente a Imagenes/, probar primero ahí.
+    TryPath(IncludeTrailingPathDelimiter(RutaIconos) + AFile);
+    TryPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + AFile);
+
+    // 2) Si RutaIconos/RutaBin/RutaIni/RutaSql apuntan a carpetas base, probar Imagenes/.
+    TryBase(RutaIconos);
+    TryBase(RutaBin);
+    TryBase(RutaIni);
+    TryBase(RutaSql);
+    TryBase(ExtractFilePath(ParamStr(0)));
+    TryBase(ExtractFilePath(Application.ExeName));
+    TryBase(GetCurrentDir);
+    TryBase(ExpandFileName(ExtractFilePath(ParamStr(0)) + '..' + DirectorySeparator));
+    TryBase(ExpandFileName(GetCurrentDir + DirectorySeparator + '..' + DirectorySeparator));
+  end;
+
+  procedure ForceIntelligenceGlyph(ABtn: TBitBtn; const AFile: string);
+  var
+    Icono: string;
+    Png: TPortableNetworkGraphic;
+  begin
+    if ABtn = nil then Exit;
+
+    Icono := FirstExistingIntelligenceIcon(AFile);
+    if Icono = '' then Exit;
+
+    Png := TPortableNetworkGraphic.Create;
+    try
+      try
+        Png.LoadFromFile(Icono);
+        ABtn.Glyph.Assign(Png);
+        ABtn.NumGlyphs := 1;
+        ABtn.Invalidate;
+      except
+        // Si falla una imagen, el botón queda funcional con su texto/icono anterior.
+      end;
+    finally
+      Png.Free;
+    end;
+  end;
+
+begin
+  TS := TTabSheet(FindComponent('TabSheetInteligenciaFLX'));
+  if TS = nil then Exit;
+
+  Names[0]  := 'BitBtnDoctorFacturLinEx';
+  Names[1]  := 'BitBtnAlertasFacturLinEx';
+  Names[2]  := 'BitBtnAsistenteFacturLinEx';
+  Names[3]  := 'BitBtnHistoricoPreciosFacturLinEx';
+  Names[4]  := 'BitBtnRentabilidadFacturLinEx';
+  Names[5]  := 'BitBtnComparadorProveedoresFacturLinEx';
+  Names[6]  := 'BitBtnAsesorComprasFacturLinEx';
+  Names[7]  := 'BitBtnCentroInteligenciaFacturLinEx';
+  Names[8]  := 'BitBtnCentroMantenimientoFacturLinEx';
+  Names[9]  := 'BitBtnTendenciasFacturLinEx';
+  Names[10] := 'BitBtnPrediccionesFacturLinEx';
+  Names[11] := 'BitBtnAccionesRecomendadasFacturLinEx';
+
+  IconFiles[0]  := 'inteligencia_doctor.png';
+  IconFiles[1]  := 'inteligencia_alertas.png';
+  IconFiles[2]  := 'inteligencia_asistente.png';
+  IconFiles[3]  := 'inteligencia_historico_precios.png';
+  IconFiles[4]  := 'inteligencia_rentabilidad.png';
+  IconFiles[5]  := 'inteligencia_proveedores.png';
+  IconFiles[6]  := 'inteligencia_asesor_compras.png';
+  IconFiles[7]  := 'inteligencia_centro.png';
+  IconFiles[8]  := 'inteligencia_mantenimiento.png';
+  IconFiles[9]  := 'inteligencia_tendencias.png';
+  IconFiles[10] := 'inteligencia_predicciones.png';
+  IconFiles[11] := 'inteligencia_acciones.png';
+
+  WArea := TS.ClientWidth;
+  if WArea < 300 then
+    WArea := PageControl1.ClientWidth;
+  if WArea < 300 then
+    WArea := 1024;
+
+  Cols := (WArea - START_X - GAP_X) div (BTN_W + GAP_X);
+  if Cols < 1 then Cols := 1;
+
+  N := 0;
+  for I := Low(Names) to High(Names) do
+  begin
+    B := TBitBtn(FindComponent(Names[I]));
+    if B = nil then Continue;
+
+    X := START_X + (N mod Cols) * (BTN_W + GAP_X);
+    Y := START_Y + (N div Cols) * (BTN_H + GAP_Y);
+
+    B.Parent := TS;
+    B.Left := X;
+    B.Top := Y;
+    B.Width := BTN_W;
+    B.Height := BTN_H;
+    B.Layout := blGlyphTop;
+    B.Spacing := 4;
+    B.ShowHint := True;
+    try
+      B.Font.Size := 8;
+    except
+    end;
+
+    // Importante:
+    // aunque el botón ya existiera y Add...Button hubiera salido con Exit,
+    // aquí se fuerza SIEMPRE el icono moderno correspondiente.
+    ForceIntelligenceGlyph(B, IconFiles[I]);
+
+    B.Visible := True;
+    B.BringToFront;
+    Inc(N);
+  end;
+end;
+
+procedure TFMenu.CentroInteligenciaFacturLinExClick(Sender: TObject);
+begin
+  timer1.enabled := false;
+  try
+    MostrarCentroInteligenciaFacturLinEx(Self, TZConnection(dbQuery.Connection), Tienda);
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+
+
+procedure TFMenu.CentroMantenimientoFacturLinExClick(Sender: TObject);
+begin
+  timer1.enabled := false;
+  try
+    MostrarCentroMantenimientoFacturLinEx(Self, TZConnection(dbQuery.Connection), Tienda);
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+
+procedure TFMenu.AddCentroMantenimientoFacturLinExButton;
+var
+  TS: TTabSheet;
+  B: TBitBtn;
+  Png: TPortableNetworkGraphic;
+  Icono: string;
+  I: Integer;
+  MaxRight: Integer;
+  C: TControl;
+  Rutas: TStringList;
+
+  procedure AddIconPath(const APath: string);
+  var S: string;
+  begin
+    S := Trim(APath);
+    if S <> '' then
+      if Rutas.IndexOf(S) < 0 then Rutas.Add(S);
+  end;
+
+  procedure AddIconPathsFromBase(const ABase: string);
+  var BDir: string;
+  begin
+    BDir := IncludeTrailingPathDelimiter(ABase);
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'inteligencia_mantenimiento.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'inteligencia_mantenimiento.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'mantenimiento.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'configuracion.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'utiles.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'mantenimiento.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'configuracion.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'utiles.png');
+  end;
+
+begin
+  if FindComponent('BitBtnCentroMantenimientoFacturLinEx') <> nil then Exit;
+
+  TS := TTabSheet(FindComponent('TabSheetInteligenciaFLX'));
+  if TS = nil then
+  begin
+    TS := TTabSheet.Create(Self);
+    TS.Name := 'TabSheetInteligenciaFLX';
+    TS.PageControl := PageControl1;
+    TS.Caption := 'Inteligencia';
+    try TS.PageIndex := TabSheet9.PageIndex; except end;
+  end;
+
+  MaxRight := 0;
+  for I := 0 to TS.ControlCount - 1 do
+  begin
+    C := TS.Controls[I];
+    if (C is TBitBtn) and (C.Top < 90) then
+      if (C.Left + C.Width) > MaxRight then
+        MaxRight := C.Left + C.Width;
+  end;
+  if MaxRight < 16 then MaxRight := 16;
+
+  B := TBitBtn.Create(Self);
+  B.Name := 'BitBtnCentroMantenimientoFacturLinEx';
+  B.Parent := TS;
+  B.Left := MaxRight + 16;
+  B.Top := 18;
+  B.Width := 145;
+  B.Height := 84;
+  B.Caption := 'Mantenimiento';
+  B.Hint := 'Centro de Mantenimiento: BBDD, VeriFactu, logs y espacio libre';
+  B.ShowHint := True;
+  B.Layout := blGlyphTop;
+  B.Spacing := 4;
+  B.NumGlyphs := 1;
+  B.OnClick := @CentroMantenimientoFacturLinExClick;
+
+  if ColorBotones <> '' then B.Color := StringToColor(ColorBotones);
+
+  Icono := '';
+  Rutas := TStringList.Create;
+  try
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'inteligencia_mantenimiento.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'inteligencia_mantenimiento.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'mantenimiento.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'configuracion.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'utiles.png');
+    AddIconPathsFromBase(ExtractFilePath(ParamStr(0)));
+    AddIconPathsFromBase(GetCurrentDir);
+    for I := 0 to Rutas.Count - 1 do
+      if FileExists(Rutas[I]) then begin Icono := Rutas[I]; Break; end;
+  finally
+    Rutas.Free;
+  end;
+
+  if Icono <> '' then
+  begin
+    Png := TPortableNetworkGraphic.Create;
+    try
+      Png.LoadFromFile(Icono);
+      B.Glyph.Assign(Png);
+    except
+    end;
+    Png.Free;
+  end;
+end;
+
+
+procedure TFMenu.TendenciasFacturLinExClick(Sender: TObject);
+begin
+  timer1.enabled := false;
+  try
+    MostrarTendenciasFacturLinEx(Self, TZConnection(dbQuery.Connection), Tienda);
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+
+procedure TFMenu.AddTendenciasFacturLinExButton;
+var
+  TS: TTabSheet;
+  B: TBitBtn;
+  Png: TPortableNetworkGraphic;
+  Icono: string;
+  I: Integer;
+  MaxRight: Integer;
+  C: TControl;
+  Rutas: TStringList;
+
+  procedure AddIconPath(const APath: string);
+  var S: string;
+  begin
+    S := Trim(APath);
+    if S <> '' then
+      if Rutas.IndexOf(S) < 0 then Rutas.Add(S);
+  end;
+
+  procedure AddIconPathsFromBase(const ABase: string);
+  var BDir: string;
+  begin
+    BDir := IncludeTrailingPathDelimiter(ABase);
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'inteligencia_tendencias.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'inteligencia_tendencias.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'graficas.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'grafica.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'estadisticas.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'graficas.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'grafica.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'estadisticas.png');
+  end;
+
+begin
+  if FindComponent('BitBtnTendenciasFacturLinEx') <> nil then Exit;
+
+  TS := TTabSheet(FindComponent('TabSheetInteligenciaFLX'));
+  if TS = nil then
+  begin
+    TS := TTabSheet.Create(Self);
+    TS.Name := 'TabSheetInteligenciaFLX';
+    TS.PageControl := PageControl1;
+    TS.Caption := 'Inteligencia';
+    try TS.PageIndex := TabSheet9.PageIndex; except end;
+  end;
+
+  MaxRight := 0;
+  for I := 0 to TS.ControlCount - 1 do
+  begin
+    C := TS.Controls[I];
+    if (C is TBitBtn) and (C.Top < 90) then
+      if (C.Left + C.Width) > MaxRight then
+        MaxRight := C.Left + C.Width;
+  end;
+  if MaxRight < 16 then MaxRight := 16;
+
+  B := TBitBtn.Create(Self);
+  B.Name := 'BitBtnTendenciasFacturLinEx';
+  B.Parent := TS;
+  B.Left := MaxRight + 16;
+  B.Top := 18;
+  B.Width := 135;
+  B.Height := 84;
+  B.Caption := 'Tendencias';
+  B.Hint := 'Tendencias: familias y art�culos que suben o bajan';
+  B.ShowHint := True;
+  B.Layout := blGlyphTop;
+  B.Spacing := 4;
+  B.NumGlyphs := 1;
+  B.OnClick := @TendenciasFacturLinExClick;
+
+  if ColorBotones <> '' then B.Color := StringToColor(ColorBotones);
+
+  Icono := '';
+  Rutas := TStringList.Create;
+  try
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'inteligencia_tendencias.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'inteligencia_tendencias.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'graficas.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'grafica.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'estadisticas.png');
+    AddIconPathsFromBase(ExtractFilePath(ParamStr(0)));
+    AddIconPathsFromBase(GetCurrentDir);
+    for I := 0 to Rutas.Count - 1 do
+      if FileExists(Rutas[I]) then begin Icono := Rutas[I]; Break; end;
+  finally
+    Rutas.Free;
+  end;
+
+  if Icono <> '' then
+  begin
+    Png := TPortableNetworkGraphic.Create;
+    try
+      Png.LoadFromFile(Icono);
+      B.Glyph.Assign(Png);
+    except
+    end;
+    Png.Free;
+  end;
+
+end;
+
+procedure TFMenu.PrediccionesFacturLinExClick(Sender: TObject);
+begin
+  timer1.enabled := false;
+  try
+    MostrarPrediccionesFacturLinEx(Self, TZConnection(dbQuery.Connection), Tienda);
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+
+procedure TFMenu.AddPrediccionesFacturLinExButton;
+var
+  TS: TTabSheet;
+  B: TBitBtn;
+  Png: TPortableNetworkGraphic;
+  Icono: string;
+  I: Integer;
+  MaxRight: Integer;
+  C: TControl;
+  Rutas: TStringList;
+
+  procedure AddIconPath(const APath: string);
+  var S: string;
+  begin
+    S := Trim(APath);
+    if S <> '' then
+      if Rutas.IndexOf(S) < 0 then Rutas.Add(S);
+  end;
+
+  procedure AddIconPathsFromBase(const ABase: string);
+  var BDir: string;
+  begin
+    BDir := IncludeTrailingPathDelimiter(ABase);
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'inteligencia_predicciones.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'inteligencia_predicciones.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'prediccion.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'prevision.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'tendencias.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'grafica.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'estadisticas.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'chequear.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'utiles.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'prediccion.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'prevision.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'tendencias.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'grafica.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'estadisticas.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'chequear.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'utiles.png');
+  end;
+
+begin
+  if FindComponent('BitBtnPrediccionesFacturLinEx') <> nil then Exit;
+
+  TS := TTabSheet(FindComponent('TabSheetInteligenciaFLX'));
+  if TS = nil then
+  begin
+    TS := TTabSheet.Create(Self);
+    TS.Name := 'TabSheetInteligenciaFLX';
+    TS.PageControl := PageControl1;
+    TS.Caption := 'Inteligencia';
+    try TS.PageIndex := TabSheet9.PageIndex; except end;
+  end;
+
+  MaxRight := 0;
+  for I := 0 to TS.ControlCount - 1 do
+  begin
+    C := TS.Controls[I];
+    if (C is TBitBtn) and (C.Top < 90) then
+      if (C.Left + C.Width) > MaxRight then
+        MaxRight := C.Left + C.Width;
+  end;
+  if MaxRight < 16 then MaxRight := 16;
+
+  B := TBitBtn.Create(Self);
+  B.Name := 'BitBtnPrediccionesFacturLinEx';
+  B.Parent := TS;
+  B.Left := MaxRight + 16;
+  B.Top := 18;
+  B.Width := 135;
+  B.Height := 84;
+  B.Caption := 'Predicciones';
+  B.Hint := 'Predicciones: se�ales de rotura, crecimiento y reposici�n';
+  B.ShowHint := True;
+  B.Layout := blGlyphTop;
+  B.Spacing := 4;
+  B.NumGlyphs := 1;
+  B.OnClick := @PrediccionesFacturLinExClick;
+
+  if ColorBotones <> '' then B.Color := StringToColor(ColorBotones);
+
+  Icono := '';
+  Rutas := TStringList.Create;
+  try
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'inteligencia_predicciones.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'inteligencia_predicciones.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'prediccion.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'prevision.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'tendencias.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'grafica.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'estadisticas.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'chequear.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'utiles.png');
+    AddIconPathsFromBase(ExtractFilePath(ParamStr(0)));
+    AddIconPathsFromBase(GetCurrentDir);
+    for I := 0 to Rutas.Count - 1 do
+      if FileExists(Rutas[I]) then begin Icono := Rutas[I]; Break; end;
+  finally
+    Rutas.Free;
+  end;
+
+  if Icono <> '' then
+  begin
+    Png := TPortableNetworkGraphic.Create;
+    try
+      Png.LoadFromFile(Icono);
+      B.Glyph.Assign(Png);
+    except
+    end;
+    Png.Free;
+  end;
+end;
+
+
+procedure TFMenu.AccionesRecomendadasFacturLinExClick(Sender: TObject);
+begin
+  timer1.enabled := false;
+  try
+    MostrarAccionesRecomendadasFacturLinEx(Self, TZConnection(dbQuery.Connection), Tienda);
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+
+procedure TFMenu.AddAccionesRecomendadasFacturLinExButton;
+var
+  TS: TTabSheet;
+  B: TBitBtn;
+  Png: TPortableNetworkGraphic;
+  Icono: string;
+  I: Integer;
+  MaxRight: Integer;
+  C: TControl;
+  Rutas: TStringList;
+
+  procedure AddIconPath(const APath: string);
+  var S: string;
+  begin
+    S := Trim(APath);
+    if S <> '' then
+      if Rutas.IndexOf(S) < 0 then Rutas.Add(S);
+  end;
+
+  procedure AddIconPathsFromBase(const ABase: string);
+  var BDir: string;
+  begin
+    BDir := IncludeTrailingPathDelimiter(ABase);
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'inteligencia_acciones.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'inteligencia_acciones.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'acciones.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'tareas.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'chequear.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'utiles.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'acciones.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'tareas.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'chequear.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'utiles.png');
+  end;
+
+begin
+  if FindComponent('BitBtnAccionesRecomendadasFacturLinEx') <> nil then Exit;
+
+  TS := TTabSheet(FindComponent('TabSheetInteligenciaFLX'));
+  if TS = nil then
+  begin
+    TS := TTabSheet.Create(Self);
+    TS.Name := 'TabSheetInteligenciaFLX';
+    TS.PageControl := PageControl1;
+    TS.Caption := 'Inteligencia';
+    try TS.PageIndex := TabSheet9.PageIndex; except end;
+  end;
+
+  MaxRight := 0;
+  for I := 0 to TS.ControlCount - 1 do
+  begin
+    C := TS.Controls[I];
+    if (C is TBitBtn) and (C.Top < 90) then
+      if (C.Left + C.Width) > MaxRight then
+        MaxRight := C.Left + C.Width;
+  end;
+  if MaxRight < 16 then MaxRight := 16;
+
+  B := TBitBtn.Create(Self);
+  B.Name := 'BitBtnAccionesRecomendadasFacturLinEx';
+  B.Parent := TS;
+  B.Left := MaxRight + 16;
+  B.Top := 18;
+  B.Width := 145;
+  B.Height := 84;
+  B.Caption := 'Acciones';
+  B.Hint := 'Acciones recomendadas: tareas concretas sugeridas por Inteligencia';
+  B.ShowHint := True;
+  B.Layout := blGlyphTop;
+  B.Spacing := 4;
+  B.NumGlyphs := 1;
+  B.OnClick := @AccionesRecomendadasFacturLinExClick;
+
+  if ColorBotones <> '' then B.Color := StringToColor(ColorBotones);
+
+  Icono := '';
+  Rutas := TStringList.Create;
+  try
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'inteligencia_acciones.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'inteligencia_acciones.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'acciones.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'tareas.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'chequear.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'utiles.png');
+    AddIconPathsFromBase(ExtractFilePath(ParamStr(0)));
+    AddIconPathsFromBase(GetCurrentDir);
+    for I := 0 to Rutas.Count - 1 do
+      if FileExists(Rutas[I]) then begin Icono := Rutas[I]; Break; end;
+  finally
+    Rutas.Free;
+  end;
+
+  if Icono <> '' then
+  begin
+    Png := TPortableNetworkGraphic.Create;
+    try
+      Png.LoadFromFile(Icono);
+      B.Glyph.Assign(Png);
+    except
+    end;
+    Png.Free;
+  end;
+end;
+
+procedure TFMenu.AddDoctorFacturLinExButton;
+var
+  TS: TTabSheet;
+  B: TBitBtn;
+  Png: TPortableNetworkGraphic;
+  Icono: string;
+  I: Integer;
+  MaxRight: Integer;
+  C: TControl;
+  Rutas: TStringList;
+
+  procedure AddIconPath(const APath: string);
+  var
+    S: string;
+  begin
+    S := Trim(APath);
+    if S <> '' then
+      if Rutas.IndexOf(S) < 0 then
+        Rutas.Add(S);
+  end;
+
+  procedure AddIconPathsFromBase(const ABase: string);
+  var
+    BDir: string;
+  begin
+    BDir := IncludeTrailingPathDelimiter(ABase);
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'inteligencia_doctor.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'inteligencia_doctor.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'chequear.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'Chequear.png');
+    AddIconPath(BDir + 'chequear.png');
+    AddIconPath(BDir + 'Chequear.png');
+  end;
+
+begin
+  if FindComponent('BitBtnDoctorFacturLinEx') <> nil then Exit;
+
+  TS := TTabSheet(FindComponent('TabSheetInteligenciaFLX'));
+  if TS = nil then
+  begin
+    TS := TTabSheet.Create(Self);
+    TS.Name := 'TabSheetInteligenciaFLX';
+    TS.PageControl := PageControl1;
+    TS.Caption := 'Inteligencia';
+    { Insertarla antes de Utilidades para que quede entre Comunicaciones y Utilidades. }
+    try
+      TS.PageIndex := TabSheet9.PageIndex;
+    except
+    end;
+  end;
+
+  B := TBitBtn.Create(Self);
+  B.Name := 'BitBtnDoctorFacturLinEx';
+  B.Parent := TS;
+  B.Left := 16;
+  B.Top := 16;
+  B.Width := 125;
+  B.Height := 84;
+  B.Caption := 'Doctor';
+  B.Hint := 'Auditor de datos de FacturLinEx (solo lectura)';
+  B.ShowHint := True;
+  B.Layout := blGlyphTop;
+  B.Spacing := 4;
+  B.NumGlyphs := 1;
+  B.OnClick := @DoctorFacturLinExClick;
+
+  if ColorBotones <> '' then
+    B.Color := StringToColor(ColorBotones);
+
+  Icono := '';
+  Rutas := TStringList.Create;
+  try
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'inteligencia_doctor.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'inteligencia_doctor.png');
+    AddIconPathsFromBase(RutaBin);
+    AddIconPathsFromBase(RutaIni);
+    AddIconPathsFromBase(RutaSql);
+    AddIconPathsFromBase(ExtractFilePath(ParamStr(0)));
+    AddIconPathsFromBase(ExtractFilePath(Application.ExeName));
+    AddIconPathsFromBase(GetCurrentDir);
+    AddIconPathsFromBase(ExpandFileName(ExtractFilePath(ParamStr(0)) + '..' + DirectorySeparator));
+    AddIconPathsFromBase(ExpandFileName(GetCurrentDir + DirectorySeparator + '..' + DirectorySeparator));
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'chequear.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'Chequear.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'chequear.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'Chequear.png');
+    for I := 0 to Rutas.Count - 1 do
+      if FileExists(Rutas[I]) then
+      begin
+        Icono := Rutas[I];
+        Break;
+      end;
+  finally
+    Rutas.Free;
+  end;
+
+  if FileExists(Icono) then
+  begin
+    Png := TPortableNetworkGraphic.Create;
+    try
+      Png.LoadFromFile(Icono);
+      B.Glyph.Assign(Png);
+      B.NumGlyphs := 1;
+      B.Invalidate;
+    finally
+      Png.Free;
+    end;
+  end
+  else
+    B.Hint := B.Hint + ' (icono no encontrado: Imagenes/chequear.png)';
+
+  B.Visible := True;
+  B.BringToFront;
+  B.Repaint;
+end;
+
+procedure TFMenu.DoctorFacturLinExClick(Sender: TObject);
+begin
+  timer1.enabled := false;
+  try
+    MostrarDoctorFacturLinEx(Self, TZConnection(dbQuery.Connection), Tienda);
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+
+
+
+procedure TFMenu.AddAlertasFacturLinExButton;
+var
+  TS: TTabSheet;
+  B: TBitBtn;
+  Png: TPortableNetworkGraphic;
+  Icono: string;
+  I: Integer;
+  MaxRight: Integer;
+  C: TControl;
+  Rutas: TStringList;
+
+  procedure AddIconPath(const APath: string);
+  var S: string;
+  begin
+    S := Trim(APath);
+    if S <> '' then
+      if Rutas.IndexOf(S) < 0 then Rutas.Add(S);
+  end;
+
+  procedure AddIconPathsFromBase(const ABase: string);
+  var BDir: string;
+  begin
+    BDir := IncludeTrailingPathDelimiter(ABase);
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'inteligencia_alertas.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'inteligencia_alertas.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'alerta.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'Alertas.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'warning.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'pinguinfo.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'gpg-signature-ok2.png');
+    AddIconPath(BDir + 'alerta.png');
+    AddIconPath(BDir + 'warning.png');
+  end;
+
+begin
+  if FindComponent('BitBtnAlertasFacturLinEx') <> nil then Exit;
+
+  TS := TTabSheet(FindComponent('TabSheetInteligenciaFLX'));
+  if TS = nil then
+  begin
+    TS := TTabSheet.Create(Self);
+    TS.Name := 'TabSheetInteligenciaFLX';
+    TS.PageControl := PageControl1;
+    TS.Caption := 'Inteligencia';
+    try TS.PageIndex := TabSheet9.PageIndex; except end;
+  end;
+
+  B := TBitBtn.Create(Self);
+  B.Name := 'BitBtnAlertasFacturLinEx';
+  B.Parent := TS;
+  B.Left := 154;
+  B.Top := 16;
+  B.Width := 125;
+  B.Height := 84;
+  B.Caption := 'Alertas';
+  B.Hint := 'Centro de alertas FacturLinEx (solo lectura)';
+  B.ShowHint := True;
+  B.Layout := blGlyphTop;
+  B.Spacing := 4;
+  B.NumGlyphs := 1;
+  B.OnClick := @AlertasFacturLinExClick;
+
+  if ColorBotones <> '' then B.Color := StringToColor(ColorBotones);
+
+  Icono := '';
+  Rutas := TStringList.Create;
+  try
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'inteligencia_alertas.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'inteligencia_alertas.png');
+    AddIconPathsFromBase(RutaBin);
+    AddIconPathsFromBase(RutaIni);
+    AddIconPathsFromBase(RutaSql);
+    AddIconPathsFromBase(ExtractFilePath(ParamStr(0)));
+    AddIconPathsFromBase(ExtractFilePath(Application.ExeName));
+    AddIconPathsFromBase(GetCurrentDir);
+    AddIconPathsFromBase(ExpandFileName(ExtractFilePath(ParamStr(0)) + '..' + DirectorySeparator));
+    AddIconPathsFromBase(ExpandFileName(GetCurrentDir + DirectorySeparator + '..' + DirectorySeparator));
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'alerta.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'Alertas.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'warning.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'pinguinfo.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'gpg-signature-ok2.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'alerta.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'warning.png');
+    for I := 0 to Rutas.Count - 1 do
+      if FileExists(Rutas[I]) then begin Icono := Rutas[I]; Break; end;
+  finally
+    Rutas.Free;
+  end;
+
+  if FileExists(Icono) then
+  begin
+    Png := TPortableNetworkGraphic.Create;
+    try
+      Png.LoadFromFile(Icono);
+      B.Glyph.Assign(Png);
+      B.NumGlyphs := 1;
+      B.Invalidate;
+    finally
+      Png.Free;
+    end;
+  end
+  else
+    B.Hint := B.Hint + ' (icono no encontrado: alerta.png/warning.png/pinguinfo.png)';
+
+  B.Visible := True;
+  B.BringToFront;
+  B.Repaint;
+end;
+
+procedure TFMenu.AlertasFacturLinExClick(Sender: TObject);
+begin
+  timer1.enabled := false;
+  try
+    MostrarAlertasFacturLinEx(Self, TZConnection(dbQuery.Connection), Tienda);
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+
+
+procedure TFMenu.AddAsistenteFacturLinExButton;
+var
+  TS: TTabSheet;
+  B: TBitBtn;
+  Png: TPortableNetworkGraphic;
+  Icono: string;
+  I: Integer;
+  MaxRight: Integer;
+  C: TControl;
+  Rutas: TStringList;
+
+  procedure AddIconPath(const APath: string);
+  var S: string;
+  begin
+    S := Trim(APath);
+    if S <> '' then
+      if Rutas.IndexOf(S) < 0 then Rutas.Add(S);
+  end;
+
+  procedure AddIconPathsFromBase(const ABase: string);
+  var BDir: string;
+  begin
+    BDir := IncludeTrailingPathDelimiter(ABase);
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'inteligencia_asistente.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'inteligencia_asistente.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'grafica.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'pinguinfo.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'gestionar.png');
+    AddIconPath(BDir + 'grafica.png');
+    AddIconPath(BDir + 'pinguinfo.png');
+  end;
+
+begin
+  if FindComponent('BitBtnAsistenteFacturLinEx') <> nil then Exit;
+
+  TS := TTabSheet(FindComponent('TabSheetInteligenciaFLX'));
+  if TS = nil then
+  begin
+    TS := TTabSheet.Create(Self);
+    TS.Name := 'TabSheetInteligenciaFLX';
+    TS.PageControl := PageControl1;
+    TS.Caption := 'Inteligencia';
+    try TS.PageIndex := TabSheet9.PageIndex; except end;
+  end;
+
+  B := TBitBtn.Create(Self);
+  B.Name := 'BitBtnAsistenteFacturLinEx';
+  B.Parent := TS;
+  B.Left := 296;
+  B.Top := 16;
+  B.Width := 125;
+  B.Height := 84;
+  B.Caption := 'Asistente';
+  B.Hint := 'Asistente diario de gestion FacturLinEx (solo lectura)';
+  B.ShowHint := True;
+  B.Layout := blGlyphTop;
+  B.Spacing := 4;
+  B.NumGlyphs := 1;
+  B.OnClick := @AsistenteFacturLinExClick;
+
+  if ColorBotones <> '' then B.Color := StringToColor(ColorBotones);
+
+  Icono := '';
+  Rutas := TStringList.Create;
+  try
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'inteligencia_asistente.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'inteligencia_asistente.png');
+    AddIconPathsFromBase(RutaBin);
+    AddIconPathsFromBase(RutaIni);
+    AddIconPathsFromBase(RutaSql);
+    AddIconPathsFromBase(ExtractFilePath(ParamStr(0)));
+    AddIconPathsFromBase(ExtractFilePath(Application.ExeName));
+    AddIconPathsFromBase(GetCurrentDir);
+    AddIconPathsFromBase(ExpandFileName(ExtractFilePath(ParamStr(0)) + '..' + DirectorySeparator));
+    AddIconPathsFromBase(ExpandFileName(GetCurrentDir + DirectorySeparator + '..' + DirectorySeparator));
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'grafica.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'pinguinfo.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'gestionar.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'grafica.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'pinguinfo.png');
+    for I := 0 to Rutas.Count - 1 do
+      if FileExists(Rutas[I]) then begin Icono := Rutas[I]; Break; end;
+  finally
+    Rutas.Free;
+  end;
+
+  if FileExists(Icono) then
+  begin
+    Png := TPortableNetworkGraphic.Create;
+    try
+      Png.LoadFromFile(Icono);
+      B.Glyph.Assign(Png);
+      B.NumGlyphs := 1;
+      B.Invalidate;
+    finally
+      Png.Free;
+    end;
+  end
+  else
+    B.Hint := B.Hint + ' (icono no encontrado: grafica.png/pinguinfo.png)';
+
+  B.Visible := True;
+  B.BringToFront;
+  B.Repaint;
+end;
+
+procedure TFMenu.AsistenteFacturLinExClick(Sender: TObject);
+begin
+  timer1.enabled := false;
+  try
+    MostrarAsistenteFacturLinEx(Self, TZConnection(dbQuery.Connection), Tienda);
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+
+
+procedure TFMenu.AddHistoricoPreciosFacturLinExButton;
+var
+  TS: TTabSheet;
+  B: TBitBtn;
+  Png: TPortableNetworkGraphic;
+  Icono: string;
+  I: Integer;
+  MaxRight: Integer;
+  C: TControl;
+  Rutas: TStringList;
+
+  procedure AddIconPath(const APath: string);
+  var S: string;
+  begin
+    S := Trim(APath);
+    if S <> '' then
+      if Rutas.IndexOf(S) < 0 then Rutas.Add(S);
+  end;
+
+  procedure AddIconPathsFromBase(const ABase: string);
+  var BDir: string;
+  begin
+    BDir := IncludeTrailingPathDelimiter(ABase);
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'inteligencia_historico_precios.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'inteligencia_historico_precios.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'stock.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'articulos.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'grafica.png');
+    AddIconPath(BDir + 'stock.png');
+    AddIconPath(BDir + 'articulos.png');
+  end;
+
+begin
+  if FindComponent('BitBtnHistoricoPreciosFacturLinEx') <> nil then Exit;
+
+  TS := TTabSheet(FindComponent('TabSheetInteligenciaFLX'));
+  if TS = nil then
+  begin
+    TS := TTabSheet.Create(Self);
+    TS.Name := 'TabSheetInteligenciaFLX';
+    TS.PageControl := PageControl1;
+    TS.Caption := 'Inteligencia';
+    try TS.PageIndex := TabSheet9.PageIndex; except end;
+  end;
+
+  B := TBitBtn.Create(Self);
+  B.Name := 'BitBtnHistoricoPreciosFacturLinEx';
+  B.Parent := TS;
+  B.Left := 436;
+  B.Top := 16;
+  B.Width := 135;
+  B.Height := 84;
+  B.Caption := 'Precios';
+  B.Hint := 'Control e historico de precios FacturLinEx (solo lectura)';
+  B.ShowHint := True;
+  B.Layout := blGlyphTop;
+  B.Spacing := 4;
+  B.NumGlyphs := 1;
+  B.OnClick := @HistoricoPreciosFacturLinExClick;
+
+  if ColorBotones <> '' then B.Color := StringToColor(ColorBotones);
+
+  Icono := '';
+  Rutas := TStringList.Create;
+  try
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'inteligencia_historico_precios.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'inteligencia_historico_precios.png');
+    AddIconPathsFromBase(RutaBin);
+    AddIconPathsFromBase(RutaIni);
+    AddIconPathsFromBase(RutaSql);
+    AddIconPathsFromBase(ExtractFilePath(ParamStr(0)));
+    AddIconPathsFromBase(ExtractFilePath(Application.ExeName));
+    AddIconPathsFromBase(GetCurrentDir);
+    AddIconPathsFromBase(ExpandFileName(ExtractFilePath(ParamStr(0)) + '..' + DirectorySeparator));
+    AddIconPathsFromBase(ExpandFileName(GetCurrentDir + DirectorySeparator + '..' + DirectorySeparator));
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'stock.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'articulos.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'stock.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'articulos.png');
+    for I := 0 to Rutas.Count - 1 do
+      if FileExists(Rutas[I]) then begin Icono := Rutas[I]; Break; end;
+  finally
+    Rutas.Free;
+  end;
+
+  if FileExists(Icono) then
+  begin
+    Png := TPortableNetworkGraphic.Create;
+    try
+      Png.LoadFromFile(Icono);
+      B.Glyph.Assign(Png);
+      B.NumGlyphs := 1;
+      B.Invalidate;
+    finally
+      Png.Free;
+    end;
+  end
+  else
+    B.Hint := B.Hint + ' (icono no encontrado: stock.png/articulos.png)';
+
+  B.Visible := True;
+  B.BringToFront;
+  B.Repaint;
+end;
+
+procedure TFMenu.HistoricoPreciosFacturLinExClick(Sender: TObject);
+begin
+  timer1.enabled := false;
+  try
+    MostrarHistoricoPreciosFacturLinEx(Self, TZConnection(dbQuery.Connection), Tienda);
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+
+
+procedure TFMenu.AddRentabilidadFacturLinExButton;
+var
+  TS: TTabSheet;
+  B: TBitBtn;
+  Png: TPortableNetworkGraphic;
+  Icono: string;
+  I: Integer;
+  MaxRight: Integer;
+  C: TControl;
+  Rutas: TStringList;
+
+  procedure AddIconPath(const APath: string);
+  var S: string;
+  begin
+    S := Trim(APath);
+    if S <> '' then
+      if Rutas.IndexOf(S) < 0 then Rutas.Add(S);
+  end;
+
+  procedure AddIconPathsFromBase(const ABase: string);
+  var BDir: string;
+  begin
+    BDir := IncludeTrailingPathDelimiter(ABase);
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'inteligencia_rentabilidad.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'inteligencia_rentabilidad.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'grafica.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'rentabilidad.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'beneficio.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'estadisticas.png');
+    AddIconPath(BDir + 'grafica.png');
+  end;
+
+begin
+  if FindComponent('BitBtnRentabilidadFacturLinEx') <> nil then Exit;
+
+  TS := TTabSheet(FindComponent('TabSheetInteligenciaFLX'));
+  if TS = nil then
+  begin
+    TS := TTabSheet.Create(Self);
+    TS.Name := 'TabSheetInteligenciaFLX';
+    TS.PageControl := PageControl1;
+    TS.Caption := 'Inteligencia';
+    try TS.PageIndex := TabSheet9.PageIndex; except end;
+  end;
+
+  B := TBitBtn.Create(Self);
+  B.Name := 'BitBtnRentabilidadFacturLinEx';
+  B.Parent := TS;
+  B.Left := 580;
+  B.Top := 16;
+  B.Width := 135;
+  B.Height := 84;
+  B.Caption := 'Rentabilidad';
+  B.Hint := 'Analisis de rentabilidad FacturLinEx (solo lectura)';
+  B.ShowHint := True;
+  B.Layout := blGlyphTop;
+  B.Spacing := 4;
+  B.NumGlyphs := 1;
+  B.OnClick := @RentabilidadFacturLinExClick;
+
+  if ColorBotones <> '' then B.Color := StringToColor(ColorBotones);
+
+  Icono := '';
+  Rutas := TStringList.Create;
+  try
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'inteligencia_rentabilidad.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'inteligencia_rentabilidad.png');
+    AddIconPathsFromBase(RutaBin);
+    AddIconPathsFromBase(RutaIni);
+    AddIconPathsFromBase(RutaSql);
+    AddIconPathsFromBase(ExtractFilePath(ParamStr(0)));
+    AddIconPathsFromBase(ExtractFilePath(Application.ExeName));
+    AddIconPathsFromBase(GetCurrentDir);
+    AddIconPathsFromBase(ExpandFileName(ExtractFilePath(ParamStr(0)) + '..' + DirectorySeparator));
+    AddIconPathsFromBase(ExpandFileName(GetCurrentDir + DirectorySeparator + '..' + DirectorySeparator));
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'grafica.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'rentabilidad.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'grafica.png');
+    for I := 0 to Rutas.Count - 1 do
+      if FileExists(Rutas[I]) then begin Icono := Rutas[I]; Break; end;
+  finally
+    Rutas.Free;
+  end;
+
+  if FileExists(Icono) then
+  begin
+    Png := TPortableNetworkGraphic.Create;
+    try
+      Png.LoadFromFile(Icono);
+      B.Glyph.Assign(Png);
+      B.NumGlyphs := 1;
+      B.Invalidate;
+    finally
+      Png.Free;
+    end;
+  end
+  else
+    B.Hint := B.Hint + ' (icono no encontrado: grafica.png)';
+
+  B.Visible := True;
+  B.BringToFront;
+  B.Repaint;
+end;
+
+procedure TFMenu.RentabilidadFacturLinExClick(Sender: TObject);
+begin
+  timer1.enabled := false;
+  try
+    MostrarRentabilidadFacturLinEx(Self, TZConnection(dbQuery.Connection), Tienda);
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+
+
+procedure TFMenu.AddComparadorProveedoresFacturLinExButton;
+var
+  TS: TTabSheet;
+  B: TBitBtn;
+  Png: TPortableNetworkGraphic;
+  Icono: string;
+  I: Integer;
+  MaxRight: Integer;
+  C: TControl;
+  Rutas: TStringList;
+
+  procedure AddIconPath(const APath: string);
+  var S: string;
+  begin
+    S := Trim(APath);
+    if S <> '' then
+      if Rutas.IndexOf(S) < 0 then Rutas.Add(S);
+  end;
+
+  procedure AddIconPathsFromBase(const ABase: string);
+  var BDir: string;
+  begin
+    BDir := IncludeTrailingPathDelimiter(ABase);
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'inteligencia_proveedores.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'inteligencia_proveedores.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'proveedores.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'compras.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'pedidos.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'proveedores.png');
+    AddIconPath(BDir + 'proveedores.png');
+  end;
+
+begin
+  if FindComponent('BitBtnComparadorProveedoresFacturLinEx') <> nil then Exit;
+
+  TS := TTabSheet(FindComponent('TabSheetInteligenciaFLX'));
+  if TS = nil then
+  begin
+    TS := TTabSheet.Create(Self);
+    TS.Name := 'TabSheetInteligenciaFLX';
+    TS.PageControl := PageControl1;
+    TS.Caption := 'Inteligencia';
+    try TS.PageIndex := TabSheet9.PageIndex; except end;
+  end;
+
+  B := TBitBtn.Create(Self);
+  B.Name := 'BitBtnComparadorProveedoresFacturLinEx';
+  B.Parent := TS;
+  B.Left := 730;
+  B.Top := 16;
+  B.Width := 135;
+  B.Height := 84;
+  B.Caption := 'Proveedores';
+  B.Hint := 'Comparador de proveedores FacturLinEx (solo lectura)';
+  B.ShowHint := True;
+  B.Layout := blGlyphTop;
+  B.Spacing := 4;
+  B.NumGlyphs := 1;
+  B.OnClick := @ComparadorProveedoresFacturLinExClick;
+
+  if ColorBotones <> '' then B.Color := StringToColor(ColorBotones);
+
+  Icono := '';
+  Rutas := TStringList.Create;
+  try
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'inteligencia_proveedores.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'inteligencia_proveedores.png');
+    AddIconPathsFromBase(RutaBin);
+    AddIconPathsFromBase(RutaIni);
+    AddIconPathsFromBase(RutaSql);
+    AddIconPathsFromBase(ExtractFilePath(ParamStr(0)));
+    AddIconPathsFromBase(ExtractFilePath(Application.ExeName));
+    AddIconPathsFromBase(GetCurrentDir);
+    AddIconPathsFromBase(ExpandFileName(ExtractFilePath(ParamStr(0)) + '..' + DirectorySeparator));
+    AddIconPathsFromBase(ExpandFileName(GetCurrentDir + DirectorySeparator + '..' + DirectorySeparator));
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'proveedores.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'compras.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'proveedores.png');
+    for I := 0 to Rutas.Count - 1 do
+      if FileExists(Rutas[I]) then begin Icono := Rutas[I]; Break; end;
+  finally
+    Rutas.Free;
+  end;
+
+  if FileExists(Icono) then
+  begin
+    Png := TPortableNetworkGraphic.Create;
+    try
+      Png.LoadFromFile(Icono);
+      B.Glyph.Assign(Png);
+      B.NumGlyphs := 1;
+      B.Invalidate;
+    finally
+      Png.Free;
+    end;
+  end
+  else
+    B.Hint := B.Hint + ' (icono no encontrado: proveedores.png)';
+
+  B.Visible := True;
+  B.BringToFront;
+  B.Repaint;
+end;
+
+procedure TFMenu.ComparadorProveedoresFacturLinExClick(Sender: TObject);
+begin
+  timer1.enabled := false;
+  try
+    MostrarComparadorProveedoresFacturLinEx(Self, TZConnection(dbQuery.Connection), Tienda);
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+
+procedure TFMenu.AddAsesorComprasFacturLinExButton;
+var
+  TS: TTabSheet;
+  B: TBitBtn;
+  Png: TPortableNetworkGraphic;
+  Icono: string;
+  I: Integer;
+  MaxRight: Integer;
+  C: TControl;
+  Rutas: TStringList;
+
+  procedure AddIconPath(const APath: string);
+  var S: string;
+  begin
+    S := Trim(APath);
+    if S <> '' then
+      if Rutas.IndexOf(S) < 0 then Rutas.Add(S);
+  end;
+
+  procedure AddIconPathsFromBase(const ABase: string);
+  var BDir: string;
+  begin
+    BDir := IncludeTrailingPathDelimiter(ABase);
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'inteligencia_asesor_compras.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'inteligencia_asesor_compras.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'compras.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'proveedores.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'pedidos.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'compras.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'proveedores.png');
+    AddIconPath(BDir + 'compras.png');
+  end;
+
+begin
+  if FindComponent('BitBtnAsesorComprasFacturLinEx') <> nil then Exit;
+
+  TS := TTabSheet(FindComponent('TabSheetInteligenciaFLX'));
+  if TS = nil then
+  begin
+    TS := TTabSheet.Create(Self);
+    TS.Name := 'TabSheetInteligenciaFLX';
+    TS.PageControl := PageControl1;
+    TS.Caption := 'Inteligencia';
+    try TS.PageIndex := TabSheet9.PageIndex; except end;
+  end;
+
+  B := TBitBtn.Create(Self);
+  B.Name := 'BitBtnAsesorComprasFacturLinEx';
+  B.Parent := TS;
+  B.Left := 880;
+  B.Top := 16;
+  B.Width := 145;
+  B.Height := 84;
+  B.Caption := 'Asesor Compras';
+  B.Hint := 'Asesor inteligente de compras FacturLinEx (solo lectura)';
+  B.ShowHint := True;
+  B.Layout := blGlyphTop;
+  B.Spacing := 4;
+  B.NumGlyphs := 1;
+  B.OnClick := @AsesorComprasFacturLinExClick;
+
+  if ColorBotones <> '' then B.Color := StringToColor(ColorBotones);
+
+  Icono := '';
+  Rutas := TStringList.Create;
+  try
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'inteligencia_asesor_compras.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + '30x30' + DirectorySeparator + 'inteligencia_asesor_compras.png');
+    AddIconPathsFromBase(RutaBin);
+    AddIconPathsFromBase(RutaIni);
+    AddIconPathsFromBase(RutaSql);
+    AddIconPathsFromBase(ExtractFilePath(ParamStr(0)));
+    AddIconPathsFromBase(ExtractFilePath(Application.ExeName));
+    AddIconPathsFromBase(GetCurrentDir);
+    AddIconPathsFromBase(ExpandFileName(ExtractFilePath(ParamStr(0)) + '..' + DirectorySeparator));
+    AddIconPathsFromBase(ExpandFileName(GetCurrentDir + DirectorySeparator + '..' + DirectorySeparator));
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'compras.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'proveedores.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'pedidos.png');
+    for I := 0 to Rutas.Count - 1 do
+      if FileExists(Rutas[I]) then begin Icono := Rutas[I]; Break; end;
+  finally
+    Rutas.Free;
+  end;
+
+  if FileExists(Icono) then
+  begin
+    Png := TPortableNetworkGraphic.Create;
+    try
+      Png.LoadFromFile(Icono);
+      B.Glyph.Assign(Png);
+      B.NumGlyphs := 1;
+      B.Invalidate;
+    finally
+      Png.Free;
+    end;
+  end
+  else
+    B.Hint := B.Hint + ' (icono no encontrado: compras.png)';
+
+  B.Visible := True;
+  B.BringToFront;
+  B.Repaint;
+end;
+
+procedure TFMenu.AsesorComprasFacturLinExClick(Sender: TObject);
+begin
+  timer1.enabled := false;
+  try
+    MostrarAsesorComprasFacturLinEx(Self, TZConnection(dbQuery.Connection), Tienda);
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+
 procedure TFMenu.AddFLXUpdateConfigButton;
 var
   B: TBitBtn;
   Png: TPortableNetworkGraphic;
   Icono: string;
   I: Integer;
+  MaxRight: Integer;
+  C: TControl;
   Rutas: TStringList;
   GapPx: Integer;
 
@@ -2111,14 +3795,11 @@ end;
 //-------------------- Actualizaciones BBDD -----------------
 procedure TFMenu.ActualizaBBDD(Sender: TObject);
 begin
-  AProcess := TProcess.Create(nil);
-  {$IFDEF LINUX}
-     AProcess.CommandLine := 'gksu '+RutaSql+'FacturActBBDD';
-  {$ELSE}
-     AProcess.CommandLine := RutaIni+'FacturActBBDD';
-  {$ENDIF}
-  AProcess.Execute;
-  AProcess.Free;
+  // Botón antiguo "Actualizar BBDD" reutilizado.
+  // Ya no lanza el ejecutable legacy FacturActBBDD.
+  // Redirige al actualizador moderno de FacturLinEx, que ya incluye
+  // configuración, control de versión y diagnóstico de BBDD.
+  FLXUpdateConfigClick(Sender);
 end;
 
 //---------------------- ACTUALIZAR TARIFAS ----------------

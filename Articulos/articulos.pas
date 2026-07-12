@@ -357,6 +357,9 @@ type
 
   private
     { private declarations }
+    function HistPreciosTableName: string;
+    procedure EnsureHistPreciosTable;
+    procedure RegistrarCambioPrecio(const ACodigo, ADescripcion, ACampo, AAnterior, ANuevo, AMotivo: string);
   public
     { public declarations }
   end;
@@ -488,10 +491,126 @@ begin
   Result := StringReplace(Result, '"', '\"', [rfReplaceAll]);
 end;
 
+function FLX_CleanIdentLocal(const S: string): string;
+var
+  I: Integer;
+  C: Char;
+begin
+  Result := '';
+  for I := 1 to Length(S) do
+  begin
+    C := S[I];
+    if (C in ['A'..'Z']) or (C in ['a'..'z']) or (C in ['0'..'9']) or (C = '_') then
+      Result := Result + C;
+  end;
+end;
+
+function FLX_SQLIdentLocal(const S: string): string;
+begin
+  Result := '`' + StringReplace(S, '`', '', [rfReplaceAll]) + '`';
+end;
+
+function FLX_NormalizaValorPrecioHist(const S: string): string;
+var
+  V: Double;
+  T: string;
+begin
+  T := Trim(StringReplace(S, ',', '.', [rfReplaceAll]));
+  if TryStrToFloat(T, V) then
+    Result := FormatFloat('0.0000', V)
+  else
+    Result := Trim(S);
+end;
+
 { TFArticulos }
 
 
 { TFArticulos }
+
+
+function TFArticulos.HistPreciosTableName: string;
+begin
+  Result := 'flx_hist_precios' + FLX_CleanIdentLocal(Tienda);
+end;
+
+procedure TFArticulos.EnsureHistPreciosTable;
+var
+  Q: TZQuery;
+  T, EngineSQL, Engine: string;
+begin
+  T := HistPreciosTableName;
+  Engine := Trim(MotorDB);
+  EngineSQL := '';
+  if SameText(Engine, 'MyISAM') then EngineSQL := ' ENGINE=MyISAM'
+  else if SameText(Engine, 'Aria') then EngineSQL := ' ENGINE=Aria'
+  else if SameText(Engine, 'InnoDB') then EngineSQL := ' ENGINE=InnoDB';
+
+  Q := TZQuery.Create(nil);
+  try
+    if Assigned(dbArti.Connection) then
+      Q.Connection := dbArti.Connection
+    else
+      Q.Connection := DataModule1.dbConexion;
+
+    Q.SQL.Text :=
+      'CREATE TABLE IF NOT EXISTS ' + FLX_SQLIdentLocal(T) + ' (' +
+      'id BIGINT NOT NULL AUTO_INCREMENT, ' +
+      'fecha DATE NOT NULL, ' +
+      'hora TIME NOT NULL, ' +
+      'usuario VARCHAR(100) NOT NULL DEFAULT '''', ' +
+      'codigo VARCHAR(60) NOT NULL DEFAULT '''', ' +
+      'descripcion VARCHAR(255) NOT NULL DEFAULT '''', ' +
+      'campo VARCHAR(40) NOT NULL DEFAULT '''', ' +
+      'valor_anterior VARCHAR(80) NOT NULL DEFAULT '''', ' +
+      'valor_nuevo VARCHAR(80) NOT NULL DEFAULT '''', ' +
+      'motivo VARCHAR(255) NOT NULL DEFAULT '''', ' +
+      'PRIMARY KEY (id), ' +
+      'KEY idx_fecha (fecha,hora), ' +
+      'KEY idx_codigo (codigo), ' +
+      'KEY idx_campo (campo)' +
+      ')' + EngineSQL + ' DEFAULT CHARSET=utf8';
+    Q.ExecSQL;
+  finally
+    Q.Free;
+  end;
+end;
+
+procedure TFArticulos.RegistrarCambioPrecio(const ACodigo, ADescripcion, ACampo, AAnterior, ANuevo, AMotivo: string);
+var
+  Q: TZQuery;
+  T, AntesN, DespuesN: string;
+begin
+  AntesN := FLX_NormalizaValorPrecioHist(AAnterior);
+  DespuesN := FLX_NormalizaValorPrecioHist(ANuevo);
+  if AntesN = DespuesN then Exit;
+
+  EnsureHistPreciosTable;
+  T := HistPreciosTableName;
+
+  Q := TZQuery.Create(nil);
+  try
+    if Assigned(dbArti.Connection) then
+      Q.Connection := dbArti.Connection
+    else
+      Q.Connection := DataModule1.dbConexion;
+
+    Q.SQL.Text := 'INSERT INTO ' + FLX_SQLIdentLocal(T) +
+      ' (fecha,hora,usuario,codigo,descripcion,campo,valor_anterior,valor_nuevo,motivo) ' +
+      ' VALUES (:fecha,:hora,:usuario,:codigo,:descripcion,:campo,:valor_anterior,:valor_nuevo,:motivo)';
+    Q.ParamByName('fecha').AsString := FormatDateTime('yyyy-mm-dd', Date);
+    Q.ParamByName('hora').AsString := FormatDateTime('hh:nn:ss', Time);
+    Q.ParamByName('usuario').AsString := UsuarioActivo;
+    Q.ParamByName('codigo').AsString := ACodigo;
+    Q.ParamByName('descripcion').AsString := Copy(ADescripcion, 1, 255);
+    Q.ParamByName('campo').AsString := ACampo;
+    Q.ParamByName('valor_anterior').AsString := AntesN;
+    Q.ParamByName('valor_nuevo').AsString := DespuesN;
+    Q.ParamByName('motivo').AsString := AMotivo;
+    Q.ExecSQL;
+  finally
+    Q.Free;
+  end;
+end;
 
 //=============== Crea el formulario ================
 procedure ShowFormArticulos;
@@ -647,6 +766,8 @@ end;
 
 //=================== MODIFICAR ===================
 procedure TFArticulos.BitBtn4Click(Sender: TObject);
+var
+  OldA2, OldA21, OldA24, OldDesc, CodArt: string;
 begin
    if (Edit1.Text='') or (dbArti.Recordcount=0) then exit;
    if not dbArti.Locate('A0,', Edit1.Text, []) then
@@ -657,7 +778,24 @@ begin
    boxstyle :=  MB_ICONQUESTION + MB_YESNO;
    If Application.MessageBox('CONFIRME LA MODIFICACION DEL REGISTRO','FacturLinEx', boxstyle) = IDNO Then
       Exit;
+
+   CodArt := dbArti.FieldByName('A0').AsString;
+   OldDesc := FLX_LimpiarDescripcionArticulo(dbArti.FieldByName('A1').AsString, FLX_FieldTextMax(dbArti, 'A1', 100));
+   OldA2 := dbArti.FieldByName('A2').AsString;
+   OldA21 := dbArti.FieldByName('A21').AsString;
+   OldA24 := dbArti.FieldByName('A24').AsString;
+
    dbArti.Edit; LlenaReg(); dbArti.Post;
+
+   try
+     RegistrarCambioPrecio(CodArt, OldDesc, 'A2 PVP con IVA', OldA2, Edit5.Text, 'Modificado desde ficha de articulo');
+     RegistrarCambioPrecio(CodArt, OldDesc, 'A21 PVP sin IVA', OldA21, Edit3.Text, 'Modificado desde ficha de articulo');
+     RegistrarCambioPrecio(CodArt, OldDesc, 'A24 coste', OldA24, Edit24.Text, 'Modificado desde ficha de articulo');
+   except
+     on E: Exception do
+       ShowMessage('El articulo se ha modificado, pero no se pudo registrar el historico de precios: ' + E.Message);
+   end;
+
    GuardaTarifa();//------- Modificar Tarifa de precios
    Label2.Caption:=FLX_LimpiarDescripcionArticulo(dbArti.FieldByName('A1').AsString, FLX_FieldTextMax(dbArti, 'A1', 100));
    if ActivarSIC='S' then GrabarModificarSic();//------ Comprobar si se modifica cliente en el SIC.

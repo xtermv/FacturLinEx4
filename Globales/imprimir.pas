@@ -274,10 +274,10 @@ begin
 
        if copy(TipoDocumento,1,1)='V' then begin EsVentas; Exit; end;
 
- //      showmessage(RutaPDF);
+       //showmessage(RutaPDF);
 
        if DirectoryExists(RutaPdf) then
-              NombrePDF:= RutaPdf+'/'+copy(Documento,1,3)+'_'+dbCabecera.Fields[2].AsString
+              NombrePDF:= RutaPdf+copy(Documento,1,3)+'_'+dbCabecera.Fields[2].AsString
                         +'_'+dbCabecera.Fields[3].AsString+'.pdf' else
               NombrePDF:= RutaIni+copy(Documento,1,3)+'_'+dbCabecera.Fields[2].AsString
                         +'_'+dbCabecera.Fields[3].AsString+'.pdf';
@@ -922,6 +922,8 @@ begin
                #13 + ' Utilizar la existente ?', 'FacturLinEx',
                MB_ICONQUESTION + MB_YESNO) = idYes then begin
                                                            NombrePDF:=nuevoPDF;
+                                                           Edit1.Text:= NombrePDF;
+                                                           edAdjunto.Text:= NombrePDF;
                                                            exit;
                                                            end;
 
@@ -1052,6 +1054,8 @@ begin
                #13 + ' Utilizar la existente ?', 'FacturLinEx',
                MB_ICONQUESTION + MB_YESNO) = idYes then begin
                                                          NombrePDF:=nuevoPDF;
+                                                         Edit1.Text:= NombrePDF;
+                                                         edAdjunto.Text:= NombrePDF;
                                                          BuscarAnexos();
                                                          btSalirClick(self);
                                                          exit;

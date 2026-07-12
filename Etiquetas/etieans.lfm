@@ -13,6 +13,7 @@ object EtiBarras: TEtiBarras
   Position = poDesktopCenter
   LCLVersion = '1.6.4.0'
   object Panel1: TPanel
+    Caption = ''
     Left = 0
     Height = 124
     Top = 568
@@ -1840,7 +1841,7 @@ object EtiBarras: TEtiBarras
     Top = 64
     Width = 1014
     BevelInner = bvLowered
-    Caption = 'Panel3'
+    Caption = ''
     ClientHeight = 120
     ClientWidth = 1014
     TabOrder = 2
@@ -1860,7 +1861,7 @@ object EtiBarras: TEtiBarras
     Top = 0
     Width = 1016
     BevelInner = bvRaised
-    Caption = 'Panel2'
+    Caption = ''
     ClientHeight = 569
     ClientWidth = 1016
     TabOrder = 1
@@ -2325,6 +2326,7 @@ object EtiBarras: TEtiBarras
       TabOrder = 12
     end
     object Panel4: TPanel
+    Caption = ''
       Left = 713
       Height = 162
       Top = 160
