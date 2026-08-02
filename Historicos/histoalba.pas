@@ -23,13 +23,14 @@
 unit HistoAlba;
 
 {$mode objfpc}{$H+}
+{$codepage utf8}
 
 interface
 
 uses
-  Classes, SysUtils, LResources, Forms, Controls, Graphics, Dialogs, ExtCtrls,
-  Buttons, ZConnection, ZDataset, DBGrids, db, StdCtrls, DbCtrls, LR_Class,
-  LR_DBSet, LCLType, Menus, LR_E_CSV, LR_E_HTM;
+  Classes, SysUtils, StrUtils, Math, Variants, LResources, Forms, Controls,
+  Graphics, Dialogs, ExtCtrls, Buttons, ZConnection, ZDataset, DBGrids, db,
+  StdCtrls, DbCtrls, LR_Class, LR_DBSet, LCLType, Menus, LR_E_CSV, LR_E_HTM;
 
 type
 
@@ -246,7 +247,60 @@ TFHistAlbaran = class(TForm)
   function VerUltimaLinea: Integer;
 
   private
-    { private declarations }
+    { Búsqueda de artículos en los albaranes de un cliente }
+    FBtnBuscarArticuloAlbaranes: TButton;
+    FPanelBuscaArticulo: TPanel;
+    FPanelBuscaCabecera: TPanel;
+    FPanelBuscaAcciones: TPanel;
+    FPanelBuscaPie: TPanel;
+    FBtnEjecutarBuscaArticulo: TButton;
+    FBtnCerrarBuscaArticulo: TButton;
+    FBtnBuscaCliente: TButton;
+    FBtnBuscaArticuloNombre: TButton;
+    FEditBuscaCliente: TEdit;
+    FEditBuscaClienteNombre: TEdit;
+    FEditBuscaArticulo: TEdit;
+    FEditBuscaArticuloNombre: TEdit;
+    FGridBuscaArticulo: TDBGrid;
+    FQueryBuscaArticulo: TZQuery;
+    FDataSourceBuscaArticulo: TDataSource;
+    FLabelResumenBuscaArticulo: TLabel;
+    FLabelTituloBuscaArticulo: TLabel;
+    FLabelTituloPrincipal: TLabel;
+    FClienteBuscaArticulo: String;
+    FArticuloBusca: String;
+    FOrdenBuscaArticulo: String;
+    FOrdenBuscaDesc: Boolean;
+    FOrdenGridLineas: String;
+    FOrdenGridLineasDesc: Boolean;
+    FVolverBusquedaTrasDetalle: Boolean;
+    procedure CrearBusquedaArticulo;
+    procedure AbrirBusquedaArticulo(Sender: TObject);
+    procedure CerrarBusquedaArticulo(Sender: TObject);
+    procedure EjecutarBusquedaArticulo(Sender: TObject);
+    procedure BuscarClienteDesdePanel(Sender: TObject);
+    procedure BuscaClienteCodigoExit(Sender: TObject);
+    procedure BuscaClienteCodigoKeyPress(Sender: TObject; var Key: Char);
+    procedure BuscaClienteNombreKeyPress(Sender: TObject; var Key: Char);
+    function CargarClienteBusqueda(const ACodigo: String;
+      AMostrarError: Boolean=True): Boolean;
+    procedure BuscarArticuloPorNombre(Sender: TObject);
+    procedure BuscaArticuloCodigoExit(Sender: TObject);
+    procedure BuscaArticuloCodigoKeyPress(Sender: TObject; var Key: Char);
+    procedure BuscaArticuloNombreKeyPress(Sender: TObject; var Key: Char);
+    procedure GridBuscaArticuloDblClick(Sender: TObject);
+    procedure GridBuscaArticuloTitleClick(Column: TColumn);
+    procedure CargarConsultaBuscaArticulo;
+    procedure ActualizarTitulosBuscaArticulo;
+    procedure RestaurarBusquedaTrasDetalle;
+    procedure AplicarDisenoModerno;
+    procedure AjustarDisenoModerno;
+    procedure FormResizeModerno(Sender: TObject);
+    procedure AplicarSeleccionModerna(AControl: TWinControl);
+    procedure DBGrid2TitleClick(Column: TColumn);
+    procedure OrdenarLineasDesdeGrid(const ACampo: String);
+    procedure ActualizarFlechasGrid(AGrid: TDBGrid; const AOrden: String;
+      ADesc: Boolean);
   public
     { public declarations }
   end;
@@ -268,7 +322,8 @@ var
 implementation
 
 uses
-  Global, Funciones, busquedas, Imprimir;
+  Global, Funciones, busquedas, Imprimir
+  {$IFDEF LCLGTK2}, Gtk2, Gdk2{$ENDIF};
   
  { TFHistAlbaran }
 
@@ -280,9 +335,1215 @@ begin
        ShowModal;
     end;
 end;
+
+//==========================================================================
+// BÚSQUEDA DE ARTÍCULOS EN LOS ALBARANES DE UN CLIENTE
+//==========================================================================
+procedure TFHistAlbaran.CrearBusquedaArticulo;
+var
+  Lbl: TLabel;
+  Col: TColumn;
+begin
+  FBtnBuscarArticuloAlbaranes:=TButton.Create(Self);
+  FBtnBuscarArticuloAlbaranes.Parent:=Panel2;
+  FBtnBuscarArticuloAlbaranes.Left:=8;
+  FBtnBuscarArticuloAlbaranes.Top:=78;
+  FBtnBuscarArticuloAlbaranes.Width:=290;
+  FBtnBuscarArticuloAlbaranes.Height:=32;
+  FBtnBuscarArticuloAlbaranes.Caption:=
+    'Buscar artículo en albaranes del cliente';
+  FBtnBuscarArticuloAlbaranes.Hint:=
+    'Localiza un artículo en todos los albaranes del cliente seleccionado';
+  FBtnBuscarArticuloAlbaranes.ShowHint:=True;
+  FBtnBuscarArticuloAlbaranes.Font.Style:=[fsBold];
+  FBtnBuscarArticuloAlbaranes.OnClick:=@AbrirBusquedaArticulo;
+  FBtnBuscarArticuloAlbaranes.TabOrder:=4;
+
+  FLabelTituloPrincipal:=TLabel.Create(Self);
+  FLabelTituloPrincipal.Parent:=Panel5;
+  FLabelTituloPrincipal.AutoSize:=False;
+  FLabelTituloPrincipal.Alignment:=taCenter;
+  FLabelTituloPrincipal.Layout:=tlCenter;
+  FLabelTituloPrincipal.Transparent:=False;
+  FLabelTituloPrincipal.ParentColor:=False;
+  FLabelTituloPrincipal.Caption:='HISTÓRICO DE ALBARANES DE CLIENTES';
+  FLabelTituloPrincipal.Font.Height:=-15;
+  FLabelTituloPrincipal.Font.Style:=[fsBold];
+
+  FPanelBuscaArticulo:=TPanel.Create(Self);
+  FPanelBuscaArticulo.Parent:=Self;
+  FPanelBuscaArticulo.Align:=alNone;
+  FPanelBuscaArticulo.SetBounds(0,0,ClientWidth,ClientHeight);
+  FPanelBuscaArticulo.Anchors:=[akTop,akLeft,akRight,akBottom];
+  FPanelBuscaArticulo.Caption:='';
+  FPanelBuscaArticulo.BevelOuter:=bvNone;
+  FPanelBuscaArticulo.Visible:=False;
+
+  FPanelBuscaCabecera:=TPanel.Create(Self);
+  FPanelBuscaCabecera.Parent:=FPanelBuscaArticulo;
+  FPanelBuscaCabecera.Align:=alTop;
+  FPanelBuscaCabecera.Height:=154;
+  FPanelBuscaCabecera.Caption:='';
+  FPanelBuscaCabecera.BevelOuter:=bvNone;
+
+  FLabelTituloBuscaArticulo:=TLabel.Create(Self);
+  FLabelTituloBuscaArticulo.Parent:=FPanelBuscaCabecera;
+  FLabelTituloBuscaArticulo.Align:=alTop;
+  FLabelTituloBuscaArticulo.Height:=34;
+  FLabelTituloBuscaArticulo.AutoSize:=False;
+  FLabelTituloBuscaArticulo.Alignment:=taCenter;
+  FLabelTituloBuscaArticulo.Layout:=tlCenter;
+  FLabelTituloBuscaArticulo.Transparent:=False;
+  FLabelTituloBuscaArticulo.ParentColor:=False;
+  FLabelTituloBuscaArticulo.Caption:=
+    'BÚSQUEDA DE ARTÍCULOS EN ALBARANES DEL CLIENTE';
+  FLabelTituloBuscaArticulo.Font.Height:=-16;
+  FLabelTituloBuscaArticulo.Font.Style:=[fsBold];
+
+  Lbl:=TLabel.Create(Self);
+  Lbl.Parent:=FPanelBuscaCabecera;
+  Lbl.Left:=16;
+  Lbl.Top:=44;
+  Lbl.Caption:='Cliente';
+
+  FEditBuscaCliente:=TEdit.Create(Self);
+  FEditBuscaCliente.Parent:=FPanelBuscaCabecera;
+  FEditBuscaCliente.Left:=92;
+  FEditBuscaCliente.Top:=39;
+  FEditBuscaCliente.Width:=90;
+  FEditBuscaCliente.Height:=29;
+  FEditBuscaCliente.CharCase:=ecUppercase;
+  FEditBuscaCliente.Hint:=
+    'Puede cambiar el cliente sin cerrar esta búsqueda.';
+  FEditBuscaCliente.ShowHint:=True;
+  FEditBuscaCliente.OnExit:=@BuscaClienteCodigoExit;
+  FEditBuscaCliente.OnKeyPress:=@BuscaClienteCodigoKeyPress;
+
+  FEditBuscaClienteNombre:=TEdit.Create(Self);
+  FEditBuscaClienteNombre.Parent:=FPanelBuscaCabecera;
+  FEditBuscaClienteNombre.Left:=190;
+  FEditBuscaClienteNombre.Top:=39;
+  FEditBuscaClienteNombre.Width:=390;
+  FEditBuscaClienteNombre.Height:=29;
+  FEditBuscaClienteNombre.CharCase:=ecUppercase;
+  FEditBuscaClienteNombre.Hint:=
+    'Escriba el comienzo del nombre y pulse Intro o Cambiar cliente.';
+  FEditBuscaClienteNombre.ShowHint:=True;
+  FEditBuscaClienteNombre.OnKeyPress:=@BuscaClienteNombreKeyPress;
+
+  FBtnBuscaCliente:=TButton.Create(Self);
+  FBtnBuscaCliente.Parent:=FPanelBuscaCabecera;
+  FBtnBuscaCliente.Left:=574;
+  FBtnBuscaCliente.Top:=39;
+  FBtnBuscaCliente.Width:=136;
+  FBtnBuscaCliente.Height:=29;
+  FBtnBuscaCliente.Caption:='Cambiar cliente...';
+  FBtnBuscaCliente.Hint:='Buscar y cambiar de cliente';
+  FBtnBuscaCliente.ShowHint:=True;
+  FBtnBuscaCliente.Font.Style:=[fsBold];
+  FBtnBuscaCliente.OnClick:=@BuscarClienteDesdePanel;
+
+  Lbl:=TLabel.Create(Self);
+  Lbl.Parent:=FPanelBuscaCabecera;
+  Lbl.Left:=16;
+  Lbl.Top:=85;
+  Lbl.Caption:='Artículo';
+
+  FEditBuscaArticulo:=TEdit.Create(Self);
+  FEditBuscaArticulo.Parent:=FPanelBuscaCabecera;
+  FEditBuscaArticulo.Left:=92;
+  FEditBuscaArticulo.Top:=79;
+  FEditBuscaArticulo.Width:=128;
+  FEditBuscaArticulo.Height:=29;
+  FEditBuscaArticulo.CharCase:=ecUppercase;
+  FEditBuscaArticulo.OnExit:=@BuscaArticuloCodigoExit;
+  FEditBuscaArticulo.OnKeyPress:=@BuscaArticuloCodigoKeyPress;
+
+  FEditBuscaArticuloNombre:=TEdit.Create(Self);
+  FEditBuscaArticuloNombre.Parent:=FPanelBuscaCabecera;
+  FEditBuscaArticuloNombre.Left:=228;
+  FEditBuscaArticuloNombre.Top:=79;
+  FEditBuscaArticuloNombre.Width:=392;
+  FEditBuscaArticuloNombre.Height:=29;
+  FEditBuscaArticuloNombre.CharCase:=ecUppercase;
+  FEditBuscaArticuloNombre.Hint:=
+    'Teclee el comienzo de la descripción y pulse Intro o el botón ...';
+  FEditBuscaArticuloNombre.ShowHint:=True;
+  FEditBuscaArticuloNombre.OnKeyPress:=@BuscaArticuloNombreKeyPress;
+
+  FBtnBuscaArticuloNombre:=TButton.Create(Self);
+  FBtnBuscaArticuloNombre.Parent:=FPanelBuscaCabecera;
+  FBtnBuscaArticuloNombre.Left:=628;
+  FBtnBuscaArticuloNombre.Top:=79;
+  FBtnBuscaArticuloNombre.Width:=34;
+  FBtnBuscaArticuloNombre.Height:=29;
+  FBtnBuscaArticuloNombre.Caption:='...';
+  FBtnBuscaArticuloNombre.Hint:='Buscar artículo por descripción';
+  FBtnBuscaArticuloNombre.ShowHint:=True;
+  FBtnBuscaArticuloNombre.Font.Style:=[fsBold];
+  FBtnBuscaArticuloNombre.OnClick:=@BuscarArticuloPorNombre;
+
+  FPanelBuscaAcciones:=TPanel.Create(Self);
+  FPanelBuscaAcciones.Parent:=FPanelBuscaCabecera;
+  FPanelBuscaAcciones.Align:=alRight;
+  FPanelBuscaAcciones.Width:=292;
+  FPanelBuscaAcciones.Caption:='';
+  FPanelBuscaAcciones.BevelOuter:=bvNone;
+
+  FBtnEjecutarBuscaArticulo:=TButton.Create(Self);
+  FBtnEjecutarBuscaArticulo.Parent:=FPanelBuscaAcciones;
+  FBtnEjecutarBuscaArticulo.Left:=8;
+  FBtnEjecutarBuscaArticulo.Top:=39;
+  FBtnEjecutarBuscaArticulo.Width:=134;
+  FBtnEjecutarBuscaArticulo.Height:=36;
+  FBtnEjecutarBuscaArticulo.Caption:='Buscar artículo';
+  FBtnEjecutarBuscaArticulo.Font.Style:=[fsBold];
+  FBtnEjecutarBuscaArticulo.Default:=True;
+  FBtnEjecutarBuscaArticulo.OnClick:=@EjecutarBusquedaArticulo;
+
+  FBtnCerrarBuscaArticulo:=TButton.Create(Self);
+  FBtnCerrarBuscaArticulo.Parent:=FPanelBuscaAcciones;
+  FBtnCerrarBuscaArticulo.Left:=150;
+  FBtnCerrarBuscaArticulo.Top:=39;
+  FBtnCerrarBuscaArticulo.Width:=134;
+  FBtnCerrarBuscaArticulo.Height:=36;
+  FBtnCerrarBuscaArticulo.Caption:='Cerrar búsqueda';
+  FBtnCerrarBuscaArticulo.Cancel:=True;
+  FBtnCerrarBuscaArticulo.OnClick:=@CerrarBusquedaArticulo;
+
+  FPanelBuscaPie:=TPanel.Create(Self);
+  FPanelBuscaPie.Parent:=FPanelBuscaArticulo;
+  FPanelBuscaPie.Align:=alBottom;
+  FPanelBuscaPie.Height:=40;
+  FPanelBuscaPie.Caption:='';
+  FPanelBuscaPie.BevelOuter:=bvNone;
+
+  FLabelResumenBuscaArticulo:=TLabel.Create(Self);
+  FLabelResumenBuscaArticulo.Parent:=FPanelBuscaPie;
+  FLabelResumenBuscaArticulo.Left:=16;
+  FLabelResumenBuscaArticulo.Top:=10;
+  FLabelResumenBuscaArticulo.Caption:=
+    'Seleccione un artículo y pulse Buscar.';
+  FLabelResumenBuscaArticulo.Font.Style:=[fsBold];
+
+  FQueryBuscaArticulo:=TZQuery.Create(Self);
+  FQueryBuscaArticulo.Connection:=dbMuestrac.Connection;
+
+  FDataSourceBuscaArticulo:=TDataSource.Create(Self);
+  FDataSourceBuscaArticulo.DataSet:=FQueryBuscaArticulo;
+
+  FGridBuscaArticulo:=TDBGrid.Create(Self);
+  FGridBuscaArticulo.Parent:=FPanelBuscaArticulo;
+  FGridBuscaArticulo.Align:=alClient;
+  FGridBuscaArticulo.DataSource:=FDataSourceBuscaArticulo;
+  FGridBuscaArticulo.ReadOnly:=True;
+  FGridBuscaArticulo.Options:=[dgTitles,dgIndicator,dgColumnResize,dgColumnMove,
+    dgColLines,dgRowLines,dgTabs,dgRowSelect,dgAlwaysShowSelection,
+    dgDisplayMemoText];
+  FGridBuscaArticulo.Scrollbars:=ssAutoBoth;
+  FGridBuscaArticulo.OnDblClick:=@GridBuscaArticuloDblClick;
+  FGridBuscaArticulo.OnTitleClick:=@GridBuscaArticuloTitleClick;
+  FGridBuscaArticulo.Hint:=
+    'Doble clic para abrir el albarán. Pulse una cabecera para ordenar.';
+  FGridBuscaArticulo.ShowHint:=True;
+
+  Col:=FGridBuscaArticulo.Columns.Add;
+  Col.FieldName:='FECHA';
+  Col.Title.Caption:='FECHA';
+  Col.Width:=90;
+  Col.Alignment:=taCenter;
+  Col.Title.Alignment:=taCenter;
+
+  Col:=FGridBuscaArticulo.Columns.Add;
+  Col.FieldName:='SERIE';
+  Col.Title.Caption:='SERIE';
+  Col.Width:=58;
+  Col.Alignment:=taCenter;
+  Col.Title.Alignment:=taCenter;
+
+  Col:=FGridBuscaArticulo.Columns.Add;
+  Col.FieldName:='ALBARAN';
+  Col.Title.Caption:='Nº ALBARÁN';
+  Col.Width:=92;
+  Col.Alignment:=taRightJustify;
+  Col.Title.Alignment:=taRightJustify;
+
+  Col:=FGridBuscaArticulo.Columns.Add;
+  Col.FieldName:='CODIGO';
+  Col.Title.Caption:='CÓDIGO';
+  Col.Width:=115;
+
+  Col:=FGridBuscaArticulo.Columns.Add;
+  Col.FieldName:='DESCRIPCION';
+  Col.Title.Caption:='DESCRIPCIÓN';
+  Col.Width:=340;
+
+  Col:=FGridBuscaArticulo.Columns.Add;
+  Col.FieldName:='CANTIDAD';
+  Col.Title.Caption:='CANTIDAD';
+  Col.Width:=90;
+  Col.Alignment:=taRightJustify;
+  Col.Title.Alignment:=taRightJustify;
+  Col.DisplayFormat:='###,###,##0.###';
+
+  Col:=FGridBuscaArticulo.Columns.Add;
+  Col.FieldName:='PRECIO';
+  Col.Title.Caption:='PRECIO';
+  Col.Width:=100;
+  Col.Alignment:=taRightJustify;
+  Col.Title.Alignment:=taRightJustify;
+  Col.DisplayFormat:='###,###,##0.000';
+
+  Col:=FGridBuscaArticulo.Columns.Add;
+  Col.FieldName:='IMPORTE';
+  Col.Title.Caption:='IMPORTE';
+  Col.Width:=100;
+  Col.Alignment:=taRightJustify;
+  Col.Title.Alignment:=taRightJustify;
+  Col.DisplayFormat:='###,###,##0.00';
+
+  FOrdenBuscaArticulo:='FECHA';
+  FOrdenBuscaDesc:=True;
+  FOrdenGridLineas:='';
+  FOrdenGridLineasDesc:=False;
+  FVolverBusquedaTrasDetalle:=False;
+  ActualizarTitulosBuscaArticulo;
+end;
+
+procedure TFHistAlbaran.AbrirBusquedaArticulo(Sender: TObject);
+begin
+  if Trim(Edit1.Text)='' then
+    begin
+      ShowMessage('DEBE INDICAR PRIMERO EL CLIENTE.');
+      Edit1.SetFocus;
+      Exit;
+    end;
+
+  if not CargarClienteBusqueda(Trim(Edit1.Text),True) then
+    begin
+      Edit1.SetFocus;
+      Exit;
+    end;
+
+  Panel2.Visible:=False;
+  DBGrid1.Enabled:=True;
+  FQueryBuscaArticulo.Close;
+  FArticuloBusca:='';
+  FEditBuscaArticulo.Clear;
+  FEditBuscaArticuloNombre.Clear;
+  FLabelResumenBuscaArticulo.Caption:=
+    'Puede cambiar de cliente arriba. Seleccione un artículo y pulse Buscar.';
+  FOrdenBuscaArticulo:='FECHA';
+  FOrdenBuscaDesc:=True;
+  ActualizarTitulosBuscaArticulo;
+  FPanelBuscaArticulo.Visible:=True;
+  FPanelBuscaArticulo.BringToFront;
+  AjustarDisenoModerno;
+  AplicarSeleccionModerna(FPanelBuscaArticulo);
+  FEditBuscaArticulo.SetFocus;
+end;
+
+procedure TFHistAlbaran.CerrarBusquedaArticulo(Sender: TObject);
+begin
+  if Assigned(FQueryBuscaArticulo) then FQueryBuscaArticulo.Close;
+  if Assigned(FPanelBuscaArticulo) then FPanelBuscaArticulo.Visible:=False;
+  FVolverBusquedaTrasDetalle:=False;
+  DBGrid1.Enabled:=True;
+  if RadioButton2.Checked then Panel2.Visible:=True;
+  if DBGrid1.CanFocus then DBGrid1.SetFocus;
+end;
+
+function TFHistAlbaran.CargarClienteBusqueda(const ACodigo: String;
+  AMostrarError: Boolean): Boolean;
+var
+  Codigo: String;
+begin
+  Result:=False;
+  Codigo:=Trim(ACodigo);
+  if Codigo='' then
+    begin
+      FEditBuscaClienteNombre.Clear;
+      Exit;
+    end;
+
+  dbClientes.Close;
+  dbClientes.SQL.Text:='SELECT C0, C1, C5 FROM clientes WHERE C0='+
+    QuotedStr(Codigo);
+  dbClientes.Open;
+  if dbClientes.RecordCount=0 then
+    begin
+      FEditBuscaClienteNombre.Clear;
+      if AMostrarError then ShowMessage('ESE CLIENTE NO EXISTE.');
+      Exit;
+    end;
+
+  FClienteBuscaArticulo:=dbClientes.FieldByName('C0').AsString;
+  FEditBuscaCliente.Text:=FClienteBuscaArticulo;
+  FEditBuscaClienteNombre.Text:=dbClientes.FieldByName('C1').AsString;
+  Edit1.Text:=FClienteBuscaArticulo;
+  Edit2.Text:=FEditBuscaClienteNombre.Text;
+  RadioButton2.Checked:=True;
+
+  dbMuestrac.Close;
+  dbMuestrac.SQL.Text:=
+    'SELECT *,CONVERT(HAC11 USING UTF8) AS ANOTAS,C1 '+
+    'FROM hisalbac'+Tienda+', clientes WHERE HAC0=C0 AND HAC0='+
+    QuotedStr(FClienteBuscaArticulo)+
+    ' ORDER BY HAC2 ASC, HAC1 DESC, HAC3 DESC';
+  dbMuestrac.Open;
+  ActualizarFlechasGrid(DBGrid1,'HAC1',True);
+
+  if Assigned(FLabelTituloPrincipal) then
+    FLabelTituloPrincipal.Caption:='ALBARANES DEL CLIENTE: '+
+      FClienteBuscaArticulo+'  '+FEditBuscaClienteNombre.Text;
+
+  if Assigned(FQueryBuscaArticulo) then
+    begin
+      if (FArticuloBusca<>'') and FPanelBuscaArticulo.Visible then
+        CargarConsultaBuscaArticulo
+      else
+        begin
+          FQueryBuscaArticulo.Close;
+          FLabelResumenBuscaArticulo.Caption:=
+            'Cliente cambiado. Seleccione un artículo y pulse Buscar.';
+        end;
+    end;
+  Result:=True;
+end;
+
+procedure TFHistAlbaran.BuscaClienteCodigoExit(Sender: TObject);
+begin
+  if Trim(FEditBuscaCliente.Text)='' then
+    begin
+      FEditBuscaClienteNombre.Clear;
+      Exit;
+    end;
+  CargarClienteBusqueda(FEditBuscaCliente.Text,True);
+end;
+
+procedure TFHistAlbaran.BuscaClienteCodigoKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  if Key=#13 then
+    begin
+      Key:=#0;
+      if CargarClienteBusqueda(FEditBuscaCliente.Text,True) then
+        FEditBuscaArticulo.SetFocus
+      else
+        FEditBuscaCliente.SetFocus;
+    end;
+end;
+
+procedure TFHistAlbaran.BuscaClienteNombreKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  if Key=#13 then
+    begin
+      Key:=#0;
+      BuscarClienteDesdePanel(Sender);
+    end;
+end;
+
+procedure TFHistAlbaran.BuscarClienteDesdePanel(Sender: TObject);
+var
+  TextoBusca, Consulta, CodigoAnterior, NombreAnterior, CodigoElegido: String;
+begin
+  CodigoAnterior:=FEditBuscaCliente.Text;
+  NombreAnterior:=FEditBuscaClienteNombre.Text;
+  TextoBusca:=Trim(FEditBuscaClienteNombre.Text);
+  TextoBusca:=StringReplace(TextoBusca,'"','',[rfReplaceAll]);
+
+  Consulta:='SELECT C0, C1, C5 FROM clientes';
+  if TextoBusca<>'' then
+    Consulta:=Consulta+' WHERE C1 LIKE "'+TextoBusca+'%"';
+  Consulta:=Consulta+' ORDER BY C1';
+
+  CodigoElegido:=FBusquedas.IniciaBusquedas(
+    Consulta,['Código','Cliente','N.I.F.'],'C0');
+
+  if CodigoElegido<>'' then
+    begin
+      FEditBuscaCliente.Text:=CodigoElegido;
+      if CargarClienteBusqueda(CodigoElegido,True) then
+        FEditBuscaArticulo.SetFocus;
+    end
+  else
+    begin
+      FEditBuscaCliente.Text:=CodigoAnterior;
+      FEditBuscaClienteNombre.Text:=NombreAnterior;
+      FEditBuscaClienteNombre.SetFocus;
+    end;
+end;
+
+procedure TFHistAlbaran.BuscaArticuloCodigoExit(Sender: TObject);
+begin
+  if Trim(FEditBuscaArticulo.Text)='' then Exit;
+  dbArti.Close;
+  dbArti.SQL.Text:='SELECT A0, A1 FROM artitien'+Tienda+
+    ' WHERE A0='+QuotedStr(Trim(FEditBuscaArticulo.Text));
+  dbArti.Open;
+  if dbArti.RecordCount=0 then
+    begin
+      FEditBuscaArticuloNombre.Clear;
+      Exit;
+    end;
+  FEditBuscaArticulo.Text:=dbArti.FieldByName('A0').AsString;
+  FEditBuscaArticuloNombre.Text:=dbArti.FieldByName('A1').AsString;
+end;
+
+procedure TFHistAlbaran.BuscaArticuloCodigoKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  if Key=#13 then
+    begin
+      Key:=#0;
+      EjecutarBusquedaArticulo(Sender);
+    end;
+end;
+
+procedure TFHistAlbaran.BuscaArticuloNombreKeyPress(Sender: TObject;
+  var Key: Char);
+begin
+  if Key=#13 then
+    begin
+      Key:=#0;
+      BuscarArticuloPorNombre(Sender);
+    end;
+end;
+
+procedure TFHistAlbaran.BuscarArticuloPorNombre(Sender: TObject);
+var
+  TextoBusca: String;
+begin
+  TextoBusca:=Trim(FEditBuscaArticuloNombre.Text);
+  if TextoBusca='' then
+    begin
+      ShowMessage('TECLEE EL COMIENZO DE LA DESCRIPCIÓN A BUSCAR.');
+      FEditBuscaArticuloNombre.SetFocus;
+      Exit;
+    end;
+
+  TextoBusca:=StringReplace(TextoBusca,'"','',[rfReplaceAll]);
+  FEditBuscaArticulo.Text:=FBusquedas.IniciaBusquedas(
+    'SELECT A0, A1, A24 FROM artitien'+Tienda+
+    ' WHERE A1 LIKE "'+TextoBusca+'%" ORDER BY A1',
+    ['Código','Descripción','Precio costo'],'A0');
+
+  if FEditBuscaArticulo.Text<>'' then
+    begin
+      BuscaArticuloCodigoExit(FEditBuscaArticulo);
+      FEditBuscaArticulo.SetFocus;
+    end;
+end;
+
+procedure TFHistAlbaran.EjecutarBusquedaArticulo(Sender: TObject);
+begin
+  if Trim(FEditBuscaArticulo.Text)='' then
+    begin
+      ShowMessage('DEBE INDICAR EL ARTÍCULO A BUSCAR.');
+      FEditBuscaArticulo.SetFocus;
+      Exit;
+    end;
+
+  dbArti.Close;
+  dbArti.SQL.Text:='SELECT A0, A1 FROM artitien'+Tienda+
+    ' WHERE A0='+QuotedStr(Trim(FEditBuscaArticulo.Text));
+  dbArti.Open;
+  if dbArti.RecordCount=0 then
+    begin
+      ShowMessage('ESE ARTÍCULO NO EXISTE.');
+      FEditBuscaArticulo.SetFocus;
+      Exit;
+    end;
+
+  FArticuloBusca:=dbArti.FieldByName('A0').AsString;
+  FEditBuscaArticulo.Text:=FArticuloBusca;
+  FEditBuscaArticuloNombre.Text:=dbArti.FieldByName('A1').AsString;
+  FOrdenBuscaArticulo:='FECHA';
+  FOrdenBuscaDesc:=True;
+  CargarConsultaBuscaArticulo;
+end;
+
+procedure TFHistAlbaran.CargarConsultaBuscaArticulo;
+var
+  CantidadTotal: Double;
+  NumLineas: Integer;
+  Albaranes: TStringList;
+  ClaveAlbaran: String;
+begin
+  FQueryBuscaArticulo.Close;
+  FQueryBuscaArticulo.SQL.Text:=
+    'SELECT C.HAC0 AS CLIENTE, C.HAC1 AS FECHA, C.HAC2 AS SERIE, '+
+    'C.HAC3 AS ALBARAN, D.HAD5 AS CODIGO, '+
+    'CONVERT(D.HAD6 USING UTF8) AS DESCRIPCION, '+
+    'D.HAD7 AS CANTIDAD, D.HAD9 AS PRECIO, D.HAD11 AS IMPORTE '+
+    'FROM hisalbac'+Tienda+' C INNER JOIN hisalbad'+Tienda+' D ON '+
+    'D.HAD0=C.HAC0 AND D.HAD1=C.HAC1 AND D.HAD2=C.HAC2 AND '+
+    'D.HAD3=C.HAC3 WHERE C.HAC0='+QuotedStr(FClienteBuscaArticulo)+
+    ' AND D.HAD5='+QuotedStr(FArticuloBusca)+
+    ' ORDER BY '+FOrdenBuscaArticulo;
+  if FOrdenBuscaDesc then
+    FQueryBuscaArticulo.SQL.Text:=FQueryBuscaArticulo.SQL.Text+' DESC'
+  else
+    FQueryBuscaArticulo.SQL.Text:=FQueryBuscaArticulo.SQL.Text+' ASC';
+  if FOrdenBuscaArticulo<>'FECHA' then
+    FQueryBuscaArticulo.SQL.Text:=
+      FQueryBuscaArticulo.SQL.Text+', FECHA DESC';
+  FQueryBuscaArticulo.Open;
+
+  CantidadTotal:=0;
+  NumLineas:=0;
+  Albaranes:=TStringList.Create;
+  try
+    Albaranes.Sorted:=True;
+    Albaranes.Duplicates:=dupIgnore;
+    FQueryBuscaArticulo.DisableControls;
+    try
+      FQueryBuscaArticulo.First;
+      while not FQueryBuscaArticulo.EOF do
+        begin
+          Inc(NumLineas);
+          CantidadTotal:=CantidadTotal+
+            FQueryBuscaArticulo.FieldByName('CANTIDAD').AsFloat;
+          ClaveAlbaran:=
+            FormatDateTime('yyyymmdd',
+              FQueryBuscaArticulo.FieldByName('FECHA').AsDateTime)+'|'+
+            FQueryBuscaArticulo.FieldByName('SERIE').AsString+'|'+
+            FQueryBuscaArticulo.FieldByName('ALBARAN').AsString;
+          Albaranes.Add(ClaveAlbaran);
+          FQueryBuscaArticulo.Next;
+        end;
+      FQueryBuscaArticulo.First;
+    finally
+      FQueryBuscaArticulo.EnableControls;
+    end;
+
+    if NumLineas=0 then
+      FLabelResumenBuscaArticulo.Caption:=
+        'El artículo no aparece en ningún albarán de este cliente.'
+    else
+      FLabelResumenBuscaArticulo.Caption:=Format(
+        'Albaranes encontrados: %d   Líneas: %d   Cantidad total: %s',
+        [Albaranes.Count,NumLineas,
+         FormatFloat('###,###,##0.###',CantidadTotal)]);
+  finally
+    Albaranes.Free;
+  end;
+  ActualizarTitulosBuscaArticulo;
+end;
+
+procedure TFHistAlbaran.GridBuscaArticuloTitleClick(Column: TColumn);
+begin
+  if FArticuloBusca='' then Exit;
+  if (Column=nil) or (Column.FieldName='') then Exit;
+  if not (SameText(Column.FieldName,'FECHA') or
+          SameText(Column.FieldName,'SERIE') or
+          SameText(Column.FieldName,'ALBARAN') or
+          SameText(Column.FieldName,'CODIGO') or
+          SameText(Column.FieldName,'DESCRIPCION') or
+          SameText(Column.FieldName,'CANTIDAD') or
+          SameText(Column.FieldName,'PRECIO') or
+          SameText(Column.FieldName,'IMPORTE')) then Exit;
+
+  if SameText(FOrdenBuscaArticulo,Column.FieldName) then
+    FOrdenBuscaDesc:=not FOrdenBuscaDesc
+  else
+    begin
+      FOrdenBuscaArticulo:=Column.FieldName;
+      FOrdenBuscaDesc:=SameText(Column.FieldName,'FECHA');
+    end;
+  CargarConsultaBuscaArticulo;
+end;
+
+procedure TFHistAlbaran.ActualizarTitulosBuscaArticulo;
+var
+  I: Integer;
+  BaseTitulo, Flecha: String;
+begin
+  if not Assigned(FGridBuscaArticulo) then Exit;
+  for I:=0 to FGridBuscaArticulo.Columns.Count-1 do
+    begin
+      if SameText(FGridBuscaArticulo.Columns[I].FieldName,'FECHA') then
+        BaseTitulo:='FECHA'
+      else if SameText(FGridBuscaArticulo.Columns[I].FieldName,'SERIE') then
+        BaseTitulo:='SERIE'
+      else if SameText(FGridBuscaArticulo.Columns[I].FieldName,'ALBARAN') then
+        BaseTitulo:='Nº ALBARÁN'
+      else if SameText(FGridBuscaArticulo.Columns[I].FieldName,'CODIGO') then
+        BaseTitulo:='CÓDIGO'
+      else if SameText(FGridBuscaArticulo.Columns[I].FieldName,
+        'DESCRIPCION') then
+        BaseTitulo:='DESCRIPCIÓN'
+      else if SameText(FGridBuscaArticulo.Columns[I].FieldName,
+        'CANTIDAD') then
+        BaseTitulo:='CANTIDAD'
+      else if SameText(FGridBuscaArticulo.Columns[I].FieldName,'PRECIO') then
+        BaseTitulo:='PRECIO'
+      else if SameText(FGridBuscaArticulo.Columns[I].FieldName,'IMPORTE') then
+        BaseTitulo:='IMPORTE'
+      else
+        BaseTitulo:=FGridBuscaArticulo.Columns[I].Title.Caption;
+      Flecha:='';
+      if SameText(FGridBuscaArticulo.Columns[I].FieldName,
+        FOrdenBuscaArticulo) then
+        if FOrdenBuscaDesc then Flecha:=' ▼' else Flecha:=' ▲';
+      FGridBuscaArticulo.Columns[I].Title.Caption:=BaseTitulo+Flecha;
+    end;
+end;
+
+procedure TFHistAlbaran.GridBuscaArticuloDblClick(Sender: TObject);
+var
+  Vals: Variant;
+  ClienteAlbaran, SerieAlbaran, NumeroAlbaranSel: String;
+  FechaAlbaran: TDateTime;
+begin
+  if (not FQueryBuscaArticulo.Active) or
+     (FQueryBuscaArticulo.RecordCount=0) then Exit;
+
+  ClienteAlbaran:=FQueryBuscaArticulo.FieldByName('CLIENTE').AsString;
+  FechaAlbaran:=FQueryBuscaArticulo.FieldByName('FECHA').AsDateTime;
+  SerieAlbaran:=FQueryBuscaArticulo.FieldByName('SERIE').AsString;
+  NumeroAlbaranSel:=FQueryBuscaArticulo.FieldByName('ALBARAN').AsString;
+  Vals:=VarArrayOf([ClienteAlbaran,FechaAlbaran,SerieAlbaran,
+    NumeroAlbaranSel]);
+
+  if not dbMuestrac.Locate('HAC0;HAC1;HAC2;HAC3',Vals,[]) then
+    begin
+      dbMuestrac.Close;
+      dbMuestrac.SQL.Text:=
+        'SELECT *,CONVERT(HAC11 USING UTF8) AS ANOTAS,C1 '+
+        'FROM hisalbac'+Tienda+', clientes WHERE HAC0=C0 AND HAC0='+
+        QuotedStr(ClienteAlbaran)+
+        ' AND HAC1="'+FormatDateTime('yyyy/mm/dd',FechaAlbaran)+'"'+
+        ' AND HAC2='+QuotedStr(SerieAlbaran)+
+        ' AND HAC3='+QuotedStr(NumeroAlbaranSel);
+      dbMuestrac.Open;
+    end;
+
+  if dbMuestrac.RecordCount=0 then
+    begin
+      ShowMessage('NO SE HA PODIDO LOCALIZAR EL ALBARÁN SELECCIONADO.');
+      Exit;
+    end;
+
+  FVolverBusquedaTrasDetalle:=True;
+  FPanelBuscaArticulo.Visible:=False;
+  BitBtn1Click(FGridBuscaArticulo);
+  if not Panel4.Visible then
+    begin
+      FVolverBusquedaTrasDetalle:=False;
+      FPanelBuscaArticulo.Visible:=True;
+      FPanelBuscaArticulo.BringToFront;
+    end;
+end;
+
+procedure TFHistAlbaran.RestaurarBusquedaTrasDetalle;
+begin
+  if not FVolverBusquedaTrasDetalle then Exit;
+  FVolverBusquedaTrasDetalle:=False;
+
+  // Si Locate necesitó abrir únicamente el albarán elegido, recuperamos
+  // detrás del panel la lista completa del cliente.
+  if FClienteBuscaArticulo<>'' then
+    begin
+      dbMuestrac.Close;
+      dbMuestrac.SQL.Text:=
+        'SELECT *,CONVERT(HAC11 USING UTF8) AS ANOTAS,C1 '+
+        'FROM hisalbac'+Tienda+', clientes WHERE HAC0=C0 AND HAC0='+
+        QuotedStr(FClienteBuscaArticulo)+
+        ' ORDER BY HAC2 ASC, HAC1 DESC, HAC3 DESC';
+      dbMuestrac.Open;
+      ActualizarFlechasGrid(DBGrid1,'HAC1',True);
+    end;
+
+  if Assigned(FPanelBuscaArticulo) then
+    begin
+      FPanelBuscaArticulo.Visible:=True;
+      FPanelBuscaArticulo.BringToFront;
+      if Assigned(FGridBuscaArticulo) and FGridBuscaArticulo.CanFocus then
+        FGridBuscaArticulo.SetFocus;
+    end;
+end;
+
+//==========================================================================
+// DISEÑO MODERNO Y ORDENACIÓN
+//==========================================================================
+procedure TFHistAlbaran.ActualizarFlechasGrid(AGrid: TDBGrid;
+  const AOrden: String; ADesc: Boolean);
+var
+  I: Integer;
+  Titulo: String;
+begin
+  if not Assigned(AGrid) then Exit;
+  for I:=0 to AGrid.Columns.Count-1 do
+    begin
+      Titulo:=AGrid.Columns[I].Title.Caption;
+      Titulo:=StringReplace(Titulo,' ▲','',[rfReplaceAll]);
+      Titulo:=StringReplace(Titulo,' ▼','',[rfReplaceAll]);
+      if SameText(AGrid.Columns[I].FieldName,AOrden) then
+        if ADesc then
+          Titulo:=Titulo+' ▼'
+        else
+          Titulo:=Titulo+' ▲';
+      AGrid.Columns[I].Title.Caption:=Titulo;
+    end;
+end;
+
+procedure TFHistAlbaran.OrdenarLineasDesdeGrid(const ACampo: String);
+var
+  SQLActual, SQLMayus: String;
+  P: SizeInt;
+begin
+  if Trim(ACampo)='' then Exit;
+  if SameText(FOrdenGridLineas,ACampo) then
+    FOrdenGridLineasDesc:=not FOrdenGridLineasDesc
+  else
+    begin
+      FOrdenGridLineas:=ACampo;
+      FOrdenGridLineasDesc:=SameText(ACampo,'HAD1');
+    end;
+
+  SQLActual:=Trim(dbMuestrad.SQL.Text);
+  SQLMayus:=UpperCase(SQLActual);
+  P:=RPos(' ORDER BY ',SQLMayus);
+  if P>0 then Delete(SQLActual,P,Length(SQLActual)-P+1);
+
+  dbMuestrad.Close;
+  dbMuestrad.SQL.Text:=SQLActual+' ORDER BY '+ACampo;
+  if FOrdenGridLineasDesc then
+    dbMuestrad.SQL.Text:=dbMuestrad.SQL.Text+' DESC'
+  else
+    dbMuestrad.SQL.Text:=dbMuestrad.SQL.Text+' ASC';
+  dbMuestrad.Open;
+  ActualizarFlechasGrid(DBGrid2,FOrdenGridLineas,FOrdenGridLineasDesc);
+end;
+
+procedure TFHistAlbaran.DBGrid2TitleClick(Column: TColumn);
+begin
+  if (Column=nil) or (Column.FieldName='') then Exit;
+  OrdenarLineasDesdeGrid(Column.FieldName);
+end;
+
+procedure TFHistAlbaran.AplicarSeleccionModerna(AControl: TWinControl);
+var
+  I: Integer;
+{$IFDEF LCLGTK2}
+  ColorSeleccion, ColorTexto: TGdkColor;
+{$ENDIF}
+begin
+{$IFDEF LCLGTK2}
+  if AControl.HandleAllocated and
+     ((AControl is TCustomEdit) or (AControl is TCustomMemo) or
+      (AControl is TCustomComboBox) or (AControl is TDBGrid)) then
+    begin
+      ColorSeleccion.pixel:=0;
+      ColorSeleccion.red:=8481;
+      ColorSeleccion.green:=27242;
+      ColorSeleccion.blue:=47288;
+      ColorTexto.pixel:=0;
+      ColorTexto.red:=65535;
+      ColorTexto.green:=65535;
+      ColorTexto.blue:=65535;
+      gtk_widget_modify_base(PGtkWidget(AControl.Handle),
+        GTK_STATE_SELECTED,@ColorSeleccion);
+      gtk_widget_modify_text(PGtkWidget(AControl.Handle),
+        GTK_STATE_SELECTED,@ColorTexto);
+    end;
+{$ENDIF}
+  for I:=0 to AControl.ControlCount-1 do
+    if AControl.Controls[I] is TWinControl then
+      AplicarSeleccionModerna(TWinControl(AControl.Controls[I]));
+end;
+
+procedure TFHistAlbaran.AplicarDisenoModerno;
+var
+  I: Integer;
+  CFondo, CPanel, CPanelAzul, CPrimario, CPrimarioOscuro,
+  CTexto, CTeal, CVerde, CAmbar, CRojo, CGris: TColor;
+
+  procedure PrepararPanel(APanel: TPanel; AColor: TColor);
+  begin
+    if not Assigned(APanel) then Exit;
+    APanel.Caption:='';
+    APanel.ParentColor:=False;
+    APanel.Color:=AColor;
+    APanel.BevelOuter:=bvNone;
+  end;
+
+  procedure PrepararBoton(ABoton: TButtonControl);
+  begin
+    if not Assigned(ABoton) then Exit;
+    ABoton.Font.Name:='Sans';
+    ABoton.Font.Height:=-12;
+    ABoton.Font.Style:=[fsBold];
+  end;
+
+  procedure EstilarBoton(ABoton: TButtonControl; AColor: TColor;
+    ATextoClaro: Boolean=True);
+  begin
+    if not Assigned(ABoton) then Exit;
+    PrepararBoton(ABoton);
+    if ABoton is TBitBtn then
+      TBitBtn(ABoton).Color:=AColor
+    else if ABoton is TButton then
+      TButton(ABoton).Color:=AColor;
+    if ATextoClaro then
+      ABoton.Font.Color:=clWhite
+    else
+      ABoton.Font.Color:=CTexto;
+  end;
+
+  procedure EstilarGrid(AGrid: TDBGrid);
+  begin
+    if not Assigned(AGrid) then Exit;
+    AGrid.ParentFont:=False;
+    AGrid.Font.Name:='Sans';
+    AGrid.Font.Height:=-12;
+    AGrid.Font.Color:=CTexto;
+    AGrid.Color:=clWhite;
+    AGrid.FixedColor:=CPrimario;
+    AGrid.TitleFont.Name:='Sans';
+    AGrid.TitleFont.Height:=-11;
+    AGrid.TitleFont.Style:=[fsBold];
+    AGrid.TitleFont.Color:=clWhite;
+    AGrid.GridLineColor:=RGBToColor(203,213,225);
+    AGrid.AlternateColor:=RGBToColor(248,250,252);
+    AGrid.SelectedColor:=RGBToColor(31,103,181);
+    AGrid.DefaultRowHeight:=27;
+  end;
+
+begin
+  CFondo:=RGBToColor(241,245,247);
+  CPanel:=RGBToColor(235,241,243);
+  CPanelAzul:=RGBToColor(226,238,242);
+  CPrimario:=RGBToColor(18,76,91);
+  CPrimarioOscuro:=RGBToColor(6,55,86);
+  CTexto:=RGBToColor(30,41,59);
+  CTeal:=RGBToColor(14,116,144);
+  CVerde:=RGBToColor(5,150,105);
+  CAmbar:=RGBToColor(217,119,6);
+  CRojo:=RGBToColor(220,38,38);
+  CGris:=RGBToColor(71,85,105);
+
+  ParentColor:=False;
+  Color:=CFondo;
+  ParentFont:=False;
+  Font.Name:='Sans';
+  Font.Height:=-12;
+  Font.Color:=CTexto;
+
+  PrepararPanel(Panel5,CFondo);
+  PrepararPanel(Panel1,CPrimarioOscuro);
+  PrepararPanel(Panel2,CPanelAzul);
+  PrepararPanel(Panel3,RGBToColor(255,251,235));
+  PrepararPanel(Panel4,CFondo);
+  PrepararPanel(Panel6,CPanelAzul);
+  PrepararPanel(Panel7,CPanelAzul);
+  PrepararPanel(Panel8,RGBToColor(236,253,245));
+  PrepararPanel(Panel9,RGBToColor(255,251,235));
+
+  Panel1.Height:=68;
+  RadioGroup2.ParentColor:=False;
+  RadioGroup2.Color:=CPanel;
+  RadioGroup2.ParentFont:=False;
+  RadioGroup2.Font.Name:='Sans';
+  RadioGroup2.Font.Style:=[fsBold];
+  RadioGroup2.Font.Color:=CTexto;
+
+  RadioGroup1.ParentColor:=False;
+  RadioGroup1.Color:=CPanel;
+  RadioGroup1.ParentFont:=False;
+  RadioGroup1.Font.Name:='Sans';
+  RadioGroup1.Font.Color:=CTexto;
+
+  Memo1.Color:=clWhite;
+  Memo1.Font.Color:=CTexto;
+  ListBox1.Color:=clWhite;
+  ListBox2.Color:=clWhite;
+  ListBox3.Color:=clWhite;
+
+  for I:=0 to ComponentCount-1 do
+    begin
+      if Components[I] is TBitBtn then
+        PrepararBoton(TBitBtn(Components[I]))
+      else if Components[I] is TButton then
+        PrepararBoton(TButton(Components[I]))
+      else if Components[I] is TLabel then
+        begin
+          TLabel(Components[I]).ParentFont:=False;
+          TLabel(Components[I]).Font.Name:='Sans';
+          TLabel(Components[I]).Font.Color:=CTexto;
+        end
+      else if Components[I] is TRadioButton then
+        begin
+          TRadioButton(Components[I]).ParentFont:=False;
+          TRadioButton(Components[I]).Font.Name:='Sans';
+          TRadioButton(Components[I]).Font.Color:=CTexto;
+        end
+      else if Components[I] is TCheckBox then
+        begin
+          TCheckBox(Components[I]).ParentFont:=False;
+          TCheckBox(Components[I]).Font.Name:='Sans';
+          TCheckBox(Components[I]).Font.Color:=CTexto;
+        end
+      else if Components[I] is TCustomEdit then
+        begin
+          TCustomEdit(Components[I]).Font.Name:='Sans';
+          TCustomEdit(Components[I]).Font.Color:=CTexto;
+          TCustomEdit(Components[I]).Color:=clWhite;
+        end
+      else if Components[I] is TComboBox then
+        begin
+          TComboBox(Components[I]).ParentFont:=False;
+          TComboBox(Components[I]).Font.Name:='Sans';
+          TComboBox(Components[I]).Font.Color:=CTexto;
+          TComboBox(Components[I]).Color:=clWhite;
+        end;
+    end;
+
+  if Assigned(FLabelTituloPrincipal) then
+    begin
+      FLabelTituloPrincipal.ParentColor:=False;
+      FLabelTituloPrincipal.Transparent:=False;
+      FLabelTituloPrincipal.Color:=CPrimario;
+      FLabelTituloPrincipal.Font.Color:=clWhite;
+      FLabelTituloPrincipal.Font.Height:=-15;
+      FLabelTituloPrincipal.Font.Style:=[fsBold];
+      FLabelTituloPrincipal.BringToFront;
+    end;
+
+  if Assigned(FLabelTituloBuscaArticulo) then
+    begin
+      FLabelTituloBuscaArticulo.ParentColor:=False;
+      FLabelTituloBuscaArticulo.Transparent:=False;
+      FLabelTituloBuscaArticulo.Color:=CPrimario;
+      FLabelTituloBuscaArticulo.Font.Color:=clWhite;
+      FLabelTituloBuscaArticulo.Font.Height:=-16;
+      FLabelTituloBuscaArticulo.Font.Style:=[fsBold];
+      FLabelTituloBuscaArticulo.BringToFront;
+    end;
+
+  Label25.ParentColor:=False;
+  Label25.Transparent:=False;
+  Label25.Color:=CPrimario;
+  Label25.Font.Color:=clWhite;
+  Label25.Font.Style:=[fsBold];
+
+  Label28.ParentColor:=False;
+  Label28.Transparent:=False;
+  Label28.Color:=CPrimario;
+  Label28.Font.Color:=clWhite;
+  Label28.Font.Style:=[fsBold];
+
+  LabelTotal.Font.Color:=CPrimario;
+  LabelTotal.Font.Style:=[fsBold];
+
+  EstilarGrid(DBGrid1);
+  DBGrid1.Hint:=
+    'Doble clic para ver las líneas. Pulse una cabecera para ordenar.';
+  DBGrid1.ShowHint:=True;
+
+  EstilarGrid(DBGrid2);
+  DBGrid2.OnTitleClick:=@DBGrid2TitleClick;
+  DBGrid2.Hint:='Pulse una cabecera para ordenar las líneas.';
+  DBGrid2.ShowHint:=True;
+
+  if Assigned(FGridBuscaArticulo) then EstilarGrid(FGridBuscaArticulo);
+
+  ActualizarFlechasGrid(DBGrid1,'HAC1',True);
+
+  BitBtn1.Caption:='Ver líneas';
+  BitBtn9.Caption:='Nuevo';
+  BitBtn10.Caption:='Borrar';
+  BitBtn23.Caption:='Listado';
+  BitBtn2.Caption:='Cerrar';
+  BitBtn12.Caption:='Crear línea';
+  BitBtn13.Caption:='Modificar';
+  BitBtn14.Caption:='Borrar línea';
+  BitBtn15.Caption:='Imprimir';
+  BitBtn16.Caption:='Observaciones';
+  BitBtn5.Caption:='Volver';
+
+  EstilarBoton(BitBtn1,CTeal);
+  EstilarBoton(BitBtn9,CVerde);
+  EstilarBoton(BitBtn10,CRojo);
+  EstilarBoton(BitBtn23,CTeal);
+  EstilarBoton(BitBtn2,CRojo);
+
+  EstilarBoton(BitBtn12,CVerde);
+  EstilarBoton(BitBtn13,CTeal);
+  EstilarBoton(BitBtn14,CRojo);
+  EstilarBoton(BitBtn15,CTeal);
+  EstilarBoton(BitBtn16,CTeal);
+  EstilarBoton(BitBtn5,CGris);
+
+  EstilarBoton(BitBtn3,CVerde);
+  EstilarBoton(BitBtn4,CVerde);
+  EstilarBoton(BitBtn25,CTeal);
+  EstilarBoton(BitBtn18,CVerde);
+  EstilarBoton(BitBtn19,CVerde);
+  EstilarBoton(BitBtn21,CVerde);
+  EstilarBoton(BitBtn17,CGris);
+  EstilarBoton(BitBtn20,CRojo);
+  EstilarBoton(BitBtn22,CRojo);
+  EstilarBoton(BitBtn6,CRojo);
+  EstilarBoton(BitBtn8,CVerde);
+  EstilarBoton(BitBtn11,CTeal);
+  EstilarBoton(BitBtn24,CAmbar);
+
+  if Assigned(FPanelBuscaArticulo) then
+    begin
+      FPanelBuscaArticulo.ParentColor:=False;
+      FPanelBuscaArticulo.Color:=CFondo;
+    end;
+  if Assigned(FPanelBuscaCabecera) then
+    begin
+      FPanelBuscaCabecera.ParentColor:=False;
+      FPanelBuscaCabecera.Color:=CPanelAzul;
+    end;
+  if Assigned(FPanelBuscaAcciones) then
+    begin
+      FPanelBuscaAcciones.ParentColor:=False;
+      FPanelBuscaAcciones.Color:=CPanelAzul;
+    end;
+  if Assigned(FPanelBuscaPie) then
+    begin
+      FPanelBuscaPie.ParentColor:=False;
+      FPanelBuscaPie.Color:=CPrimario;
+    end;
+  if Assigned(FLabelResumenBuscaArticulo) then
+    FLabelResumenBuscaArticulo.Font.Color:=clWhite;
+
+  EstilarBoton(FBtnBuscarArticuloAlbaranes,CTeal);
+  EstilarBoton(FBtnBuscaCliente,CTeal);
+  EstilarBoton(FBtnBuscaArticuloNombre,CPrimario);
+  EstilarBoton(FBtnEjecutarBuscaArticulo,CVerde);
+  EstilarBoton(FBtnCerrarBuscaArticulo,CRojo);
+
+  OnResize:=@FormResizeModerno;
+  AjustarDisenoModerno;
+end;
+
+procedure TFHistAlbaran.AjustarDisenoModerno;
+var
+  W, H, AnchoPanelFiltro, DerechaCampos: Integer;
+
+  procedure CentrarPanel(APanel: TPanel);
+  begin
+    if (not Assigned(APanel)) or (APanel.Parent<>Panel5) then Exit;
+    APanel.Left:=(Panel5.ClientWidth-APanel.Width) div 2;
+    APanel.Top:=(Panel5.ClientHeight-APanel.Height) div 2;
+    if APanel.Left<12 then APanel.Left:=12;
+    if APanel.Top<12 then APanel.Top:=12;
+  end;
+
+begin
+  if not Assigned(Panel5) then Exit;
+  W:=Panel5.ClientWidth;
+  H:=Panel5.ClientHeight;
+  if (W<600) or (H<300) then Exit;
+
+  RadioButton1.SetBounds(16,20,270,24);
+  RadioButton2.SetBounds(16,62,230,24);
+  RadioButton3.SetBounds(16,104,230,24);
+  RadioGroup2.SetBounds(296,20,224,116);
+
+  if Assigned(FLabelTituloPrincipal) then
+    begin
+      FLabelTituloPrincipal.SetBounds(540,12,Max(300,W-552),34);
+      FLabelTituloPrincipal.Anchors:=[akTop,akLeft,akRight];
+    end;
+
+  AnchoPanelFiltro:=Max(460,W-552);
+  Panel2.SetBounds(540,50,AnchoPanelFiltro,112);
+  Panel2.Anchors:=[akTop,akLeft,akRight];
+  Label1.SetBounds(12,12,52,19);
+  Edit1.SetBounds(70,7,100,29);
+  BitBtn25.SetBounds(178,7,34,29);
+  Label35.SetBounds(12,48,90,19);
+  Edit2.SetBounds(110,43,Max(180,Panel2.ClientWidth-122),29);
+  FBtnBuscarArticuloAlbaranes.SetBounds(
+    12,77,Min(300,Panel2.ClientWidth-164),32);
+  BitBtn3.SetBounds(Panel2.ClientWidth-140,77,128,32);
+  BitBtn3.Anchors:=[akTop,akRight];
+
+  Panel3.SetBounds(540,50,AnchoPanelFiltro,92);
+  Panel3.Anchors:=[akTop,akLeft,akRight];
+  Label2.SetBounds(12,10,90,19);
+  Edit3.SetBounds(12,34,104,29);
+  Label3.SetBounds(140,10,90,19);
+  Edit4.SetBounds(140,34,104,29);
+  BitBtn4.SetBounds(Panel3.ClientWidth-140,31,128,32);
+  BitBtn4.Anchors:=[akTop,akRight];
+
+  DBGrid1.SetBounds(12,174,Max(200,W-24),Max(100,H-186));
+  DBGrid1.Anchors:=[akTop,akLeft,akRight,akBottom];
+
+  Panel4.SetBounds(0,0,W,170);
+  Panel4.Anchors:=[akTop,akLeft,akRight];
+  LabelTotal.Left:=Panel4.ClientWidth-LabelTotal.Width-16;
+  LabelTotal.Anchors:=[akTop,akRight];
+  RadioGroup1.Left:=Panel4.ClientWidth-RadioGroup1.Width-14;
+  RadioGroup1.Anchors:=[akTop,akRight];
+
+  DBGrid2.SetBounds(12,182,Max(200,W-24),Max(100,H-194));
+  DBGrid2.Anchors:=[akTop,akLeft,akRight,akBottom];
+
+  if Assigned(Panel1) then
+    begin
+      BitBtn1.SetBounds(16,12,112,44);
+      BitBtn9.SetBounds(136,12,112,44);
+      BitBtn10.SetBounds(256,12,112,44);
+      BitBtn23.SetBounds(376,12,112,44);
+      BitBtn2.SetBounds(Panel1.ClientWidth-128,12,112,44);
+      BitBtn2.Anchors:=[akTop,akRight];
+
+      BitBtn12.SetBounds(16,12,112,44);
+      BitBtn14.SetBounds(136,12,112,44);
+      BitBtn13.SetBounds(256,12,112,44);
+      BitBtn15.SetBounds(376,12,112,44);
+      BitBtn16.SetBounds(496,12,124,44);
+      BitBtn5.SetBounds(Panel1.ClientWidth-128,12,112,44);
+      BitBtn5.Anchors:=[akTop,akRight];
+    end;
+
+  CentrarPanel(Panel6);
+  CentrarPanel(Panel7);
+  CentrarPanel(Panel8);
+  CentrarPanel(Panel9);
+
+  if Assigned(FPanelBuscaArticulo) then
+    begin
+      FPanelBuscaArticulo.SetBounds(0,0,ClientWidth,ClientHeight);
+      if Assigned(FPanelBuscaCabecera) and Assigned(FPanelBuscaAcciones) then
+        begin
+          DerechaCampos:=FPanelBuscaCabecera.ClientWidth-
+            FPanelBuscaAcciones.Width-12;
+          if DerechaCampos>500 then
+            begin
+              FBtnBuscaCliente.Left:=DerechaCampos-FBtnBuscaCliente.Width;
+              FEditBuscaClienteNombre.Width:=
+                Max(180,FBtnBuscaCliente.Left-
+                    FEditBuscaClienteNombre.Left-8);
+              FBtnBuscaArticuloNombre.Left:=DerechaCampos-34;
+              FEditBuscaArticuloNombre.Width:=
+                Max(180,FBtnBuscaArticuloNombre.Left-
+                    FEditBuscaArticuloNombre.Left-8);
+            end;
+        end;
+      if FPanelBuscaArticulo.Visible then FPanelBuscaArticulo.BringToFront;
+    end;
+end;
+
+procedure TFHistAlbaran.FormResizeModerno(Sender: TObject);
+begin
+  AjustarDisenoModerno;
+end;
+
 //======================= CREAR FORMULARIO ==========================
 procedure TFHistAlbaran.FormCreate(Sender: TObject);
 begin
+  CrearBusquedaArticulo;
   //--------- Conectar con la bbdd e inicializar datos globales
   //Conectate(dbConect);      // Utilizamos datamodule1.dbConexión para toda la aplicación.
   //------------------- Tablas ------------------
@@ -296,6 +1557,8 @@ begin
   if IVA1=0 then showmessage('DEBE DEFINIR LOS TIPOS DE IVA EN LA CONFIGURACION');
 
   AntColun:='0';Ordenado:=False; Orden:='DESC';
+  AplicarDisenoModerno;
+  ActualizarFlechasGrid(DBGrid1,'HAC1',True);
 
 end;
 
@@ -308,13 +1571,20 @@ begin
   //-- MID(HAC11,1,250)
   dbMuestrac.Sql.Text:='SELECT *,CONVERT(HAC11 USING UTF8) as ANOTAS,C1 FROM hisalbac'+Tienda+', clientes WHERE HAC0=C0 ORDER BY HAC2 ASC, HAC1 DESC, HAC3 DESC';
   dbMuestrac.Active := True;
+  if Assigned(FLabelTituloPrincipal) then
+    FLabelTituloPrincipal.Caption:='HISTÓRICO DE ALBARANES DE CLIENTES';
+  ActualizarFlechasGrid(DBGrid1,'HAC1',True);
 end;
 
 
 //============== ALBARANES DE UN CLIENTE ========================
 procedure TFHistAlbaran.RadioButton2Click(Sender: TObject);
 begin
-  Panel2.Visible:=True; Panel3.Visible:=False; Edit1.SetFocus;
+  Panel2.Visible:=True;
+  Panel3.Visible:=False;
+  if Assigned(FLabelTituloPrincipal) then
+    FLabelTituloPrincipal.Caption:='ALBARANES DE UN CLIENTE';
+  Edit1.SetFocus;
 end;
 procedure TFHistAlbaran.BitBtn3Click(Sender: TObject);
 begin
@@ -327,7 +1597,10 @@ begin
       Showmessage('NO HAY ALBARANES DE ESTE CLIENTE');
       exit;
     end;
-
+  if Assigned(FLabelTituloPrincipal) then
+    FLabelTituloPrincipal.Caption:='ALBARANES DEL CLIENTE: '+
+      Edit1.Text+'  '+Edit2.Text;
+  ActualizarFlechasGrid(DBGrid1,'HAC1',True);
 end;
 
 //=================== CGO CLIENTE FLITRADO =======================
@@ -396,6 +1669,8 @@ begin
   Panel2.Visible:=False;
   Edit3.Text:=FormatDateTime('DD/MM/YYYY',Date);
   Edit4.Text:=FormatDateTime('DD/MM/YYYY',Date);
+  if Assigned(FLabelTituloPrincipal) then
+    FLabelTituloPrincipal.Caption:='ALBARANES ENTRE FECHAS';
   Edit3.SetFocus;
 end;
 procedure TFHistAlbaran.BitBtn4Click(Sender: TObject);
@@ -408,6 +1683,10 @@ begin
       Showmessage('NO HAY ALBARANES ENTRE ESAS FECHAS');
       exit;
     end;
+  if Assigned(FLabelTituloPrincipal) then
+    FLabelTituloPrincipal.Caption:='ALBARANES ENTRE '+Edit3.Text+
+      ' Y '+Edit4.Text;
+  ActualizarFlechasGrid(DBGrid1,'HAC1',True);
 end;
 
 procedure TFHistAlbaran.RadioGroup2Click(Sender: TObject);
@@ -452,7 +1731,9 @@ end;
 
 procedure TFHistAlbaran.DBGrid1TitleClick(Column: TColumn);
 begin
- Colorea(Column,DBGrid1,dbMuestrac, AntColun, Orden, TituloColumn, Ordenado);
+  Colorea(Column,DBGrid1,dbMuestrac,AntColun,Orden,TituloColumn,Ordenado);
+  if (Column<>nil) and (Column.FieldName<>'') then
+    ActualizarFlechasGrid(DBGrid1,Column.FieldName,SameText(Orden,'DESC'));
 end;
 
 //===========================================================
@@ -474,6 +1755,9 @@ begin
                      ' AND HAD2="'+dbMuestrac.FieldByName('HAC2').AsString+'"'+
                      ' AND HAD3='+dbMuestrac.FieldByName('HAC3').AsString;
   dbMuestrad.Active:=True;
+  FOrdenGridLineas:='';
+  FOrdenGridLineasDesc:=False;
+  ActualizarFlechasGrid(DBGrid2,FOrdenGridLineas,FOrdenGridLineasDesc);
   PintaCliente();
   Label30.Caption:=dbMuestrac.FieldByName('HAC2').AsString;//---- Serie
   Label31.Caption:=dbMuestrac.FieldByName('HAC3').AsString;//---- N. Albaran
@@ -510,6 +1794,7 @@ begin
        dbMuestrac.Active:=False;
        dbMuestrac.Sql.Text:=TxtTemp;
        dbMuestrac.Active:=True;
+       RestaurarBusquedaTrasDetalle;
        Exit;
      end;
   //------------- Actualizar cabecera albaranes
@@ -520,7 +1805,11 @@ begin
                      ' AND HAD2="'+dbMuestrac.FieldByName('HAC2').AsString+'"'+
                      ' AND HAD3='+dbMuestrac.FieldByName('HAC3').AsString;
   dbTrabajo.Active:=True;
-  if dbTrabajo.RecordCount=0 then exit;
+  if dbTrabajo.RecordCount=0 then
+    begin
+      RestaurarBusquedaTrasDetalle;
+      Exit;
+    end;
   TxtQ:='UPDATE hisalbac'+Tienda+' SET HAC4='+dbTrabajo.Fields[0].AsString+', HAC5='+dbTrabajo.Fields[1].AsString+
         ', HAC8='+dbTrabajo.Fields[2].AsString+', HAC9='+dbTrabajo.Fields[3].AsString+
         ' WHERE HAC0='+dbMuestrac.FieldByName('HAC0').AsString+
@@ -528,6 +1817,7 @@ begin
         ' AND HAC2="'+dbMuestrac.FieldByName('HAC2').AsString+'" AND HAC3='+dbMuestrac.FieldByName('HAC3').AsString;
   dbHisalbac.SQL.Clear; dbhisalbac.SQL.Text:=TxtQ; dbhisalbac.ExecSQL;
   Posi:=dbMuestrac.RecNo; dbMuestrac.Refresh; dbMuestrac.RecNo:=Posi;
+  RestaurarBusquedaTrasDetalle;
 end;
 
 //===========================================================
@@ -1388,6 +2678,30 @@ end;
 procedure TFHistAlbaran.FormKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
+  // ESC siempre cierra primero el panel o nivel interior activo.
+  if Key=VK_ESCAPE then
+    begin
+      Key:=0;
+      if Panel6.Visible then begin BitBtn6Click(Sender); Exit; end;
+      if Panel7.Visible then begin BitBtn17Click(Sender); Exit; end;
+      if Panel9.Visible then begin BitBtn22Click(Sender); Exit; end;
+      if Panel8.Visible then begin BitBtn20Click(Sender); Exit; end;
+      if DBGrid2.Visible then begin BitBtn5Click(Sender); Exit; end;
+      if Assigned(FPanelBuscaArticulo) and FPanelBuscaArticulo.Visible then
+        begin
+          CerrarBusquedaArticulo(Sender);
+          Exit;
+        end;
+      if Panel2.Visible or Panel3.Visible then
+        begin
+          Panel2.Visible:=False;
+          Panel3.Visible:=False;
+          if DBGrid1.CanFocus then DBGrid1.SetFocus;
+          Exit;
+        end;
+      BitBtn2Click(Sender);
+      Exit;
+    end;
 
 //     **********  Edición de las líneas del documento   **********
 
@@ -1453,7 +2767,12 @@ end;
 
 procedure TFHistAlbaran.FormShow(Sender: TObject);
 begin
-  dbGrid1.SetFocus;
+  AjustarDisenoModerno;
+  AplicarSeleccionModerna(Self);
+  if Assigned(FPanelBuscaArticulo) and FPanelBuscaArticulo.Visible then
+    FPanelBuscaArticulo.BringToFront
+  else if DBGrid1.CanFocus then
+    DBGrid1.SetFocus;
 end;
 
 

@@ -3666,14 +3666,16 @@
         Caption = 'Hasta Fecha'
         ParentColor = False
       end
-      object Edit3: TEdit
+      object Edit3: TDateEdit
+        ButtonOnlyWhenFocused = False
         Left = 8
         Height = 29
         Top = 38
         Width = 88
         TabOrder = 0
       end
-      object Edit4: TEdit
+      object Edit4: TDateEdit
+        ButtonOnlyWhenFocused = False
         Left = 152
         Height = 29
         Top = 38
@@ -4314,7 +4316,8 @@
         TabStop = False
         TabOrder = 3
       end
-      object Edit18: TEdit
+      object Edit18: TDateEdit
+        ButtonOnlyWhenFocused = False
         Left = 112
         Height = 29
         Top = 142
@@ -4322,7 +4325,8 @@
         CharCase = ecUppercase
         TabOrder = 4
       end
-      object Edit19: TEdit
+      object Edit19: TDateEdit
+        ButtonOnlyWhenFocused = False
         Left = 352
         Height = 29
         Top = 142

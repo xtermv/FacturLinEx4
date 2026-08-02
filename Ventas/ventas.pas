@@ -23,16 +23,23 @@
 
 unit Ventas;
 
+// FacturLinEx Ventas TPV - mejoras visuales cobro/factura v68 (2026-08-02)
+
 {$mode objfpc}{$H+}
 
 interface
 
 uses
-  Classes, SysUtils, LResources, Forms, Controls, Graphics, Dialogs,
+  Classes, SysUtils, Types, LResources, Forms, Controls, Graphics, Dialogs,
   ZConnection, ExtCtrls, StdCtrls, DBGrids, Buttons, ZDataset, db,
   LCLType, Grids, LR_Class, LR_DBSet, EditBtn, ComCtrls, LCLIntf,
   ubarcodes, ZClasses, ZAbstractConnection, ZAbstractRODataset, 
-  ZExceptions, ZAbstractDataset, uPromoEngine, uFLXAsociarEAN; //-- Control de errores de la uniad ZEOS; //-- Esta última libería controla el GetKeyState para saber si pulsé el ctrl
+  ZExceptions, ZAbstractDataset, uPromoEngine, uFLXAsociarEAN,
+  uFLXTecladoVirtual, uFLXClienteCoste
+  {$IFDEF LCLGTK2}
+  , gtk2, gdk2, glib2
+  {$ENDIF}
+  ; //-- Control de errores de la unidad ZEOS
 
 type
 
@@ -324,6 +331,7 @@ type
     procedure BitBtn13Enter(Sender: TObject);
     procedure BitBtn13Exit(Sender: TObject);
     procedure BitBtn14Click(Sender: TObject);
+    procedure BitBtn15ClickDirecto(Sender: TObject);
     procedure BitBtn15Click(Sender: TObject; lDirecto: boolean);
     procedure BitBtn16Click(Sender: TObject);
     procedure BitBtn17Click(Sender: TObject);
@@ -332,6 +340,9 @@ type
     procedure BitBtn19Enter(Sender: TObject);
     procedure BitBtn19Exit(Sender: TObject);
     procedure BitBtn1Click(Sender: TObject);
+    procedure BitBtn2Click(Sender: TObject);
+    procedure TecladoProductoSeleccionado(
+      const ACodigo: string; ACantidad: Double);
     procedure BitBtn20Click(Sender: TObject);
     procedure BitBtn21Click(Sender: TObject);
     procedure BitBtn22Click(Sender: TObject);
@@ -368,6 +379,7 @@ type
     procedure btCodigoClick(Sender: TObject);
     procedure btHistoricosClick(Sender: TObject);
     procedure btBuscarAbonoClick(Sender: TObject);
+    procedure btHistoricoOperacionesClick(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure cbUsuarioChange(Sender: TObject);
@@ -409,6 +421,8 @@ type
     procedure Edit3KeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure Edit3KeyPress(Sender: TObject; var Key: char);
     procedure Edit41Exit(Sender: TObject);
+    procedure Edit41KeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
     procedure Edit41KeyPress(Sender: TObject; var Key: char);
     procedure Edit42Exit(Sender: TObject);
     procedure Edit4KeyPress(Sender: TObject; var Key: char);
@@ -416,6 +430,7 @@ type
     procedure Edit5KeyPress(Sender: TObject; var Key: char);
     procedure Edit6Exit(Sender: TObject);
     procedure Edit6KeyPress(Sender: TObject; var Key: char);
+    procedure EditPrecioEnter(Sender: TObject);
     procedure Edit7DblClick(Sender: TObject);
     procedure Edit7Exit(Sender: TObject);
     procedure Edit8Exit(Sender: TObject);
@@ -424,6 +439,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure VF_FilterNumericKeyPress(Sender: TObject; var Key: char);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure FormUTF8KeyPress(Sender: TObject; var UTF8Key: TUTF8Char);
     procedure FormShow(Sender: TObject);
     procedure frReport1EnterRect(Memo: TStringList; View: TfrView);
     procedure frReport1GetValue(const ParName: String; var ParValue: Variant);
@@ -493,7 +509,7 @@ type
     function VerUltimaLineaP: Integer;
     function VerUltimaLineaPP: Integer;
     function VerUltimaLineaV: Integer;
-    procedure VerTarifas();
+    procedure VerTarifas(const AAplicarTarifaCliente: Boolean = True);
     procedure ButtonUsuClick(Sender: TObject);
     procedure CargaUsuarios();
     procedure MuestraTarifas();
@@ -513,7 +529,17 @@ type
   private
     { private declarations }
     btBuscarAbono: TBitBtn;
+    btHistoricoOperaciones: TBitBtn;
     btValidarNIF: TBitBtn;
+    lblAltaClienteEmail: TLabel;
+    lblAltaClienteRuta: TLabel;
+    lblAltaClienteSubRuta: TLabel;
+    lblAltaClienteCopias: TLabel;
+    edAltaClienteEmail: TEdit;
+    edAltaClienteCopias: TEdit;
+    cbAltaClienteRuta: TComboBox;
+    cbAltaClienteSubRuta: TComboBox;
+    chkAltaClienteEnviarEmail: TCheckBox;
     ChkTodosAniosPrePro: TCheckBox;
     VF_PrevTotalEdit11: Double; // Total línea antes de editar con F7 (para calcular descuento)
     LblPromoActiva: TLabel;
@@ -522,13 +548,85 @@ type
     FGridPromoLastCodigo: string;
     FGridPromoLastActivo: Boolean;
     FDocumentoFiscalAceptadoManual: string;
+    FClientePrecioCoste: Boolean;
+    FAbonoACredito: Boolean;
+    FCampoClienteCosteDisponible: Boolean;
     pnlTicketsAparcadosInfo: TPanel;
+    pnlCabeceraModerna: TPanel;
+    pnlCabeceraEstado: TPanel;
+    pnlPieModerno: TPanel;
+    pnlResumenVentaModerno: TPanel;
+    shpTarjetaCliente: TShape;
+    shpTarjetaEntrada: TShape;
+    shpTarjetaTickets: TShape;
+    shpTarjetaStock: TShape;
+    shpTarjetaTotal: TShape;
+    shpTarjetaQR: TShape;
+    shpTarjetaResumen: TShape;
+    shpMarcoTotalizacion: TShape;
+    pnlFormasPagoTouch: TPanel;
+    lblLogoModerno: TLabel;
+    lblTituloModerno: TLabel;
+    lblFechaModerna: TLabel;
+    lblHoraModerna: TLabel;
+    lblSerieModerna: TLabel;
+    lblPuestoModerno: TLabel;
+    lblNumeroModerno: TLabel;
+    lblEstadoCajaModerno: TLabel;
+    lblEstadoImpresoraModerno: TLabel;
+    lblEstadoConexionModerno: TLabel;
+    lblEstadoClienteModerno: TLabel;
+    lblCliTitulo: TLabel;
+    lblCliCodigo: TLabel;
+    lblCliNombre: TLabel;
+    lblCliDireccion: TLabel;
+    lblCliCP: TLabel;
+    lblCliLocalidad: TLabel;
+    lblCliProvincia: TLabel;
+    lblCliNIF: TLabel;
+    lblCliTelefono: TLabel;
+    lblStockTitulo: TLabel;
+    lblTotalTitulo: TLabel;
+    lblEntradaTitulo: TLabel;
+    lblQRTitulo: TLabel;
+    lblQRAyuda: TLabel;
+    lblResumenTitulo: TLabel;
+    lblResumenLineas: TLabel;
+    lblResumenCliente: TLabel;
+    lblResumenTotal: TLabel;
+    lblResumenAyuda: TLabel;
+    lblTotalizacionTitulo: TLabel;
+    lblBuscarArticulosTitulo: TLabel;
+    lblBuscaArticulosDescripcion: TLabel;
+    lblBuscaArticulosUltCompra: TLabel;
+    lblBuscaArticulosPVP: TLabel;
+    tmrCabeceraModerna: TTimer;
+    FDisenoModernoCreado: Boolean;
+    FAplicandoLayoutModerno: Boolean;
+    {$IFDEF LCLGTK2}
+    FGtkCtrlHookInstalado: Boolean;
+    procedure VF_ConectarCtrlGTK2(AParent: TWinControl);
+    procedure VF_DesconectarCtrlGTK2(AParent: TWinControl);
+    procedure VF_InstalarCapturaCtrlGTK2;
+    procedure VF_DesinstalarCapturaCtrlGTK2;
+    {$ENDIF}
+    function VF_AtajosCtrlPrincipalActivos: Boolean;
+    function VF_EjecutarAtajoCtrlPrincipal(const AKey: Word): Boolean;
+    function VF_PrepararLineaAntesDeGrabar: Boolean;
+    procedure VF_CrearDisenoModerno;
+    procedure VF_AplicarLayoutModerno;
+    procedure VF_ActualizarCabeceraModerna;
+    procedure VF_ActualizarModoClienteCoste;
+    procedure VF_TimerCabeceraModerna(Sender: TObject);
+    procedure VF_FormResizeModerno(Sender: TObject);
+    procedure VF_AplicarLayoutAsync(Data: PtrInt);
     procedure VF_ActualizarIndicadorTicketsAparcados;
     procedure VF_SetPromoVisual(const APromoActiva: Boolean);
     function VF_LineaTienePromoEnGrid(const ACodigo: string): Boolean;
     procedure ChkTodosAniosPreProClick(Sender: TObject);
     procedure DateEdit2Change(Sender: TObject);
     procedure RecargaListaPrePro;
+    procedure ActualizaNumeroPrePro;
     procedure VF_AnalizaSignosVenta(out HayNegativas, HayPositivas: Boolean);
     function VF_BloquearOperacionMixtaRectif: Boolean;
     function VF_SepararMixtaAparcarPositivas: Boolean;
@@ -540,6 +638,8 @@ type
     procedure VF_BorrarLineaRectifTemporal(const ALineaVenta: Integer);
     function VF_ObtenerRectifTagTemporal(out ARectifTag, AOrigTipo, AOrigSerie: string;
       out AOrigNumero: Integer): Boolean;
+    function VF_ConfirmarCierreExcepcionalAlbaran(const ARectifTag, ADestino,
+      AOrigSerie: string; const AOrigNumero: Integer): Boolean;
     function VF_ValidarSaldosRectifTemporal: Boolean;
     procedure VF_RegistrarRectifDefinitiva(const ARectifTag: string);
     function VF_HayLineaNegativaArticulo(const ACodigo: string): Boolean;
@@ -547,9 +647,24 @@ type
       const AOrigNumero: Integer; out ARectifTag: string; const AIgnorarFiltroCliente: Boolean = False): Boolean;
     function VF_PedirMotivoRectif(out AMotivo: string): Boolean;
     procedure VF_ConfigurarControlesCobro;
+    procedure VF_CrearSelectorFormasPagoTactil;
+    procedure VF_FormaPagoTouchClick(Sender: TObject);
+    procedure VF_ActualizarSelectorFormasPago;
     function VF_NormalizarCamposCobro(const AFijarEntregaSiVacia: Boolean = True): Boolean;
+    function VF_PrepararDestinoAbono: Boolean;
     procedure VF_PosicionarBotonBuscarAbono;
     procedure VF_PosicionarBotonValidarNIF;
+    procedure VF_CrearCamposAltaClienteFacturacion;
+    procedure VF_PrepararAltaClienteFacturacion;
+    procedure VF_CargarRutasAltaCliente;
+    procedure VF_CargarSubRutasAltaCliente(Sender: TObject);
+    function VF_CodigoSeleccionAltaCliente(const ACombo: TComboBox): string;
+    procedure VF_AplicarEstiloModerno;
+    procedure VF_CrearDisenoAuxiliares;
+    procedure VF_SeleccionarSeriePorDefecto(const AEsFactura: Boolean);
+    procedure VF_AplicarEstiloAuxiliares;
+    procedure VF_AplicarLayoutAuxiliares;
+    procedure VF_EstilarBotonUsuario(const AButton: TBitBtn);
     function VF_RevisarDocumentoFiscalCliente(const AMostrarSiVacio, AMostrarSiCorrecto: Boolean): Boolean;
     procedure btValidarNIFClick(Sender: TObject);
     procedure VF_FocoBotonNuevoAsync(Data: PtrInt);
@@ -606,11 +721,112 @@ var
   function VF_GetSerieActiva: string;
   //-------------------------------------------------
 
+
 implementation
 
 uses
-  Global, Funciones, creditos, Busquedas, Imprimir, uVeriFactu, uVeriHash, uFLX_Log, uFLX_Sound,
-  uBuscarVentaArticuloAbonoV13;
+  Global, Funciones, creditos, Busquedas, Imprimir, uVeriFactu, uVeriHash,
+  uFLX_Log, uFLX_Sound, uBuscarVentaArticuloAbonoV13, historicoop,
+  uFLXPresupuestoPDF, uFLXTemaVisual;
+
+{$R *.lfm}
+
+// ============================================================================
+// DIAGNÓSTICO TEMPORAL DEL CICLO DE VENTAS - V4 NO FINAL
+// No ejecuta atajos, no mueve el foco y no consume teclas.
+// Escribe en /tmp/facturlinex_ciclo_ventas.log y en ~/.facturlinex_ciclo_ventas.log
+// ============================================================================
+var
+  VF_DiagVentasActual: TFVentas = nil;
+
+function VF_DiagObj(AObj: TObject): string;
+begin
+  if AObj = nil then
+    Exit('<nil>');
+  if AObj is TComponent then
+    Result := AObj.ClassName + ':' + TComponent(AObj).Name
+  else
+    Result := AObj.ClassName;
+end;
+
+function VF_DiagShift(const Shift: TShiftState): string;
+begin
+  Result := '';
+  if ssShift in Shift then Result := Result + 'SHIFT+';
+  if ssCtrl  in Shift then Result := Result + 'CTRL+';
+  if ssAlt   in Shift then Result := Result + 'ALT+';
+  if ssMeta  in Shift then Result := Result + 'META+';
+  if Result = '' then
+    Result := '-'
+  else
+    Delete(Result, Length(Result), 1);
+end;
+
+procedure VF_DiagAppendRuta(const ARuta, ATexto: string);
+var
+  F: TextFile;
+begin
+  try
+    AssignFile(F, ARuta);
+    if FileExists(ARuta) then
+      Append(F)
+    else
+      Rewrite(F);
+    Writeln(F, FormatDateTime('yyyy-mm-dd hh:nn:ss.zzz', Now),
+      ' | ', ATexto);
+    Flush(F);
+    CloseFile(F);
+  except
+    // Diagnóstico: nunca alterar el comportamiento de Ventas por un fallo de log.
+  end;
+end;
+
+procedure VF_DiagLog(const ATexto: string);
+var
+  HomeLog: string;
+begin
+  VF_DiagAppendRuta('/tmp/facturlinex_ciclo_ventas.log', ATexto);
+  HomeLog := IncludeTrailingPathDelimiter(GetUserDir) +
+    '.facturlinex_ciclo_ventas.log';
+  VF_DiagAppendRuta(HomeLog, ATexto);
+end;
+
+procedure VF_DiagLogTecla(const AOrigen: string; Sender: TObject;
+  Key: Word; Shift: TShiftState);
+var
+  SPanel4, SBusca, SActivo, SForm: string;
+begin
+  SPanel4 := '<sin_form>';
+  SBusca := '<sin_form>';
+  if Assigned(VF_DiagVentasActual) then
+  begin
+    SPanel4 := BoolToStr(VF_DiagVentasActual.Panel4.Visible, True);
+    SBusca := BoolToStr(VF_DiagVentasActual.PanelBuscaArticulos.Visible, True);
+  end;
+  SActivo := VF_DiagObj(Screen.ActiveControl);
+  SForm := VF_DiagObj(Screen.ActiveForm);
+  VF_DiagLog(AOrigen +
+    ' | Sender=' + VF_DiagObj(Sender) +
+    ' | Key=' + IntToStr(Key) +
+    ' | Shift=' + VF_DiagShift(Shift) +
+    ' | ActiveControl=' + SActivo +
+    ' | ActiveForm=' + SForm +
+    ' | Panel4=' + SPanel4 +
+    ' | BuscaArticulos=' + SBusca);
+end;
+
+procedure VF_DiagInstalarApp(AForm: TFVentas);
+begin
+  VF_DiagVentasActual := AForm;
+  VF_DiagLog('DIAGNOSTICO_FORM_ACTIVO | Form=' + VF_DiagObj(AForm));
+end;
+
+procedure VF_DiagDesinstalarApp(AForm: TFVentas);
+begin
+  VF_DiagLog('DIAGNOSTICO_FORM_INACTIVO | Form=' + VF_DiagObj(AForm));
+  if VF_DiagVentasActual = AForm then
+    VF_DiagVentasActual := nil;
+end;
 
 
 // -----------------------------------------------------------------------------
@@ -1014,6 +1230,15 @@ begin
      (Pos('ORIG_TIPO=NS', U) > 0) or
      (Pos('ORIG_TIPO=NT', U) > 0) then
     Result := 'R5'
+  else if Pos('ORIG_TIPO=AL', U) > 0 then
+  begin
+    // Un albaran recuperado conserva AL como origen real. Al cerrarlo como
+    // ticket/simplificada se genera R5; si se cierra como factura, R1.
+    if Result = 'F2' then
+      Result := 'R5'
+    else
+      Result := 'R1';
+  end
   else
     Result := 'R1';
 end;
@@ -1142,6 +1367,7 @@ begin
   Combo2.Style := csDropDownList;
   if (Combo2.ItemIndex < 0) and (Combo2.Items.Count > 0) then
     Combo2.ItemIndex := 0;
+  VF_ActualizarSelectorFormasPago;
 
   // Campos numéricos del panel de cobro/totalizar.
   Edit12.OnKeyPress := @VF_FilterNumericKeyPress; // Importe
@@ -1204,7 +1430,19 @@ begin
   if not LeerImporte(Edit15, 'ENTREGA', VF_MAX_TOTAL, VEntrega) then Exit;
   if not LeerImporte(Edit42, 'ENTREGA CONTADO', VF_MAX_TOTAL, VContado) then Exit;
 
-  VCambio := (VEntrega + VContado) - VTotal;
+  // Un abono enviado a la cuenta del cliente no implica entrega ni devolucion
+  // de efectivo. El importe se registra aparte como HABER en creditosXXXX.
+  if FAbonoACredito and (VTotal < 0) then
+  begin
+    VEntrega := 0;
+    VContado := 0;
+    VCambio := 0;
+    Edit15.Text := '0.00';
+    Edit42.Text := '0.00';
+  end
+  else
+    VCambio := (VEntrega + VContado) - VTotal;
+
   if Abs(VCambio) > VF_MAX_TOTAL then
   begin
     VF_NumError('CAMBIO', FloatToStr(VCambio));
@@ -1215,7 +1453,13 @@ begin
 
   Edit16.Text := FormatFloat('0.00', VCambio);
 
-  if VCambio < 0 then
+  if FAbonoACredito and (VTotal < 0) then
+  begin
+    Label32.Font.Color := clBlue;
+    Label32.Caption := 'A CUENTA';
+    Edit16.Font.Color := clBlue;
+  end
+  else if VCambio < 0 then
   begin
     Label32.Font.Color := clRed;
     Label32.Caption := 'CREDITO';
@@ -1223,12 +1467,139 @@ begin
   end
   else
   begin
-    Label32.Font.Color := clWindowText;
-    Label32.Caption := 'CAMBIO';
-    Edit16.Font.Color := clWindowText;
+    Label32.Font.Color := RGBToColor(6, 55, 86);
+    Label32.Caption := 'A DEVOLVER';
+    Edit16.Font.Color := RGBToColor(6, 55, 86);
   end;
 
   Result := True;
+end;
+
+//------------------ Elegir destino de un abono ------------------
+function TFVentas.VF_PrepararDestinoAbono: Boolean;
+var
+  VTotal: Double;
+  Respuesta: Integer;
+begin
+  Result := False;
+
+  if not VF_TryParseFloatBounded(Edit14.Text, 'TOTAL', VF_MAX_TOTAL, VTotal) then
+  begin
+    VF_NumError('TOTAL', Edit14.Text);
+    Exit;
+  end;
+
+  // En ventas normales se conserva exactamente el circuito anterior.
+  if VTotal >= -0.004 then
+  begin
+    FAbonoACredito := False;
+    Exit(True);
+  end;
+
+  // Los clientes varios no disponen de cuenta individual de credito.
+  if Edit1.Text = ClienteVario then
+  begin
+    FAbonoACredito := False;
+    Exit(True);
+  end;
+
+  Respuesta := MessageDlg('Destino del abono',
+    'El abono es de ' + FormatFloat('0.00', Abs(VTotal)) + ' EUR.' + LineEnding + LineEnding +
+    'SI: dejar el importe A FAVOR en la cuenta de credito del cliente, sin devolver dinero.' + LineEnding +
+    'NO: realizar la devolucion por la forma de pago seleccionada.' + LineEnding +
+    'CANCELAR: volver sin cerrar la operacion.',
+    mtConfirmation, [mbYes, mbNo, mbCancel], 0);
+
+  case Respuesta of
+    mrYes:
+      begin
+        FAbonoACredito := True;
+        Edit15.Text := '0.00';
+        Edit42.Text := '0.00';
+        Edit16.Text := '0.00';
+        Label31.Caption := 'NO DEVOLVER';
+        Label32.Caption := 'A CUENTA';
+        Label32.Font.Color := clBlue;
+        Edit16.Font.Color := clBlue;
+        Result := True;
+      end;
+    mrNo:
+      begin
+        FAbonoACredito := False;
+        Label31.Caption := 'ENTREGA';
+        Edit15.Text := Edit14.Text;
+        Edit42.Text := '0.00';
+        VF_NormalizarCamposCobro(True);
+        Result := True;
+      end;
+  else
+    begin
+      FAbonoACredito := False;
+      Label31.Caption := 'ENTREGA';
+      Edit15.Text := Edit14.Text;
+      Edit42.Text := '0.00';
+      VF_NormalizarCamposCobro(True);
+      Result := False;
+    end;
+  end;
+end;
+
+//------------------ [Pre/Pro] Calcular siguiente numero independiente ------------------
+procedure TFVentas.ActualizaNumeroPrePro;
+var
+  SeriePrePro, TablaCabecera, CampoContador: string;
+  NumeroContador, NumeroTabla, NumeroSiguiente: Integer;
+begin
+  if (Combo6.ItemIndex < 0) or (Combo6.ItemIndex >= Combo6.Items.Count) then
+  begin
+    Edit35.Text := '';
+    Exit;
+  end;
+
+  SeriePrePro := Trim(Copy(Combo6.Items.Strings[Combo6.ItemIndex], 1, 3));
+  if (SeriePrePro = '') or (SeriePrePro = '***') then
+  begin
+    Edit35.Text := '';
+    Exit;
+  end;
+
+  if RadioButton9.Checked then
+  begin
+    TablaCabecera := 'presuc' + Tienda;
+    CampoContador := 'SF6';
+  end
+  else if RadioButton10.Checked then
+  begin
+    TablaCabecera := 'proforc' + Tienda;
+    CampoContador := 'SF8';
+  end
+  else
+    Exit;
+
+  NumeroContador := 0;
+  if dbSeries.Locate('SF0', SeriePrePro, []) then
+    NumeroContador := dbSeries.FieldByName(CampoContador).AsInteger;
+
+  // No confiar solo en seriesfactu: si el contador quedo atrasado, tomamos
+  // tambien el mayor numero realmente grabado, pero exclusivamente de la
+  // tabla del tipo seleccionado (presuc o proforc).
+  NumeroTabla := 0;
+  dbBusca.Active := False;
+  dbBusca.SQL.Text := 'SELECT COALESCE(MAX(PRC3+0),0) AS ULTIMO FROM ' +
+                      TablaCabecera + ' WHERE PRC2=' + QuotedStr(SeriePrePro);
+  try
+    dbBusca.Active := True;
+    if (dbBusca.RecordCount > 0) and (not dbBusca.FieldByName('ULTIMO').IsNull) then
+      NumeroTabla := dbBusca.FieldByName('ULTIMO').AsInteger;
+  finally
+    dbBusca.Active := False;
+  end;
+
+  NumeroSiguiente := NumeroContador + 1;
+  if NumeroTabla >= NumeroSiguiente then
+    NumeroSiguiente := NumeroTabla + 1;
+
+  Edit35.Text := IntToStr(NumeroSiguiente);
 end;
 
 //------------------ [Pre/Pro] Recargar listado con filtros (cliente/serie/ao) ------------------
@@ -1942,6 +2313,11 @@ begin
     else if AOrigTipo = 'FA' then
       ARectifTag := Format('VF_RECTIF:TYPE=NORMAL;ORIG_SERIE=%s;ORIG_NUM=%d;ORIG_TIPO=%s;ORIG_FECHA=%s;ORIG_HORA=%s;ORIG_CAJA=%s',
         [AOrigSerie, AOrigNumero, AOrigTipo, FechaMin, HoraMin, CajaMin])
+    else if AOrigTipo = 'AL' then
+      // El albaran ya aporta desde Historico su referencia completa. No se
+      // debe obligar al usuario a inventar una serie/numero de factura.
+      ARectifTag := Format('VF_RECTIF:TYPE=ALBARAN;ORIG_SERIE=%s;ORIG_NUM=%d;ORIG_TIPO=%s;ORIG_FECHA=%s;ORIG_HORA=%s;ORIG_CAJA=%s',
+        [AOrigSerie, AOrigNumero, AOrigTipo, FechaMin, HoraMin, CajaMin])
     else
       Exit;
 
@@ -1957,6 +2333,66 @@ begin
       except
       end;
     end;
+  end;
+end;
+
+
+function TFVentas.VF_ConfirmarCierreExcepcionalAlbaran(const ARectifTag,
+  ADestino, AOrigSerie: string; const AOrigNumero: Integer): Boolean;
+var
+  Resp: Integer;
+  Referencia: string;
+begin
+  // El flujo normal AL -> AL no pasa por esta función. Solo se llama al cerrar
+  // como ticket/factura una rectificación recuperada desde un albarán.
+  Result := True;
+  if Pos('ORIG_TIPO=AL', UpperCase(VF_NormalizeRectifTag(ARectifTag))) = 0 then
+    Exit;
+
+  Referencia := Trim(AOrigSerie);
+  if AOrigNumero > 0 then
+  begin
+    if Referencia <> '' then
+      Referencia := Referencia + ' / ';
+    Referencia := Referencia + IntToStr(AOrigNumero);
+  end;
+  if Referencia = '' then
+    Referencia := '(sin referencia visible)';
+
+  Resp := MessageDlg('AVISO: origen ALBARAN',
+    'Las líneas negativas proceden del albarán ' + Referencia + '.' + LineEnding + LineEnding +
+    'El procedimiento normal es anularlo mediante OTRO ALBARAN NEGATIVO.' + LineEnding +
+    'Si el albarán ya fue facturado, debe rectificarse la FACTURA o el TICKET que lo incluyó.' + LineEnding + LineEnding +
+    'Está intentando cerrarlo excepcionalmente como ' + ADestino + '.' + LineEnding +
+    '¿Desea continuar con esta excepción?',
+    mtWarning, [mbYes, mbNo], 0);
+
+  if Resp <> mrYes then
+  begin
+    try
+      FLX_WriteLog('VENTAS', 'RECTIF ALBARAN: cancelado cierre excepcional como ' +
+        ADestino + ' | origen=' + Referencia);
+    except
+    end;
+    Exit(False);
+  end;
+
+  Resp := MessageDlg('CONFIRMAR OPERACION EXCEPCIONAL',
+    'Confirme de nuevo que desea continuar.' + LineEnding + LineEnding +
+    'El nuevo documento conservará ORIG_TIPO=AL y la referencia del albarán ' +
+    Referencia + '.' + LineEnding +
+    'Esta opción debe utilizarse únicamente para corregir una incidencia real.',
+    mtConfirmation, [mbYes, mbNo], 0);
+
+  Result := Resp = mrYes;
+  try
+    if Result then
+      FLX_WriteLog('VENTAS', 'RECTIF ALBARAN: autorizado cierre excepcional como ' +
+        ADestino + ' | origen=' + Referencia)
+    else
+      FLX_WriteLog('VENTAS', 'RECTIF ALBARAN: cancelado en segunda confirmacion como ' +
+        ADestino + ' | origen=' + Referencia);
+  except
   end;
 end;
 
@@ -2455,14 +2891,20 @@ end;
 
 //=============== CREAR EL FORMULARIO ================
 procedure ShowFormVentas;
+var
+  LFormVentas: TFVentas;
 begin
+  VF_DiagLog('SHOWFORMVENTAS_ENTER | Exe=' + ExpandFileName(ParamStr(0)));
   Impreso[1]:=RutaReports+'Documentos.lrf';
   Impreso[2]:=RutaReports+'Documentos.lrf';
-  with TFVentas.Create(Application) do
-    begin
-      ShowModal;
-      //** ShowOnTop;
-    end;
+  VF_DiagLog('SHOWFORMVENTAS_ANTES_CREATE');
+
+  LFormVentas := TFVentas.Create(Application);
+  VF_DiagLog('SHOWFORMVENTAS_DESPUES_CREATE | Form=' +
+    VF_DiagObj(LFormVentas));
+  LFormVentas.ShowModal;
+  VF_DiagLog('SHOWFORMVENTAS_DESPUES_SHOWMODAL');
+  //** LFormVentas.ShowOnTop;
 end;
 
 procedure TFVentas.VF_SetPromoVisual(const APromoActiva: Boolean);
@@ -2616,6 +3058,22 @@ begin
   end;
 
   btBuscarAbono.Visible := True;
+
+  // Acceso directo al Histórico de operaciones. Se coloca inmediatamente
+  // a la izquierda de Buscar abono para mantener juntas las herramientas
+  // relacionadas con devoluciones y rectificativas.
+  if Assigned(btHistoricoOperaciones) then
+  begin
+    btHistoricoOperaciones.Parent := btBuscarAbono.Parent;
+    btHistoricoOperaciones.Width := 108;
+    btHistoricoOperaciones.Height := btBuscarAbono.Height;
+    btHistoricoOperaciones.Left := btBuscarAbono.Left -
+      btHistoricoOperaciones.Width - 8;
+    if btHistoricoOperaciones.Left < 4 then
+      btHistoricoOperaciones.Left := 4;
+    btHistoricoOperaciones.Top := btBuscarAbono.Top;
+    btHistoricoOperaciones.Visible := True;
+  end;
 end;
 
 
@@ -2629,6 +3087,16 @@ begin
   if (not Assigned(btValidarNIF)) or (not Assigned(Edit39)) or (not Assigned(Panel11)) then Exit;
 
   btValidarNIF.Parent := Panel11;
+
+  if FDisenoModernoCreado then
+  begin
+    btValidarNIF.SetBounds(Edit39.Left + Edit39.Width + 7, Edit39.Top, 92, Edit39.Height);
+    Label74.SetBounds(btValidarNIF.Left + btValidarNIF.Width + 22, Label74.Top, 100, Label74.Height);
+    Edit40.SetBounds(Label74.Left, Edit40.Top,
+      Panel11.ClientWidth - Label74.Left - 24, Edit40.Height);
+    Exit;
+  end;
+
   btValidarNIF.SetBounds(Edit39.Left + Edit39.Width + 6, Edit39.Top, 36, Edit39.Height);
 
   // El alta rápida tiene el teléfono justo después del DNI/NIF en algunas resoluciones.
@@ -2807,10 +3275,2172 @@ begin
   VF_RevisarDocumentoFiscalCliente(True, True);
 end;
 
+
+procedure TFVentas.VF_CrearCamposAltaClienteFacturacion;
+begin
+  if Assigned(edAltaClienteEmail) then Exit;
+
+  lblAltaClienteEmail := TLabel.Create(Self);
+  lblAltaClienteEmail.Name := 'lblAltaClienteEmail';
+  lblAltaClienteEmail.Parent := Panel11;
+  lblAltaClienteEmail.Caption := 'E-mail';
+  lblAltaClienteEmail.AutoSize := False;
+
+  edAltaClienteEmail := TEdit.Create(Self);
+  edAltaClienteEmail.Name := 'edAltaClienteEmail';
+  edAltaClienteEmail.Parent := Panel11;
+  edAltaClienteEmail.MaxLength := 100;
+  edAltaClienteEmail.TabOrder := 7;
+
+  chkAltaClienteEnviarEmail := TCheckBox.Create(Self);
+  chkAltaClienteEnviarEmail.Name := 'chkAltaClienteEnviarEmail';
+  chkAltaClienteEnviarEmail.Parent := Panel11;
+  chkAltaClienteEnviarEmail.Caption := 'Enviar facturas por e-mail';
+  chkAltaClienteEnviarEmail.Checked := False;
+  chkAltaClienteEnviarEmail.TabOrder := 8;
+
+  lblAltaClienteRuta := TLabel.Create(Self);
+  lblAltaClienteRuta.Name := 'lblAltaClienteRuta';
+  lblAltaClienteRuta.Parent := Panel11;
+  lblAltaClienteRuta.Caption := 'Ruta de facturación';
+  lblAltaClienteRuta.AutoSize := False;
+
+  cbAltaClienteRuta := TComboBox.Create(Self);
+  cbAltaClienteRuta.Name := 'cbAltaClienteRuta';
+  cbAltaClienteRuta.Parent := Panel11;
+  cbAltaClienteRuta.Style := csDropDownList;
+  cbAltaClienteRuta.DropDownCount := 12;
+  cbAltaClienteRuta.TabOrder := 9;
+  cbAltaClienteRuta.OnChange := @VF_CargarSubRutasAltaCliente;
+
+  lblAltaClienteSubRuta := TLabel.Create(Self);
+  lblAltaClienteSubRuta.Name := 'lblAltaClienteSubRuta';
+  lblAltaClienteSubRuta.Parent := Panel11;
+  lblAltaClienteSubRuta.Caption := 'Subruta de facturación';
+  lblAltaClienteSubRuta.AutoSize := False;
+
+  cbAltaClienteSubRuta := TComboBox.Create(Self);
+  cbAltaClienteSubRuta.Name := 'cbAltaClienteSubRuta';
+  cbAltaClienteSubRuta.Parent := Panel11;
+  cbAltaClienteSubRuta.Style := csDropDownList;
+  cbAltaClienteSubRuta.DropDownCount := 12;
+  cbAltaClienteSubRuta.TabOrder := 10;
+
+  lblAltaClienteCopias := TLabel.Create(Self);
+  lblAltaClienteCopias.Name := 'lblAltaClienteCopias';
+  lblAltaClienteCopias.Parent := Panel11;
+  lblAltaClienteCopias.Caption := 'Copias de factura';
+  lblAltaClienteCopias.AutoSize := False;
+
+  edAltaClienteCopias := TEdit.Create(Self);
+  edAltaClienteCopias.Name := 'edAltaClienteCopias';
+  edAltaClienteCopias.Parent := Panel11;
+  edAltaClienteCopias.MaxLength := 2;
+  edAltaClienteCopias.Text := '1';
+  edAltaClienteCopias.TabOrder := 11;
+
+  BitBtn33.TabOrder := 12;
+  BitBtn39.TabOrder := 13;
+  BitBtn34.TabOrder := 14;
+end;
+
+function TFVentas.VF_CodigoSeleccionAltaCliente(
+  const ACombo: TComboBox): string;
+var
+  S: string;
+  P: SizeInt;
+begin
+  Result := '';
+  if not Assigned(ACombo) then Exit;
+
+  S := Trim(ACombo.Text);
+  if S = '' then Exit;
+  if S[1] = '(' then Exit;
+
+  P := Pos(' - ', S);
+  if P > 0 then
+    Result := Trim(Copy(S, 1, P - 1))
+  else
+    Result := S;
+end;
+
+procedure TFVentas.VF_CargarRutasAltaCliente;
+var
+  Q: TZQuery;
+  Codigo, Descripcion: string;
+begin
+  if not Assigned(cbAltaClienteRuta) then Exit;
+
+  cbAltaClienteRuta.Items.BeginUpdate;
+  try
+    cbAltaClienteRuta.Items.Clear;
+    cbAltaClienteRuta.Items.Add('(Sin ruta)');
+
+    Q := TZQuery.Create(nil);
+    try
+      Q.Connection := dbClientes.Connection;
+      Q.SQL.Text := 'SELECT RUT0, RUT1 FROM rutas' + Tienda +
+        ' ORDER BY RUT1 ASC';
+      Q.Open;
+      while not Q.EOF do
+      begin
+        Codigo := Trim(Q.FieldByName('RUT0').AsString);
+        Descripcion := Trim(Q.FieldByName('RUT1').AsString);
+        if Codigo <> '' then
+          cbAltaClienteRuta.Items.Add(Codigo + ' - ' + Descripcion);
+        Q.Next;
+      end;
+    except
+      on E: Exception do
+        cbAltaClienteRuta.Hint :=
+          'No se pudieron cargar las rutas: ' + E.Message;
+    end;
+    Q.Free;
+
+    cbAltaClienteRuta.ItemIndex := 0;
+  finally
+    cbAltaClienteRuta.Items.EndUpdate;
+  end;
+
+  VF_CargarSubRutasAltaCliente(cbAltaClienteRuta);
+end;
+
+procedure TFVentas.VF_CargarSubRutasAltaCliente(Sender: TObject);
+var
+  Q: TZQuery;
+  Ruta, Codigo, Descripcion: string;
+begin
+  if not Assigned(cbAltaClienteSubRuta) then Exit;
+
+  Ruta := VF_CodigoSeleccionAltaCliente(cbAltaClienteRuta);
+  cbAltaClienteSubRuta.Items.BeginUpdate;
+  try
+    cbAltaClienteSubRuta.Items.Clear;
+    cbAltaClienteSubRuta.Items.Add('(Sin subruta)');
+
+    if Ruta <> '' then
+    begin
+      Q := TZQuery.Create(nil);
+      try
+        Q.Connection := dbClientes.Connection;
+        Q.SQL.Text := 'SELECT SRUT1, SRUT2 FROM subrutas' + Tienda +
+          ' WHERE SRUT0=:RUTA ORDER BY SRUT1 ASC';
+        Q.ParamByName('RUTA').AsString := Ruta;
+        Q.Open;
+        while not Q.EOF do
+        begin
+          Codigo := Trim(Q.FieldByName('SRUT1').AsString);
+          Descripcion := Trim(Q.FieldByName('SRUT2').AsString);
+          if Codigo <> '' then
+            cbAltaClienteSubRuta.Items.Add(Codigo + ' - ' + Descripcion);
+          Q.Next;
+        end;
+      except
+        on E: Exception do
+          cbAltaClienteSubRuta.Hint :=
+            'No se pudieron cargar las subrutas: ' + E.Message;
+      end;
+      Q.Free;
+    end;
+
+    cbAltaClienteSubRuta.ItemIndex := 0;
+    cbAltaClienteSubRuta.Enabled := Ruta <> '';
+  finally
+    cbAltaClienteSubRuta.Items.EndUpdate;
+  end;
+end;
+
+procedure TFVentas.VF_PrepararAltaClienteFacturacion;
+begin
+  VF_CrearCamposAltaClienteFacturacion;
+  edAltaClienteEmail.Text := '';
+  chkAltaClienteEnviarEmail.Checked := False;
+  edAltaClienteCopias.Text := '1';
+  VF_CargarRutasAltaCliente;
+end;
+
+
+procedure TFVentas.VF_CrearSelectorFormasPagoTactil;
+var
+  I: Integer;
+  B: TBitBtn;
+begin
+  if Assigned(pnlFormasPagoTouch) then Exit;
+
+  pnlFormasPagoTouch := TPanel.Create(Self);
+  pnlFormasPagoTouch.Name := 'pnlFormasPagoTouch';
+  pnlFormasPagoTouch.Parent := Panel4;
+  pnlFormasPagoTouch.Caption := '';
+  pnlFormasPagoTouch.BevelInner := bvNone;
+  pnlFormasPagoTouch.BevelOuter := bvNone;
+  pnlFormasPagoTouch.BorderStyle := bsNone;
+  pnlFormasPagoTouch.ParentBackground := False;
+  pnlFormasPagoTouch.ParentColor := False;
+  pnlFormasPagoTouch.Color := RGBToColor(239, 244, 249);
+  pnlFormasPagoTouch.TabOrder := Combo2.TabOrder;
+
+  for I := 0 to Combo2.Items.Count - 1 do
+  begin
+    B := TBitBtn.Create(pnlFormasPagoTouch);
+    B.Name := 'btFormaPagoTouch' + IntToStr(I);
+    B.Parent := pnlFormasPagoTouch;
+    B.Caption := Combo2.Items[I];
+    B.Tag := I;
+    B.AutoSize := False;
+    B.ShowHint := True;
+    B.Hint := 'Seleccionar forma de pago: ' + Combo2.Items[I];
+    B.TabStop := False;
+    B.OnClick := @VF_FormaPagoTouchClick;
+  end;
+
+  // Combo2 continúa conservando el valor y toda la lógica original. Los botones
+  // son únicamente una capa táctil mucho más cómoda para realizar la selección.
+  Combo2.Visible := False;
+  VF_ActualizarSelectorFormasPago;
+end;
+
+procedure TFVentas.VF_FormaPagoTouchClick(Sender: TObject);
+var
+  Indice: Integer;
+begin
+  if not (Sender is TBitBtn) then Exit;
+
+  Indice := TBitBtn(Sender).Tag;
+  if (Indice < 0) or (Indice >= Combo2.Items.Count) then Exit;
+
+  if Combo2.ItemIndex <> Indice then
+  begin
+    Combo2.ItemIndex := Indice;
+    Combo2Change(Combo2);
+  end;
+
+  // También se actualiza cuando la opción pulsada ya estaba seleccionada o
+  // cuando Combo2Change devuelve la selección a CONTADO por una validación.
+  VF_ActualizarSelectorFormasPago;
+
+  if Edit15.Enabled and Edit15.Visible then
+  begin
+    Edit15.SetFocus;
+    Edit15.SelectAll;
+  end
+  else if Edit42.Enabled and Edit42.Visible then
+  begin
+    Edit42.SetFocus;
+    Edit42.SelectAll;
+  end;
+end;
+
+procedure TFVentas.VF_ActualizarSelectorFormasPago;
+var
+  I, Indice: Integer;
+  B: TBitBtn;
+  Seleccionado: Boolean;
+begin
+  if not Assigned(pnlFormasPagoTouch) then Exit;
+
+  Indice := Combo2.ItemIndex;
+  for I := 0 to pnlFormasPagoTouch.ControlCount - 1 do
+    if pnlFormasPagoTouch.Controls[I] is TBitBtn then
+    begin
+      B := TBitBtn(pnlFormasPagoTouch.Controls[I]);
+      Seleccionado := B.Tag = Indice;
+
+      B.ParentFont := False;
+      B.Font.Name := 'Sans';
+      B.Font.Height := -14;
+      B.Font.Style := [fsBold];
+      B.Margin := 8;
+      B.Spacing := 6;
+
+      if (B.Tag >= 0) and (B.Tag < Combo2.Items.Count) then
+      begin
+        if Seleccionado then
+          B.Caption := '✓  ' + Combo2.Items[B.Tag]
+        else
+          B.Caption := Combo2.Items[B.Tag];
+      end;
+
+      if Seleccionado then
+      begin
+        B.Color := RGBToColor(6, 55, 86);
+        B.Font.Color := clWhite;
+      end
+      else
+      begin
+        B.Color := RGBToColor(228, 240, 252);
+        B.Font.Color := RGBToColor(21, 38, 62);
+      end;
+      B.Repaint;
+    end;
+end;
+
+procedure TFVentas.VF_CrearDisenoAuxiliares;
+
+  function CrearTitulo(const AParent: TWinControl; const ACaption: string): TLabel;
+  begin
+    Result := TLabel.Create(Self);
+    Result.Parent := AParent;
+    Result.Caption := ACaption;
+    Result.AutoSize := False;
+    Result.Alignment := taLeftJustify;
+    Result.Layout := tlCenter;
+    Result.Transparent := False;
+    Result.ParentFont := False;
+    Result.Font.Name := 'Sans';
+    Result.Font.Height := -17;
+    Result.Font.Style := [fsBold];
+    Result.Font.Color := clWhite;
+    Result.Color := RGBToColor(6, 55, 86);
+  end;
+
+begin
+  VF_CrearCamposAltaClienteFacturacion;
+
+  if not Assigned(shpMarcoTotalizacion) then
+  begin
+    shpMarcoTotalizacion := TShape.Create(Self);
+    shpMarcoTotalizacion.Name := 'shpMarcoTotalizacion';
+    shpMarcoTotalizacion.Parent := Panel4;
+    shpMarcoTotalizacion.Align := alClient;
+    shpMarcoTotalizacion.Shape := stRectangle;
+    shpMarcoTotalizacion.Brush.Style := bsClear;
+    shpMarcoTotalizacion.Pen.Color := RGBToColor(6, 55, 86);
+    shpMarcoTotalizacion.Pen.Width := 3;
+    shpMarcoTotalizacion.SendToBack;
+  end;
+
+  if not Assigned(lblTotalizacionTitulo) then
+    lblTotalizacionTitulo := CrearTitulo(Panel4, '  Totalización y cobro');
+
+  VF_CrearSelectorFormasPagoTactil;
+
+  if not Assigned(lblBuscarArticulosTitulo) then
+    lblBuscarArticulosTitulo := CrearTitulo(PanelBuscaArticulos,
+      '  Seleccionar artículo');
+
+  if not Assigned(lblBuscaArticulosDescripcion) then
+  begin
+    lblBuscaArticulosDescripcion := TLabel.Create(Self);
+    lblBuscaArticulosDescripcion.Parent := PanelBuscaArticulos;
+    lblBuscaArticulosDescripcion.Caption := 'Descripción';
+    lblBuscaArticulosDescripcion.AutoSize := False;
+    lblBuscaArticulosDescripcion.Transparent := True;
+    lblBuscaArticulosDescripcion.ParentFont := False;
+    lblBuscaArticulosDescripcion.Font.Name := 'Sans';
+    lblBuscaArticulosDescripcion.Font.Height := -12;
+    lblBuscaArticulosDescripcion.Font.Style := [fsBold];
+  end;
+
+  if not Assigned(lblBuscaArticulosUltCompra) then
+  begin
+    lblBuscaArticulosUltCompra := TLabel.Create(Self);
+    lblBuscaArticulosUltCompra.Parent := PanelBuscaArticulos;
+    lblBuscaArticulosUltCompra.Caption := 'Última compra';
+    lblBuscaArticulosUltCompra.AutoSize := False;
+    lblBuscaArticulosUltCompra.Transparent := True;
+    lblBuscaArticulosUltCompra.ParentFont := False;
+    lblBuscaArticulosUltCompra.Font.Name := 'Sans';
+    lblBuscaArticulosUltCompra.Font.Height := -12;
+    lblBuscaArticulosUltCompra.Font.Style := [fsBold];
+  end;
+
+  if not Assigned(lblBuscaArticulosPVP) then
+  begin
+    lblBuscaArticulosPVP := TLabel.Create(Self);
+    lblBuscaArticulosPVP.Parent := PanelBuscaArticulos;
+    lblBuscaArticulosPVP.Caption := 'PVP';
+    lblBuscaArticulosPVP.AutoSize := False;
+    lblBuscaArticulosPVP.Alignment := taRightJustify;
+    lblBuscaArticulosPVP.Transparent := True;
+    lblBuscaArticulosPVP.ParentFont := False;
+    lblBuscaArticulosPVP.Font.Name := 'Sans';
+    lblBuscaArticulosPVP.Font.Height := -12;
+    lblBuscaArticulosPVP.Font.Style := [fsBold];
+  end;
+end;
+
+procedure TFVentas.VF_EstilarBotonUsuario(const AButton: TBitBtn);
+begin
+  if not Assigned(AButton) then Exit;
+  AButton.ParentFont := False;
+  AButton.Color := RGBToColor(255, 255, 255);
+  AButton.Font.Name := 'Sans';
+  AButton.Font.Height := -13;
+  AButton.Font.Color := RGBToColor(21, 38, 62);
+  AButton.Font.Style := [fsBold];
+  AButton.Margin := 8;
+  AButton.Spacing := 6;
+  AButton.Layout := blGlyphTop;
+end;
+
+procedure TFVentas.VF_AplicarEstiloAuxiliares;
+var
+  CFondo, CTarjeta, CPrimario, CTeal, CTexto, CTextoSuave: TColor;
+  CVerde, CVerdeSuave, CRojo, CRojoSuave, CAzulSuave: TColor;
+  I: Integer;
+
+  procedure EstiloPanelAux(const APanel: TPanel; const AColor: TColor;
+    const AConBorde: Boolean = True);
+  begin
+    if not Assigned(APanel) then Exit;
+    APanel.ParentBackground := False;
+    APanel.ParentColor := False;
+    APanel.Color := AColor;
+    APanel.BevelInner := bvNone;
+    APanel.BevelOuter := bvNone;
+    if AConBorde then
+      APanel.BorderStyle := bsSingle
+    else
+      APanel.BorderStyle := bsNone;
+  end;
+
+  procedure EstiloTitulo(const ALabel: TLabel; const ACaption: string);
+  begin
+    if not Assigned(ALabel) then Exit;
+    ALabel.Caption := ACaption;
+    ALabel.AutoSize := False;
+    ALabel.Transparent := False;
+    ALabel.Color := CPrimario;
+    ALabel.ParentFont := False;
+    ALabel.Font.Name := 'Sans';
+    ALabel.Font.Height := -16;
+    ALabel.Font.Color := clWhite;
+    ALabel.Font.Style := [fsBold];
+    ALabel.Alignment := taLeftJustify;
+    ALabel.Layout := tlCenter;
+  end;
+
+  procedure EstiloEtiquetaAux(const ALabel: TLabel;
+    const AResaltada: Boolean = False);
+  begin
+    if not Assigned(ALabel) then Exit;
+    ALabel.Transparent := True;
+    ALabel.ParentFont := False;
+    ALabel.Font.Name := 'Sans';
+    ALabel.Font.Height := -12;
+    ALabel.Font.Color := CTextoSuave;
+    if AResaltada then
+      ALabel.Font.Style := [fsBold]
+    else
+      ALabel.Font.Style := [];
+  end;
+
+  procedure EstiloCampoAux(const AEdit: TEdit; const AGrande: Boolean = False;
+    const ATotal: Boolean = False);
+  begin
+    if not Assigned(AEdit) then Exit;
+    AEdit.ParentFont := False;
+    AEdit.Font.Name := 'Sans';
+    AEdit.Font.Color := CTexto;
+    AEdit.BorderStyle := bsSingle;
+    if ATotal then
+    begin
+      AEdit.Color := CAzulSuave;
+      AEdit.Font.Color := CPrimario;
+    end
+    else
+      AEdit.Color := clWhite;
+    if AGrande then
+    begin
+      AEdit.Font.Height := -24;
+      AEdit.Font.Style := [fsBold];
+    end
+    else
+    begin
+      AEdit.Font.Height := -13;
+      AEdit.Font.Style := [];
+    end;
+  end;
+
+  procedure EstiloComboAux(const ACombo: TComboBox);
+  begin
+    if not Assigned(ACombo) then Exit;
+    ACombo.ParentFont := False;
+    ACombo.Color := clWhite;
+    ACombo.Font.Name := 'Sans';
+    ACombo.Font.Height := -13;
+    ACombo.Font.Color := CTexto;
+  end;
+
+  procedure EstiloBotonAux(const AButton: TBitBtn; const AFondo, ATexto: TColor;
+    const AResaltado: Boolean = False);
+  begin
+    if not Assigned(AButton) then Exit;
+    AButton.ParentFont := False;
+    AButton.Color := AFondo;
+    AButton.Font.Name := 'Sans';
+    AButton.Font.Height := -13;
+    AButton.Font.Color := ATexto;
+    AButton.Margin := 9;
+    AButton.Spacing := 7;
+    if AResaltado then
+      AButton.Font.Style := [fsBold]
+    else
+      AButton.Font.Style := [];
+  end;
+
+  procedure EstiloCheck(const ACheck: TCheckBox);
+  begin
+    if not Assigned(ACheck) then Exit;
+    ACheck.ParentFont := False;
+    ACheck.Color := CTarjeta;
+    ACheck.Font.Name := 'Sans';
+    ACheck.Font.Height := -12;
+    ACheck.Font.Color := CTexto;
+  end;
+
+  procedure EstiloRadio(const ARadio: TRadioButton);
+  begin
+    if not Assigned(ARadio) then Exit;
+    ARadio.ParentFont := False;
+    ARadio.Color := CTarjeta;
+    ARadio.Font.Name := 'Sans';
+    ARadio.Font.Height := -13;
+    ARadio.Font.Color := CTexto;
+  end;
+
+  procedure EstiloGridAux(const AGrid: TDBGrid);
+  begin
+    if not Assigned(AGrid) then Exit;
+    AGrid.ParentFont := False;
+    AGrid.Color := clWhite;
+    AGrid.Font.Name := 'Sans';
+    AGrid.Font.Height := -13;
+    AGrid.Font.Color := CTexto;
+    AGrid.FixedColor := RGBToColor(229, 237, 246);
+    AGrid.TitleFont.Name := 'Sans';
+    AGrid.TitleFont.Height := -12;
+    AGrid.TitleFont.Color := CTexto;
+    AGrid.TitleFont.Style := [fsBold];
+    AGrid.DefaultRowHeight := 29;
+  end;
+
+begin
+  CFondo      := RGBToColor(239, 244, 249);
+  CTarjeta    := RGBToColor(255, 255, 255);
+  CPrimario   := RGBToColor(6, 55, 86);
+  CTeal       := RGBToColor(0, 126, 154);
+  CTexto      := RGBToColor(21, 38, 62);
+  CTextoSuave := RGBToColor(74, 91, 112);
+  CVerde      := RGBToColor(0, 128, 72);
+  CVerdeSuave := RGBToColor(222, 247, 232);
+  CRojo       := RGBToColor(177, 24, 24);
+  CRojoSuave  := RGBToColor(255, 232, 232);
+  CAzulSuave  := RGBToColor(228, 240, 252);
+
+  // Totalización y selector de usuario asociado.
+  EstiloPanelAux(Panel4, CTarjeta);
+  // Marco más visible para separar el cobro del formulario principal.
+  Panel4.BorderStyle := bsSingle;
+  Panel4.BorderWidth := 4;
+  Panel4.BevelOuter := bvNone;
+  Panel4.BevelInner := bvNone;
+  if Assigned(shpMarcoTotalizacion) then
+  begin
+    shpMarcoTotalizacion.Pen.Color := CPrimario;
+    shpMarcoTotalizacion.Pen.Width := 3;
+    shpMarcoTotalizacion.Brush.Style := bsClear;
+    shpMarcoTotalizacion.SendToBack;
+  end;
+  EstiloTitulo(lblTotalizacionTitulo, '  Totalización y cobro');
+  EstiloEtiquetaAux(Label27, True);
+  EstiloEtiquetaAux(Label28, True);
+  EstiloEtiquetaAux(Label29, True);
+  EstiloEtiquetaAux(Label30, True);
+  EstiloEtiquetaAux(Label31, True);
+  EstiloEtiquetaAux(Label32, True);
+  EstiloEtiquetaAux(Label81, True);
+  Label27.Caption := 'Importe';
+  Label28.Caption := 'Forma de pago — toque una opción';
+  Label29.Caption := '% Descuento';
+  Label30.Caption := 'Total';
+  Label31.Caption := 'Entrega';
+  Label32.Caption := 'A devolver';
+  EstiloCampoAux(Edit12, True);
+  EstiloCampoAux(Edit13, True);
+  EstiloCampoAux(Edit14, True, True);
+  EstiloCampoAux(Edit15, True);
+  EstiloCampoAux(Edit42, True);
+  EstiloCampoAux(Edit16, True);
+  // El importe a devolver debe destacar claramente sobre el resto de importes.
+  Edit16.Color := RGBToColor(255, 247, 204); // amarillo crema de aviso, sin estridencias
+  Edit16.Font.Color := CPrimario;
+  Edit16.Font.Height := -36;
+  Edit16.Font.Style := [fsBold];
+  Combo2.ParentFont := False;
+  Combo2.Color := clWhite;
+  Combo2.Font.Name := 'Sans';
+  Combo2.Font.Height := -18;
+  Combo2.Font.Color := CTexto;
+  Combo2.Font.Style := [fsBold];
+  Combo2.Visible := False;
+  if Assigned(pnlFormasPagoTouch) then
+  begin
+    pnlFormasPagoTouch.ParentBackground := False;
+    pnlFormasPagoTouch.ParentColor := False;
+    pnlFormasPagoTouch.Color := CFondo;
+    pnlFormasPagoTouch.BevelInner := bvNone;
+    pnlFormasPagoTouch.BevelOuter := bvNone;
+    pnlFormasPagoTouch.BorderStyle := bsNone;
+  end;
+  VF_ActualizarSelectorFormasPago;
+  EstiloCheck(ChBoxRegalo);
+  EstiloCheck(cbImprimir);
+  EstiloCheck(cbImpresionDirecta);
+  EstiloCheck(cbCorreoElectronico);
+  EstiloCampoAux(edNumeroCopias, False);
+  EstiloEtiquetaAux(lbNumeroCopias, True);
+  EstiloBotonAux(BitBtn10, CVerde, clWhite, True);
+  EstiloBotonAux(BitBtn11, CAzulSuave, CPrimario, True);
+  EstiloBotonAux(BitBtn12, CAzulSuave, CPrimario, True);
+  EstiloBotonAux(BitBtn13, CAzulSuave, CPrimario, True);
+  EstiloBotonAux(BitBtn9, CRojoSuave, CRojo, True);
+
+  EstiloPanelAux(Panel12, CFondo, False);
+  EstiloPanelAux(Panel13, CPrimario, False);
+  Label82.Transparent := True;
+  Label82.ParentFont := False;
+  Label82.Font.Name := 'Sans';
+  Label82.Font.Height := -17;
+  Label82.Font.Color := clWhite;
+  Label82.Font.Style := [fsBold];
+  Label82.Alignment := taCenter;
+  Label82.Layout := tlCenter;
+  Label82.Caption := 'Seleccione el usuario que realizó la operación';
+  for I := 0 to Panel12.ControlCount - 1 do
+    if Panel12.Controls[I] is TBitBtn then
+      VF_EstilarBotonUsuario(TBitBtn(Panel12.Controls[I]));
+
+  // Listado de la venta.
+  EstiloPanelAux(Panel6, CTarjeta);
+  EstiloTitulo(Label38, '  Listado de la venta actual');
+  EstiloRadio(RadioButton1);
+  EstiloRadio(RadioButton2);
+  EstiloBotonAux(BitBtn25, CTeal, clWhite, True);
+  EstiloBotonAux(BitBtn26, CRojoSuave, CRojo, True);
+
+  // Series de facturación.
+  EstiloPanelAux(Panel8, CTarjeta);
+  EstiloTitulo(Label36, '  Serie y datos de facturación');
+  Bevel2.Visible := False;
+  EstiloEtiquetaAux(Label33, True);
+  EstiloEtiquetaAux(Label34, True);
+  EstiloEtiquetaAux(Label35, True);
+  Label33.Caption := 'N.º factura';
+  Label34.Caption := 'Fecha factura';
+  Label35.Caption := 'Observaciones';
+  EstiloCampoAux(Edit21);
+  EstiloCampoAux(Edit22);
+  ListBox1.ParentFont := False;
+  ListBox1.Color := RGBToColor(249, 251, 253);
+  ListBox1.Font.Name := 'Sans';
+  ListBox1.Font.Height := -13;
+  ListBox1.Font.Color := CTexto;
+  { HideSelection no está disponible en TListBox en esta versión de LCL. }
+  Memo1.ParentFont := False;
+  Memo1.Color := clWhite;
+  Memo1.Font.Name := 'Sans';
+  Memo1.Font.Height := -13;
+  Memo1.Font.Color := CTexto;
+  EstiloPanelAux(Panel14, CTarjeta, False);
+  EstiloPanelAux(Panel15, CTarjeta, False);
+  EstiloBotonAux(BitBtn23, CVerde, clWhite, True);
+  EstiloBotonAux(BitBtn19, CVerde, clWhite, True);
+  EstiloBotonAux(BitBtn20, CRojoSuave, CRojo, True);
+
+  // Pedidos.
+  EstiloPanelAux(Panel9, CTarjeta);
+  EstiloTitulo(Label45, '  Pedido desde la venta actual');
+  PageControl1.ParentFont := False;
+  PageControl1.Font.Name := 'Sans';
+  PageControl1.Font.Height := -13;
+  PageControl1.Font.Color := CTexto;
+  TabSheet1.Color := CTarjeta;
+  TabSheet2.Color := CTarjeta;
+  TabSheet1.Caption := '  Crear pedido  ';
+  TabSheet2.Caption := '  Recuperar pedidos  ';
+  Bevel3.Visible := False;
+  Bevel4.Visible := False;
+  EstiloCheck(CheckBox2);
+  EstiloEtiquetaAux(Label46, True);
+  EstiloEtiquetaAux(Label47, True);
+  EstiloEtiquetaAux(Label48, True);
+  EstiloEtiquetaAux(Label49, True);
+  EstiloEtiquetaAux(Label50, True);
+  EstiloEtiquetaAux(Label51, True);
+  EstiloEtiquetaAux(Label52, True);
+  EstiloEtiquetaAux(Label53, True);
+  EstiloEtiquetaAux(Label54, True);
+  EstiloCampoAux(Edit17);
+  EstiloCampoAux(Edit18);
+  EstiloCampoAux(Edit19, True);
+  EstiloCampoAux(Edit20, True);
+  EstiloCampoAux(Edit23, True);
+  EstiloCampoAux(Edit24);
+  EstiloCampoAux(Edit25);
+  EstiloCampoAux(Edit26);
+  EstiloCampoAux(Edit27);
+  EstiloCampoAux(Edit28);
+  Combo4.ParentFont := False;
+  Combo4.Color := clWhite;
+  Combo5.ParentFont := False;
+  Combo5.Color := clWhite;
+  EstiloGridAux(DBGrid3);
+  EstiloGridAux(DBGrid4);
+  EstiloRadio(RadioButton3);
+  EstiloRadio(RadioButton4);
+  EstiloRadio(RadioButton5);
+  EstiloBotonAux(BitBtn29, CTeal, clWhite, True);
+  EstiloBotonAux(BitBtn32, CTeal, clWhite, True);
+  EstiloBotonAux(BitBtn27, CVerde, clWhite, True);
+  EstiloBotonAux(BitBtn30, CAzulSuave, CPrimario, True);
+  EstiloBotonAux(BitBtn31, CAzulSuave, CPrimario, True);
+  EstiloBotonAux(BitBtn28, CRojoSuave, CRojo, True);
+
+  // Presupuestos y proformas.
+  EstiloPanelAux(Panel10, CTarjeta);
+  EstiloTitulo(Label58, '  Presupuesto / proforma de la venta actual');
+  Bevel5.Visible := False;
+  Bevel6.Visible := False;
+  EstiloCheck(CheckBox3);
+  EstiloRadio(RadioButton9);
+  EstiloRadio(RadioButton10);
+  EstiloEtiquetaAux(Label59, True);
+  EstiloEtiquetaAux(Label63, True);
+  EstiloEtiquetaAux(Label64, True);
+  EstiloEtiquetaAux(Label65, True);
+  EstiloEtiquetaAux(Label66, True);
+  EstiloEtiquetaAux(Label67, True);
+  EstiloEtiquetaAux(Label68, True);
+  EstiloCampoAux(Edit30);
+  EstiloCampoAux(Edit33);
+  EstiloCampoAux(Edit34);
+  EstiloCampoAux(Edit35);
+  EstiloCampoAux(Edit36);
+  Combo6.ParentFont := False;
+  Combo6.Color := clWhite;
+  EstiloGridAux(DBGrid5);
+  EstiloBotonAux(BitBtn35, CVerde, clWhite, True);
+  EstiloBotonAux(BitBtn37, CAzulSuave, CPrimario, True);
+  EstiloBotonAux(BitBtn38, CAzulSuave, CPrimario, True);
+  EstiloBotonAux(BitBtn36, CRojoSuave, CRojo, True);
+
+  // Alta rápida de cliente.
+  EstiloPanelAux(Panel11, RGBToColor(240, 248, 252)); // azul pastel tenue
+  EstiloTitulo(Label75, '  Crear un nuevo cliente');
+  EstiloEtiquetaAux(Label62, True);
+  EstiloEtiquetaAux(Label69, True);
+  EstiloEtiquetaAux(Label70, True);
+  EstiloEtiquetaAux(Label71, True);
+  EstiloEtiquetaAux(Label72, True);
+  EstiloEtiquetaAux(Label73, True);
+  EstiloEtiquetaAux(Label74, True);
+  Label62.Caption := 'Dirección';
+  Label69.Caption := 'Localidad';
+  Label70.Caption := 'C. postal';
+  Label71.Caption := 'Provincia';
+  Label72.Caption := 'NIF / CIF';
+  Label73.Caption := 'Nombre';
+  Label74.Caption := 'Teléfono';
+  EstiloCampoAux(Edit29);
+  EstiloCampoAux(Edit31);
+  EstiloCampoAux(Edit32);
+  EstiloCampoAux(Edit37);
+  EstiloCampoAux(Edit38);
+  EstiloCampoAux(Edit39);
+  EstiloCampoAux(Edit40);
+  EstiloEtiquetaAux(lblAltaClienteEmail, True);
+  EstiloEtiquetaAux(lblAltaClienteRuta, True);
+  EstiloEtiquetaAux(lblAltaClienteSubRuta, True);
+  EstiloEtiquetaAux(lblAltaClienteCopias, True);
+  EstiloCampoAux(edAltaClienteEmail);
+  EstiloCampoAux(edAltaClienteCopias);
+  EstiloComboAux(cbAltaClienteRuta);
+  EstiloComboAux(cbAltaClienteSubRuta);
+  EstiloCheck(chkAltaClienteEnviarEmail);
+  EstiloBotonAux(BitBtn33, CVerde, clWhite, True);
+  EstiloBotonAux(BitBtn39, CAzulSuave, CPrimario, True);
+  EstiloBotonAux(BitBtn34, CRojoSuave, CRojo, True);
+  if Assigned(btValidarNIF) then
+    EstiloBotonAux(btValidarNIF, CTeal, clWhite, True);
+
+  // Buscador emergente de artículos: fondo pastel suave, sin marco.
+  EstiloPanelAux(PanelBuscaArticulos, RGBToColor(243, 248, 252), False);
+  EstiloTitulo(lblBuscarArticulosTitulo, '  Seleccionar artículo');
+  if Assigned(lblBuscaArticulosDescripcion) then
+    lblBuscaArticulosDescripcion.Font.Color := CTextoSuave;
+  if Assigned(lblBuscaArticulosUltCompra) then
+    lblBuscaArticulosUltCompra.Font.Color := CTextoSuave;
+  if Assigned(lblBuscaArticulosPVP) then
+    lblBuscaArticulosPVP.Font.Color := CTextoSuave;
+  ListBox3.ParentFont := False;
+  ListBox3.Color := RGBToColor(248, 251, 253);
+  ListBox3.Font.Name := 'Monospace';
+  ListBox3.Font.Height := -14;
+  ListBox3.Font.Color := CTexto;
+end;
+
+procedure TFVentas.VF_AplicarLayoutAuxiliares;
+const
+  AltoCabeceraPrincipal = 112;
+  AltoPiePrincipal = 52;
+var
+  PW, PH, L, T, BW, BH, X, Y, I, NBotones, NCols, NFilas,
+  Fila, Columna, Separacion, SelectorTop, SelectorAlto, ImporteLabelY,
+  ImporteEditY, EntregaLabelY, EntregaEditY, AltoCampo, AltoCambio, CheckTop: Integer;
+  C: TControl;
+
+  procedure Centrar(const APanel: TPanel; const AWidth, AHeight: Integer);
+  begin
+    if not Assigned(APanel) then Exit;
+    PW := AWidth;
+    PH := AHeight;
+    if PW > ClientWidth - 40 then PW := ClientWidth - 40;
+    if PH > ClientHeight - AltoCabeceraPrincipal - AltoPiePrincipal - 30 then
+      PH := ClientHeight - AltoCabeceraPrincipal - AltoPiePrincipal - 30;
+    L := (ClientWidth - PW) div 2;
+    T := AltoCabeceraPrincipal +
+      ((ClientHeight - AltoCabeceraPrincipal - AltoPiePrincipal - PH) div 2);
+    if T < AltoCabeceraPrincipal + 8 then T := AltoCabeceraPrincipal + 8;
+    APanel.SetBounds(L, T, PW, PH);
+  end;
+
+begin
+  if not FDisenoModernoCreado then Exit;
+
+  // Totalización. El selector de pago ocupa dos filas de botones grandes,
+  // pensadas para uso directo con pantalla táctil.
+  Centrar(Panel4, 920, 720);
+  lblTotalizacionTitulo.SetBounds(0, 0, Panel4.ClientWidth, 54);
+  Label28.SetBounds(24, 64, Panel4.ClientWidth - 48, 20);
+  Combo2.Visible := False;
+
+  if Panel4.ClientHeight >= 680 then
+  begin
+    SelectorTop := 88;
+    SelectorAlto := 132;
+    ImporteLabelY := 238;
+    ImporteEditY := 260;
+    EntregaLabelY := 340;
+    EntregaEditY := 362;
+    AltoCampo := 58;
+    AltoCambio := 72;
+    CheckTop := 444;
+  end
+  else
+  begin
+    // Modo compacto para resoluciones verticales menores, manteniendo objetivos
+    // táctiles amplios y evitando que los controles inferiores se solapen.
+    SelectorTop := 82;
+    SelectorAlto := 104;
+    ImporteLabelY := 194;
+    ImporteEditY := 214;
+    EntregaLabelY := 274;
+    EntregaEditY := 294;
+    AltoCampo := 50;
+    AltoCambio := 56;
+    CheckTop := 352;
+  end;
+
+  if Assigned(pnlFormasPagoTouch) then
+  begin
+    pnlFormasPagoTouch.SetBounds(24, SelectorTop,
+      Panel4.ClientWidth - 48, SelectorAlto);
+    NBotones := pnlFormasPagoTouch.ControlCount;
+    NCols := 4;
+    if (NBotones > 0) and (NBotones < NCols) then NCols := NBotones;
+    if NCols < 1 then NCols := 1;
+    NFilas := (NBotones + NCols - 1) div NCols;
+    if NFilas < 1 then NFilas := 1;
+    Separacion := 12;
+    BW := (pnlFormasPagoTouch.ClientWidth - ((NCols - 1) * Separacion)) div NCols;
+    BH := (pnlFormasPagoTouch.ClientHeight - ((NFilas - 1) * Separacion)) div NFilas;
+
+    X := 0;
+    for I := 0 to pnlFormasPagoTouch.ControlCount - 1 do
+      if pnlFormasPagoTouch.Controls[I] is TBitBtn then
+      begin
+        Fila := X div NCols;
+        Columna := X mod NCols;
+        C := pnlFormasPagoTouch.Controls[I];
+        C.SetBounds(Columna * (BW + Separacion),
+          Fila * (BH + Separacion), BW, BH);
+        Inc(X);
+      end;
+    pnlFormasPagoTouch.BringToFront;
+  end;
+
+  BW := (Panel4.ClientWidth - 80) div 3;
+  Label27.SetBounds(24, ImporteLabelY, BW, 20);
+  Edit12.SetBounds(24, ImporteEditY, BW, AltoCampo);
+  Label29.SetBounds(40 + BW, ImporteLabelY, BW, 20);
+  Edit13.SetBounds(40 + BW, ImporteEditY, BW, AltoCampo);
+  Label30.SetBounds(56 + (2 * BW), ImporteLabelY,
+    Panel4.ClientWidth - 80 - (2 * BW), 20);
+  Edit14.SetBounds(56 + (2 * BW), ImporteEditY,
+    Panel4.ClientWidth - 80 - (2 * BW), AltoCampo);
+
+  if Edit42.Visible then
+  begin
+    BW := (Panel4.ClientWidth - 80) div 3;
+    Label31.SetBounds(24, EntregaLabelY, BW, 20);
+    Edit15.SetBounds(24, EntregaEditY, BW, AltoCampo);
+    Label81.SetBounds(40 + BW, EntregaLabelY, BW, 20);
+    Edit42.SetBounds(40 + BW, EntregaEditY, BW, AltoCampo);
+    Label32.SetBounds(56 + (2 * BW), EntregaLabelY,
+      Panel4.ClientWidth - 80 - (2 * BW), 20);
+    Edit16.SetBounds(56 + (2 * BW), EntregaEditY,
+      Panel4.ClientWidth - 80 - (2 * BW), AltoCambio);
+  end
+  else
+  begin
+    BW := (Panel4.ClientWidth - 64) div 2;
+    Label31.SetBounds(24, EntregaLabelY, BW, 20);
+    Edit15.SetBounds(24, EntregaEditY, BW, AltoCampo);
+    Label32.SetBounds(40 + BW, EntregaLabelY, BW, 20);
+    Edit16.SetBounds(40 + BW, EntregaEditY,
+      Panel4.ClientWidth - 64 - BW, AltoCambio);
+  end;
+
+  // Tipografía reforzada para que la devolución sea el dato dominante del cobro.
+  if Panel4.ClientHeight >= 680 then
+    Edit16.Font.Height := -38
+  else
+    Edit16.Font.Height := -32;
+  Edit16.Font.Style := [fsBold];
+
+  ChBoxRegalo.SetBounds(24, CheckTop, 210, 26);
+  cbCorreoElectronico.SetBounds(24, CheckTop + 34, 270, 26);
+  cbImprimir.SetBounds(24, CheckTop + 68, 235, 26);
+  cbImpresionDirecta.SetBounds(282, CheckTop + 68, 190, 26);
+  lbNumeroCopias.SetBounds(Panel4.ClientWidth - 205, CheckTop + 35, 92, 25);
+  edNumeroCopias.SetBounds(Panel4.ClientWidth - 105, CheckTop + 31, 78, 32);
+
+  Y := Panel4.ClientHeight - 68;
+  BW := (Panel4.ClientWidth - 80) div 5;
+  BitBtn10.SetBounds(16, Y, BW, 52);
+  BitBtn11.SetBounds(24 + BW, Y, BW, 52);
+  BitBtn12.SetBounds(32 + (2 * BW), Y, BW, 52);
+  BitBtn13.SetBounds(40 + (3 * BW), Y, BW, 52);
+  BitBtn9.SetBounds(48 + (4 * BW), Y,
+    Panel4.ClientWidth - 64 - (4 * BW), 52);
+  BitBtn10.Caption := 'Totalizar  F8';
+  BitBtn11.Caption := 'Ticket  F9';
+  BitBtn12.Caption := 'Albarán  F10';
+  BitBtn13.Caption := 'Factura  F11';
+  BitBtn9.Caption := 'Cerrar  ESC';
+
+  // Selector de usuario que se superpone al cobro.
+  Panel12.SetBounds(0, 0, Panel4.ClientWidth, Panel4.ClientHeight);
+  Panel13.SetBounds(0, 0, Panel12.ClientWidth, 64);
+  Label82.SetBounds(16, 0, Panel13.ClientWidth - 32, 64);
+  NBotones := 0;
+  for I := 0 to Panel12.ControlCount - 1 do
+    if Panel12.Controls[I] is TBitBtn then Inc(NBotones);
+  if Panel12.ClientWidth >= 720 then NCols := 5 else NCols := 4;
+  if (NBotones > 0) and (NBotones < NCols) then NCols := NBotones;
+  if NCols < 1 then NCols := 1;
+  BW := (Panel12.ClientWidth - 40 - ((NCols - 1) * 12)) div NCols;
+  X := 0;
+  for I := 0 to Panel12.ControlCount - 1 do
+    if Panel12.Controls[I] is TBitBtn then
+    begin
+      Fila := X div NCols;
+      Columna := X mod NCols;
+      C := Panel12.Controls[I];
+      C.SetBounds(20 + Columna * (BW + 12), 82 + Fila * 96, BW, 82);
+      VF_EstilarBotonUsuario(TBitBtn(C));
+      Inc(X);
+    end;
+  if Panel12.Visible then Panel12.BringToFront;
+
+  // Listado de la venta.
+  Centrar(Panel6, 480, 280);
+  Label38.SetBounds(0, 0, Panel6.ClientWidth, 52);
+  RadioButton1.SetBounds(30, 82, Panel6.ClientWidth - 60, 30);
+  RadioButton2.SetBounds(30, 126, Panel6.ClientWidth - 60, 30);
+  BW := (Panel6.ClientWidth - 54) div 2;
+  BitBtn25.SetBounds(18, Panel6.ClientHeight - 62, BW, 44);
+  BitBtn26.SetBounds(36 + BW, Panel6.ClientHeight - 62,
+    Panel6.ClientWidth - 54 - BW, 44);
+
+  // Series y factura/albarán.
+  Centrar(Panel8, 700, 520);
+  Label36.SetBounds(0, 0, Panel8.ClientWidth, 52);
+  ListBox1.SetBounds(20, 70, Panel8.ClientWidth - 40, 164);
+  Label33.SetBounds(24, 250, 130, 20);
+  Edit21.SetBounds(24, 272, 180, 32);
+  Label34.SetBounds(224, 250, 140, 20);
+  Edit22.SetBounds(224, 272, 190, 32);
+  Label35.SetBounds(24, 318, 180, 20);
+  Memo1.SetBounds(24, 340, Panel8.ClientWidth - 48, 104);
+  Panel14.SetBounds(Panel8.ClientWidth - 260, Panel8.ClientHeight - 58, 112, 42);
+  Panel15.SetBounds(Panel8.ClientWidth - 260, Panel8.ClientHeight - 58, 112, 42);
+  BitBtn23.SetBounds(0, 0, Panel14.ClientWidth, Panel14.ClientHeight);
+  BitBtn19.SetBounds(0, 0, Panel15.ClientWidth, Panel15.ClientHeight);
+  BitBtn20.SetBounds(Panel8.ClientWidth - 136, Panel8.ClientHeight - 58, 112, 42);
+
+  // Pedidos.
+  Centrar(Panel9, 940, 720);
+  Label45.SetBounds(0, 0, Panel9.ClientWidth, 52);
+  PageControl1.SetBounds(18, 66, Panel9.ClientWidth - 36, Panel9.ClientHeight - 142);
+  if TabSheet1.ClientWidth > 0 then
+  begin
+    CheckBox2.SetBounds(18, 16, 210, 28);
+    Edit17.SetBounds(18, 48, TabSheet1.ClientWidth - 220, 32);
+    Label46.SetBounds(TabSheet1.ClientWidth - 190, 18, 150, 20);
+    Edit18.SetBounds(TabSheet1.ClientWidth - 190, 48, 170, 32);
+    Label47.SetBounds(18, 96, 110, 20);
+    Edit19.SetBounds(18, 118, 150, 38);
+    Label48.SetBounds(194, 96, 170, 20);
+    Edit20.SetBounds(194, 118, 170, 38);
+    Label49.SetBounds(390, 96, 110, 20);
+    Edit23.SetBounds(390, 118, 170, 38);
+    Label50.SetBounds(18, 170, TabSheet1.ClientWidth - 36, 24);
+    DBGrid3.SetBounds(18, 198, TabSheet1.ClientWidth - 36, 210);
+    Label51.SetBounds(18, 422, 120, 20);
+    DateEdit1.SetBounds(18, 444, 150, 31);
+    Label54.SetBounds(190, 422, 90, 20);
+    Combo5.SetBounds(190, 444, 190, 31);
+    Label53.SetBounds(402, 422, 100, 20);
+    Edit26.SetBounds(402, 444, 130, 31);
+    Label52.SetBounds(18, 486, 120, 20);
+    Edit24.SetBounds(18, 508, 100, 31);
+    BitBtn29.SetBounds(124, 508, 38, 31);
+    Edit25.SetBounds(170, 508, TabSheet1.ClientWidth - 188, 31);
+    Combo4.SetBounds(18, 508, TabSheet1.ClientWidth - 36, 31);
+  end;
+  if TabSheet2.ClientWidth > 0 then
+  begin
+    RadioButton3.SetBounds(18, 18, 300, 28);
+    RadioButton5.SetBounds(18, 55, 260, 28);
+    RadioButton4.SetBounds(18, 92, 220, 28);
+    Edit27.SetBounds(246, 90, 90, 31);
+    Edit28.SetBounds(344, 90, TabSheet2.ClientWidth - 402, 31);
+    BitBtn32.SetBounds(TabSheet2.ClientWidth - 50, 90, 36, 31);
+    DBGrid4.SetBounds(18, 136, TabSheet2.ClientWidth - 36,
+      TabSheet2.ClientHeight - 154);
+  end;
+  BW := (Panel9.ClientWidth - 76) div 4;
+  Y := Panel9.ClientHeight - 60;
+  BitBtn27.SetBounds(16, Y, BW, 44);
+  BitBtn30.SetBounds(28 + BW, Y, BW, 44);
+  BitBtn31.SetBounds(40 + (2 * BW), Y, BW, 44);
+  BitBtn28.SetBounds(52 + (3 * BW), Y,
+    Panel9.ClientWidth - 68 - (3 * BW), 44);
+
+  // Presupuestos y proformas.
+  Centrar(Panel10, 940, 700);
+  Label58.SetBounds(0, 0, Panel10.ClientWidth, 52);
+  CheckBox3.SetBounds(22, 68, 260, 28);
+  RadioButton9.SetBounds(330, 68, 150, 28);
+  RadioButton10.SetBounds(500, 68, 190, 28);
+  Label68.SetBounds(22, 112, 100, 20);
+  Edit34.SetBounds(22, 134, 110, 32);
+  Edit33.SetBounds(144, 134, Panel10.ClientWidth - 166, 32);
+  Label64.SetBounds(22, 178, 100, 20);
+  Edit36.SetBounds(22, 200, Panel10.ClientWidth - 250, 32);
+  Label59.SetBounds(Panel10.ClientWidth - 208, 178, 100, 20);
+  Edit30.SetBounds(Panel10.ClientWidth - 208, 200, 186, 32);
+  Label63.SetBounds(22, 248, Panel10.ClientWidth - 44, 24);
+  DBGrid5.SetBounds(22, 276, Panel10.ClientWidth - 44, 250);
+  Label65.SetBounds(22, 542, 130, 20);
+  DateEdit2.SetBounds(22, 564, 150, 31);
+  Label66.SetBounds(194, 542, 100, 20);
+  Combo6.SetBounds(194, 564, 190, 31);
+  Label67.SetBounds(406, 542, 120, 20);
+  Edit35.SetBounds(406, 564, 140, 31);
+  BW := (Panel10.ClientWidth - 76) div 4;
+  Y := Panel10.ClientHeight - 60;
+  BitBtn35.SetBounds(16, Y, BW, 44);
+  BitBtn37.SetBounds(28 + BW, Y, BW, 44);
+  BitBtn38.SetBounds(40 + (2 * BW), Y, BW, 44);
+  BitBtn36.SetBounds(52 + (3 * BW), Y,
+    Panel10.ClientWidth - 68 - (3 * BW), 44);
+
+  // Alta rápida de cliente.
+  Centrar(Panel11, 780, 560);
+  Label75.SetBounds(0, 0, Panel11.ClientWidth, 54);
+  Label73.SetBounds(24, 62, 120, 20);
+  Edit29.SetBounds(24, 82, Panel11.ClientWidth - 48, 31);
+  Label62.SetBounds(24, 120, 120, 20);
+  Edit31.SetBounds(24, 140, Panel11.ClientWidth - 48, 31);
+  Label69.SetBounds(24, 178, 120, 20);
+  Edit32.SetBounds(24, 198, Panel11.ClientWidth - 48, 31);
+  Label70.SetBounds(24, 236, 100, 20);
+  Edit37.SetBounds(24, 256, 120, 31);
+  Label71.SetBounds(164, 236, 120, 20);
+  Edit38.SetBounds(164, 256, Panel11.ClientWidth - 188, 31);
+  Label72.SetBounds(24, 294, 100, 20);
+  Edit39.SetBounds(24, 314, 185, 31);
+  if Assigned(btValidarNIF) then
+    btValidarNIF.SetBounds(216, 314, 92, 31);
+  Label74.SetBounds(330, 294, 100, 20);
+  Edit40.SetBounds(330, 314, Panel11.ClientWidth - 354, 31);
+
+  lblAltaClienteEmail.SetBounds(24, 352, 120, 20);
+  edAltaClienteEmail.SetBounds(24, 372, Panel11.ClientWidth - 330, 31);
+  chkAltaClienteEnviarEmail.SetBounds(Panel11.ClientWidth - 286, 374,
+    262, 27);
+
+  lblAltaClienteRuta.SetBounds(24, 410, 220, 20);
+  cbAltaClienteRuta.SetBounds(24, 430, 230, 31);
+  lblAltaClienteSubRuta.SetBounds(274, 410, 230, 20);
+  cbAltaClienteSubRuta.SetBounds(274, 430, 230, 31);
+  lblAltaClienteCopias.SetBounds(524, 410, 170, 20);
+  edAltaClienteCopias.SetBounds(524, 430, 100, 31);
+
+  BW := 150;
+  BitBtn33.SetBounds(24, Panel11.ClientHeight - 52, BW, 38);
+  BitBtn39.SetBounds((Panel11.ClientWidth - BW) div 2,
+    Panel11.ClientHeight - 52, BW, 38);
+  BitBtn34.SetBounds(Panel11.ClientWidth - BW - 24,
+    Panel11.ClientHeight - 52, BW, 38);
+
+  // Buscador de artículos.
+  Centrar(PanelBuscaArticulos, 820, 500);
+  lblBuscarArticulosTitulo.SetBounds(0, 0, PanelBuscaArticulos.ClientWidth, 52);
+  if Assigned(lblBuscaArticulosDescripcion) then
+    lblBuscaArticulosDescripcion.SetBounds(24, 65,
+      PanelBuscaArticulos.ClientWidth - 305, 22);
+  if Assigned(lblBuscaArticulosUltCompra) then
+    lblBuscaArticulosUltCompra.SetBounds(PanelBuscaArticulos.ClientWidth - 270,
+      65, 110, 22);
+  if Assigned(lblBuscaArticulosPVP) then
+    lblBuscaArticulosPVP.SetBounds(PanelBuscaArticulos.ClientWidth - 170,
+      65, 110, 22);
+  ListBox3.SetBounds(18, 88, PanelBuscaArticulos.ClientWidth - 36,
+    PanelBuscaArticulos.ClientHeight - 106);
+end;
+
+procedure TFVentas.VF_AplicarEstiloModerno;
+var
+  CFondo, CTarjeta, CPrimario, CTeal, CTexto, CTextoSuave: TColor;
+  CVerde, CVerdeSuave, CRojo, CRojoSuave, CAmbarSuave, CAzulSuave: TColor;
+
+  procedure EstiloPanel(const APanel: TPanel; const AColor: TColor);
+  begin
+    if not Assigned(APanel) then Exit;
+    APanel.ParentBackground := False;
+    APanel.ParentColor := False;
+    APanel.Color := AColor;
+    APanel.BevelOuter := bvNone;
+    APanel.BevelInner := bvNone;
+    APanel.BorderStyle := bsNone;
+  end;
+
+  procedure EstiloBoton(const AButton: TBitBtn; const AFondo, ATexto: TColor;
+    const AResaltado: Boolean = False);
+  begin
+    if not Assigned(AButton) then Exit;
+    AButton.ParentFont := False;
+    AButton.Color := AFondo;
+    AButton.Font.Name := 'Sans';
+    AButton.Font.Height := -14;
+    AButton.Font.Color := ATexto;
+    AButton.Margin := 10;
+    AButton.Spacing := 8;
+    if AResaltado then
+      AButton.Font.Style := [fsBold]
+    else
+      AButton.Font.Style := [];
+  end;
+
+  procedure EstiloCampo(const ACampo: TEdit; const AResaltado: Boolean = False);
+  begin
+    if not Assigned(ACampo) then Exit;
+    ACampo.ParentFont := False;
+    ACampo.Color := clWhite;
+    ACampo.Font.Name := 'Sans';
+    ACampo.Font.Color := CTexto;
+    ACampo.BorderStyle := bsSingle;
+    if AResaltado then
+    begin
+      ACampo.Font.Height := -15;
+      ACampo.Font.Style := [fsBold];
+    end
+    else
+    begin
+      ACampo.Font.Height := -13;
+      ACampo.Font.Style := [];
+    end;
+  end;
+
+  procedure EstiloEtiqueta(const AEtiqueta: TLabel; const AColor: TColor;
+    const AResaltada: Boolean = False);
+  begin
+    if not Assigned(AEtiqueta) then Exit;
+    AEtiqueta.ParentFont := False;
+    AEtiqueta.Font.Name := 'Sans';
+    AEtiqueta.Font.Color := AColor;
+    AEtiqueta.Transparent := True;
+    if AResaltada then
+      AEtiqueta.Font.Style := [fsBold]
+    else
+      AEtiqueta.Font.Style := [];
+  end;
+
+  procedure EstiloValorPildora(const AEtiqueta: TLabel; const AFondo, ATexto: TColor);
+  begin
+    if not Assigned(AEtiqueta) then Exit;
+    AEtiqueta.ParentColor := False;
+    AEtiqueta.Transparent := False;
+    AEtiqueta.Color := AFondo;
+    AEtiqueta.Alignment := taCenter;
+    AEtiqueta.Layout := tlCenter;
+    AEtiqueta.Font.Name := 'Sans';
+    AEtiqueta.Font.Height := -13;
+    AEtiqueta.Font.Color := ATexto;
+    AEtiqueta.Font.Style := [fsBold];
+  end;
+
+begin
+  CFondo         := RGBToColor(239, 244, 249);
+  CTarjeta       := RGBToColor(255, 255, 255);
+  CPrimario      := RGBToColor(6, 55, 86);
+  CTeal          := RGBToColor(0, 126, 154);
+  CTexto         := RGBToColor(21, 38, 62);
+  CTextoSuave    := RGBToColor(74, 91, 112);
+  CVerde         := RGBToColor(0, 128, 72);
+  CVerdeSuave    := RGBToColor(222, 247, 232);
+  CRojo          := RGBToColor(177, 24, 24);
+  CRojoSuave     := RGBToColor(255, 232, 232);
+  CAmbarSuave    := RGBToColor(255, 246, 214);
+  CAzulSuave     := RGBToColor(228, 240, 252);
+
+  Color := CFondo;
+  ParentFont := False;
+  Font.Name := 'Sans';
+  Font.Height := -13;
+  Font.Color := CTexto;
+
+  // Los paneles actúan como contenedores. Las tarjetas redondeadas se pintan
+  // mediante TShape, por lo que el fondo del contenedor coincide con el form.
+  EstiloPanel(Panel1, CFondo);
+  EstiloPanel(Panel3, CFondo);
+  EstiloPanel(Panel5, CFondo);
+  EstiloPanel(Panel7, CFondo);
+  EstiloPanel(Panel2, CFondo);
+  EstiloPanel(botones, CFondo);
+  EstiloPanel(botolineas, CTarjeta);
+  EstiloPanel(Panel16, CFondo);
+  EstiloPanel(pnlResumenVentaModerno, CFondo);
+  EstiloPanel(pnUsuario1, CPrimario);
+
+  StaticText1.Color := CPrimario;
+  StaticText1.BorderStyle := sbsNone;
+  StaticText1.Alignment := taRightJustify;
+  StaticText1.Font.Name := 'Sans';
+  StaticText1.Font.Height := -34;
+  StaticText1.Font.Style := [fsBold];
+  StaticText1.Font.Color := clWhite;
+
+  EstiloEtiqueta(lbUsuario, clWhite, True);
+  cbUsuario.ParentFont := False;
+  cbUsuario.Color := RGBToColor(248, 250, 252);
+  cbUsuario.Font.Name := 'Sans';
+  cbUsuario.Font.Height := -14;
+  cbUsuario.Font.Color := CTexto;
+  cbUsuario.Font.Style := [fsBold];
+
+  Label37.Transparent := True;
+  Label37.ParentColor := False;
+  Label37.Color := CTarjeta;
+  Label37.Font.Color := CTexto;
+  Label37.Font.Height := -14;
+  Label37.Font.Style := [fsBold];
+  Label37.Alignment := taLeftJustify;
+  Label37.Caption := 'Tickets abiertos';
+  EstiloBoton(BitBtn24, CTeal, clWhite, True);
+  if Assigned(pnlTicketsAparcadosInfo) then
+  begin
+    pnlTicketsAparcadosInfo.ParentColor := False;
+    pnlTicketsAparcadosInfo.Color := RGBToColor(29, 78, 216);
+    pnlTicketsAparcadosInfo.Font.Color := clWhite;
+    pnlTicketsAparcadosInfo.Font.Style := [fsBold];
+  end;
+
+  EstiloEtiqueta(Label39, CTextoSuave, True);
+  EstiloEtiqueta(Label42, CTextoSuave, True);
+  EstiloEtiqueta(Label44, CTextoSuave, True);
+  EstiloEtiqueta(Label40, RGBToColor(37, 99, 235), True);
+  EstiloEtiqueta(Label41, RGBToColor(194, 65, 12), True);
+  EstiloEtiqueta(Label43, RGBToColor(22, 128, 57), True);
+  Label40.Alignment := taRightJustify;
+  Label41.Alignment := taRightJustify;
+  Label43.Alignment := taRightJustify;
+  Label40.Font.Height := -15;
+  Label41.Font.Height := -15;
+  Label43.Font.Height := -15;
+
+  DBGrid1.ParentFont := False;
+  DBGrid1.Color := clWhite;
+  DBGrid1.Font.Name := 'Sans';
+  DBGrid1.Font.Height := -14;
+  DBGrid1.Font.Color := CTexto;
+  DBGrid1.FixedColor := RGBToColor(229, 237, 246);
+  DBGrid1.TitleFont.Name := 'Sans';
+  DBGrid1.TitleFont.Height := -13;
+  DBGrid1.TitleFont.Color := CTexto;
+  DBGrid1.TitleFont.Style := [fsBold];
+  DBGrid1.DefaultRowHeight := 31;
+
+  DBGrid2.ParentFont := False;
+  DBGrid2.Color := clWhite;
+  DBGrid2.Font.Name := 'Sans';
+  DBGrid2.Font.Height := -13;
+  DBGrid2.Font.Color := CTexto;
+  DBGrid2.FixedColor := RGBToColor(235, 241, 247);
+  DBGrid2.TitleFont.Name := 'Sans';
+  DBGrid2.TitleFont.Color := CTexto;
+  DBGrid2.TitleFont.Style := [fsBold];
+  DBGrid2.DefaultRowHeight := 28;
+
+  EstiloCampo(Edit1, True);
+  EstiloCampo(Edit2, True);
+  Edit2.Color := RGBToColor(249, 251, 253);
+  EstiloBoton(btCodigo, CAzulSuave, CPrimario, True);
+  EstiloBoton(BitBtn1, CTeal, clWhite, True);
+
+  EstiloEtiqueta(Label2, CTexto, False);
+  EstiloEtiqueta(Label3, CTexto, False);
+  EstiloEtiqueta(Label4, CTexto, False);
+  EstiloEtiqueta(Label5, CTexto, False);
+  EstiloEtiqueta(Label21, CTexto, False);
+  EstiloEtiqueta(Label22, CTexto, False);
+  EstiloEtiqueta(Label9, CTextoSuave, True);
+  EstiloEtiqueta(Label10, CTextoSuave, True);
+  EstiloEtiqueta(Label23, CTextoSuave, True);
+  Label9.Caption := 'Tipo descuento';
+  Label23.Caption := 'Dto. pronto pago';
+  Label10.Caption := 'Dto. comercial';
+  EstiloValorPildora(Label24, CAzulSuave, RGBToColor(29, 78, 216));
+  EstiloValorPildora(Label25, CVerdeSuave, CVerde);
+  EstiloValorPildora(Label26, CVerdeSuave, CVerde);
+  CheckBox1.ParentFont := False;
+  CheckBox1.Color := CTarjeta;
+  CheckBox1.Font.Name := 'Sans';
+  CheckBox1.Font.Height := -12;
+  CheckBox1.Font.Color := CTextoSuave;
+  CheckBox1.Font.Style := [fsBold];
+  CheckBox1.Caption := 'Recargo equivalencia';
+
+  EstiloCampo(Edit3, True);
+  EstiloCampo(Edit4, False);
+  EstiloCampo(Edit5, True);
+  EstiloCampo(Edit6, True);
+  EstiloCampo(Edit7, True);
+  EstiloCampo(Edit8, True);
+  EstiloCampo(Edit9, False);
+  EstiloCampo(Edit10, True);
+  EstiloCampo(Edit11, True);
+  Edit9.Color := RGBToColor(245, 247, 250);
+  Edit11.Color := CVerdeSuave;
+  Edit11.Font.Color := CVerde;
+
+  EstiloEtiqueta(Label12, CTextoSuave, True);
+  EstiloEtiqueta(Label13, CTextoSuave, True);
+  EstiloEtiqueta(Label14, CTextoSuave, True);
+  EstiloEtiqueta(Label15, CTextoSuave, True);
+  EstiloEtiqueta(Label16, CTextoSuave, True);
+  EstiloEtiqueta(Label17, CTextoSuave, True);
+  EstiloEtiqueta(Label18, CTextoSuave, True);
+  EstiloEtiqueta(Label19, CTextoSuave, True);
+  EstiloEtiqueta(Label20, CVerde, True);
+
+  EstiloBoton(BitBtn14, CAzulSuave, CPrimario, True);
+  EstiloBoton(BitBtn4, RGBToColor(242, 242, 238), CTexto, True);
+  EstiloBoton(BitBtn3, CRojoSuave, CRojo, True);
+  EstiloBoton(BitBtn5, CTarjeta, CPrimario, True);
+  EstiloBoton(BitBtn6, CVerdeSuave, CVerde, True);
+  EstiloBoton(btHistoricos, CTarjeta, CPrimario, True);
+  EstiloBoton(BitBtn2, RGBToColor(237, 242, 247), CTexto, True);
+  EstiloBoton(btBuscarAbono, CAmbarSuave, CTexto, True);
+  EstiloBoton(btHistoricoOperaciones, CAzulSuave, CPrimario, True);
+  if Assigned(lbHistorico) then
+  begin
+    lbHistorico.ParentFont := False;
+    lbHistorico.Font.Name := 'Sans';
+    lbHistorico.Font.Height := -10;
+    lbHistorico.Font.Color := CTextoSuave;
+    lbHistorico.Font.Style := [fsBold];
+    lbHistorico.Caption := 'FILTRO HISTÓRICOS';
+    lbHistorico.Transparent := True;
+  end;
+  if Assigned(cbHistoricos) then
+  begin
+    cbHistoricos.ParentFont := False;
+    cbHistoricos.Color := RGBToColor(248, 250, 252);
+    cbHistoricos.Font.Name := 'Sans';
+    cbHistoricos.Font.Height := -12;
+    cbHistoricos.Font.Color := CTexto;
+  end;
+
+  EstiloBoton(BitBtn8, RGBToColor(0, 151, 92), clWhite, True);
+  EstiloBoton(BitBtn17, CTarjeta, CPrimario, True);
+  EstiloBoton(BitBtn22, CTarjeta, CPrimario, True);
+  EstiloBoton(BitBtn16, CTarjeta, CPrimario, True);
+  EstiloBoton(BitBtn18, CTarjeta, CPrimario, True);
+  EstiloBoton(BitBtn21, CTarjeta, CPrimario, True);
+  EstiloBoton(BitBtn15, CRojoSuave, CRojo, True);
+  EstiloBoton(BitBtn7, CRojo, clWhite, True);
+
+  EstiloBoton(btValidarNIF, CVerdeSuave, CVerde, True);
+
+  if Assigned(LblPromoActiva) then
+  begin
+    LblPromoActiva.Font.Color := CVerde;
+    LblPromoActiva.Font.Style := [fsBold];
+  end;
+
+  VF_AplicarEstiloAuxiliares;
+end;
+
+procedure TFVentas.VF_CrearDisenoModerno;
+var
+  CTealOscuro, CFondo, CTarjeta, CBorde: TColor;
+  I: Integer;
+  P: TPanel;
+
+  procedure LiberarAnclajes(const AControl: TControl; const ARecursivo: Boolean = True);
+  var
+    J: Integer;
+    WC: TWinControl;
+  begin
+    if not Assigned(AControl) then Exit;
+    AControl.Align := alNone;
+    AControl.Anchors := [akTop, akLeft];
+    AControl.AnchorSideLeft.Control := nil;
+    AControl.AnchorSideTop.Control := nil;
+    AControl.AnchorSideRight.Control := nil;
+    AControl.AnchorSideBottom.Control := nil;
+    if AControl is TLabel then TLabel(AControl).AutoSize := False;
+    if AControl is TPanel then TPanel(AControl).AutoSize := False;
+    if ARecursivo and (AControl is TWinControl) then
+    begin
+      WC := TWinControl(AControl);
+      for J := 0 to WC.ControlCount - 1 do
+        LiberarAnclajes(WC.Controls[J], True);
+    end;
+  end;
+
+  function CrearEtiqueta(const AParent: TWinControl; const ACaption: string;
+    const AColor: TColor; const ATamano: Integer;
+    const ANegrita: Boolean = False): TLabel;
+  begin
+    Result := TLabel.Create(Self);
+    Result.Parent := AParent;
+    Result.AutoSize := False;
+    Result.Caption := ACaption;
+    Result.ParentFont := False;
+    Result.Font.Name := 'Sans';
+    Result.Font.Height := ATamano;
+    Result.Font.Color := AColor;
+    if ANegrita then Result.Font.Style := [fsBold]
+                  else Result.Font.Style := [];
+    Result.Layout := tlCenter;
+    Result.Transparent := True;
+  end;
+
+  function CrearTarjeta(const AParent: TWinControl; const AFondo, ABorde: TColor): TShape;
+  begin
+    Result := TShape.Create(Self);
+    Result.Parent := AParent;
+    Result.Shape := stRoundRect;
+    Result.Brush.Style := bsSolid;
+    Result.Brush.Color := AFondo;
+    Result.Pen.Style := psSolid;
+    Result.Pen.Color := ABorde;
+    Result.Pen.Width := 1;
+    Result.SendToBack;
+  end;
+
+  procedure CrearAtajo(const AIndice: Integer; const ACaption: string);
+  begin
+    P := TPanel.Create(Self);
+    P.Parent := pnlPieModerno;
+    P.Tag := AIndice;
+    P.Caption := ACaption;
+    P.BevelOuter := bvNone;
+    P.BevelInner := bvNone;
+    P.BorderStyle := bsNone;
+    P.ParentBackground := False;
+    P.ParentColor := False;
+    P.Color := CTarjeta;
+    P.ParentFont := False;
+    P.Font.Name := 'Sans';
+    P.Font.Height := -12;
+    P.Font.Color := RGBToColor(30, 64, 105);
+    P.Font.Style := [fsBold];
+  end;
+
+begin
+  if FDisenoModernoCreado then Exit;
+  FDisenoModernoCreado := True;
+  CTealOscuro := RGBToColor(5, 49, 78);
+  CFondo := RGBToColor(239, 244, 249);
+  CTarjeta := clWhite;
+  CBorde := RGBToColor(214, 224, 235);
+
+  LiberarAnclajes(DBGrid1);
+  LiberarAnclajes(Panel1);
+  LiberarAnclajes(Panel2);
+  LiberarAnclajes(Panel3);
+  LiberarAnclajes(Panel5);
+  LiberarAnclajes(Panel7);
+  LiberarAnclajes(pnUsuario1);
+  LiberarAnclajes(botones);
+  LiberarAnclajes(botolineas);
+
+  // V4: la barra de acciones vuelve a formar parte de la tarjeta de entrada.
+  // Así queda visualmente unida a los campos y el grid gana una base limpia.
+  botolineas.Parent := Panel3;
+
+  pnlCabeceraModerna := TPanel.Create(Self);
+  pnlCabeceraModerna.Parent := Self;
+  pnlCabeceraModerna.Name := 'pnlCabeceraModerna';
+  pnlCabeceraModerna.Caption := '';
+  pnlCabeceraModerna.BevelOuter := bvNone;
+  pnlCabeceraModerna.ParentBackground := False;
+  pnlCabeceraModerna.ParentColor := False;
+  pnlCabeceraModerna.Color := CTealOscuro;
+  LiberarAnclajes(pnlCabeceraModerna, False);
+
+  pnlCabeceraEstado := TPanel.Create(Self);
+  pnlCabeceraEstado.Parent := pnlCabeceraModerna;
+  pnlCabeceraEstado.Caption := '';
+  pnlCabeceraEstado.BevelOuter := bvNone;
+  pnlCabeceraEstado.ParentBackground := False;
+  pnlCabeceraEstado.ParentColor := False;
+  pnlCabeceraEstado.Color := clWhite;
+  LiberarAnclajes(pnlCabeceraEstado, False);
+
+  lblLogoModerno := CrearEtiqueta(pnlCabeceraModerna, 'TPV', clWhite, -15, True);
+  lblLogoModerno.Transparent := False;
+  lblLogoModerno.ParentColor := False;
+  lblLogoModerno.Color := RGBToColor(0, 128, 158);
+  lblLogoModerno.Alignment := taCenter;
+
+  lblTituloModerno := CrearEtiqueta(pnlCabeceraModerna,
+    'FacturLinEx Ventas TPV', clWhite, -25, True);
+  lblFechaModerna := CrearEtiqueta(pnlCabeceraModerna, '', clWhite, -12, True);
+  lblHoraModerna := CrearEtiqueta(pnlCabeceraModerna, '', clWhite, -12, True);
+  lblSerieModerna := CrearEtiqueta(pnlCabeceraModerna, '', clWhite, -12, True);
+  lblPuestoModerno := CrearEtiqueta(pnlCabeceraModerna, '', clWhite, -12, True);
+  lblNumeroModerno := CrearEtiqueta(pnlCabeceraModerna, '', clWhite, -12, True);
+
+  lblEstadoCajaModerno := CrearEtiqueta(pnlCabeceraEstado,
+    '●  TPV activo', RGBToColor(22, 128, 57), -12, True);
+  lblEstadoImpresoraModerno := CrearEtiqueta(pnlCabeceraEstado,
+    '▣  Impresora OK', RGBToColor(30, 64, 105), -12, True);
+  lblEstadoConexionModerno := CrearEtiqueta(pnlCabeceraEstado,
+    '●  BBDD conectada', RGBToColor(22, 128, 57), -12, True);
+  lblEstadoClienteModerno := CrearEtiqueta(pnlCabeceraEstado,
+    'Cliente: CONTADO', RGBToColor(37, 99, 235), -12, True);
+
+  pnlPieModerno := TPanel.Create(Self);
+  pnlPieModerno.Parent := Self;
+  pnlPieModerno.Name := 'pnlPieModerno';
+  pnlPieModerno.Caption := '';
+  pnlPieModerno.BevelOuter := bvNone;
+  pnlPieModerno.ParentBackground := False;
+  pnlPieModerno.ParentColor := False;
+  pnlPieModerno.Color := RGBToColor(232, 239, 246);
+  LiberarAnclajes(pnlPieModerno, False);
+
+  // Atajos del panel principal, visibles antes de las teclas de función.
+  CrearAtajo(0, 'Ctrl+O  Código cliente');
+  CrearAtajo(1, 'Ctrl+U  Nombre cliente');
+  CrearAtajo(2, 'Ctrl+N  Aceptar línea');
+  CrearAtajo(3, 'F5  Unidades');
+  CrearAtajo(4, 'F6  PVP+IVA');
+  CrearAtajo(5, 'F7  Total línea');
+  CrearAtajo(6, 'F8  Totalizar');
+  CrearAtajo(7, 'F9  Ticket');
+  CrearAtajo(8, 'F10  Albarán');
+  CrearAtajo(9, 'F11  Factura / Dto.');
+  CrearAtajo(10, 'F12  Usuario');
+  CrearAtajo(11, 'ESC  Salir');
+
+  pnlResumenVentaModerno := TPanel.Create(Self);
+  pnlResumenVentaModerno.Parent := Self;
+  pnlResumenVentaModerno.Caption := '';
+  pnlResumenVentaModerno.BevelOuter := bvNone;
+  pnlResumenVentaModerno.ParentBackground := False;
+  pnlResumenVentaModerno.ParentColor := False;
+  pnlResumenVentaModerno.Color := CFondo;
+  LiberarAnclajes(pnlResumenVentaModerno, False);
+
+  shpTarjetaCliente := CrearTarjeta(Panel1, CTarjeta, CBorde);
+  shpTarjetaEntrada := CrearTarjeta(Panel3, CTarjeta, CBorde);
+  shpTarjetaTickets := CrearTarjeta(Panel5, CTarjeta, CBorde);
+  shpTarjetaStock := CrearTarjeta(Panel7, CTarjeta, CBorde);
+  shpTarjetaTotal := CrearTarjeta(Panel2, CTealOscuro, CTealOscuro);
+  shpTarjetaQR := CrearTarjeta(Panel16, CTarjeta, CBorde);
+  shpTarjetaResumen := CrearTarjeta(pnlResumenVentaModerno, CTarjeta, CBorde);
+
+  lblCliTitulo := CrearEtiqueta(Panel1, 'Cliente', RGBToColor(21, 38, 62), -15, True);
+  lblCliCodigo := CrearEtiqueta(Panel1, 'Código cliente', RGBToColor(74, 91, 112), -11, True);
+  lblCliNombre := CrearEtiqueta(Panel1, 'Nombre', RGBToColor(74, 91, 112), -11, True);
+  lblCliDireccion := CrearEtiqueta(Panel1, 'Dirección', RGBToColor(74, 91, 112), -11, True);
+  lblCliCP := CrearEtiqueta(Panel1, 'C.P.', RGBToColor(74, 91, 112), -11, True);
+  lblCliLocalidad := CrearEtiqueta(Panel1, 'Localidad', RGBToColor(74, 91, 112), -11, True);
+  lblCliProvincia := CrearEtiqueta(Panel1, 'Provincia', RGBToColor(74, 91, 112), -11, True);
+  lblCliNIF := CrearEtiqueta(Panel1, 'NIF', RGBToColor(74, 91, 112), -11, True);
+  lblCliTelefono := CrearEtiqueta(Panel1, 'Teléfono', RGBToColor(74, 91, 112), -11, True);
+  lblStockTitulo := CrearEtiqueta(Panel7, 'Stock del artículo', RGBToColor(21, 38, 62), -14, True);
+  lblTotalTitulo := CrearEtiqueta(Panel2, 'TOTAL DE LA VENTA', clWhite, -11, True);
+  lblEntradaTitulo := CrearEtiqueta(Panel3, 'Entrada de artículos', RGBToColor(21, 38, 62), -14, True);
+
+  lblQRTitulo := CrearEtiqueta(Panel16, 'VeriFactu', RGBToColor(21, 38, 62), -14, True);
+  lblQRAyuda := CrearEtiqueta(Panel16, 'Escanee para' + LineEnding + 'verificar',
+    RGBToColor(74, 91, 112), -11, False);
+  lblQRAyuda.WordWrap := True;
+
+  lblResumenTitulo := CrearEtiqueta(pnlResumenVentaModerno, 'Venta en curso',
+    RGBToColor(21, 38, 62), -14, True);
+  lblResumenLineas := CrearEtiqueta(pnlResumenVentaModerno, '0 líneas',
+    RGBToColor(74, 91, 112), -12, True);
+  lblResumenCliente := CrearEtiqueta(pnlResumenVentaModerno, 'Cliente: CONTADO',
+    RGBToColor(74, 91, 112), -12, False);
+  lblResumenTotal := CrearEtiqueta(pnlResumenVentaModerno, 'Total  0,00',
+    RGBToColor(5, 49, 78), -18, True);
+  lblResumenTotal.Alignment := taRightJustify;
+  lblResumenAyuda := CrearEtiqueta(pnlResumenVentaModerno, 'F8  Totalizar venta',
+    RGBToColor(0, 128, 72), -12, True);
+  lblResumenAyuda.Alignment := taCenter;
+
+  pnUsuario1.Parent := pnlCabeceraModerna;
+  LiberarAnclajes(pnUsuario1);
+  pnUsuario1.ParentBackground := False;
+  pnUsuario1.ParentColor := False;
+  pnUsuario1.Color := CTealOscuro;
+  lbUsuario.Font.Color := clWhite;
+  lbUsuario.Caption := 'USUARIO / CAJERO';
+
+  if Assigned(LblPromoActiva) then
+  begin
+    LblPromoActiva.Parent := Panel3;
+    LiberarAnclajes(LblPromoActiva, False);
+  end;
+
+  VF_CrearDisenoAuxiliares;
+
+  tmrCabeceraModerna := TTimer.Create(Self);
+  tmrCabeceraModerna.Interval := 1000;
+  tmrCabeceraModerna.OnTimer := @VF_TimerCabeceraModerna;
+  tmrCabeceraModerna.Enabled := True;
+
+  OnResize := @VF_FormResizeModerno;
+  VF_ActualizarCabeceraModerna;
+
+  PanelNotas.BringToFront;
+  PanelAvisoClienteVario.BringToFront;
+  PanelCredito.BringToFront;
+  PanelNuevoCli.BringToFront;
+  PanelCodigoVario.BringToFront;
+  PanelAvisoVario.BringToFront;
+
+  for I := 0 to pnlPieModerno.ControlCount - 1 do
+    pnlPieModerno.Controls[I].Visible := True;
+end;
+
+procedure TFVentas.VF_ActualizarModoClienteCoste;
+begin
+  FClientePrecioCoste := False;
+
+  if FCampoClienteCosteDisponible then
+    FClientePrecioCoste := FLX_ClienteUsaPrecioCoste(dbClientes);
+
+  VF_ActualizarCabeceraModerna;
+end;
+
+procedure TFVentas.VF_ActualizarCabeceraModerna;
+var
+  SSerie, SPuesto, SNumero, SCliente, STotal: string;
+  NLineas: Integer;
+begin
+  if not FDisenoModernoCreado then Exit;
+
+  lblFechaModerna.Caption := 'Fecha' + LineEnding + FormatDateTime('dd/mm/yyyy', Date);
+  lblHoraModerna.Caption := 'Hora' + LineEnding + FormatDateTime('hh:nn:ss', Time);
+
+  SSerie := Trim(SERIEFACT);
+  if SSerie = '' then SSerie := '-';
+  lblSerieModerna.Caption := 'Serie' + LineEnding + SSerie;
+
+  SPuesto := Trim(Puesto);
+  if SPuesto = '' then SPuesto := '-';
+  lblPuestoModerno.Caption := 'Puesto' + LineEnding + SPuesto;
+
+  SNumero := Trim(TICKET);
+  if SNumero = '' then SNumero := '-';
+  lblNumeroModerno.Caption := 'Número' + LineEnding + SNumero;
+
+  if Assigned(DataModule1) and Assigned(DataModule1.dbConexion) and
+     DataModule1.dbConexion.Connected then
+  begin
+    lblEstadoConexionModerno.Caption := '●  BBDD conectada';
+    lblEstadoConexionModerno.Font.Color := RGBToColor(22, 128, 57);
+  end
+  else
+  begin
+    lblEstadoConexionModerno.Caption := '●  BBDD sin conexión';
+    lblEstadoConexionModerno.Font.Color := RGBToColor(177, 24, 24);
+  end;
+
+  SCliente := Trim(Edit2.Text);
+  if SCliente = '' then SCliente := 'CONTADO';
+
+  if FClientePrecioCoste then
+  begin
+    lblEstadoClienteModerno.Caption :=
+      'Cliente: ' + SCliente + '  ·  AUTOCONSUMO A COSTE';
+    lblEstadoClienteModerno.Font.Color := RGBToColor(22, 101, 52);
+  end
+  else
+  begin
+    lblEstadoClienteModerno.Caption := 'Cliente: ' + SCliente;
+    lblEstadoClienteModerno.Font.Color := RGBToColor(51, 65, 85);
+  end;
+
+  NLineas := 0;
+  if Assigned(DataSource1) and Assigned(DataSource1.DataSet) and
+     DataSource1.DataSet.Active then
+    NLineas := DataSource1.DataSet.RecordCount;
+  if NLineas = 1 then
+    lblResumenLineas.Caption := '1 línea'
+  else
+    lblResumenLineas.Caption := IntToStr(NLineas) + ' líneas';
+  lblResumenCliente.Caption := 'Cliente: ' + SCliente;
+
+  STotal := Trim(StaticText1.Caption);
+  if STotal = '' then STotal := '0,00';
+  lblResumenTotal.Caption := 'Total  ' + STotal;
+end;
+
+procedure TFVentas.VF_TimerCabeceraModerna(Sender: TObject);
+begin
+  VF_ActualizarCabeceraModerna;
+end;
+
+procedure TFVentas.VF_FormResizeModerno(Sender: TObject);
+begin
+  VF_AplicarLayoutModerno;
+end;
+
+procedure TFVentas.VF_AplicarLayoutAsync(Data: PtrInt);
+begin
+  // Se ejecuta cuando Lazarus ya terminó el autoajuste inicial del formulario.
+  VF_AplicarLayoutModerno;
+end;
+
+procedure TFVentas.VF_AplicarLayoutModerno;
+const
+  Margen = 10;
+  Separacion = 10;
+  AltoCabecera = 112;
+  AltoPie = 52;
+  AltoCliente = 182;
+  AltoEntrada = 142;
+  AltoResumen = 62;
+var
+  W, H, AnchoIzq, AnchoDer, CentroX, AnchoCentro: Integer;
+  YContenido, YEntrada, YGrid, YResumen, FondoContenido: Integer;
+  AnchoDescripcion, XNumericos, I, AnchoCelda, NAtajos: Integer;
+  BotonY, BotonH, EspacioBoton, AltoQR, AltoTickets: Integer;
+  C: TControl;
+  DataW, PillX, PillW, ColX, ColW, RestoW: Integer;
+  ToolX, ToolW: Integer;
+
+  procedure CentrarPanel(const APanel: TPanel);
+  var
+    L, T: Integer;
+  begin
+    if not Assigned(APanel) then Exit;
+    L := (W - APanel.Width) div 2;
+    if L < Margen then L := Margen;
+    T := AltoCabecera + ((H - AltoCabecera - AltoPie - APanel.Height) div 2);
+    if T < AltoCabecera + Margen then T := AltoCabecera + Margen;
+    APanel.Left := L;
+    APanel.Top := T;
+  end;
+
+  procedure AjustarTarjeta(const AShape: TShape; const APanel: TPanel);
+  begin
+    if Assigned(AShape) and Assigned(APanel) then
+      AShape.SetBounds(1, 1, APanel.ClientWidth - 2, APanel.ClientHeight - 2);
+  end;
+
+begin
+  if (not FDisenoModernoCreado) or FAplicandoLayoutModerno then Exit;
+  FAplicandoLayoutModerno := True;
+  try
+    W := ClientWidth;
+    H := ClientHeight;
+    if (W < 1050) or (H < 700) then Exit;
+
+    if W >= 1750 then
+    begin
+      AnchoIzq := 245;
+      AnchoDer := 265;
+    end
+    else if W >= 1400 then
+    begin
+      AnchoIzq := 215;
+      AnchoDer := 230;
+    end
+    else
+    begin
+      AnchoIzq := 190;
+      AnchoDer := 205;
+    end;
+
+    CentroX := Margen + AnchoIzq + Separacion;
+    AnchoCentro := W - CentroX - AnchoDer - Separacion - Margen;
+    YContenido := AltoCabecera + Margen;
+    YEntrada := YContenido + AltoCliente + Separacion;
+    YGrid := YEntrada + AltoEntrada + 8;
+    FondoContenido := H - AltoPie - Margen;
+    YResumen := FondoContenido - AltoResumen;
+
+    pnlCabeceraModerna.SetBounds(0, 0, W, AltoCabecera);
+    pnlCabeceraEstado.SetBounds(0, 72, W, 40);
+    pnlPieModerno.SetBounds(0, H - AltoPie, W, AltoPie);
+
+    lblLogoModerno.SetBounds(22, 9, 54, 52);
+    lblTituloModerno.SetBounds(90, 8, W - 900, 56);
+    lblFechaModerna.SetBounds(W - 766, 10, 104, 50);
+    lblHoraModerna.SetBounds(W - 656, 10, 94, 50);
+    lblSerieModerna.SetBounds(W - 556, 10, 70, 50);
+    lblPuestoModerno.SetBounds(W - 480, 10, 72, 50);
+    lblNumeroModerno.SetBounds(W - 402, 10, 98, 50);
+    pnUsuario1.SetBounds(W - 292, 7, 280, 58);
+    lbUsuario.SetBounds(5, 0, 150, 18);
+    cbUsuario.SetBounds(5, 21, 270, 31);
+
+    lblEstadoCajaModerno.SetBounds(W - 710, 4, 126, 31);
+    lblEstadoImpresoraModerno.SetBounds(W - 578, 4, 142, 31);
+    lblEstadoConexionModerno.SetBounds(W - 430, 4, 160, 31);
+    lblEstadoClienteModerno.SetBounds(W - 264, 4, 254, 31);
+
+    if H >= 900 then AltoTickets := 350 else AltoTickets := 300;
+    Panel5.SetBounds(Margen, YContenido, AnchoIzq, AltoTickets);
+    AjustarTarjeta(shpTarjetaTickets, Panel5);
+    Label37.SetBounds(18, 10, AnchoIzq - 78, 28);
+    if Assigned(btHistoricoOperaciones) then
+    begin
+      // Los dos accesos de Tickets abiertos se muestran en vertical:
+      // Aparcar ticket arriba e Histórico debajo, ambos a todo el ancho.
+      // La separación de 18 px equivale aproximadamente a medio centímetro
+      // con el escalado habitual y evita pulsaciones accidentales.
+      DBGrid2.SetBounds(10, 46, AnchoIzq - 20, AltoTickets - 172);
+      btHistoricoOperaciones.Parent := Panel5;
+      BitBtn24.SetBounds(10, AltoTickets - 118, AnchoIzq - 20, 44);
+      btHistoricoOperaciones.SetBounds(10, AltoTickets - 56,
+        AnchoIzq - 20, 44);
+      btHistoricoOperaciones.BringToFront;
+    end
+    else
+    begin
+      DBGrid2.SetBounds(10, 46, AnchoIzq - 20, AltoTickets - 112);
+      BitBtn24.SetBounds(10, AltoTickets - 56, AnchoIzq - 20, 44);
+    end;
+    if Assigned(pnlTicketsAparcadosInfo) then
+      pnlTicketsAparcadosInfo.SetBounds(AnchoIzq - 62, 13, 48, 22);
+
+    Panel7.SetBounds(Margen, YContenido + AltoTickets + Separacion, AnchoIzq, 166);
+    AjustarTarjeta(shpTarjetaStock, Panel7);
+    Bevel1.Visible := False;
+    lblStockTitulo.SetBounds(18, 10, AnchoIzq - 36, 28);
+    Label39.SetBounds(18, 50, 92, 24);
+    Label40.SetBounds(AnchoIzq - 105, 50, 86, 24);
+    Label42.SetBounds(18, 86, 92, 24);
+    Label41.SetBounds(AnchoIzq - 105, 86, 86, 24);
+    Label44.SetBounds(18, 122, 92, 24);
+    Label43.SetBounds(AnchoIzq - 105, 122, 86, 24);
+
+    Panel1.SetBounds(CentroX, YContenido, AnchoCentro, AltoCliente);
+    AjustarTarjeta(shpTarjetaCliente, Panel1);
+    lblCliTitulo.SetBounds(18, 8, 190, 28);
+
+    DataW := (AnchoCentro * 62) div 100;
+    if DataW < 565 then DataW := 565;
+    if DataW > AnchoCentro - 300 then DataW := AnchoCentro - 300;
+    PillX := DataW + 12;
+    PillW := (AnchoCentro - PillX - 20) div 2;
+
+    lblCliCodigo.SetBounds(20, 37, 116, 18);
+    Edit1.SetBounds(20, 56, 112, 31);
+    btCodigo.SetBounds(138, 56, 66, 31);
+    BitBtn1.SetBounds(210, 56, 34, 31);
+
+    lblCliNombre.SetBounds(258, 37, 70, 18);
+    Edit2.SetBounds(258, 56, DataW - 278, 31);
+    Combo1.SetBounds(Edit2.Left, Edit2.Top, Edit2.Width, Edit2.Height);
+
+    lblCliDireccion.SetBounds(20, 94, 80, 18);
+    Label2.SetBounds(20, 112, DataW - 40, 22);
+
+    ColX := 20;
+    lblCliCP.SetBounds(ColX, 138, 60, 17);
+    Label3.SetBounds(ColX, 156, 68, 20);
+    Inc(ColX, 78);
+    RestoW := DataW - ColX - 20;
+    ColW := (RestoW - 20) div 4;
+    lblCliLocalidad.SetBounds(ColX, 138, ColW, 17);
+    Label4.SetBounds(ColX, 156, ColW, 20);
+    Inc(ColX, ColW + 6);
+    lblCliProvincia.SetBounds(ColX, 138, ColW, 17);
+    Label5.SetBounds(ColX, 156, ColW, 20);
+    Inc(ColX, ColW + 6);
+    lblCliNIF.SetBounds(ColX, 138, ColW, 17);
+    Label21.SetBounds(ColX, 156, ColW, 20);
+    Inc(ColX, ColW + 6);
+    lblCliTelefono.SetBounds(ColX, 138, DataW - ColX - 20, 17);
+    Label22.SetBounds(ColX, 156, DataW - ColX - 20, 20);
+
+    CheckBox1.SetBounds(PillX + 12, 39, PillW - 24, 50);
+    Label9.SetBounds(PillX + PillW + 4, 40, PillW - 16, 18);
+    Label24.SetBounds(PillX + PillW + 12, 61, PillW - 32, 27);
+    Label23.SetBounds(PillX + 8, 101, PillW - 16, 18);
+    Label25.SetBounds(PillX + 16, 122, PillW - 32, 27);
+    Label10.SetBounds(PillX + PillW + 4, 101, PillW - 16, 18);
+    Label26.SetBounds(PillX + PillW + 12, 122, PillW - 32, 27);
+
+    Label6.Visible := False;
+    Label7.Visible := False;
+    Label8.Visible := False;
+    PanelCredito.SetBounds(AnchoCentro - PanelCredito.Width - 12, 55,
+      PanelCredito.Width, PanelCredito.Height);
+
+    // El aviso del próximo código de cliente queda debajo del campo Código.
+    // Así no tapa Edit1 ni provoca que el puntero entre y salga del control.
+    PanelNuevoCli.SetBounds(Edit1.Left, Edit1.Top + Edit1.Height + 5,
+      PanelNuevoCli.Width, PanelNuevoCli.Height);
+
+    Panel3.SetBounds(CentroX, YEntrada, AnchoCentro, AltoEntrada);
+    AjustarTarjeta(shpTarjetaEntrada, Panel3);
+    lblEntradaTitulo.SetBounds(16, 6, 200, 22);
+
+    Label12.SetBounds(16, 30, 112, 19);
+    Edit3.SetBounds(16, 50, 118, 32);
+    BitBtn40.SetBounds(138, 50, 30, 32);
+    BitBtn41.SetBounds(174, 50, 34, 32);
+
+    AnchoDescripcion := AnchoCentro - 785;
+    if AnchoDescripcion < 170 then AnchoDescripcion := 170;
+    Label13.SetBounds(214, 30, AnchoDescripcion, 19);
+    Edit4.SetBounds(214, 50, AnchoDescripcion, 32);
+
+    XNumericos := 214 + AnchoDescripcion + 8;
+    Label14.SetBounds(XNumericos, 30, 64, 19);
+    Edit5.SetBounds(XNumericos, 50, 64, 32);
+    Inc(XNumericos, 71);
+    Label15.SetBounds(XNumericos, 30, 74, 19);
+    Edit6.SetBounds(XNumericos, 50, 74, 32);
+    Inc(XNumericos, 81);
+    Label16.Caption := 'PRECIO';
+    Label16.SetBounds(XNumericos, 30, 72, 19);
+    Edit7.SetBounds(XNumericos, 50, 72, 32);
+    Inc(XNumericos, 79);
+    Label17.Caption := '%DTO';
+    Label17.SetBounds(XNumericos, 30, 55, 19);
+    Edit8.SetBounds(XNumericos, 50, 55, 32);
+    Inc(XNumericos, 62);
+    Label18.SetBounds(XNumericos, 30, 78, 19);
+    Edit9.SetBounds(XNumericos, 50, 78, 32);
+    Inc(XNumericos, 85);
+    Label19.SetBounds(XNumericos, 30, 47, 19);
+    Edit10.SetBounds(XNumericos, 50, 47, 32);
+    Inc(XNumericos, 54);
+    Label20.Caption := 'TOTAL';
+    Label20.SetBounds(XNumericos, 30, 82, 19);
+    Edit11.SetBounds(XNumericos, 50, 82, 32);
+
+    botolineas.SetBounds(10, 91, AnchoCentro - 20, 43);
+    BitBtn14.SetBounds(0, 0, 82, 43);
+    BitBtn4.SetBounds(88, 0, 82, 43);
+    BitBtn3.SetBounds(176, 0, 82, 43);
+
+    // Segunda fila limpia: herramientas agrupadas desde la derecha y el
+    // filtro con su etiqueta propia, sin superponerse con otros botones.
+    ToolW := 86;
+    ToolX := botolineas.Width - ToolW;
+    BitBtn2.SetBounds(ToolX, 0, ToolW, 43);
+    Dec(ToolX, 92);
+    BitBtn6.SetBounds(ToolX, 0, 86, 43);
+    Dec(ToolX, 92);
+    BitBtn5.SetBounds(ToolX, 0, 86, 43);
+    Dec(ToolX, 100);
+    btHistoricos.SetBounds(ToolX, 0, 94, 43);
+    Dec(ToolX, 140);
+    cbHistoricos.SetBounds(ToolX, 16, 134, 27);
+    lbHistorico.SetBounds(ToolX, 0, 134, 15);
+    Dec(ToolX, 120);
+    if Assigned(btBuscarAbono) then
+      btBuscarAbono.SetBounds(ToolX, 0, 112, 43);
+
+    if Assigned(LblPromoActiva) then
+      LblPromoActiva.SetBounds(210, 5, 230, 20);
+
+    // Código vario: la descripción ocupa solo el ancho normal del campo.
+    PanelCodigoVario.SetBounds(Edit4.Left, 24, Edit4.Width, 58);
+    Label76.SetBounds(8, 5, PanelCodigoVario.Width - 16, 18);
+    Edit41.SetBounds(6, 27, PanelCodigoVario.Width - 12, 25);
+
+    PanelAvisoVario.SetBounds(16, 30, AnchoCentro - 32, 54);
+
+    DBGrid1.SetBounds(CentroX, YGrid, AnchoCentro, YResumen - YGrid - 8);
+    if DBGrid1.Columns.Count >= 10 then
+    begin
+      DBGrid1.Columns[0].Width := 38;
+      DBGrid1.Columns[1].Width := 108;
+      DBGrid1.Columns[3].Width := 70;
+      DBGrid1.Columns[4].Width := 74;
+      DBGrid1.Columns[5].Width := 76;
+      DBGrid1.Columns[6].Width := 60;
+      DBGrid1.Columns[7].Width := 82;
+      DBGrid1.Columns[8].Width := 48;
+      DBGrid1.Columns[9].Width := 82;
+      DBGrid1.Columns[2].Width := AnchoCentro - 38 - 108 - 70 - 74 - 76 -
+        60 - 82 - 48 - 82 - 36;
+      if DBGrid1.Columns[2].Width < 190 then DBGrid1.Columns[2].Width := 190;
+    end;
+
+    pnlResumenVentaModerno.SetBounds(CentroX, YResumen, AnchoCentro, AltoResumen);
+    AjustarTarjeta(shpTarjetaResumen, pnlResumenVentaModerno);
+    lblResumenTitulo.SetBounds(18, 8, 150, 22);
+    lblResumenLineas.SetBounds(18, 31, 100, 21);
+    lblResumenCliente.SetBounds(130, 31, AnchoCentro - 580, 21);
+    lblResumenAyuda.SetBounds(AnchoCentro - 370, 17, 170, 28);
+    lblResumenTotal.SetBounds(AnchoCentro - 198, 12, 180, 34);
+
+    Panel2.SetBounds(W - Margen - AnchoDer, YContenido, AnchoDer, 94);
+    AjustarTarjeta(shpTarjetaTotal, Panel2);
+    lblTotalTitulo.SetBounds(16, 9, AnchoDer - 32, 20);
+    StaticText1.SetBounds(14, 29, AnchoDer - 28, 54);
+
+    botones.SetBounds(W - Margen - AnchoDer, YContenido + 104, AnchoDer,
+      FondoContenido - (YContenido + 104));
+
+    if botones.Height >= 680 then AltoQR := 176
+    else if botones.Height >= 560 then AltoQR := 140
+    else if botones.Height >= 460 then AltoQR := 116
+    else AltoQR := 88;
+    Panel16.SetBounds(0, 0, AnchoDer, AltoQR);
+    Panel16.BevelInner := bvNone;
+    Panel16.BevelOuter := bvNone;
+    Panel16.BorderStyle := bsNone;
+    AjustarTarjeta(shpTarjetaQR, Panel16);
+    BarcodeQR1.AutoSize := False;
+    Image1.Stretch := True;
+    if AnchoDer >= 240 then
+    begin
+      lblQRTitulo.SetBounds(16, 12, 92, 24);
+      lblQRAyuda.SetBounds(16, 38, 88, 55);
+      BarcodeQR1.SetBounds(AnchoDer - 132, 12, 116, AltoQR - 46);
+    end
+    else
+    begin
+      lblQRTitulo.SetBounds(12, 10, 66, 22);
+      lblQRAyuda.SetBounds(12, 33, 58, 50);
+      BarcodeQR1.SetBounds(AnchoDer - 96, 10, 84, AltoQR - 42);
+    end;
+    Image1.SetBounds(12, AltoQR - 30, AnchoDer - 24, 20);
+
+    BitBtn8.Caption := 'Totalizar (F8)';
+    BotonY := AltoQR + 10;
+    BitBtn8.SetBounds(0, BotonY, AnchoDer, 60);
+    Inc(BotonY, 66);
+    EspacioBoton := 5;
+    BotonH := (botones.Height - BotonY - 2 - (6 * EspacioBoton)) div 7;
+    if BotonH > 50 then BotonH := 50;
+    if BotonH < 28 then BotonH := 28;
+    BitBtn17.SetBounds(0, BotonY, AnchoDer, BotonH); Inc(BotonY, BotonH + EspacioBoton);
+    BitBtn22.SetBounds(0, BotonY, AnchoDer, BotonH); Inc(BotonY, BotonH + EspacioBoton);
+    BitBtn16.SetBounds(0, BotonY, AnchoDer, BotonH); Inc(BotonY, BotonH + EspacioBoton);
+    BitBtn18.SetBounds(0, BotonY, AnchoDer, BotonH); Inc(BotonY, BotonH + EspacioBoton);
+    BitBtn21.SetBounds(0, BotonY, AnchoDer, BotonH); Inc(BotonY, BotonH + EspacioBoton);
+    BitBtn15.Caption := 'Borrar venta';
+    BitBtn15.SetBounds(0, BotonY, AnchoDer, BotonH); Inc(BotonY, BotonH + EspacioBoton);
+    BitBtn7.Caption := 'Salir [ESC]';
+    BitBtn7.SetBounds(0, BotonY, AnchoDer, BotonH);
+
+    NAtajos := pnlPieModerno.ControlCount;
+    if NAtajos > 0 then
+    begin
+      AnchoCelda := W div NAtajos;
+      for I := 0 to NAtajos - 1 do
+      begin
+        C := pnlPieModerno.Controls[I];
+        if C.Tag = NAtajos - 1 then
+          C.SetBounds(C.Tag * AnchoCelda, 3, W - (C.Tag * AnchoCelda), AltoPie - 6)
+        else
+          C.SetBounds(C.Tag * AnchoCelda, 3, AnchoCelda - 2, AltoPie - 6);
+      end;
+    end;
+
+    VF_AplicarLayoutAuxiliares;
+
+    VF_PosicionarBotonValidarNIF;
+    VF_ActualizarCabeceraModerna;
+
+    DBGrid1.BringToFront;
+    Panel1.BringToFront;
+    Panel3.BringToFront;
+    Panel5.BringToFront;
+    Panel7.BringToFront;
+    Panel2.BringToFront;
+    botones.BringToFront;
+    pnlResumenVentaModerno.BringToFront;
+    pnlCabeceraModerna.BringToFront;
+    pnlPieModerno.BringToFront;
+
+    Panel4.BringToFront;
+    Panel6.BringToFront;
+    Panel8.BringToFront;
+    Panel9.BringToFront;
+    Panel10.BringToFront;
+    Panel11.BringToFront;
+    PanelBuscaArticulos.BringToFront;
+
+    // Paneles de aviso internos, por encima de las etiquetas decorativas.
+    PanelNotas.BringToFront;
+    PanelAvisoClienteVario.BringToFront;
+    PanelCredito.BringToFront;
+    PanelNuevoCli.BringToFront;
+    PanelCodigoVario.BringToFront;
+    PanelAvisoVario.BringToFront;
+    if Assigned(LblPromoActiva) and LblPromoActiva.Visible then
+      LblPromoActiva.BringToFront;
+  finally
+    FAplicandoLayoutModerno := False;
+  end;
+end;
+
 procedure TFVentas.FormCreate(Sender: TObject);
 var
   T1: QWord;
+  ErrorClienteCoste: string;
 begin
+  VF_DiagLog('FORMCREATE_ENTER | Self=' + VF_DiagObj(Self) +
+    ' | Sender=' + VF_DiagObj(Sender));
+  VF_DiagInstalarApp(Self);
+
+  // Ruta correcta para Ctrl+letra cuando el foco está en un TEdit/GtkEntry.
+  // KeyPreview ya está activado en el LFM.
+  Self.OnUTF8KeyPress := @FormUTF8KeyPress;
+
+  {$IFDEF LCLGTK2}
+  FGtkCtrlHookInstalado := False;
+  {$ENDIF}
+
+  FClientePrecioCoste := False;
+  FCampoClienteCosteDisponible :=
+    FLX_AsegurarCampoClienteCoste(
+      dbClientes.Connection, ErrorClienteCoste
+    );
 // Visual de promociones
 FEdit6ColorNormal := Edit6.Font.Color;
 FEdit6StyleNormal := Edit6.Font.Style;
@@ -2872,7 +5502,28 @@ LblPromoActiva.Top := Edit6.Top + 4;
   btBuscarAbono.ShowHint := True;
   btBuscarAbono.Hint := 'Busca en historico las ventas de este articulo para preparar un abono VeriFactu';
   btBuscarAbono.OnClick := @btBuscarAbonoClick;
+
+  // Acceso directo al formulario completo de Histórico de operaciones.
+  // Histórico se abre modal: Ventas permanece debajo y recupera el foco al cerrar.
+  btHistoricoOperaciones := TBitBtn.Create(Self);
+  btHistoricoOperaciones.Caption := 'Histórico';
+  btHistoricoOperaciones.TabStop := False;
+  btHistoricoOperaciones.ShowHint := True;
+  btHistoricoOperaciones.Hint :=
+    'Abrir Histórico de operaciones para localizar y generar una venta o abono';
+  btHistoricoOperaciones.OnClick := @btHistoricoOperacionesClick;
+
   VF_PosicionarBotonBuscarAbono;
+
+  // Modernización visual real v6: mantiene la pantalla principal refinada y
+  // extiende el mismo lenguaje visual a totalización, selección de usuario,
+  // alta rápida, series, pedidos, presupuestos y buscadores. No modifica SQL ni
+  // eventos funcionales de ventas.
+  VF_CrearDisenoModerno;
+  VF_AplicarEstiloModerno;
+  VF_AplicarLayoutModerno;
+  FEdit6ColorNormal := Edit6.Font.Color;
+  FEdit6StyleNormal := Edit6.Font.Style;
 
   //--------- Conectar con la bbdd e inicializar datos globales
   //Conectate(dbConnect);   // Utilizamos datamodule1.dbConexión para toda la aplicación.
@@ -2929,6 +5580,7 @@ LblPromoActiva.Top := Edit6.Top + 4;
     BarcodeQR1.Text := TextoCodigoQR;
 
   txtQR := BarcodeQR1.Text;
+  FLXAplicarTemaVisual(Self);
 
 end;
 
@@ -2939,6 +5591,11 @@ begin
 end;
 procedure TFVentas.FormClose(Sender: TObject; var CloseAction: TCloseAction);
 begin
+  VF_DiagLog('FORMCLOSE_ENTER | Self=' + VF_DiagObj(Self));
+  {$IFDEF LCLGTK2}
+  VF_DesinstalarCapturaCtrlGTK2;
+  {$ENDIF}
+  VF_DiagDesinstalarApp(Self);
   CloseAction:=CaFree;
 end;
 
@@ -3363,6 +6020,210 @@ end;
 //**   Busca precios del artículo en el histórico de clientes/ Artículos  **
 //**************************************************************************
 
+//==========================================================================
+// ACCESO DIRECTO AL HISTÓRICO DE OPERACIONES DESDE VENTAS
+// Mantiene Ventas abierta, permite usar la recuperación original del Histórico
+// y, al volver, recarga los tickets para mostrar automáticamente el abono creado.
+//==========================================================================
+procedure TFVentas.btHistoricoOperacionesClick(Sender: TObject);
+var
+  TicketsAntes: TStringList;
+  TicketAntes, TicketObjetivo, TicketCandidato: String;
+  NumeroCandidato, NumeroMayor: Integer;
+  LlenandoAnterior: Integer;
+  HabiaLineasAntes, TicketObjetivoEnLista: Boolean;
+begin
+  if not VF_AtajosCtrlPrincipalActivos then
+  begin
+    ShowMessage('Cierre o cancele primero el panel actual antes de abrir ' +
+      'el Histórico de operaciones.');
+    Exit;
+  end;
+
+  // No abandonar una edición activa del dataset. Los campos de entrada normales
+  // de Ventas no se fuerzan ni se borran; únicamente se confirma el registro si
+  // Zeos lo tuviera en edición o inserción.
+  try
+    if dbVentas.State in [dsEdit, dsInsert] then
+      dbVentas.Post;
+  except
+    on E: Exception do
+    begin
+      ShowMessage('No se puede abrir el Histórico porque hay una línea ' +
+        'pendiente de validar:' + LineEnding + E.Message);
+      Exit;
+    end;
+  end;
+
+  TicketsAntes := TStringList.Create;
+  try
+    TicketsAntes.Sorted := True;
+    TicketsAntes.Duplicates := dupIgnore;
+    TicketAntes := Trim(TICKET);
+    HabiaLineasAntes := dbVentas.Active and (dbVentas.RecordCount > 0);
+
+    // Guardamos los tickets existentes para reconocer el que pueda crear
+    // "Generar venta/abono" dentro del Histórico.
+    if dbTickets.Active and (dbTickets.RecordCount > 0) then
+    begin
+      dbTickets.DisableControls;
+      try
+        dbTickets.First;
+        while not dbTickets.EOF do
+        begin
+          TicketCandidato := Trim(dbTickets.FieldByName('TI0').AsString);
+          if TicketCandidato <> '' then
+            TicketsAntes.Add(TicketCandidato);
+          dbTickets.Next;
+        end;
+        if TicketAntes <> '' then
+          dbTickets.Locate('TI0', TicketAntes, []);
+      finally
+        dbTickets.EnableControls;
+      end;
+    end;
+
+    // ShowFormHistoop usa ShowModal. Por ello Ventas no se cierra ni se duplica:
+    // queda debajo y la ejecución continúa aquí cuando se cierra Histórico.
+    ShowFormHistoop;
+
+    TicketObjetivo := '';
+    TicketObjetivoEnLista := False;
+    NumeroMayor := -1;
+    LlenandoAnterior := Llenando;
+    Llenando := 1;
+    try
+      // Reabrir, en vez de un Refresh simple, garantiza que se incorporen
+      // tickets creados por otro TZQuery dentro del formulario Histórico.
+      dbTickets.Active := False;
+      dbTickets.SQL.Text :=
+        'SELECT DISTINCT(V1) As TI0, SUM(V11) As TI1 FROM ventas' +
+        Tienda + Puesto + ' WHERE V0=0 GROUP BY V1';
+      dbTickets.Active := True;
+
+      if dbTickets.RecordCount > 0 then
+      begin
+        dbTickets.First;
+        while not dbTickets.EOF do
+        begin
+          TicketCandidato := Trim(dbTickets.FieldByName('TI0').AsString);
+          if (TicketCandidato <> '') and
+             (TicketsAntes.IndexOf(TicketCandidato) < 0) then
+          begin
+            // Si Histórico creó un ticket nuevo, seleccionamos el de numeración
+            // mayor. Normalmente será uno solo, pero así evitamos ambigüedades.
+            if TryStrToInt(TicketCandidato, NumeroCandidato) then
+            begin
+              if NumeroCandidato > NumeroMayor then
+              begin
+                NumeroMayor := NumeroCandidato;
+                TicketObjetivo := TicketCandidato;
+                TicketObjetivoEnLista := True;
+              end;
+            end
+            else if TicketObjetivo = '' then
+            begin
+              TicketObjetivo := TicketCandidato;
+              TicketObjetivoEnLista := True;
+            end;
+          end;
+          dbTickets.Next;
+        end;
+
+        // Si no se creó un ticket nuevo, respetar primero el ticket que pudiera
+        // haber dejado seleccionado Histórico y después el que estaba abierto.
+        if (TicketObjetivo = '') and (Trim(TICKET) <> '') and
+           dbTickets.Locate('TI0', Trim(TICKET), []) then
+        begin
+          TicketObjetivo := Trim(TICKET);
+          TicketObjetivoEnLista := True;
+        end;
+
+        if (TicketObjetivo = '') and (TicketAntes <> '') and
+           dbTickets.Locate('TI0', TicketAntes, []) then
+        begin
+          TicketObjetivo := TicketAntes;
+          TicketObjetivoEnLista := True;
+        end;
+
+        // Si se abrió Histórico desde un ticket nuevo todavía vacío y solo se
+        // consultó, conservar ese ticket aunque no aparezca en dbTickets.
+        if (TicketObjetivo = '') and (TicketAntes <> '') and
+           (not HabiaLineasAntes) then
+        begin
+          TicketObjetivo := TicketAntes;
+          TicketObjetivoEnLista := False;
+        end;
+
+        if TicketObjetivo = '' then
+        begin
+          dbTickets.First;
+          TicketObjetivo := Trim(dbTickets.FieldByName('TI0').AsString);
+          TicketObjetivoEnLista := True;
+        end;
+
+        if TicketObjetivoEnLista and (TicketObjetivo <> '') then
+          dbTickets.Locate('TI0', TicketObjetivo, []);
+      end;
+    finally
+      Llenando := LlenandoAnterior;
+    end;
+
+    if (dbTickets.RecordCount > 0) and TicketObjetivoEnLista then
+    begin
+      TICKET := TicketObjetivo;
+      CambiarTicket;
+    end
+    else
+    begin
+      // El usuario pudo entrar solo a consultar y salir sin generar nada.
+      // Conservamos el número del ticket vacío que ya tenía en pantalla.
+      if TicketObjetivo <> '' then
+        TICKET := TicketObjetivo
+      else if TicketAntes <> '' then
+        TICKET := TicketAntes
+      else
+        TICKET := '1';
+      dbVentas.Active := False;
+      dbVentas.SQL.Text := 'SELECT * FROM ventas' + Tienda + Puesto +
+        ' WHERE V0=0 AND V1=' + TICKET;
+      dbVentas.Active := True;
+      if dbVentas.RecordCount > 0 then
+      begin
+        if dbVentas.FieldByName('V12').AsInteger <> 0 then
+          Edit1.Text := dbVentas.FieldByName('V12').AsString
+        else
+          Edit1.Text := ClienteVario;
+      end
+      else
+        Edit1.Text := ClienteVario;
+      Edit1Exit(Edit1);
+      PintarTotalGeneral;
+      if Edit3.CanFocus then
+        Edit3.SetFocus;
+    end;
+
+    VF_ActualizarIndicadorTicketsAparcados;
+    VF_ActualizarCabeceraModerna;
+  except
+    on E: Exception do
+    begin
+      // Ventas continúa abierta incluso si Histórico o el refresco fallan.
+      ShowMessage('No se pudo completar el acceso al Histórico de operaciones:' +
+        LineEnding + E.Message);
+      try
+        RefrescaTicketsAbiertos;
+      except
+        // Evitar que un segundo error oculte el primero.
+      end;
+      if Edit3.CanFocus then
+        Edit3.SetFocus;
+    end;
+  end;
+  TicketsAntes.Free;
+end;
+
+
 procedure TFVentas.btHistoricosClick(Sender: TObject);
 var
   inutil: string;
@@ -3402,6 +6263,7 @@ var
   HuboCoincidencias: Boolean;
   EsDocumentoFiscal: Boolean;
 begin
+  FClientePrecioCoste := False;
   PanelCredito.Visible:=False; PanelNuevoCli.Visible:=False; panelNotas.Visible:=False;
   if Trim(Edit1.Text)='' then Edit1.Text:=ClienteVario; //------- Clientes varios
 
@@ -3451,6 +6313,7 @@ begin
          PanelAvisoClienteVario.Visible:=True;
          Edit29.Text:='Cliente Venta Contado'; Edit31.Text:=''; Edit32.Text:='';
          Edit37.Text:=''; Edit38.Text:=''; Edit39.Text:=''; Edit40.Text:='';
+         VF_PrepararAltaClienteFacturacion;
          BitBtn33Click(self);
          Exit
        end;
@@ -3459,9 +6322,11 @@ begin
        begin Edit1.SetFocus; Exit; end;
      Edit29.Text:=''; Edit31.Text:=''; Edit32.Text:='';
      Edit37.Text:=''; Edit38.Text:=''; Edit39.Text:=''; Edit40.Text:='';
+     VF_PrepararAltaClienteFacturacion;
      if EsDocumentoFiscal then
        Edit39.Text:=DocumentoFiscal; // Prefill NIF/CIF en alta rapida, sin usarlo obligatoriamente como codigo.
      Panel11.Visible:=True;
+     Panel11.BringToFront;
      //------------- Deshabilito controles para dar de alta
      Panel3.Enabled:=False; DBGrid1.Enabled:=False;
      Panel5.Enabled:=False; Panel1.Enabled:=False;
@@ -3477,6 +6342,7 @@ begin
   Label5.Caption:=dbClientes.FieldByName('C38').AsString;//---- Provincia
   Label21.Caption:=dbClientes.FieldByName('C5').AsString;//---- N.I.F. / C.I.F.
   Label22.Caption:=dbClientes.FieldByName('C6').AsString;//---- Telefonos
+  VF_ActualizarModoClienteCoste;
   //--- Recargo Equiv.
   if dbClientes.FieldByName('C19').AsString='S' then
     begin CheckBox1.Checked:=True; CheckBox1.Font.Color:=clRed; end
@@ -3577,6 +6443,7 @@ end;
 procedure TFVentas.Edit3KeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
+  VF_DiagLogTecla('03_EDIT3_KEYDOWN', Sender, Key, Shift);
   if key=VK_TAB then
     begin
       if Edit3.Text='' then exit;//---- Si no hay articulo
@@ -3709,6 +6576,9 @@ procedure TFVentas.Edit3KeyPress(Sender: TObject; var Key: char);
 var
   textoaprobacion:string;
 begin
+  VF_DiagLog('03_EDIT3_KEYPRESS | Sender=' + VF_DiagObj(Sender) +
+    ' | CharCode=' + IntToStr(Ord(Key)) +
+    ' | ActiveControl=' + VF_DiagObj(Screen.ActiveControl));
   textoaprobacion:='';
   if (Key=#13) and (edit3.Text='') then
   begin
@@ -3754,21 +6624,37 @@ begin
 end;
 
 procedure TFVentas.Edit41Exit(Sender: TObject);
-var
-  Tecla: char;
 begin
-  tecla:=#13;
-  Edit41KeyPress(self, tecla);
+  if PanelCodigoVario.Visible then
+  begin
+    Edit4.Text := Edit41.Text;
+    PanelCodigoVario.Visible := False;
+  end;
+end;
+
+procedure TFVentas.Edit41KeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key = VK_TAB then
+  begin
+    Edit4.Text := Edit41.Text;
+    PanelCodigoVario.Visible := False;
+    Edit5.SetFocus;
+    Edit5.SelectAll;
+    Key := 0;
+  end;
 end;
 
 procedure TFVentas.Edit41KeyPress(Sender: TObject; var Key: char);
 begin
-  if key=#13 then
-    begin
-      PanelCodigoVario.Visible:=False;
-      Edit4.Text:= Edit41.Text;
-      BitBtn14.SetFocus;
-    end;
+  if Key = #13 then
+  begin
+    Edit4.Text := Edit41.Text;
+    PanelCodigoVario.Visible := False;
+    Key := #0;
+    BitBtn14Click(BitBtn14);
+    Edit3.SetFocus;
+  end;
 end;
 
 procedure TFVentas.BitBtn40Click(Sender: TObject);
@@ -3800,9 +6686,83 @@ end;
 
 
 
+//================= TECLADO VIRTUAL ====================
+procedure TFVentas.TecladoProductoSeleccionado(
+  const ACodigo: string; ACantidad: Double);
+var
+  Tecla: char;
+begin
+  if Trim(ACodigo) = '' then
+    Exit;
+
+  Edit3.Text := Trim(ACodigo);
+  if ACantidad > 0 then
+    Edit5.Text := FloatToStr(ACantidad);
+
+  // Misma entrada que escribir el código y pulsar INTRO.
+  Tecla := #13;
+  Edit3KeyPress(Edit3, Tecla);
+end;
+
+procedure TFVentas.BitBtn2Click(Sender: TObject);
+var
+  CampoInicial: TWinControl;
+begin
+  CampoInicial := Screen.ActiveControl;
+
+  if not (CampoInicial is TCustomEdit) then
+  begin
+    if PanelCodigoVario.Visible then
+      CampoInicial := Edit41
+    else
+      CampoInicial := Edit3;
+  end;
+
+  FLXMostrarTecladoVirtual(Self, CampoInicial, dbArti.Connection,
+    Tienda, @TecladoProductoSeleccionado);
+end;
+
+// Antes de grabar una línea, fuerza la salida real del campo de cálculo que
+// tenga el foco. Así Lazarus ejecuta su OnExit y deja precios, descuentos e
+// importes actualizados antes de que GrabaEntrada copie los valores.
+function TFVentas.VF_PrepararLineaAntesDeGrabar: Boolean;
+var
+  CampoActivo: TWinControl;
+begin
+  Result := True;
+  CampoActivo := Screen.ActiveControl;
+
+  if not ((CampoActivo = Edit5) or   // Unidades
+          (CampoActivo = Edit6) or   // PVP con IVA
+          (CampoActivo = Edit7) or   // Precio sin IVA
+          (CampoActivo = Edit8) or   // Descuento
+          (CampoActivo = Edit10) or  // IVA
+          (CampoActivo = Edit11)) then // Total de línea
+    Exit;
+
+  if not Edit3.CanFocus then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  // SetFocus provoca de forma síncrona el OnExit del control anterior.
+  // Si el dato no es válido, su OnExit devuelve el foco al campo y no se
+  // permite grabar la línea.
+  Edit3.SetFocus;
+  Result := Screen.ActiveControl = Edit3;
+  if not Result then
+    Exit;
+
+  // Garantía final, especialmente necesaria al salir del campo IVA.
+  VerImporteEntra;
+  VerTotalEntra;
+end;
+
 //================= NUEVA LINEA DE VENTA =============
 procedure TFVentas.BitBtn14Click(Sender: TObject);
 begin
+  if not VF_PrepararLineaAntesDeGrabar then exit;
   if (Edit3.Text='') or (Edit4.Text='') then exit;//---- Si no hay articulo o unidades
   HayStock;//---- Comprobamos si hay stock suficiente.
   Modificando:=0;
@@ -3902,11 +6862,45 @@ begin
 end;
 
 procedure TFVentas.BitBtn5Click(Sender: TObject);
+
+  function TextoAjustado(const ATexto: string; const ALongitud: Integer): string;
+  begin
+    Result := Copy(ATexto, 1, ALongitud);
+    while Length(Result) < ALongitud do
+      Result := Result + ' ';
+  end;
+
+  function FechaUltimaCompraTexto: string;
+  var
+    SFecha: string;
+  begin
+    Result := '-';
+    if dbBusca.FieldByName('A13').IsNull then Exit;
+
+    SFecha := Trim(dbBusca.FieldByName('A13').AsString);
+    if (SFecha = '') or (SFecha = '0000-00-00') then Exit;
+
+    // MariaDB suele devolver la fecha en ISO. La convertimos sin depender
+    // de la configuración regional ni de fechas cero antiguas.
+    if (Length(SFecha) >= 10) and (SFecha[5] = '-') and (SFecha[8] = '-') then
+      Result := Copy(SFecha, 9, 2) + '/' + Copy(SFecha, 6, 2) + '/' +
+        Copy(SFecha, 1, 4)
+    else
+      try
+        Result := FormatDateTime('dd/mm/yyyy',
+          dbBusca.FieldByName('A13').AsDateTime);
+      except
+        Result := SFecha;
+      end;
+  end;
+
+var
+  DescripcionFila, FechaFila, PVPFila: string;
 begin
   if Edit4.Text='' then begin DataModule1.Mensaje('Información','Teclee artículo a buscar', 2000 , clGray); Edit4.SetFocus; Exit; end;
   BuscaEan:=False;
   ListBox3.Items.Clear;
-  dbBusca.SQL.Text:='SELECT A0,A1,A2 FROM artitien'+Tienda+' WHERE A1 LIKE "%'+Edit4.Text+'%" ORDER BY A1';
+  dbBusca.SQL.Text:='SELECT A0,A1,A2,A13 FROM artitien'+Tienda+' WHERE A1 LIKE "%'+Edit4.Text+'%" ORDER BY A1';
   if label13.Caption='DESCRIPCION EAN' THEN
     begin
        dbBusca.SQL.Text:='SELECT * FROM eans WHERE EAN2 LIKE "%'+Edit4.Text+'%" ORDER BY EAN2';
@@ -3914,6 +6908,23 @@ begin
        label13.Caption:='DESCRIPCION ARTICULO';
        BuscaEan:=True;
     end;
+
+  if Assigned(lblBuscaArticulosDescripcion) then
+  begin
+    if BuscaEan then
+      lblBuscaArticulosDescripcion.Caption := 'Descripción EAN'
+    else
+      lblBuscaArticulosDescripcion.Caption := 'Descripción';
+  end;
+  if Assigned(lblBuscaArticulosUltCompra) then
+    lblBuscaArticulosUltCompra.Visible := not BuscaEan;
+  if Assigned(lblBuscaArticulosPVP) then
+    lblBuscaArticulosPVP.Visible := not BuscaEan;
+  if BuscaEan then
+    ListBox3.Font.Name := 'Sans'
+  else
+    ListBox3.Font.Name := 'Monospace';
+
   dbBusca.Active:=True;
   if dbBusca.RecordCount=0 then
     begin
@@ -3924,8 +6935,17 @@ begin
   dbBusca.First;
   While not dbBusca.EOF do
     begin
-      if (BuscaEan=True) then ListBox3.Items.Add(dbBusca.FieldByName('EAN2').AsString)
-                       else ListBox3.Items.Add(dbBusca.FieldByName('A1').AsString);
+      if (BuscaEan=True) then
+        ListBox3.Items.Add(dbBusca.FieldByName('EAN2').AsString)
+      else
+        begin
+          DescripcionFila := TextoAjustado(
+            dbBusca.FieldByName('A1').AsString, 62);
+          FechaFila := TextoAjustado(FechaUltimaCompraTexto, 10);
+          PVPFila := FormatFloat('0.00', dbBusca.FieldByName('A2').AsFloat);
+          ListBox3.Items.Add(DescripcionFila + '  ' + FechaFila + '  ' +
+            Format('%12s', [PVPFila]));
+        end;
       dbBusca.Next;
     end;
   PanelBuscaArticulos.Visible:=True;
@@ -3936,9 +6956,18 @@ end;
 
 procedure TFVentas.ListBox3DblClick(Sender: TObject);
 begin
+  if (ListBox3.ItemIndex < 0) or (not dbBusca.Active) then Exit;
+
+  // La fila visible contiene ahora descripción, última compra y PVP.
+  // Seleccionamos por posición para no depender del texto formateado y para
+  // distinguir correctamente artículos que tengan la misma descripción.
+  dbBusca.First;
+  if ListBox3.ItemIndex > 0 then
+    dbBusca.MoveBy(ListBox3.ItemIndex);
+  if dbBusca.EOF then begin Edit4.Text:=''; Exit; end;
+
   if (BuscaEan=True) then
     begin
-      if not dbBusca.Locate('EAN2',ListBox3.Items.Strings[ListBox3.ItemIndex],[]) then begin Edit4.Text:=''; Exit; end;
       Edit3.Text:=dbBusca.Fieldbyname('EAN0').AsString;
       Edit4.Text:=dbBusca.FieldByName('EAN3').AsString;
       if LeerAuxiliar=False then
@@ -3949,10 +6978,9 @@ begin
           end;
     end else
     begin
-      if not dbBusca.Locate('A1',ListBox3.Items.Strings[ListBox3.ItemIndex],[]) then begin Edit4.Text:=''; Exit; end;
-      Edit3.Text:=dbBusca.Fields[0].AsString;
-      Edit4.Text:=dbBusca.Fields[1].AsString;
-      if Edit6.Text='0' then Edit6.Text:=dbBusca.Fields[2].AsString;
+      Edit3.Text:=dbBusca.FieldByName('A0').AsString;
+      Edit4.Text:=dbBusca.FieldByName('A1').AsString;
+      if Edit6.Text='0' then Edit6.Text:=dbBusca.FieldByName('A2').AsString;
       dbArti.Active:=False;
       dbArti.SQL.Text:='SELECT * FROM artitien'+Tienda+' WHERE A0="'+Edit3.Text+'"';
       dbArti.Active:=True;
@@ -4058,6 +7086,15 @@ begin
   Edit3.SetFocus; Edit5.Text:=AntEdit5; Edit6.Text:=AntEdit6;
 end;
 
+//================== SELECCION AUTOMATICA DE CAMPOS DE PRECIO ==============
+procedure TFVentas.EditPrecioEnter(Sender: TObject);
+begin
+  // Facilita sustituir el precio con teclado y evita dejar el cursor en medio
+  // del importe antes de abrir manualmente el selector de tarifas.
+  if Sender is TEdit then
+    TEdit(Sender).SelectAll;
+end;
+
 //================== SALIR DEL PVP ==============
 procedure TFVentas.Edit6KeyPress(Sender: TObject; var Key: char);
 var
@@ -4114,9 +7151,97 @@ begin
 end;
 
 procedure TFVentas.Edit7DblClick(Sender: TObject);
+var
+  TienePrecioBase, TienePrecioTarifa, ArticuloActualCargado: Boolean;
+  CodigoEntrada, CodigoActual: String;
 begin
-  if ListBox2.Items.Count=0 then showmessage('No hay tarifas que mostrar')
-  else MuestraTarifas();
+  // Tag=1: se abrió desde PVP con IVA (Edit6).
+  // Tag=2: se abrió desde precio sin IVA (Edit7).
+  if Sender = Edit6 then
+    ListBox2.Tag := 1
+  else
+    ListBox2.Tag := 2;
+
+  // Nunca mantener visible un selector anterior mientras validamos el artículo.
+  ListBox2.Visible := False;
+
+  if Trim(Edit3.Text) = '' then
+  begin
+    DataModule1.Mensaje('Información',
+      'Seleccione primero un artículo para consultar sus tarifas', 2200, clGray);
+    Edit3.SetFocus;
+    Edit3.SelectAll;
+    Exit;
+  end;
+
+  // Confirmamos que dbArti corresponde al código que figura actualmente en
+  // pantalla. Así no se muestran por error las tarifas del artículo anterior.
+  CodigoEntrada := Trim(Edit3.Text);
+  CodigoActual := '';
+  ArticuloActualCargado := dbArti.Active and (not dbArti.IsEmpty);
+  if ArticuloActualCargado then
+  begin
+    CodigoActual := Trim(dbArti.FieldByName('A0').AsString);
+    ArticuloActualCargado := SameText(CodigoEntrada, CodigoActual);
+
+    // Edit3 también puede contener un EAN/código auxiliar.
+    if not ArticuloActualCargado then
+    begin
+      dbBusca.Active := False;
+      dbBusca.SQL.Text := 'SELECT EAN1 FROM eans WHERE EAN0="' +
+        FLX_SQLValorDoble(CodigoEntrada) + '" LIMIT 1';
+      dbBusca.Active := True;
+      ArticuloActualCargado := (not dbBusca.IsEmpty) and
+        SameText(Trim(dbBusca.FieldByName('EAN1').AsString), CodigoActual);
+    end;
+  end;
+
+  // Si todavía no se ha cargado el artículo, o el código cambió desde la
+  // última lectura, intentamos resolverlo antes de abrir las tarifas.
+  if not ArticuloActualCargado then
+  begin
+    if (not LeerArticulo) and (not LeerAuxiliar) then
+    begin
+      DataModule1.Mensaje('Información',
+        'No se ha podido localizar el artículo indicado', 2200, clGray);
+      Edit3.SetFocus;
+      Edit3.SelectAll;
+      Exit;
+    end;
+  end;
+
+  // Se reconstruye en cada apertura para evitar datos antiguos.
+  VerTarifas(False);
+
+  TienePrecioBase :=
+    (StrToFloatDef(VF_NormalizaNumero(dbArti.FieldByName('A2').AsString), 0) <> 0) or
+    (StrToFloatDef(VF_NormalizaNumero(dbArti.FieldByName('A21').AsString), 0) <> 0);
+
+  TienePrecioTarifa := False;
+  if dbTrabajo.Active and (not dbTrabajo.IsEmpty) then
+    TienePrecioTarifa :=
+      (dbTrabajo.FieldByName('TAR7').AsFloat <> 0) or
+      (dbTrabajo.FieldByName('TAR2').AsFloat <> 0) or
+      (dbTrabajo.FieldByName('TAR8').AsFloat <> 0) or
+      (dbTrabajo.FieldByName('TAR4').AsFloat <> 0) or
+      (dbTrabajo.FieldByName('TAR9').AsFloat <> 0) or
+      (dbTrabajo.FieldByName('TAR6').AsFloat <> 0);
+
+  if (ListBox2.Items.Count = 0) or
+     ((not TienePrecioBase) and (not TienePrecioTarifa)) then
+  begin
+    ListBox2.Items.Clear;
+    DataModule1.Mensaje('Información',
+      'Este artículo no tiene ningún precio definido', 2200, clGray);
+    if Sender is TEdit then
+    begin
+      TEdit(Sender).SetFocus;
+      TEdit(Sender).SelectAll;
+    end;
+    Exit;
+  end;
+
+  MuestraTarifas();
 end;
 
 //================== SALIR DEL PRECIO ==============
@@ -4347,6 +7472,7 @@ end;
 //============================================================
 procedure TFVentas.BitBtn8Click(Sender: TObject);
 begin
+  FAbonoACredito := False;
   if dbVentas.RecordCount=0 then exit;
 
   if ( CgPrFraV = 'S' ) or ( CgPrAlbV = 'S' ) then                //--- Cargamos valores para la impresion al totalizar.
@@ -4370,13 +7496,14 @@ begin
   chBoxRegalo.Checked:= false;                                                          //-- Checkbox anulado, si lo quiere, se activa
   if TicketRegalo='S' then ChBoxRegalo.Visible:=True else ChBoxRegalo.Visible:=False;   //-- Si está activada la opción, se muestra el checbox
 
-  Label32.Font.Color:=clWindowText; Label32.Caption:='CAMBIO';
-  Edit16.Font.Color:=clWindowText;
+  Label32.Font.Color:=RGBToColor(6, 55, 86); Label32.Caption:='A DEVOLVER';
+  Edit16.Font.Color:=RGBToColor(6, 55, 86);
   CargaValoresTotalizar();
   Label32.Top:=254; Edit16.Top:=243;
   Label81.Visible:=False; Edit42.Visible:=False;
   Label31.Caption:='ENTREGA';
   Panel4.Visible:=True;
+  VF_AplicarLayoutAuxiliares;
 
  if PedirSiempreUsuario='N' then cajon();  // Abrimos cajón al totalizar
 
@@ -4388,6 +7515,7 @@ begin
         BitBtn11.Enabled:=False;
         BitBtn12.Enabled:=False;
         BitBtn13.Enabled:=False;
+        VF_AplicarLayoutAuxiliares;
    end;
 
   Bloquear();//------- Bloquear controles
@@ -4418,6 +7546,7 @@ end;
 //---------------- Cerrar totalizar -----------------
 procedure TFVentas.BitBtn9Click(Sender: TObject);
 begin
+  FAbonoACredito := False;
   Desbloquear();//----- Desbloquear controles
   Panel4.Visible:=False;
 end;
@@ -4457,9 +7586,9 @@ begin
   //---------- Puntos acumulados ------------
   if Combo2.Text='PUNTOS ACUMULADOS' then
     begin
-      if APuntos<>'S' then begin DataModule1.Mensaje('Información','Los puntos están desactivados', 2000 , clGray); Combo2.ItemIndex:=0; exit; end;
-      if dbClientes.FieldByName('C49').AsString<>'S' then begin DataModule1.Mensaje('Información','Este cliente no tiene los puntos activados', 2000 , clGray); Combo2.ItemIndex:=0; exit; end;
-      if dbClientes.FieldByName('C50').AsFloat<=0 then begin DataModule1.Mensaje('Información','Este cliente no tiene los puntos acumulados', 2000 , clGray); Combo2.ItemIndex:=0; exit; end;
+      if APuntos<>'S' then begin DataModule1.Mensaje('Información','Los puntos están desactivados', 2000 , clGray); Combo2.ItemIndex:=0; VF_ActualizarSelectorFormasPago; exit; end;
+      if dbClientes.FieldByName('C49').AsString<>'S' then begin DataModule1.Mensaje('Información','Este cliente no tiene los puntos activados', 2000 , clGray); Combo2.ItemIndex:=0; VF_ActualizarSelectorFormasPago; exit; end;
+      if dbClientes.FieldByName('C50').AsFloat<=0 then begin DataModule1.Mensaje('Información','Este cliente no tiene los puntos acumulados', 2000 , clGray); Combo2.ItemIndex:=0; VF_ActualizarSelectorFormasPago; exit; end;
       Label32.Top:=312; Edit16.Top:=304;
       Label81.Visible:=True; Edit42.Visible:=True;
       Label81.Caption:='PUNTOS';
@@ -4472,7 +7601,21 @@ begin
       Edit14Exit(Edit14);
     end;
   If ((StrToFloat(Edit14.Text)=0) and (StrToFloat(Edit12.Text)>0)) then Edit15.Enabled:=false else Edit15.Enabled:=true;
-    Edit13.SetFocus; // Nos posicionamos es el descuento.
+  VF_AplicarLayoutAuxiliares;
+  VF_ActualizarSelectorFormasPago;
+  // Tras elegir la forma de pago, el siguiente dato natural es la entrega.
+  if Edit15.Enabled and Edit15.Visible then
+  begin
+    Edit15.SetFocus;
+    Edit15.SelectAll;
+  end
+  else if Edit42.Enabled and Edit42.Visible then
+  begin
+    Edit42.SetFocus;
+    Edit42.SelectAll;
+  end
+  else
+    BitBtn10.SetFocus;
 end;
 
 //========================================================
@@ -4530,6 +7673,10 @@ begin
     VF_AnalizaSignosVenta(VF_HayNegativas, VF_HayPositivas);
     VF_LogMixta('RECTIFICATIVA_PREPARADA', 'continua cierre solo con negativas');
   end;
+
+  // Una operacion mixta puede cambiar el total al dejar solo el abono.
+  // El destino se decide ahora, sobre el importe negativo real.
+  if not VF_PrepararDestinoAbono then Exit;
   VF_EsRectif := VF_HayNegativas;
 
   if VF_EsRectif then
@@ -4595,6 +7742,10 @@ begin
       end;
     end;
 
+    if not VF_ConfirmarCierreExcepcionalAlbaran(VF_RectifTag,
+      'TICKET / FACTURA SIMPLIFICADA', VF_OrigSerie, VF_OrigNum) then
+      Exit;
+
     if not VF_PedirMotivoRectif(VF_RectifMotivoHold) then Exit;
 
     VF_RectifTagHold := VF_RectifTag;
@@ -4657,19 +7808,19 @@ begin
   VF_LogPerf('TOTALIZAR: ActualizaHisto', T1);
 //  if Combo2.Text='TARJETA+CONTADO' then CajaTarjetas();//----- Apuntar tarjetas a las cajas
 //  showmessage(IntToStr(Combo2.ItemIndex));
-  if ( Combo2.ItemIndex < 7 ) and ( Combo2.ItemIndex > 0 ) then
+  if (not FAbonoACredito) and ( Combo2.ItemIndex < 7 ) and ( Combo2.ItemIndex > 0 ) then
   begin
     T1 := VF_TickMS;
     CajaTarjetas(); //----- Apuntar tarjetas a las cajas
     VF_LogPerf('TOTALIZAR: CajaTarjetas', T1);
   end;
-  if Combo2.Text='PUNTOS ACUMULADOS' then
+  if (not FAbonoACredito) and (Combo2.Text='PUNTOS ACUMULADOS') then
   begin
     T1 := VF_TickMS;
     CajaPuntos();//----- Apuntar puntos a las cajas
     VF_LogPerf('TOTALIZAR: CajaPuntos', T1);
   end;
-  if (StrToFloat(Edit16.Text)<0) then
+  if (StrToFloat(Edit16.Text)<0) or FAbonoACredito then
   begin
     T1 := VF_TickMS;
     ApuntaCredito();//-------- Apuntar a credito
@@ -4765,12 +7916,18 @@ end;
 
 procedure TFVentas.BitBtn19Enter(Sender: TObject);
 begin
- BitBtn19.Font.Color:=clGreen;
+  // Texto amarillo sobre verde: foco visible y contraste alto sin cambiar el fondo.
+  BitBtn19.ParentFont := False;
+  BitBtn19.Font.Color := clYellow;
+  BitBtn19.Font.Style := [fsBold];
 end;
 
 procedure TFVentas.BitBtn19Exit(Sender: TObject);
 begin
- BitBtn19.Font.Color:=clDefault;
+  // Texto blanco sobre verde en estado normal.
+  BitBtn19.ParentFont := False;
+  BitBtn19.Font.Color := clWhite;
+  BitBtn19.Font.Style := [fsBold];
 end;
 
 procedure TFVentas.BitBtn23Enter(Sender: TObject);
@@ -4834,6 +7991,10 @@ begin
     VF_AnalizaSignosVenta(VF_HayNegativas, VF_HayPositivas);
     VF_LogMixta('RECTIFICATIVA_PREPARADA', 'continua cierre solo con negativas');
   end;
+
+  // Una operacion mixta puede cambiar el total al dejar solo el abono.
+  // El destino se decide ahora, sobre el importe negativo real.
+  if not VF_PrepararDestinoAbono then Exit;
   VF_EsRectif := VF_HayNegativas;
 
   if VF_EsRectif then
@@ -4898,6 +8059,10 @@ begin
         Exit;
       end;
     end;
+
+    if not VF_ConfirmarCierreExcepcionalAlbaran(VF_RectifTag,
+      'TICKET / FACTURA SIMPLIFICADA', VF_OrigSerie, VF_OrigNum) then
+      Exit;
 
     if not VF_PedirMotivoRectif(VF_RectifMotivoHold) then Exit;
 
@@ -4989,19 +8154,19 @@ begin
   if not VF_HistoGrabado then
     ActualizaHisto();//--------- Actualizar Hist. Operaciones Cabeceras
   VF_LogPerf('TOTALIZAR: ActualizaHisto', T1);
-  if ( Combo2.ItemIndex < 7 ) and ( Combo2.ItemIndex > 0 ) then
+  if (not FAbonoACredito) and ( Combo2.ItemIndex < 7 ) and ( Combo2.ItemIndex > 0 ) then
   begin
     T1 := VF_TickMS;
     CajaTarjetas(); //----- Apuntar tarjetas a las cajas
     VF_LogPerf('TOTALIZAR: CajaTarjetas', T1);
   end;
-  if Combo2.Text='PUNTOS ACUMULADOS' then
+  if (not FAbonoACredito) and (Combo2.Text='PUNTOS ACUMULADOS') then
   begin
     T1 := VF_TickMS;
     CajaPuntos();//----- Apuntar puntos a las cajas
     VF_LogPerf('TOTALIZAR: CajaPuntos', T1);
   end;
-  if StrToFloat(Edit16.Text)<0 then
+  if (StrToFloat(Edit16.Text)<0) or FAbonoACredito then
   begin
     T1 := VF_TickMS;
     ApuntaCredito();//--- Apuntar a credito
@@ -5051,6 +8216,7 @@ begin
   if not VF_NormalizarCamposCobro(True) then Exit;
 
   if Edit1.Text=ClienteVario then begin DataModule1.Mensaje('Información','No puede hacer albarán a clientes varios', 2000 , clGray); exit; end;
+  if not VF_PrepararDestinoAbono then Exit;
   if CgForzAl='S' then
     begin
          //ShowMessage('El valor de CgForzAl es : '+CgForzAl);
@@ -5079,10 +8245,9 @@ begin
                         dbSeries.FieldByName('SF1').AsString);
      dbSeries.Next;
     end;
-  dbSeries.Locate('SF0', dbTiendas.Fields[11].AsString, [loCaseInsensitive]);
-  ListBox1.ItemIndex:= ListBox1.Items.IndexOf(Space(3-length(dbSeries.FieldByName('SF0').AsString))+ dbSeries.FieldByName('SF0').AsString+' - '+
-                        dbSeries.FieldByName('SF1').AsString);
-  Edit21.Text:=IntToStr(dbSeries.FieldByName('SF3').AsInteger+1);
+  // Marca siempre la serie configurada para la tienda. Si ya no existe o no
+  // corresponde al ejercicio actual, se selecciona la primera serie disponible.
+  VF_SeleccionarSeriePorDefecto(False);
 
   Panel14.Visible:=True;
   Panel15.Visible:=False;
@@ -5191,9 +8356,9 @@ begin
   //-------------------
   TIPOOPER:='AL';//----------- Tipo de operacion (Normal Sin ticket)
   ActualizaHisto();//--------- Actualizar Hist. Operaciones Cabeceras
-  if ( Combo2.ItemIndex < 7 ) and ( Combo2.ItemIndex > 0 ) and ( CgForzAl='N') then CajaTarjetas(); //----- Apuntar tarjetas a las cajas
-  if Combo2.Text='PUNTOS ACUMULADOS' then CajaPuntos();//----- Apuntar puntos a las cajas
-  if (StrToFloat(Edit16.Text)<0) or (CgForzAl='S') then ApuntaCredito();//--- Apuntar a credito
+  if (not FAbonoACredito) and ( Combo2.ItemIndex < 7 ) and ( Combo2.ItemIndex > 0 ) and ( CgForzAl='N') then CajaTarjetas(); //----- Apuntar tarjetas a las cajas
+  if (not FAbonoACredito) and (Combo2.Text='PUNTOS ACUMULADOS') then CajaPuntos();//----- Apuntar puntos a las cajas
+  if (StrToFloat(Edit16.Text)<0) or (CgForzAl='S') or FAbonoACredito then ApuntaCredito();//--- Apuntar a credito
   if OperacionRecuperada='P' then Actualizapedido();//--- Actualizar pedido
   if OperacionRecuperada='PRE' then Actualizaprepro();//- Actualizar presup./profoema
 
@@ -5297,10 +8462,9 @@ begin
                         dbSeries.FieldByName('SF1').AsString);
      dbSeries.Next;
     end;
-  dbSeries.Locate('SF0', dbTiendas.Fields[11].AsString, [loCaseInsensitive]);
-  ListBox1.ItemIndex:= ListBox1.Items.IndexOf(Space(3-length(dbSeries.FieldByName('SF0').AsString))+ dbSeries.FieldByName('SF0').AsString+' - '+
-                        dbSeries.FieldByName('SF1').AsString);
-  Edit21.Text:=IntToStr(dbSeries.FieldByName('SF2').AsInteger+1);
+  // Marca siempre la serie configurada para la tienda. Si ya no existe o no
+  // corresponde al ejercicio actual, se selecciona la primera serie disponible.
+  VF_SeleccionarSeriePorDefecto(True);
   Panel14.Visible:=False;
   Panel15.Visible:=True;
 
@@ -5366,6 +8530,10 @@ begin
     VF_AnalizaSignosVenta(TieneNegativos, TienePositivos);
     VF_LogMixta('RECTIFICATIVA_PREPARADA', 'continua cierre solo con negativas');
   end;
+
+  // Una operacion mixta puede cambiar el total al dejar solo el abono.
+  // El destino se decide ahora, sobre el importe negativo real.
+  if not VF_PrepararDestinoAbono then Exit;
 
   if TieneNegativos then
   begin
@@ -5442,6 +8610,9 @@ begin
     end;
 
     RectifLine := VF_NormalizeRectifTag(RectifLine);
+    if not VF_ConfirmarCierreExcepcionalAlbaran(RectifLine,
+      'FACTURA COMPLETA', OrigSerie, OrigNum) then
+      Exit;
     vfTipoFactura := VF_AEATTipoFacturaFromRectifTag(RectifLine, vfTipoFactura);
 
     if not VF_ValidarSaldosRectifTemporal then
@@ -5576,19 +8747,19 @@ begin
     ActualizaHisto();//--------- Actualizar Hist. Operaciones Cabeceras
   VF_LogPerf('TOTALIZAR: ActualizaHisto', T1);
 //  if Combo2.Text='TARJETA+CONTADO' then CajaTarjetas();//----- Apuntar tarjetas a las cajas
-  if ( Combo2.ItemIndex < 7 ) and ( Combo2.ItemIndex > 0 ) then
+  if (not FAbonoACredito) and ( Combo2.ItemIndex < 7 ) and ( Combo2.ItemIndex > 0 ) then
   begin
     T1 := VF_TickMS;
     CajaTarjetas(); //----- Apuntar tarjetas a las cajas
     VF_LogPerf('TOTALIZAR: CajaTarjetas', T1);
   end;
-  if Combo2.Text='PUNTOS ACUMULADOS' then
+  if (not FAbonoACredito) and (Combo2.Text='PUNTOS ACUMULADOS') then
   begin
     T1 := VF_TickMS;
     CajaPuntos();//----- Apuntar puntos a las cajas
     VF_LogPerf('TOTALIZAR: CajaPuntos', T1);
   end;
-  if StrToFloat(Edit16.Text)<0 then
+  if (StrToFloat(Edit16.Text)<0) or FAbonoACredito then
   begin
     T1 := VF_TickMS;
     ApuntaCredito();//--- Apuntar a credito
@@ -5653,8 +8824,9 @@ begin
 
    // Factura PAGADA si el total = entrega + contado - cambio y no hay crédito.
 
-  if ( StrToFloat(Edit14.Text) = StrToFloat(Edit15.Text) + StrToFloat(Edit42.Text) - StrToFloat(Edit16.Text) )
-       and ( StrToFloat(Edit16.Text) >= 0 ) then
+  if FAbonoACredito or
+     (( StrToFloat(Edit14.Text) = StrToFloat(Edit15.Text) + StrToFloat(Edit42.Text) - StrToFloat(Edit16.Text) )
+       and ( StrToFloat(Edit16.Text) >= 0 )) then
      begin
         TxtQ:='UPDATE factuc'+Tienda+' SET FC23="S" WHERE FC0='+Edit1.Text+                               //Pagado
                             ' AND FC1="'+FormatDateTime('YYYY/MM/DD',StrToDate(Edit22.Text))+'"'+
@@ -6457,6 +9629,7 @@ var
   TxtQ, IMPO1, IMPO2: String;
   RectSQL: String;
   RectTag: String;
+  FormaPagoHisto: String;
 
   function VF_ExtractRectifFromMemo(const MemoText: string): string;
   var
@@ -6501,10 +9674,15 @@ begin
   else
     RectSQL := 'NULL';
 
+  if FAbonoACredito then
+    FormaPagoHisto:='CREDITO'
+  else
+    FormaPagoHisto:=Copy(Combo2.Text,1,10);
+
   TxtQ:='INSERT INTO hisopcc'+Tienda+' (HO0,HO1,HO2,HO3,HO4,HO5,HO6,HO7,HO8,HO9,HO10,HO11'+
         ',HO12,HO13,HO14,HO15,HO19,HO20_RECT) VALUES ("'+FormatDateTime('YYYY/MM/DD',FechaVenta)+'",'+
         '"'+FormatDateTime('HH:MM:SS',HoraVenta)+'","'+Puesto+'",'+IntToStr(NOPERACION)+',"'+SERIEFACT+'"'+
-        ',"'+TIPOOPER+'","'+Copy(Combo2.Text,1,10)+'",'+Dispensador+','+Edit1.Text+','+
+        ',"'+TIPOOPER+'","'+FormaPagoHisto+'",'+Dispensador+','+Edit1.Text+','+
         Edit12.Text+','+Edit13.Text+','+Edit14.Text+','+
         Edit15.Text+','+Edit16.Text+','+Edit42.Text+',"N","'+Label21.Caption+'",'+RectSQL+')';
   dbTrabajo.SQL.Text:=TxtQ;
@@ -6563,28 +9741,37 @@ end;
 //=====================================================================
 procedure TFVentas.ApuntaCredito();
 var
-  TxtQ, Debe, Haber: String;
+  TxtQ, Debe, Haber, FormaPagoCredito: String;
 begin
 { Edit14--- Total
   Edit15--- Entrega
   Edit16--- Cambio}
-  //----------------- Si el total es positivo
-  if StrToFloat(Edit14.Text)>0 then
+  //----------------- Movimiento de la cuenta del cliente
+  if FAbonoACredito and (StrToFloat(Edit14.Text)<0) then
+    begin
+     // Un abono sin devolucion genera saldo a favor: HABER positivo.
+     Debe:='0';
+     Haber:=FloatToStr(Abs(StrToFloat(Edit14.Text)));
+     FormaPagoCredito:='CREDITO';
+    end
+  else if StrToFloat(Edit14.Text)>0 then
     begin
      Debe:=FloatToStr(StrToFloat(Edit16.Text)*-1);
      Haber:='0';
+     FormaPagoCredito:=Copy(Combo2.Text,1,10);
     end
   else
     begin
      Debe:='0';
      Haber:=Edit16.Text;
+     FormaPagoCredito:=Copy(Combo2.Text,1,10);
     end;
   //------------------- Creditos cabeceras
   TxtQ:='INSERT INTO creditos'+Tienda+' (CRE0,CRE1,CRE2,CRE3,CRE4,CRE5,CRE6,CRE7,CRE8,CRE9,CRE10,CRE11,CRE12,'+
         'CRE13,CRE14,CRE15,CRE16,CRE17,CRE18,CRE21) '+
         'VALUES ('+Edit1.Text+',"'+FormatDateTime('YYYY/MM/DD',FechaVenta)+'",'+
         '"'+FormatDateTime('HH:MM:SS',HoraVenta)+'","'+TIPOOPER+'","'+SERIEFACT+'",'+IntToStr(NOPERACION)+
-        ',"'+VF_SQLEscapeDbl(FLX_LimpiarDescripcionVenta(DESCRIOPER,100))+'",'+Debe+','+Haber+',"N",'+Dispensador+',"'+Puesto+'","'+VF_SQLEscapeDbl(Copy(Combo2.Text,1,10))+'"'+
+        ',"'+VF_SQLEscapeDbl(FLX_LimpiarDescripcionVenta(DESCRIOPER,100))+'",'+Debe+','+Haber+',"N",'+Dispensador+',"'+Puesto+'","'+VF_SQLEscapeDbl(FormaPagoCredito)+'"'+
         ','+Edit12.Text+','+Edit13.Text+','+Edit14.Text+','+
         Edit15.Text+','+Edit16.Text+',0,"'+VF_SQLEscapeDbl(Memo1.Lines.Text)+'")';
   dbTrabajo.SQL.Text:=TxtQ;
@@ -6829,6 +10016,13 @@ end;
 //=====================================================================
 //================= BORRAR TODAS LAS LINEAS DE VENTAS =================
 //=====================================================================
+// Evento exclusivo del boton "Borrar venta". Fuerza el borrado manual
+// para terminar siempre en una venta nueva, sin cargar una aparcada.
+procedure TFVentas.BitBtn15ClickDirecto(Sender: TObject);
+begin
+  BitBtn15Click(Sender, True);
+end;
+
 procedure TFVentas.BitBtn15Click(Sender: TObject; lDirecto: boolean);
 var
  F : TextFile;
@@ -7112,7 +10306,11 @@ procedure TFVentas.PintaEntrada();
 var
   PrecioFicha: Double;
   PrecioPropuesto: Double;
+  CosteArticulo: Double;
+  UsandoCoste: Boolean;
 begin
+  CosteArticulo := 0;
+  UsandoCoste := False;
   Edit3.Text:=dbArti.FieldByName('A0').AsString;//----------------- Codigo
   Edit4.Text:=FLX_LimpiarDescripcionVenta(dbArti.FieldByName('A1').AsString, FLX_FieldTextMax(dbVentas, 'V4', 100));//----------------- Descripcion
 
@@ -7122,7 +10320,9 @@ begin
   try
     PrecioFicha := 0;
     PrecioPropuesto := 0;
-    if (Trim(Edit6.Text) <> '') and (VF_NormalizaNumero(Edit6.Text) <> '0') then
+    if (not FClientePrecioCoste) and
+       (Trim(Edit6.Text) <> '') and
+       (VF_NormalizaNumero(Edit6.Text) <> '0') then
     begin
       if VF_TryParseFloatBounded(dbArti.FieldByName('A2').AsString, 'PVP ficha', VF_MAX_PRICE, PrecioFicha) and
          VF_TryParseFloatBounded(Edit6.Text, 'Precio propuesto', VF_MAX_PRICE, PrecioPropuesto) then
@@ -7143,21 +10343,55 @@ begin
   end;
 
   if (Edit5.Text='') or (Edit5.Text='0') then Edit5.Text:='1';//--- Unidades
-  if (Edit6.Text='') or (Edit6.Text='0') then Edit6.Text:=dbArti.FieldByName('A2').AsString;//------------ P.V.P.
-  if (Edit7.Text='') or (Edit7.Text='0') then Edit7.Text:=dbArti.FieldByName('A21').AsString;//----------- Precio
-  //-----------Ver si se aplica algún precio de tarifa al cliente
-  if (dbClientes.FieldByName('C43').AsInteger<>0) and (ListBox2.Items.Count=0) then VerTarifas(); // Cargamos tarifas si es primera vez
-  //------------ Iva
-  if (Edit10.Text='') or (Edit10.Text='0') then Edit10.Text:=dbArti.FieldByName('A3').AsString;//--------- IVA
-  Edit6Exit(self);// Actualizamos precio a partir de PVP.
-  //-----------Si tiene descuentos de la ficha de clientes
-  if dbClientes.FieldByName('C16').AsInteger<>0 then                      //-- Descuento según tipo descuento en ficha cliente
-    begin
-      if dbClientes.FieldByName('C16').AsInteger=1 then Edit8.Text:=dbArti.FieldByName('A7').AsString;
-      if dbClientes.FieldByName('C16').AsInteger=2 then Edit8.Text:=dbArti.FieldByName('A8').AsString;
-      if dbClientes.FieldByName('C16').AsInteger=3 then Edit8.Text:=dbArti.FieldByName('A9').AsString;
-    end;
-  if dbClientes.FieldByName('C17').AsFloat<>0 then Edit8.Text:=dbClientes.FieldByName('C17').AsString;//-- Dto Ficha cliente
+
+  // El IVA siempre se conserva. El modo coste cambia únicamente la base
+  // sin IVA, utilizando A24, y calcula después el PVP con IVA.
+  if (Edit10.Text='') or (Edit10.Text='0') then
+    Edit10.Text:=dbArti.FieldByName('A3').AsString;
+
+  if FClientePrecioCoste and Assigned(dbArti.FindField('A24')) then
+    CosteArticulo := dbArti.FieldByName('A24').AsFloat;
+
+  UsandoCoste := FClientePrecioCoste and (CosteArticulo > 0);
+
+  if UsandoCoste then
+  begin
+    Edit7.Text := FormatFloat('0.000', CosteArticulo);
+    Edit8.Text := '0';
+    Edit7Exit(Self);
+  end
+  else
+  begin
+    if FClientePrecioCoste and (CosteArticulo <= 0) then
+      DataModule1.Mensaje(
+        'AVISO',
+        'El artículo no tiene un coste A24 válido. Se mantiene el precio normal.',
+        4000,
+        clGray
+      );
+
+    if (Edit6.Text='') or (Edit6.Text='0') then
+      Edit6.Text:=dbArti.FieldByName('A2').AsString;//------------ P.V.P.
+    if (Edit7.Text='') or (Edit7.Text='0') then
+      Edit7.Text:=dbArti.FieldByName('A21').AsString;//----------- Precio
+
+    //-----------Ver si se aplica algún precio de tarifa al cliente
+    if (dbClientes.FieldByName('C43').AsInteger<>0) and
+       (ListBox2.Items.Count=0) then
+      VerTarifas();
+
+    Edit6Exit(self);// Actualizamos precio a partir de PVP.
+
+    //-----------Si tiene descuentos de la ficha de clientes
+    if dbClientes.FieldByName('C16').AsInteger<>0 then
+      begin
+        if dbClientes.FieldByName('C16').AsInteger=1 then Edit8.Text:=dbArti.FieldByName('A7').AsString;
+        if dbClientes.FieldByName('C16').AsInteger=2 then Edit8.Text:=dbArti.FieldByName('A8').AsString;
+        if dbClientes.FieldByName('C16').AsInteger=3 then Edit8.Text:=dbArti.FieldByName('A9').AsString;
+      end;
+    if dbClientes.FieldByName('C17').AsFloat<>0 then
+      Edit8.Text:=dbClientes.FieldByName('C17').AsString;//-- Dto Ficha cliente
+  end;
   if (Edit8.Text='') then Edit8.Text:='0';//------- Descuento
   if (Edit9.Text='') then Edit9.Text:='0';//------- Importe
   VerImporteEntra(); //-------- Calcular datos con este importe
@@ -7461,40 +10695,72 @@ begin
 end;
 
 //============= VER SI HAY TARIFAS ACTIVAS PARA ESTE ARTICULO  ==============
-procedure TFVentas.VerTarifas();
+procedure TFVentas.VerTarifas(const AAplicarTarifaCliente: Boolean);
+var
+  CodigoArticulo: String;
 begin
-  dbTrabajo.Active:=False;
-  dbTrabajo.SQL.Text:='SELECT * FROM tarifas WHERE TAR0="'+dbArti.FieldByName('A0').AsString+'"';
-  dbTrabajo.Active:=True;
-  if dbTrabajo.RecordCount<>0 then
-    begin
-      //WriteLn('Hola');
-      ListBox2.Items.Clear;
+  ListBox2.Items.Clear;
 
-      ListBox2.Items.Add('PVP        '+dbArti.FieldByName('A2').AsString + ' Euros');
-      ListBox2.Items.Add('Precio     '+dbArti.FieldByName('A21').AsString + ' Euros');
-      ListBox2.Items.Add('Tarifa 1   '+dbTrabajo.FieldByName('TAR2').AsString + ' Euros');
-      ListBox2.Items.Add('Tarifa 2   '+dbTrabajo.FieldByName('TAR4').AsString + ' Euros');
-      ListBox2.Items.Add('Tarifa 3   '+dbTrabajo.FieldByName('TAR6').AsString + ' Euros');
-       //------------------ Tarifa 1
-       if (dbClientes.FieldByName('C43').AsInteger=1) and (dbTrabajo.FieldByName('TAR7').AsFloat<>0) then
-         begin
-            Edit6.Text:=dbTrabajo.FieldByName('TAR7').AsString;//------------ P.V.P.
-            Edit7.Text:=dbTrabajo.FieldByName('TAR2').AsString;//----------- Precio
-         end;
-       //------------------ Tarifa 2
-       if (dbClientes.FieldByName('C43').AsInteger=2) and (dbTrabajo.FieldByName('TAR8').AsFloat<>0) then
-         begin
-           Edit6.Text:=dbTrabajo.FieldByName('TAR8').AsString;//------------ P.V.P.
-           Edit7.Text:=dbTrabajo.FieldByName('TAR4').AsString;//----------- Precio
-         end;
-       //------------------ Tarifa 3
-       if (dbClientes.FieldByName('C43').AsInteger=3) and (dbTrabajo.FieldByName('TAR9').AsFloat<>0) then
-         begin
-           Edit6.Text:=dbTrabajo.FieldByName('TAR9').AsString;//------------ P.V.P.
-           Edit7.Text:=dbTrabajo.FieldByName('TAR6').AsString;//----------- Precio
-         end;
-    end;
+  if (not dbArti.Active) or dbArti.IsEmpty then
+    Exit;
+
+  CodigoArticulo := Trim(dbArti.FieldByName('A0').AsString);
+  if CodigoArticulo = '' then
+    Exit;
+
+  // Estas dos opciones deben estar siempre disponibles, aunque el artículo
+  // no tenga una fila en la tabla de tarifas especiales.
+  ListBox2.Items.Add(
+    'PVP con IVA       ' + dbArti.FieldByName('A2').AsString + ' Euros');
+  ListBox2.Items.Add(
+    'Precio sin IVA    ' + dbArti.FieldByName('A21').AsString + ' Euros');
+
+  dbTrabajo.Active := False;
+  dbTrabajo.SQL.Text :=
+    'SELECT * FROM tarifas WHERE TAR0="' + CodigoArticulo + '"';
+  dbTrabajo.Active := True;
+
+  if dbTrabajo.IsEmpty then
+    Exit;
+
+  ListBox2.Items.Add(
+    'Tarifa 1  PVP ' + dbTrabajo.FieldByName('TAR7').AsString +
+    ' / Sin IVA ' + dbTrabajo.FieldByName('TAR2').AsString + ' Euros');
+  ListBox2.Items.Add(
+    'Tarifa 2  PVP ' + dbTrabajo.FieldByName('TAR8').AsString +
+    ' / Sin IVA ' + dbTrabajo.FieldByName('TAR4').AsString + ' Euros');
+  ListBox2.Items.Add(
+    'Tarifa 3  PVP ' + dbTrabajo.FieldByName('TAR9').AsString +
+    ' / Sin IVA ' + dbTrabajo.FieldByName('TAR6').AsString + ' Euros');
+
+  // Mantener la aplicación automática original según la tarifa del cliente,
+  // pero no aplicarla al abrir manualmente la lista con doble clic.
+  if not AAplicarTarifaCliente then
+    Exit;
+
+  if (not dbClientes.Active) or dbClientes.IsEmpty then
+    Exit;
+
+  case dbClientes.FieldByName('C43').AsInteger of
+    1:
+      if dbTrabajo.FieldByName('TAR7').AsFloat <> 0 then
+      begin
+        Edit6.Text := dbTrabajo.FieldByName('TAR7').AsString;
+        Edit7.Text := dbTrabajo.FieldByName('TAR2').AsString;
+      end;
+    2:
+      if dbTrabajo.FieldByName('TAR8').AsFloat <> 0 then
+      begin
+        Edit6.Text := dbTrabajo.FieldByName('TAR8').AsString;
+        Edit7.Text := dbTrabajo.FieldByName('TAR4').AsString;
+      end;
+    3:
+      if dbTrabajo.FieldByName('TAR9').AsFloat <> 0 then
+      begin
+        Edit6.Text := dbTrabajo.FieldByName('TAR9').AsString;
+        Edit7.Text := dbTrabajo.FieldByName('TAR6').AsString;
+      end;
+  end;
 end;
 
 //=========== PREGUNTAR SI SE APUNTA A CREDITO LA OPERACION ===================
@@ -7585,28 +10851,34 @@ begin
   if (DS <> nil) and (not DS.IsEmpty) then
     EsPromo := VF_LineaTienePromoEnGrid(DS.FieldByName('V3').AsString);
 
-  // 1) Colores base
+  // 1) Colores base modernos: selección azul inequívoca y filas
+  // alternas muy suaves para facilitar la lectura horizontal.
   if (gdSelected in State) then
   begin
-    if EsPromo then
-      G.Canvas.Brush.Color := $00C8F0C8   // verde suave más visible al seleccionar
-    else
-      G.Canvas.Brush.Color := clInfoBK;
-    G.Canvas.Font.Color := clBlack;
+    G.Canvas.Brush.Color := RGBToColor(31, 103, 181);
+    G.Canvas.Font.Color := clWhite;
   end
   else
   begin
     if EsPromo then
-      G.Canvas.Brush.Color := $00D8FFD8   // verde suave y legible
+      G.Canvas.Brush.Color := RGBToColor(224, 248, 228)
+    else if (DS <> nil) and (not DS.IsEmpty) and ((DS.RecNo mod 2) = 0) then
+      G.Canvas.Brush.Color := RGBToColor(248, 250, 252)
     else
       G.Canvas.Brush.Color := clWhite;
-    G.Canvas.Font.Color := clBlack;
+    G.Canvas.Font.Color := RGBToColor(21, 38, 62);
   end;
 
-  // 2) Si está marcada en rojo, SOLO cambiamos el color de fuente
+  // 2) Las líneas marcadas continúan viéndose en rojo; al estar seleccionadas
+  // usamos un tono claro para conservar el contraste sobre el fondo azul.
   if (DS <> nil) and (not DS.IsEmpty) then
     if DS.FieldByName('V13').AsString = 'S' then
-      G.Canvas.Font.Color := clRed;
+    begin
+      if gdSelected in State then
+        G.Canvas.Font.Color := RGBToColor(255, 225, 225)
+      else
+        G.Canvas.Font.Color := clRed;
+    end;
 
   // 3) Pintamos el fondo SIEMPRE
   G.Canvas.FillRect(Rect);
@@ -7790,7 +11062,8 @@ procedure TFVentas.NumeroPresupuesto();
 begin
   if trim(copy(Combo6.Items.Strings[Combo6.ItemIndex],1,3))='' then Exit;
   dbSeries.Active:=False;
-  dbSeries.SQL.Text:='UPDATE seriesfactu SET SF6=SF6+1 WHERE SF0="'+
+  dbSeries.SQL.Text:='UPDATE seriesfactu SET SF6=GREATEST(SF6,'+
+                     IntToStr(StrToIntDef(Trim(Edit35.Text), 0))+') WHERE SF0="'+
                      trim(copy(Combo6.Items.Strings[Combo6.ItemIndex],1,3))+'"';
   try
     dbSeries.ExecSQL;
@@ -7810,7 +11083,8 @@ procedure TFVentas.NumeroProforma();
 begin
   if trim(copy(Combo6.Items.Strings[Combo6.ItemIndex],1,3))='' then Exit;
   dbSeries.Active:=False;
-  dbSeries.SQL.Text:='UPDATE seriesfactu SET SF8=SF8+1 WHERE SF0="'+
+  dbSeries.SQL.Text:='UPDATE seriesfactu SET SF8=GREATEST(SF8,'+
+                      IntToStr(StrToIntDef(Trim(Edit35.Text), 0))+') WHERE SF0="'+
                       trim(copy(Combo6.Items.Strings[Combo6.ItemIndex],1,3))+'"';
   try
     dbSeries.ExecSQL;
@@ -7863,6 +11137,57 @@ begin
 end;
 
 //================ Ver series de facturacion cuando se pasa por ellas =========
+procedure TFVentas.VF_SeleccionarSeriePorDefecto(const AEsFactura: Boolean);
+var
+  SeriePreferida, SerieSeleccionada: String;
+  I, Indice: Integer;
+begin
+  Indice := -1;
+  SeriePreferida := '';
+
+  // La serie por defecto se guarda en la ficha de la tienda (campo T11).
+  if dbTiendas.Active and (not dbTiendas.IsEmpty) then
+    SeriePreferida := Trim(dbTiendas.Fields[11].AsString);
+
+  // Buscamos por el código real mostrado al principio de cada línea.
+  if SeriePreferida <> '' then
+    for I := 0 to ListBox1.Items.Count - 1 do
+      if SameText(Trim(Copy(ListBox1.Items[I], 1, 3)), SeriePreferida) then
+      begin
+        Indice := I;
+        Break;
+      end;
+
+  // Evita que el formulario se abra sin ninguna serie marcada cuando la
+  // configuración apunta a una serie antigua o inexistente.
+  if (Indice < 0) and (ListBox1.Items.Count > 0) then
+    Indice := 0;
+
+  ListBox1.ItemIndex := Indice;
+  if Indice < 0 then
+  begin
+    Edit21.Clear;
+    Exit;
+  end;
+
+  ListBox1.TopIndex := Indice;
+  SerieSeleccionada := Trim(Copy(ListBox1.Items[Indice], 1, 3));
+
+  // Además de marcar visualmente la serie, dejamos dbSeries situado en ella,
+  // porque los botones Aceptar toman el código desde el registro actual.
+  if dbSeries.Locate('SF0', SerieSeleccionada, [loCaseInsensitive]) then
+  begin
+    if AEsFactura then
+      Edit21.Text := IntToStr(dbSeries.FieldByName('SF2').AsInteger + 1)
+    else
+      Edit21.Text := IntToStr(dbSeries.FieldByName('SF3').AsInteger + 1);
+  end
+  else
+    Edit21.Clear;
+
+  ListBox1.Invalidate;
+end;
+
 procedure TFVentas.ListBox1Click(Sender: TObject);
 begin
   if Label33.Caption='N. Factura' then
@@ -7879,23 +11204,142 @@ end;
 
 //======================= MOSTRAR LAS DISTINTAS TARIFAS ======================
 procedure TFVentas.MuestraTarifas();
+var
+  P: TPoint;
+  AnchoLista, AltoLista: Integer;
 begin
-   ListBox2.Visible:=true;  ListBox2.SetFocus;
+  // El rediseño cambió la posición de los campos, por lo que la posición
+  // histórica del ListBox podía quedar fuera del panel. Lo convertimos en
+  // desplegable superpuesto al formulario y lo colocamos bajo PVP/PRECIO.
+  P := Panel3.ClientToScreen(Point(Edit6.Left, Edit6.Top + Edit6.Height + 4));
+  P := ScreenToClient(P);
+
+  AnchoLista := 390;
+  AltoLista := (ListBox2.Items.Count * 25) + 10;
+  if AltoLista < 66 then AltoLista := 66;
+  if AltoLista > 145 then AltoLista := 145;
+
+  if P.X + AnchoLista > ClientWidth - 12 then
+    P.X := ClientWidth - AnchoLista - 12;
+  if P.X < 12 then P.X := 12;
+
+  if P.Y + AltoLista > ClientHeight - 60 then
+    P.Y := P.Y - AltoLista - Edit6.Height - 8;
+
+  ListBox2.Parent := Self;
+  ListBox2.SetBounds(P.X, P.Y, AnchoLista, AltoLista);
+  ListBox2.ParentFont := False;
+  ListBox2.Font.Name := 'Sans';
+  ListBox2.Font.Height := -13;
+  ListBox2.Font.Color := RGBToColor(27, 62, 44);
+
+  // Fondo verde pastel suave para distinguir claramente la ventana de
+  // tarifas sin recurrir a marcos fuertes ni colores que molesten.
+  ListBox2.Color := RGBToColor(232, 244, 236);
+  ListBox2.BorderStyle := bsNone;
+  ListBox2.Visible := True;
+  ListBox2.BringToFront;
+  ListBox2.ItemIndex := 0;
+  ListBox2.SetFocus;
 end;
 procedure TFVentas.ListBox2DblClick(Sender: TObject);
+var
+  CampoPVP, CampoSinIVA: String;
 begin
-   ListBox2.Visible:= False;
-   if ListBox2.ItemIndex=0 then Edit7.Text:=dbArti.FieldByName('A2').AsString;
-   if ListBox2.ItemIndex=1 then Edit7.Text:=dbArti.FieldByName('A21').AsString;
-   if ListBox2.ItemIndex=2 then Edit7.Text:=dbTrabajo.FieldByName('TAR2').AsString;
-   if ListBox2.ItemIndex=3 then Edit7.Text:=dbTrabajo.FieldByName('TAR4').AsString;
-   if ListBox2.ItemIndex=4 then Edit7.Text:=dbTrabajo.FieldByName('TAR6').AsString;
-   Edit7Exit(self);
+  if ListBox2.ItemIndex < 0 then
+    Exit;
+
+  case ListBox2.ItemIndex of
+    0:
+      begin
+        // Respetar como origen el PVP con IVA de la ficha.
+        Edit6.Text := dbArti.FieldByName('A2').AsString;
+        Edit6Exit(Self);
+      end;
+
+    1:
+      begin
+        // Respetar como origen el precio sin IVA de la ficha.
+        Edit7.Text := dbArti.FieldByName('A21').AsString;
+        Edit7Exit(Self);
+      end;
+
+    2, 3, 4:
+      begin
+        if (not dbTrabajo.Active) or dbTrabajo.IsEmpty then
+          Exit;
+
+        case ListBox2.ItemIndex of
+          2:
+            begin
+              CampoPVP := 'TAR7';
+              CampoSinIVA := 'TAR2';
+            end;
+          3:
+            begin
+              CampoPVP := 'TAR8';
+              CampoSinIVA := 'TAR4';
+            end;
+        else
+          begin
+            CampoPVP := 'TAR9';
+            CampoSinIVA := 'TAR6';
+          end;
+        end;
+
+        // Si se abrió desde PVP, preferimos la tarifa con IVA. Si se abrió
+        // desde PRECIO, preferimos la tarifa sin IVA. Si ese valor es cero,
+        // usamos el otro y calculamos su equivalente.
+        if ListBox2.Tag = 1 then
+        begin
+          if dbTrabajo.FieldByName(CampoPVP).AsFloat <> 0 then
+          begin
+            Edit6.Text := dbTrabajo.FieldByName(CampoPVP).AsString;
+            Edit6Exit(Self);
+          end
+          else
+          begin
+            Edit7.Text := dbTrabajo.FieldByName(CampoSinIVA).AsString;
+            Edit7Exit(Self);
+          end;
+        end
+        else
+        begin
+          if dbTrabajo.FieldByName(CampoSinIVA).AsFloat <> 0 then
+          begin
+            Edit7.Text := dbTrabajo.FieldByName(CampoSinIVA).AsString;
+            Edit7Exit(Self);
+          end
+          else
+          begin
+            Edit6.Text := dbTrabajo.FieldByName(CampoPVP).AsString;
+            Edit6Exit(Self);
+          end;
+        end;
+      end;
+  end;
+
+  ListBox2.Visible := False;
 end;
 
 procedure TFVentas.ListBox2KeyPress(Sender: TObject; var Key: char);
 begin
-   if (Key=#13) then begin ; Key:=#0; ListBox2DblClick(self); end;
+  if Key = #13 then
+  begin
+    Key := #0;
+    ListBox2DblClick(Self);
+    Exit;
+  end;
+
+  if Key = ESC then
+  begin
+    Key := #0;
+    ListBox2.Visible := False;
+    if ListBox2.Tag = 1 then
+      Edit6.SetFocus
+    else
+      Edit7.SetFocus;
+  end;
 end;
 
 //=========================================================================
@@ -8237,7 +11681,7 @@ begin
 
    // Usar la misma salida configurada para el ticket, no /dev/usb/lp0 fijo.
    Ticketera := FileCreate(DevTicket);
-   if Ticketera = feInvalidHandle then
+   if PtrInt(Ticketera) = -1 then
     raise Exception.Create('No se puede abrir la impresora de ticket para QR en: ' + DevTicket);
 
    try
@@ -8307,7 +11751,10 @@ begin
   Writeln(PrintText, ' ');
   if Edit1.Text<>'999999' then Writeln(PrintText, 'CLIENTE : '+Edit1.Text+' '+Edit2.Text);
   if Edit1.Text<>'999999' then Writeln(PrintText, ' ');
-  Writeln(PrintText, 'Forma de PAGO : '+Combo2.Text);
+  if FAbonoACredito then
+    Writeln(PrintText, 'Forma de PAGO : CREDITO CLIENTE')
+  else
+    Writeln(PrintText, 'Forma de PAGO : '+Combo2.Text);
   Writeln(PrintText, 'Fecha.: '+FormatDateTime('dd/mm/yyyy',FechaVenta)+hora);
   Writeln(PrintText, ' ');
   Writeln(PrintText, 'ARTICULO              UND PRECIO   TOTAL');
@@ -8384,7 +11831,10 @@ begin
   Texto1:=DataModule1.LFill( FormatFloat('######0.00',StrToFloat(Edit15.Text)),10,' ');
   Writeln(PrintText, '                    ENTREGA   '+Texto1);
   Texto4:=DataModule1.LFill( FormatFloat('######0.00',StrToFloat(Edit16.Text)),10,' ');
-  if StrToFloat(Edit16.Text)>=0 then
+  if FAbonoACredito then
+    Writeln(PrintText, '            ABONO A CREDITO   '+
+      DataModule1.LFill(FormatFloat('######0.00',Abs(StrToFloat(Edit14.Text))),10,' '))
+  else if StrToFloat(Edit16.Text)>=0 then
     Writeln(PrintText, '                    CAMBIO    '+Texto4)
   else
     Writeln(PrintText, '                    CREDITO   '+Texto4);
@@ -9082,7 +12532,6 @@ begin
                         dbSeries.FieldByName('SF1').AsString);
   
   if Combo6.ItemIndex<0 then Combo6.ItemIndex:=0;
-  Edit35.Text:=IntToStr(dbSeries.FieldByName('SF6').AsInteger+1);
   dbTiendas.Active:=False;
   //-------------------------- Presupuestos sin servir
 {
@@ -9108,6 +12557,7 @@ begin
       // refresco automático al cambiar el año
       DateEdit2.OnChange := @DateEdit2Change;
     end;
+  ActualizaNumeroPrePro;
   RecargaListaPrePro;
 end;
 
@@ -9115,12 +12565,10 @@ end;
 procedure TFVentas.Combo6Change(Sender: TObject);
 begin
   if Panel10.Visible then
+  begin
+    ActualizaNumeroPrePro;
     RecargaListaPrePro;
-  if dbSeries.Locate('SF0',trim(copy(Combo6.Items.Strings[Combo6.ItemIndex],1,3)),[]) then
-    if Radiobutton9.Checked=True then
-      Edit26.Text:=IntToStr(dbSeries.FieldByName('SF6').AsInteger+1);//--- N.Presp.
-    if Radiobutton10.Checked=True then
-      Edit26.Text:=IntToStr(dbSeries.FieldByName('SF8').AsInteger+1);//--- N.Porfor.
+  end;
 end;
 
 //---------------- Salir de Presupuesto / proforma ---------------
@@ -9167,8 +12615,7 @@ begin
 }
   RecargaListaPrePro;
   //----------------- N. presupuesto
-  if dbSeries.Locate('SF0',trim(copy(Combo6.Items.Strings[Combo6.ItemIndex],1,3)),[]) then
-      Edit26.Text:=IntToStr(dbSeries.FieldByName('SF6').AsInteger+1);//--- N.Presp.
+  ActualizaNumeroPrePro;
 end;
 
 //---------------- Proforma
@@ -9190,8 +12637,7 @@ begin
 }
   RecargaListaPrePro;
   //----------------- N. proforma
-  if dbSeries.Locate('SF0',trim(copy(Combo6.Items.Strings[Combo6.ItemIndex],1,3)),[]) then
-      Edit26.Text:=IntToStr(dbSeries.FieldByName('SF8').AsInteger+1);//--- N.Porfor.
+  ActualizaNumeroPrePro;
 end;
 
 //------------ DOBLE CLICK EN PRE/PRO -> MOSTRAR DATOS DEL PRE/PRO -------------
@@ -9216,6 +12662,23 @@ end;
 procedure TFVentas.BitBtn35Click(Sender: TObject);
 begin
   if dbVentas.RecordCount=0 then begin DataModule1.Mensaje('Información','No hay líneas para crear presupuestos o proformas', 2000 , clGray); exit; end;
+  if (Combo6.ItemIndex < 0) or
+     (Trim(Copy(Combo6.Items.Strings[Combo6.ItemIndex],1,3)) = '') or
+     (Trim(Copy(Combo6.Items.Strings[Combo6.ItemIndex],1,3)) = '***') then
+  begin
+    DataModule1.Mensaje('Información','Debe seleccionar una serie concreta', 2500, clGray);
+    Exit;
+  end;
+  if Trim(Edit34.Text)='' then begin DataModule1.Mensaje('Información','Falta cliente para presupuesto o proforma', 2500, clGray); exit; end;
+  if StrToIntDef(Trim(Edit35.Text),0)<=0 then
+  begin
+    ActualizaNumeroPrePro;
+    if StrToIntDef(Trim(Edit35.Text),0)<=0 then
+    begin
+      DataModule1.Mensaje('Información','No se pudo obtener el siguiente número', 2500, clGray);
+      Exit;
+    end;
+  end;
   If Application.MessageBox('CREAR UN NUEVO PRESUPUESTO/PROFORMA CON ESTAS LINEAS?','FacturLinEx', boxstyle) = IDNO Then
       Exit;
   //--------- Distinguir entre pre/pro
@@ -9228,6 +12691,17 @@ begin
                       ' AND PRC2="'+trim(copy(Combo6.Items.Strings[Combo6.ItemIndex],1,3))+'"'+
                       ' AND PRC3='+Edit35.Text;
   dbTrabajo.Active:=True;
+  // Un presupuesto y una proforma pueden compartir número porque viven en
+  // tablas distintas. Lo que no se permite es reutilizar la misma clave
+  // dentro del mismo tipo: así nunca se añaden líneas accidentalmente a un
+  // documento ya existente.
+  if dbTrabajo.RecordCount > 0 then
+  begin
+    DataModule1.Mensaje('Información',
+      'Ya existe un documento del mismo tipo con este cliente, fecha, serie y número',
+      3500, clGray);
+    Exit;
+  end;
   dbTrabajo.Append; RellenaPreProcc(); 
    try
      dbTrabajo.Post;
@@ -9235,6 +12709,7 @@ begin
      on EDB: EDatabaseError do
      begin
        Showmessage('Error : ' + EDB.Message);
+       Exit;
      end;
    end;
   //------------ Aumentar N. Pre/Pro
@@ -9513,80 +12988,58 @@ end;
 //============= IMPRIMIR PRESUPUESTO / PROFORMA ===============
 procedure TFVentas.ImprimirPresupuesto();
 var
- // TipoDocumento: String;
-  TxtQ: String;
-  Numero: Integer;
+  SerieDocumento: string;
+  EsPresupuestoDocumento: Boolean;
 begin
+  // PDF directo: no usa FastReport ni archivos .lrf.
+  // Presupuestos y proformas conservan numeraciones independientes y,
+  // sobre todo, se leen siempre desde sus tablas de detalle separadas:
+  // presud<Tienda> para presupuestos y proford<Tienda> para proformas.
+  if Combo6.ItemIndex < 0 then
+  begin
+    DataModule1.Mensaje('Información',
+      'Falta seleccionar la serie del presupuesto/proforma', 2500, clGray);
+    Exit;
+  end;
 
-  frDBDataSet1.DataSet:=dbMuestrad;
-  IMPOIVA1:=0; BASE1:=0; TOTAL1:=0; IRIVA1:=0; PIVA1:=0; PRIVA1:=0;
-  IMPOIVA2:=0; BASE2:=0; TOTAL2:=0; IRIVA2:=0; PIVA2:=0; PRIVA2:=0;
-  IMPOIVA3:=0; BASE3:=0; TOTAL3:=0; IRIVA3:=0; PIVA3:=0; PRIVA3:=0;
-    //--------------- Sacar distintos ivas ------------------
-  TxtQ:='SELECT DISTINCT(PRD12), (SUM(PRD13-PRD11)) As Ivas, '+
-        'SUM(PRD11) As Bases, SUM(PRD13) As Totales, '+
-        'SUM(PRD10) As Dtos, (((SUM(PRD11)*SUM(PRD10)) / 100)) As ImpoDtos FROM '+TablaPreProd+Tienda+
-        ' WHERE PRD0='+dbPedi.Fields[0].AsString+
-        ' AND PRD1="'+FormatDateTime('yyyy/mm/dd',dbPedi.Fields[1].asDateTime)+'"'+
-        ' AND PRD2="'+dbPedi.Fields[2].AsString+'"'+
-        ' AND PRD3='+dbPedi.Fields[3].AsString+' GROUP BY PRD12 ORDER BY PRD12 ASC';
-  dbTrabajo.Active:=False; dbTrabajo.Sql.Text:=TxtQ; dbTrabajo.Active:=True;
-  dbTrabajo.First;
-  //------------------------ Primer tipo de iva
-  if dbTrabajo.Eof=False then
-   begin
-    PIVA1:=dbTrabajo.Fields[0].AsInteger;
-    IMPOIVA1:=dbTrabajo.Fields[1].AsFloat;
-    BASE1:=dbTrabajo.Fields[2].AsFloat;
-    TOTAL1:=dbTrabajo.Fields[3].AsFloat;
-    //---------------- Recargo
-    if dbClientes.FieldByName('C19').AsString='S' then
-      begin
-       VerRecargo();
-       PRIVA1:=RECARGO;
-       IRIVA1:=dbTrabajo.Fields[2].AsFloat-((dbTrabajo.Fields[2].AsFloat*100)/(RECARGO+100));
-       TOTAL1:=dbTrabajo.Fields[3].AsFloat+dbTrabajo.Fields[2].AsFloat-((dbTrabajo.Fields[2].AsFloat*100)/(RECARGO+100));
-      end;
-   end;
-  dbTrabajo.Next;
-  //------------------------ Segundo tipo de iva
-  if dbTrabajo.Eof=False then
-   begin
-    PIVA2:=dbTrabajo.Fields[0].AsInteger;
-    IMPOIVA2:=dbTrabajo.Fields[1].AsFloat;
-    BASE2:=dbTrabajo.Fields[2].AsFloat;
-    TOTAL2:=dbTrabajo.Fields[3].AsFloat;
-    //---------------- Recargo
-    if dbClientes.FieldByName('C19').AsString='S' then
-      begin
-       VerRecargo();
-       PRIVA2:=RECARGO;
-       IRIVA2:=dbTrabajo.Fields[2].AsFloat-((dbTrabajo.Fields[2].AsFloat*100)/(RECARGO+100));
-       TOTAL2:=dbTrabajo.Fields[3].AsFloat+dbTrabajo.Fields[2].AsFloat-((dbTrabajo.Fields[2].AsFloat*100)/(RECARGO+100));
-      end;
-   end;
-  dbTrabajo.Next;
-  //------------------------ Tercer tipo de iva
-  if dbTrabajo.Eof=False then
-   begin
-    PIVA3:=dbTrabajo.Fields[0].AsInteger;
-    IMPOIVA3:=dbTrabajo.Fields[1].AsFloat;
-    BASE3:=dbTrabajo.Fields[2].AsFloat;
-    TOTAL3:=dbTrabajo.Fields[3].AsFloat;
-    //---------------- Recargo
-    if dbClientes.FieldByName('C19').AsString='S' then
-      begin
-       VerRecargo();
-       PRIVA3:=RECARGO;
-       IRIVA3:=dbTrabajo.Fields[2].AsFloat-((dbTrabajo.Fields[2].AsFloat*100)/(RECARGO+100));
-       TOTAL3:=dbTrabajo.Fields[3].AsFloat+dbTrabajo.Fields[2].AsFloat-((dbTrabajo.Fields[2].AsFloat*100)/(RECARGO+100));
-      end;
-   end;
-   dbMuestrad.SQL.Text:=dbPedid.SQL.Text;
-   dbMuestrad.Active:=True;
-   if RadioButton9.Checked=true then Numero:=1 else Numero:=2;
-   frReport1.LoadFromFile(Impreso[Numero]);
-   frReport1.ShowReport;
+  if Trim(Edit34.Text) = '' then
+  begin
+    DataModule1.Mensaje('Información',
+      'Falta el cliente del presupuesto/proforma', 2500, clGray);
+    Exit;
+  end;
+
+  if Trim(Edit35.Text) = '' then
+  begin
+    DataModule1.Mensaje('Información',
+      'Falta el número del presupuesto/proforma', 2500, clGray);
+    Exit;
+  end;
+
+  EsPresupuestoDocumento := RadioButton9.Checked;
+  if EsPresupuestoDocumento then
+  begin
+    TablaPreProc := 'presuc';
+    TablaPreProd := 'presud';
+  end
+  else
+  begin
+    TablaPreProc := 'proforc';
+    TablaPreProd := 'proford';
+  end;
+
+  SerieDocumento := Trim(Copy(Combo6.Items.Strings[Combo6.ItemIndex], 1, 3));
+
+  try
+    FLXVistaPreviaPreProPDF(Self, dbPedid.Connection, Tienda,
+      EsPresupuestoDocumento, Trim(Edit34.Text), DateEdit2.Date,
+      SerieDocumento, Trim(Edit35.Text), Memo1.Lines.Text);
+  except
+    on E: Exception do
+      Application.MessageBox(PChar('No se pudo generar el PDF del presupuesto/proforma.' +
+        LineEnding + LineEnding + E.Message), 'FacturLinEx',
+        MB_ICONERROR or MB_OK);
+  end;
 end;
 
 //=============================================================
@@ -9595,6 +13048,9 @@ end;
 
 //------ Aceptar crear nuevo cliente
 procedure TFVentas.BitBtn33Click(Sender: TObject);
+var
+  NumeroCopias: Integer;
+  RutaFacturacion, SubRutaFacturacion: string;
 begin
 
   if Edit29.Text='' then
@@ -9603,6 +13059,27 @@ begin
        Edit29.SetFocus;
        Exit;
     end;
+
+  NumeroCopias := StrToIntDef(Trim(edAltaClienteCopias.Text), 0);
+  if NumeroCopias < 1 then
+    begin
+      DataModule1.Mensaje('Información',
+        'El número de copias de factura debe ser al menos 1', 2500, clGray);
+      edAltaClienteCopias.SetFocus;
+      Exit;
+    end;
+
+  if chkAltaClienteEnviarEmail.Checked and
+     (Trim(edAltaClienteEmail.Text)='') then
+    begin
+      DataModule1.Mensaje('Información',
+        'Debe indicar el e-mail para activar el envío de facturas', 2500, clGray);
+      edAltaClienteEmail.SetFocus;
+      Exit;
+    end;
+
+  RutaFacturacion := VF_CodigoSeleccionAltaCliente(cbAltaClienteRuta);
+  SubRutaFacturacion := VF_CodigoSeleccionAltaCliente(cbAltaClienteSubRuta);
 
   // Si el usuario no pulsó el botón de comprobación, revisamos antes de grabar.
   // No bloquea: permite guardar el introducido, guardar el propuesto o dejarlo vacío.
@@ -9626,6 +13103,16 @@ begin
   dbClientes.FieldByName('C38').AsString:=Edit38.Text;//--- Provincia
   dbClientes.FieldByName('C5').AsString:=Edit39.Text;//--- NIF/CIF
   dbClientes.FieldByName('C6').AsString:=Edit40.Text;//--- Telefono
+  if Assigned(dbClientes.FindField('C40')) then
+    dbClientes.FieldByName('C40').AsString:=Trim(edAltaClienteEmail.Text);// E-mail
+  if Assigned(dbClientes.FindField('C55')) then
+    dbClientes.FieldByName('C55').AsBoolean:=chkAltaClienteEnviarEmail.Checked;// Enviar por e-mail
+  if Assigned(dbClientes.FindField('C10')) then
+    dbClientes.FieldByName('C10').AsString:=RutaFacturacion;// Ruta facturacion
+  if Assigned(dbClientes.FindField('C48')) then
+    dbClientes.FieldByName('C48').AsString:=SubRutaFacturacion;// Subruta facturacion
+  if Assigned(dbClientes.FindField('C8')) then
+    dbClientes.FieldByName('C8').AsString:=IntToStr(NumeroCopias);// Copias factura
   try
     dbClientes.Post;
   except
@@ -9701,7 +13188,7 @@ var
    nIndex:=0;
    dispensador:='1';
 
-   MaxHorizontal:= Panel12.Height - Panel12.Left;
+   MaxHorizontal:= Panel12.Width;
 
    dbUsu.First;
    while not dbUsu.Eof do
@@ -9726,6 +13213,7 @@ var
             if FileExists(dbUsu.Fields[13].AsString) then
               Glyph.LoadFromFile(dbUsu.Fields[13].AsString);
            OnClick := @ButtonUsuClick;
+           VF_EstilarBotonUsuario(Boton);
            Repaint;
          end;
        m := m + 1; i := i + 1;
@@ -9748,6 +13236,8 @@ var
        dbUsu.Next;
 
      end;
+   VF_AplicarEstiloAuxiliares;
+   VF_AplicarLayoutAuxiliares;
   except
   end;
 
@@ -9780,9 +13270,276 @@ end;
 //=============================================================
 //==================== TECLAS RAPIDAS =========================
 //=============================================================
+// En GTK2 los TEdit/GtkEntry pueden consumir Ctrl+letra antes de que LCL
+// genere FormKeyDown. La captura se instala en el nivel nativo GTK y se
+// desinstala al cerrar este formulario. No se modifica ningún otro formulario.
+
+function TFVentas.VF_AtajosCtrlPrincipalActivos: Boolean;
+begin
+  // No dependemos de Panel3, Edit3 ni DBGrid1: son controles de la pantalla
+  // principal y su estado puede variar durante el flujo normal de una venta.
+  // No usar Screen.ActiveForm: en formularios embebidos o gestionados desde
+  // el menú principal puede seguir apuntando al formulario contenedor aunque
+  // el foco esté realmente dentro de Ventas.
+  Result := not (csDestroying in ComponentState) and
+    Visible and Enabled and
+    (not Panel4.Visible) and
+    (not Panel6.Visible) and
+    (not Panel8.Visible) and
+    (not Panel9.Visible) and
+    (not Panel10.Visible) and
+    (not Panel11.Visible) and
+    (not Panel12.Visible) and
+    (not PanelBuscaArticulos.Visible) and
+    (not PanelCodigoVario.Visible);
+end;
+
+function TFVentas.VF_EjecutarAtajoCtrlPrincipal(const AKey: Word): Boolean;
+begin
+  Result := False;
+  if not VF_AtajosCtrlPrincipalActivos then
+    Exit;
+
+  case AKey of
+    VK_O:
+      begin
+        // Ctrl+O: Código de cliente.
+        Result := True;
+        if Edit1.CanFocus then
+        begin
+          Edit1.SetFocus;
+          Edit1.SelectAll;
+        end;
+      end;
+
+    VK_U:
+      begin
+        // Ctrl+U: Nombre/búsqueda de cliente.
+        Result := True;
+        if Edit2.CanFocus then
+        begin
+          Edit2.SetFocus;
+          Edit2.SelectAll;
+        end;
+      end;
+
+    VK_N:
+      begin
+        // Ctrl+N: aceptar/grabar la línea, igual que el botón Nuevo.
+        Result := True;
+        if BitBtn14.Enabled then
+          BitBtn14Click(BitBtn14);
+      end;
+
+  end;
+end;
+
+{$IFDEF LCLGTK2}
+// Captura directa del key-press-event de cada control GTK perteneciente a
+// Ventas. Se conecta DESPUES de crear los handles, pero ANTES del manejador
+// por defecto de GtkEntry. Al devolver TRUE, GtkEntry no puede convertir
+// Ctrl+M en INTRO ni consumir Ctrl+N/O/U como órdenes internas de edición.
+function VF_GtkVentasControlKeyPress(AWidget: PGtkWidget;
+  AEvent: PGdkEventKey; AData: gpointer): gint; cdecl;
+var
+  FormVentas: TFVentas;
+  VirtualKey: Word;
+  KeyVal: guint;
+begin
+  Result := 0; // FALSE: continuar normalmente.
+
+  if (AEvent = nil) or (AData = nil) then
+    Exit;
+
+  FormVentas := TFVentas(AData);
+  if (csDestroying in FormVentas.ComponentState) or
+     (not FormVentas.Visible) then
+    Exit;
+
+  if AEvent^._Type <> GDK_KEY_PRESS then
+    Exit;
+  if (AEvent^.state and GDK_CONTROL_MASK) = 0 then
+    Exit;
+  if (AEvent^.state and
+      (GDK_SHIFT_MASK or GDK_MOD1_MASK or GDK_MOD4_MASK)) <> 0 then
+    Exit;
+
+  KeyVal := gdk_keyval_to_lower(AEvent^.keyval);
+  VirtualKey := 0;
+  case KeyVal of
+    Ord('o'): VirtualKey := VK_O;
+    Ord('u'): VirtualKey := VK_U;
+    Ord('n'): VirtualKey := VK_N;
+    Ord('m'): VirtualKey := VK_M;
+  end;
+
+  if VirtualKey = 0 then
+    Exit;
+
+  VF_DiagLog('00_GTK_CONTROL_DIRECTO | Widget=' +
+    IntToHex(PtrUInt(AWidget), SizeOf(Pointer) * 2) +
+    ' | KeyVal=' + IntToStr(AEvent^.keyval) +
+    ' | VirtualKey=' + IntToStr(VirtualKey) +
+    ' | State=' + IntToStr(AEvent^.state) +
+    ' | ActiveControl=' + VF_DiagObj(Screen.ActiveControl) +
+    ' | ActiveForm=' + VF_DiagObj(Screen.ActiveForm));
+
+  // Ctrl+M no es un atajo de Ventas. Se consume aquí para impedir que
+  // GtkEntry lo convierta en #13 y Edit3KeyPress lo ejecute como INTRO.
+  if VirtualKey = VK_M then
+  begin
+    Result := 1;
+    Exit;
+  end;
+
+  if FormVentas.VF_EjecutarAtajoCtrlPrincipal(VirtualKey) then
+    Result := 1; // TRUE: detener antes del manejador interno de GtkEntry.
+end;
+
+procedure TFVentas.VF_ConectarCtrlGTK2(AParent: TWinControl);
+var
+  I: Integer;
+  C: TControl;
+begin
+  if AParent = nil then
+    Exit;
+
+  // El propio formulario también puede recibir eventos cuando el foco está
+  // en un control no editable.
+  if AParent.HandleAllocated then
+    g_signal_connect(PGtkObject(AParent.Handle), 'key-press-event',
+      TGTKSignalFunc(@VF_GtkVentasControlKeyPress), Self);
+
+  for I := 0 to AParent.ControlCount - 1 do
+  begin
+    C := AParent.Controls[I];
+    if C is TWinControl then
+      VF_ConectarCtrlGTK2(TWinControl(C));
+  end;
+end;
+
+procedure TFVentas.VF_DesconectarCtrlGTK2(AParent: TWinControl);
+var
+  I: Integer;
+  C: TControl;
+begin
+  if AParent = nil then
+    Exit;
+
+  if AParent.HandleAllocated then
+    g_signal_handlers_disconnect_by_func(PGObject(AParent.Handle),
+      TGTKSignalFunc(@VF_GtkVentasControlKeyPress), Self);
+
+  for I := 0 to AParent.ControlCount - 1 do
+  begin
+    C := AParent.Controls[I];
+    if C is TWinControl then
+      VF_DesconectarCtrlGTK2(TWinControl(C));
+  end;
+end;
+
+procedure TFVentas.VF_InstalarCapturaCtrlGTK2;
+begin
+  if FGtkCtrlHookInstalado then
+    Exit;
+
+  VF_ConectarCtrlGTK2(Self);
+  FGtkCtrlHookInstalado := True;
+  VF_DiagLog('GTK_CONTROL_DIRECTO_INSTALL | Form=' + VF_DiagObj(Self) +
+    ' | ActiveForm=' + VF_DiagObj(Screen.ActiveForm));
+end;
+
+procedure TFVentas.VF_DesinstalarCapturaCtrlGTK2;
+begin
+  if not FGtkCtrlHookInstalado then
+    Exit;
+
+  VF_DesconectarCtrlGTK2(Self);
+  FGtkCtrlHookInstalado := False;
+  VF_DiagLog('GTK_CONTROL_DIRECTO_REMOVE | Form=' + VF_DiagObj(Self));
+end;
+{$ENDIF}
+
+procedure TFVentas.FormUTF8KeyPress(Sender: TObject;
+  var UTF8Key: TUTF8Char);
+var
+  VirtualKey: Word;
+begin
+  // En GTK, TEdit/GtkEntry puede omitir KeyDown para Ctrl+letra y enviar
+  // directamente el carácter ASCII de control por UTF8KeyPress:
+  //   Ctrl+N = #14, Ctrl+O = #15, Ctrl+U = #21.
+  // Con KeyPreview=True este evento llega primero al formulario, antes de
+  // que Edit3 u otro TEdit pueda consumirlo.
+  if Length(UTF8Key) <> 1 then
+    Exit;
+
+  case Ord(UTF8Key[1]) of
+    14: VirtualKey := VK_N;
+    15: VirtualKey := VK_O;
+    21: VirtualKey := VK_U;
+  else
+    Exit;
+  end;
+
+  VF_DiagLog('02_FORM_UTF8KEYPRESS_CTRL | CharCode=' +
+    IntToStr(Ord(UTF8Key[1])) + ' | VirtualKey=' +
+    IntToStr(VirtualKey) + ' | ActiveControl=' +
+    VF_DiagObj(Screen.ActiveControl));
+
+  if VF_EjecutarAtajoCtrlPrincipal(VirtualKey) then
+    UTF8Key := '';
+end;
+
 procedure TFVentas.FormKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
+  VF_DiagLogTecla('02_FORM_KEYDOWN', Sender, Key, Shift);
+  // Ruta LCL de respaldo: botones, grids y otros widgetsets. En GTK2,
+  // cuando el foco está en un TEdit, el snooper nativo actúa antes.
+  if (ssCtrl in Shift) and VF_EjecutarAtajoCtrlPrincipal(Key) then
+  begin
+    Key := 0;
+    Exit;
+  end;
+
+  // El selector de tarifas es el elemento más interno: ESC lo cierra antes
+  // que cualquier panel de venta o el propio formulario.
+  if (Key = VK_ESCAPE) and ListBox2.Visible then
+  begin
+    ListBox2.Visible := False;
+    if ListBox2.Tag = 1 then
+      Edit6.SetFocus
+    else
+      Edit7.SetFocus;
+    Key := 0;
+    Exit;
+  end;
+
+  // La selección de serie se abre dentro del panel de totalización. Debe
+  // cerrarse primero; de lo contrario el ESC cerraría Panel4 y dejaría la
+  // operación en un estado del que no se puede volver a elegir documento.
+  if (Key = VK_ESCAPE) and Panel8.Visible then
+  begin
+    BitBtn20Click(BitBtn20);
+    if Panel14.Visible then
+      BitBtn12.SetFocus
+    else if Panel15.Visible then
+      BitBtn13.SetFocus
+    else
+      Edit15.SetFocus;
+    Key := 0;
+    Exit;
+  end;
+
+  // El alta rápida es un panel auxiliar: ESC debe cancelarla antes de
+  // alcanzar el ESC general que cierra el formulario completo de Ventas.
+  if (Key = VK_ESCAPE) and Panel11.Visible then
+  begin
+    BitBtn34Click(BitBtn34);
+    Key := 0;
+    Exit;
+  end;
+
   //------------- Cambiar entre tickets aparcados de F1 a F4
   if (dbTickets.RecordCount<>0) and (panel4.Visible=False) then
     begin
@@ -9900,14 +13657,28 @@ end;
 
 procedure TFVentas.FormShow(Sender: TObject);
 begin
+  VF_DiagLog('FORMSHOW_ENTER | Self=' + VF_DiagObj(Self) +
+    ' | ActiveControl=' + VF_DiagObj(Screen.ActiveControl));
+  {$IFDEF LCLGTK2}
+  VF_InstalarCapturaCtrlGTK2;
+  {$ENDIF}
   VF_PosicionarBotonBuscarAbono;
+  VF_AplicarLayoutModerno;
+  VF_ActualizarCabeceraModerna;
   Edit3.SetFocus;
 
   BitBtn24Click(BitBtn24);
 
+  // El LCL/GTK termina algunos autoajustes después de FormCreate. Reaplicamos
+  // la geometría cuando la ventana ya está visible para impedir solapamientos.
+  Application.QueueAsyncCall(@VF_AplicarLayoutAsync, 0);
+  FLXAplicarTemaVisual(Self);
 end;
 
 initialization
-  {$I ventas.lrs}
+  VF_DiagLog('UNIT_INITIALIZATION | Exe=' + ExpandFileName(ParamStr(0)));
+
+finalization
+  VF_DiagLog('UNIT_FINALIZATION | Exe=' + ExpandFileName(ParamStr(0)));
 
 end.

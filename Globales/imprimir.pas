@@ -110,6 +110,8 @@ type
     procedure cbDuplicadoChange(Sender: TObject);
     procedure cbEnviarCorreoChange(Sender: TObject);
     procedure cbEsCopiaChange(Sender: TObject);
+    procedure edDestinatarioChange(Sender: TObject);
+    procedure edDestinatarioExit(Sender: TObject);
     procedure Edit1Exit(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure FormShow(Sender: TObject);
@@ -146,7 +148,34 @@ type
     procedure CorreosElectronicos;
     function FirmarFactura(XMLFile: string): string;
   private
-    { private declarations }
+    { Modernización visual de la ventana de impresión. }
+    pnlFormatoModerno: TPanel;
+    pnlMetodoModerno: TPanel;
+    pnlPDFModerno: TPanel;
+    pnlOpcionesModerno: TPanel;
+    pnlGenerandoModerno: TPanel;
+    frmAvisoFlotante: TForm;
+    lblAvisoFlotante: TLabel;
+    lblTituloModerno: TLabel;
+    lblSubtituloModerno: TLabel;
+    lblOpcionesModerno: TLabel;
+    FEstiloModernoAplicado: Boolean;
+    FEsInformeSQL: Boolean;
+    FCorreoClienteGestionado: Boolean;
+    FCargandoCorreoCliente: Boolean;
+    FCorreoClienteInicial: String;
+    FCorreoUltimoEvaluado: String;
+    procedure VF_AplicarEstiloModerno;
+    procedure VF_ActualizarTituloModerno;
+    procedure VF_CrearAvisoFlotante;
+    procedure VF_OcultarAvisoFlotante;
+    procedure VF_MostrarGenerandoPDF(const AVisible: Boolean);
+    procedure VF_MostrarAvisoFrontal(const ATitulo, ATexto: String;
+      const ADuracion: Integer; const AColor: TColor);
+    function VF_HayClienteParaGuardarCorreo: Boolean;
+    procedure VF_OfrecerGuardarCorreoCliente;
+    function VF_GuardarCorreoEnFicha(const ACorreo: String;
+      const AEnObservaciones: Boolean): Boolean;
   public
     { public declarations }
   end; 
@@ -176,8 +205,11 @@ var
 
 implementation
 
+{$R *.lfm}
+
 uses
-  Global, Funciones, uFacturaE_Generator, uFacturaE_Signer;
+  Global, Funciones, uFacturaE_Generator, uFacturaE_Signer,
+  uFLXTemaVisual;
 
 { Helpers QR Veri*Factu -------------------------------------------------------
   Se dejan en Imprimir para que el QR de FACTURAS use la misma lógica
@@ -211,6 +243,608 @@ end;
 
 { TFImpresion }
 
+procedure TFImpresion.VF_AplicarEstiloModerno;
+const
+  CFondo       = TColor($00F4F6F8);
+  CTarjeta     = clWhite;
+  CCabecera    = TColor($00654A16); // azul petróleo (BGR)
+  CPrimario    = TColor($00967816);
+  CVerde       = TColor($007A8B22);
+  CRojo        = TColor($003C4FD9);
+  CTexto       = TColor($00302A25);
+  CTextoSuave  = TColor($00796F68);
+  CBorde       = TColor($00DDD7D2);
+
+  procedure PrepararPanel(var APanel: TPanel; const AName: String;
+    ALeft, ATop, AWidth, AHeight: Integer);
+  begin
+    if not Assigned(APanel) then
+    begin
+      APanel := TPanel.Create(Self);
+      APanel.Name := AName;
+      APanel.Parent := Panel10;
+      APanel.BevelOuter := bvNone;
+      APanel.ParentBackground := False;
+      APanel.Caption := '';
+    end;
+    APanel.SetBounds(ALeft, ATop, AWidth, AHeight);
+    APanel.Color := CTarjeta;
+    APanel.SendToBack;
+  end;
+
+  procedure EstiloEtiqueta(ALabel: TLabel; const AColor: TColor;
+    const AHeight: Integer = -13; const ANegrita: Boolean = False);
+  begin
+    ALabel.ParentFont := False;
+    ALabel.Font.Name := 'Sans';
+    ALabel.Font.Height := AHeight;
+    ALabel.Font.Color := AColor;
+    if ANegrita then
+      ALabel.Font.Style := [fsBold]
+    else
+      ALabel.Font.Style := [];
+  end;
+
+  procedure EstiloCampo(AEdit: TCustomEdit);
+  begin
+    { TCustomEdit no expone ParentFont en todas las versiones de LCL. }
+    AEdit.Font.Name := 'Sans';
+    AEdit.Font.Height := -13;
+    AEdit.Font.Color := CTexto;
+    AEdit.Color := clWhite;
+  end;
+
+  procedure EstiloBoton(AButton: TBitBtn; const AColor, AFontColor: TColor);
+  begin
+    AButton.ParentFont := False;
+    AButton.Font.Name := 'Sans';
+    AButton.Font.Height := -13;
+    AButton.Font.Style := [fsBold];
+    AButton.Font.Color := AFontColor;
+    AButton.Color := AColor;
+    AButton.Margin := 8;
+    AButton.Spacing := 8;
+  end;
+
+var
+  I: Integer;
+begin
+  if FEstiloModernoAplicado then Exit;
+  FEstiloModernoAplicado := True;
+
+  Caption := 'FacturLinEx · Impresión de documentos';
+  Color := CFondo;
+  Font.Name := 'Sans';
+  Font.Height := -13;
+  Position := poScreenCenter;
+  BorderStyle := bsSingle;
+  ClientWidth := 1090;
+  ClientHeight := 745;
+
+  Panel10.ParentBackground := False;
+  Panel10.Color := CFondo;
+  Panel10.BevelOuter := bvNone;
+
+  // Cabecera coherente con la nueva pantalla de ventas.
+  pnCabecera.ParentBackground := False;
+  pnCabecera.Color := CCabecera;
+  pnCabecera.BevelOuter := bvNone;
+  pnCabecera.Height := 84;
+
+  if not Assigned(lblTituloModerno) then
+  begin
+    lblTituloModerno := TLabel.Create(Self);
+    lblTituloModerno.Name := 'lblTituloImpresionModerno';
+    lblTituloModerno.Parent := pnCabecera;
+    lblTituloModerno.Transparent := True;
+    lblTituloModerno.AutoSize := False;
+  end;
+  lblTituloModerno.SetBounds(24, 12, 500, 30);
+  EstiloEtiqueta(lblTituloModerno, clWhite, -22, True);
+  lblTituloModerno.Caption := 'Impresión de documentos';
+
+  if not Assigned(lblSubtituloModerno) then
+  begin
+    lblSubtituloModerno := TLabel.Create(Self);
+    lblSubtituloModerno.Name := 'lblSubtituloImpresionModerno';
+    lblSubtituloModerno.Parent := pnCabecera;
+    lblSubtituloModerno.Transparent := True;
+    lblSubtituloModerno.AutoSize := False;
+  end;
+  lblSubtituloModerno.SetBounds(25, 45, 500, 22);
+  EstiloEtiqueta(lblSubtituloModerno, TColor($00DED7D1), -12, False);
+  lblSubtituloModerno.Caption := 'Formato, método de salida y opciones del documento';
+
+  btOk1.SetBounds(548, 14, 150, 54);
+  btOk1.Caption := 'Continuar';
+  EstiloBoton(btOk1, CVerde, clWhite);
+  btCorreo.SetBounds(708, 14, 126, 54);
+  btCorreo.Caption := 'Correo';
+  EstiloBoton(btCorreo, CPrimario, clWhite);
+  btxml.SetBounds(844, 14, 112, 54);
+  btxml.Caption := 'XML';
+  EstiloBoton(btxml, TColor($008A817B), clWhite);
+  btSalir.SetBounds(966, 14, 106, 54);
+  btSalir.Caption := 'Cerrar';
+  EstiloBoton(btSalir, CRojo, clWhite);
+
+  // Tarjetas principales. Los controles se convierten en hijos reales de
+  // cada tarjeta para evitar que GTK oculte labels y checkboxes detrás de
+  // paneles con ventana propia.
+  PrepararPanel(pnlFormatoModerno, 'pnlFormatoImpresionModerno', 24, 102, 500, 174);
+  PrepararPanel(pnlMetodoModerno, 'pnlMetodoImpresionModerno', 542, 102, 524, 174);
+  PrepararPanel(pnlPDFModerno, 'pnlPDFImpresionModerno', 24, 292, 1042, 78);
+  PrepararPanel(pnlOpcionesModerno, 'pnlOpcionesImpresionModerno', 24, 386, 500, 326);
+
+  RadioGroup1.Parent := pnlFormatoModerno;
+  RadioGroup1.SetBounds(16, 14, 468, 144);
+  RadioGroup1.Caption := '  Formato del documento  ';
+  RadioGroup1.ParentBackground := False;
+  RadioGroup1.ParentColor := False;
+  RadioGroup1.Color := CTarjeta;
+  RadioGroup1.ParentFont := False;
+  RadioGroup1.Font.Name := 'Sans';
+  RadioGroup1.Font.Height := -13;
+  RadioGroup1.Font.Color := CTexto;
+
+  RadioGroup2.Parent := pnlMetodoModerno;
+  RadioGroup2.SetBounds(16, 14, 298, 144);
+  RadioGroup2.Caption := '  Método de salida  ';
+  RadioGroup2.ParentBackground := False;
+  RadioGroup2.ParentColor := False;
+  RadioGroup2.Color := CTarjeta;
+  RadioGroup2.ParentFont := False;
+  RadioGroup2.Font.Name := 'Sans';
+  RadioGroup2.Font.Height := -13;
+  RadioGroup2.Font.Color := CTexto;
+
+  // QR VeriFactu integrado en la tarjeta del método de salida.
+  Panel1.Parent := pnlMetodoModerno;
+  Panel1.SetBounds(342, 14, 158, 144);
+  Panel1.Caption := '';
+  Panel1.BevelOuter := bvNone;
+  Panel1.ParentBackground := False;
+  Panel1.Color := clWhite;
+  Label9.SetBounds(8, 6, 142, 22);
+  Label9.Alignment := taCenter;
+  Label9.Caption := 'QR veri*factu';
+  Label9.Color := clWhite;
+  EstiloEtiqueta(Label9, CCabecera, -12, True);
+  BarcodeQR1.SetBounds(18, 30, 122, 108);
+
+  // Nombre de PDF y copias en una única banda clara.
+  Label1.Parent := pnlPDFModerno;
+  Label1.SetBounds(16, 10, 200, 20);
+  Label1.Caption := 'Archivo PDF a generar';
+  EstiloEtiqueta(Label1, CTextoSuave, -12, True);
+
+  Edit1.Parent := pnlPDFModerno;
+  Edit1.SetBounds(16, 34, 772, 31);
+  EstiloCampo(Edit1);
+
+  lbCopias.Parent := pnlPDFModerno;
+  lbCopias.SetBounds(820, 10, 150, 20);
+  lbCopias.Caption := 'Copias';
+  EstiloEtiqueta(lbCopias, CTextoSuave, -12, True);
+
+  SpinEdit1.Parent := pnlPDFModerno;
+  SpinEdit1.SetBounds(820, 34, 90, 31);
+  SpinEdit1.ParentFont := False;
+  SpinEdit1.Font.Name := 'Sans';
+  SpinEdit1.Font.Height := -13;
+  SpinEdit1.Color := clWhite;
+
+  // El antiguo aviso incrustado se mantiene oculto. En GTK los controles
+  // nativos pueden dibujarse por encima de paneles hermanos aunque se altere
+  // el orden Z. Los avisos se muestran ahora en una única ventana flotante.
+  if Assigned(pnlGenerandoModerno) then
+    pnlGenerandoModerno.Visible := False;
+  lbGenerando.Visible := False;
+
+  if not Assigned(lblOpcionesModerno) then
+  begin
+    lblOpcionesModerno := TLabel.Create(Self);
+    lblOpcionesModerno.Name := 'lblOpcionesImpresionModerno';
+    lblOpcionesModerno.Transparent := True;
+    lblOpcionesModerno.AutoSize := False;
+  end;
+  lblOpcionesModerno.Parent := pnlOpcionesModerno;
+  lblOpcionesModerno.SetBounds(20, 16, 450, 24);
+  lblOpcionesModerno.Caption := 'Opciones del documento';
+  EstiloEtiqueta(lblOpcionesModerno, CCabecera, -15, True);
+
+  // Primera columna: contenido y precios.
+  cbFechasAlbaranes.Parent := pnlOpcionesModerno;
+  cbFechasAlbaranes.SetBounds(20, 54, 300, 24);
+  cbObservaciones.Parent := pnlOpcionesModerno;
+  cbObservaciones.SetBounds(20, 92, 300, 24);
+  cbprecio.Parent := pnlOpcionesModerno;
+  cbprecio.SetBounds(20, 130, 300, 24);
+  cbPVP.Parent := pnlOpcionesModerno;
+  cbPVP.SetBounds(20, 168, 300, 24);
+
+  // Segunda zona: formato especial y marcas del documento.
+  CheckBox1.Parent := pnlOpcionesModerno;
+  CheckBox1.SetBounds(20, 214, 220, 24);
+  cbDuplicado.Parent := pnlOpcionesModerno;
+  cbDuplicado.SetBounds(250, 214, 220, 24);
+  cbEsCopia.Parent := pnlOpcionesModerno;
+  cbEsCopia.SetBounds(250, 252, 220, 24);
+  CheckBoxAnexos.Parent := pnlOpcionesModerno;
+  CheckBoxAnexos.SetBounds(20, 252, 220, 24);
+
+  for I := 0 to pnlOpcionesModerno.ControlCount - 1 do
+    if pnlOpcionesModerno.Controls[I] is TCheckBox then
+      with TCheckBox(pnlOpcionesModerno.Controls[I]) do
+      begin
+        ParentFont := False;
+        Font.Name := 'Sans';
+        Font.Height := -13;
+        Font.Color := CTexto;
+      end;
+
+  // Correo como tarjeta completa a la derecha.
+  cbEnviarCorreo.SetBounds(562, 394, 300, 26);
+  cbEnviarCorreo.ParentFont := False;
+  cbEnviarCorreo.Font.Name := 'Sans';
+  cbEnviarCorreo.Font.Height := -13;
+  cbEnviarCorreo.Font.Style := [fsBold];
+  cbEnviarCorreo.Font.Color := CCabecera;
+
+  PanelCorreo.SetBounds(542, 424, 524, 288);
+  PanelCorreo.BevelOuter := bvNone;
+  PanelCorreo.ParentBackground := False;
+  PanelCorreo.Color := CTarjeta;
+  Label2.SetBounds(18, 12, 488, 25);
+  Label2.Alignment := taLeftJustify;
+  Label2.Caption := 'Datos del correo electrónico';
+  EstiloEtiqueta(Label2, CCabecera, -15, True);
+
+  Label3.SetBounds(18, 52, 72, 20);
+  Label7.SetBounds(18, 88, 72, 20);
+  Label4.SetBounds(18, 124, 72, 20);
+  Label5.SetBounds(18, 160, 72, 20);
+  Label6.SetBounds(18, 196, 72, 20);
+  EstiloEtiqueta(Label3, CTextoSuave, -12, True);
+  EstiloEtiqueta(Label7, CTextoSuave, -12, True);
+  EstiloEtiqueta(Label4, CTextoSuave, -12, True);
+  EstiloEtiqueta(Label5, CTextoSuave, -12, True);
+  EstiloEtiqueta(Label6, CTextoSuave, -12, True);
+
+  edDestinatario.SetBounds(92, 46, 412, 29);
+  edDestinatarioCopia.SetBounds(92, 82, 412, 29);
+  edAsunto.SetBounds(92, 118, 412, 29);
+  edAdjunto.SetBounds(92, 154, 374, 29);
+  sbBuscar.SetBounds(472, 154, 32, 29);
+  mmTexto.SetBounds(92, 190, 412, 82);
+  EstiloCampo(edDestinatario);
+  EstiloCampo(edDestinatarioCopia);
+  EstiloCampo(edAsunto);
+  EstiloCampo(edAdjunto);
+  mmTexto.ParentFont := False;
+  mmTexto.Font.Name := 'Sans';
+  mmTexto.Font.Height := -13;
+  mmTexto.Font.Color := CTexto;
+  mmTexto.Color := clWhite;
+
+  // Asegura el orden visual dentro de cada tarjeta.
+  RadioGroup1.BringToFront;
+  RadioGroup2.BringToFront;
+  Panel1.BringToFront;
+  Label1.BringToFront;
+  Edit1.BringToFront;
+  lbCopias.BringToFront;
+  SpinEdit1.BringToFront;
+  lblOpcionesModerno.BringToFront;
+  cbFechasAlbaranes.BringToFront;
+  cbObservaciones.BringToFront;
+  cbprecio.BringToFront;
+  cbPVP.BringToFront;
+  CheckBox1.BringToFront;
+  cbDuplicado.BringToFront;
+  cbEsCopia.BringToFront;
+  CheckBoxAnexos.BringToFront;
+  cbEnviarCorreo.BringToFront;
+  PanelCorreo.BringToFront;
+  pnCabecera.BringToFront;
+end;
+
+procedure TFImpresion.VF_CrearAvisoFlotante;
+begin
+  if Assigned(frmAvisoFlotante) then Exit;
+
+  frmAvisoFlotante := TForm.CreateNew(Self);
+  frmAvisoFlotante.Name := '';
+  frmAvisoFlotante.Caption := '';
+  frmAvisoFlotante.BorderStyle := bsNone;
+  frmAvisoFlotante.FormStyle := fsStayOnTop;
+  frmAvisoFlotante.Position := poDesigned;
+  frmAvisoFlotante.Width := 600;
+  frmAvisoFlotante.Height := 116;
+  frmAvisoFlotante.Color := clNavy;
+  frmAvisoFlotante.Visible := False;
+
+  lblAvisoFlotante := TLabel.Create(frmAvisoFlotante);
+  lblAvisoFlotante.Name := '';
+  lblAvisoFlotante.Parent := frmAvisoFlotante;
+  lblAvisoFlotante.Align := alClient;
+  lblAvisoFlotante.AutoSize := False;
+  lblAvisoFlotante.Transparent := False;
+  lblAvisoFlotante.Color := clNavy;
+  lblAvisoFlotante.Alignment := taCenter;
+  lblAvisoFlotante.Layout := tlCenter;
+  lblAvisoFlotante.WordWrap := True;
+  lblAvisoFlotante.ParentFont := False;
+  lblAvisoFlotante.Font.Name := 'Sans';
+  lblAvisoFlotante.Font.Height := -16;
+  lblAvisoFlotante.Font.Style := [fsBold];
+  lblAvisoFlotante.Font.Color := clWhite;
+  lblAvisoFlotante.Caption := '';
+end;
+
+procedure TFImpresion.VF_OcultarAvisoFlotante;
+begin
+  if not Assigned(frmAvisoFlotante) then Exit;
+
+  frmAvisoFlotante.Hide;
+  if Assigned(lblAvisoFlotante) then
+    lblAvisoFlotante.Caption := '';
+  Application.ProcessMessages;
+end;
+
+procedure TFImpresion.VF_MostrarGenerandoPDF(const AVisible: Boolean);
+var
+  P: TPoint;
+begin
+  VF_CrearAvisoFlotante;
+
+  if AVisible then
+  begin
+    { Limpiamos y ocultamos antes de reutilizar la ventana. Así GTK no conserva
+      restos del mensaje anterior en el búfer de dibujo. }
+    VF_OcultarAvisoFlotante;
+
+    frmAvisoFlotante.Color := $00C07020;
+    lblAvisoFlotante.Color := frmAvisoFlotante.Color;
+    frmAvisoFlotante.Width := 600;
+    frmAvisoFlotante.Height := 116;
+    lblAvisoFlotante.Caption := 'GENERANDO FICHERO PDF...';
+
+    P := ClientToScreen(Point((ClientWidth - frmAvisoFlotante.Width) div 2,
+      (ClientHeight - frmAvisoFlotante.Height) div 2));
+    frmAvisoFlotante.Left := P.X;
+    frmAvisoFlotante.Top := P.Y;
+
+    frmAvisoFlotante.Show;
+    frmAvisoFlotante.BringToFront;
+    frmAvisoFlotante.Update;
+    lblAvisoFlotante.Update;
+    Application.ProcessMessages;
+    Sleep(60);
+    Application.ProcessMessages;
+  end
+  else
+    VF_OcultarAvisoFlotante;
+end;
+
+procedure TFImpresion.VF_MostrarAvisoFrontal(const ATitulo, ATexto: String;
+  const ADuracion: Integer; const AColor: TColor);
+var
+  P: TPoint;
+  Espera: Integer;
+  Inicio: QWord;
+  TextoAviso: String;
+begin
+  VF_CrearAvisoFlotante;
+  VF_OcultarAvisoFlotante;
+
+  TextoAviso := Trim(ATitulo);
+  if Trim(ATexto) <> '' then
+  begin
+    if TextoAviso <> '' then
+      TextoAviso := TextoAviso + LineEnding + Trim(ATexto)
+    else
+      TextoAviso := Trim(ATexto);
+  end;
+
+  frmAvisoFlotante.Color := AColor;
+  lblAvisoFlotante.Color := frmAvisoFlotante.Color;
+  frmAvisoFlotante.Width := 600;
+  frmAvisoFlotante.Height := 132;
+  lblAvisoFlotante.Caption := TextoAviso;
+
+  P := ClientToScreen(Point((ClientWidth - frmAvisoFlotante.Width) div 2,
+    (ClientHeight - frmAvisoFlotante.Height) div 2));
+  frmAvisoFlotante.Left := P.X;
+  frmAvisoFlotante.Top := P.Y;
+
+  frmAvisoFlotante.Show;
+  frmAvisoFlotante.BringToFront;
+  frmAvisoFlotante.Update;
+  lblAvisoFlotante.Update;
+  Application.ProcessMessages;
+
+  Espera := ADuracion;
+  if Espera < 250 then Espera := 250;
+  Inicio := GetTickCount64;
+  while (GetTickCount64 - Inicio) < QWord(Espera) do
+  begin
+    Application.ProcessMessages;
+    Sleep(20);
+  end;
+
+  VF_OcultarAvisoFlotante;
+end;
+
+procedure TFImpresion.VF_ActualizarTituloModerno;
+var
+  DocTexto: String;
+begin
+  if not Assigned(lblTituloModerno) then Exit;
+
+  DocTexto := Trim(Documento);
+  if DocTexto = '' then
+    DocTexto := 'documento';
+
+  if FEsInformeSQL then
+  begin
+    if SameText(DocTexto, 'ListaFacturas') then
+      lblTituloModerno.Caption := 'Listado de facturas'
+    else if Trim(TituloInforme) <> '' then
+      lblTituloModerno.Caption := Trim(TituloInforme)
+    else
+      lblTituloModerno.Caption := 'Impresión de listado';
+  end
+  else if SameText(DocTexto, 'FACTURA') then
+    lblTituloModerno.Caption := 'Impresión de factura'
+  else if SameText(DocTexto, 'ALBARAN') then
+    lblTituloModerno.Caption := 'Impresión de albarán'
+  else
+    lblTituloModerno.Caption := 'Impresión de ' + LowerCase(DocTexto);
+
+  lblSubtituloModerno.Caption :=
+    'Seleccione el formato, el método de salida y las opciones antes de continuar';
+  Caption := 'FacturLinEx · ' + lblTituloModerno.Caption;
+end;
+
+procedure TFImpresion.edDestinatarioChange(Sender: TObject);
+begin
+  if FCargandoCorreoCliente then Exit;
+
+  { Si el usuario vuelve a modificar el destinatario, permitimos que la
+    consulta se muestre de nuevo al abandonar el campo. }
+  if not SameText(Trim(edDestinatario.Text),
+                  Trim(FCorreoUltimoEvaluado)) then
+    FCorreoClienteGestionado := False;
+end;
+
+procedure TFImpresion.edDestinatarioExit(Sender: TObject);
+var
+  CorreoActualCampo: String;
+begin
+  if FCargandoCorreoCliente then Exit;
+
+  CorreoActualCampo := Trim(edDestinatario.Text);
+  if SameText(CorreoActualCampo, Trim(FCorreoUltimoEvaluado)) then Exit;
+
+  { La misma consulta se realiza al terminar de editar el correo. De este
+    modo funciona tanto al añadir uno nuevo como al corregir uno existente. }
+  VF_OfrecerGuardarCorreoCliente;
+  FCorreoUltimoEvaluado := Trim(edDestinatario.Text);
+end;
+
+function TFImpresion.VF_HayClienteParaGuardarCorreo: Boolean;
+begin
+  Result := Assigned(dbDatosCliente) and dbDatosCliente.Active and
+            (not dbDatosCliente.IsEmpty) and
+            Assigned(dbDatosCliente.FindField('C0')) and
+            Assigned(dbDatosCliente.FindField('C1')) and
+            Assigned(dbDatosCliente.FindField('C40')) and
+            Assigned(dbDatosCliente.FindField('C36')) and
+            (Trim(dbDatosCliente.FieldByName('C0').AsString) <> '');
+end;
+
+function TFImpresion.VF_GuardarCorreoEnFicha(const ACorreo: String;
+  const AEnObservaciones: Boolean): Boolean;
+var
+  Observaciones, LineaCorreo: String;
+begin
+  Result := False;
+  if not VF_HayClienteParaGuardarCorreo then Exit;
+
+  try
+    dbDatosCliente.Edit;
+
+    if AEnObservaciones then
+    begin
+      Observaciones := dbDatosCliente.FieldByName('C36').AsString;
+
+      { Evitamos añadir exactamente el mismo correo varias veces. }
+      if Pos(LowerCase(Trim(ACorreo)), LowerCase(Observaciones)) = 0 then
+      begin
+        LineaCorreo := 'E-mail adicional (' +
+          FormatDateTime('dd/mm/yyyy', Date) + '): ' + Trim(ACorreo);
+        if Trim(Observaciones) <> '' then
+          Observaciones := Observaciones + LineEnding;
+        dbDatosCliente.FieldByName('C36').AsString :=
+          Observaciones + LineaCorreo;
+      end;
+    end
+    else
+    begin
+      dbDatosCliente.FieldByName('C40').AsString := Trim(ACorreo);
+      FCorreoClienteInicial := Trim(ACorreo);
+    end;
+
+    dbDatosCliente.Post;
+    Result := True;
+  except
+    on E: Exception do
+    begin
+      if dbDatosCliente.State in dsEditModes then
+        dbDatosCliente.Cancel;
+      VF_MostrarAvisoFrontal('No se pudo actualizar el cliente',
+        'El correo se ha enviado, pero no se pudo guardar en la ficha: ' +
+        E.Message, 3500, clRed);
+    end;
+  end;
+end;
+
+procedure TFImpresion.VF_OfrecerGuardarCorreoCliente;
+var
+  CorreoNuevo, CorreoActual, NombreCliente, TextoPregunta: String;
+  Respuesta: Integer;
+begin
+  if FCorreoClienteGestionado then Exit;
+  if not VF_HayClienteParaGuardarCorreo then Exit;
+
+  CorreoNuevo := Trim(edDestinatario.Text);
+  if CorreoNuevo = '' then Exit;
+
+  CorreoActual := Trim(dbDatosCliente.FieldByName('C40').AsString);
+  if SameText(CorreoNuevo, CorreoActual) then Exit;
+
+  FCorreoClienteGestionado := True;
+  NombreCliente := Trim(dbDatosCliente.FieldByName('C1').AsString);
+  if NombreCliente = '' then
+    NombreCliente := 'código ' +
+      Trim(dbDatosCliente.FieldByName('C0').AsString);
+
+  if CorreoActual = '' then
+    TextoPregunta :=
+      'El cliente ' + NombreCliente + ' no tiene e-mail en su ficha.' +
+      LineEnding + LineEnding +
+      'Correo utilizado: ' + CorreoNuevo + LineEnding + LineEnding +
+      '¿Dónde desea guardarlo?' + LineEnding +
+      'SÍ: como e-mail principal del cliente.' + LineEnding +
+      'NO: añadirlo al campo Observaciones.' + LineEnding +
+      'CANCELAR: no guardar el correo.'
+  else
+    TextoPregunta :=
+      'El cliente ' + NombreCliente + ' ya tiene este e-mail:' +
+      LineEnding + CorreoActual + LineEnding + LineEnding +
+      'Correo utilizado ahora: ' + CorreoNuevo + LineEnding + LineEnding +
+      '¿Qué desea hacer?' + LineEnding +
+      'SÍ: sustituir el e-mail principal.' + LineEnding +
+      'NO: añadir el nuevo correo a Observaciones.' + LineEnding +
+      'CANCELAR: no modificar la ficha.';
+
+  Respuesta := Application.MessageBox(PChar(TextoPregunta),
+    'FacturLinEx · Guardar e-mail del cliente',
+    MB_ICONQUESTION + MB_YESNOCANCEL);
+
+  case Respuesta of
+    IDYES:
+      if VF_GuardarCorreoEnFicha(CorreoNuevo, False) then
+        VF_MostrarAvisoFrontal('Ficha de cliente actualizada',
+          'El correo se ha guardado como e-mail principal.', 2200, clGreen);
+    IDNO:
+      if VF_GuardarCorreoEnFicha(CorreoNuevo, True) then
+        VF_MostrarAvisoFrontal('Ficha de cliente actualizada',
+          'El correo se ha añadido a Observaciones.', 2200, clGreen);
+  end;
+end;
+
 function TFImpresion.Imprime(dbMuestrad: TZQuery; dbMuestrac: TZQuery; dbCliente: TZQuery;
                    TipoDocumento: String; directo: boolean; nCopias:integer): integer;
 var
@@ -220,6 +854,7 @@ var
 begin
   with TFImpresion.Create(Application) do
     begin
+       FEsInformeSQL := False;
        xml:= 0;
 
        txtQR := '';
@@ -331,6 +966,7 @@ procedure TFImpresion.Imprime(TxtInforme: String; Informe: String; Titulo: Strin
 begin
     with TFImpresion.Create(Application) do
     begin
+       FEsInformeSQL := True;
        dbDetalles.Active:=False;
        dbDetalles.SQL.Text:= TxtInforme;
        dbDetalles.Active:=True;
@@ -356,17 +992,24 @@ end;
 
 procedure TFImpresion.btOk1Click(Sender: TObject);
 begin
-   if self.Caption='Imprimiendo informe' then
+   // No usar Caption para distinguir el modo: FormShow actualiza el título
+   // visual y puede cambiarlo. La bandera conserva el modo real.
+   if FEsInformeSQL then
      begin
        frDBDataSet.DataSet:=dbDetalles;
        GeneraImpresion();
+       btSalirClick(Self);
      end else
      begin
       ImpDocumento();
       TipoImpreso();
       GeneraImpresion();
       if (CodigoSalida = 0) or (CodigoSalida = 2) then CodigoSalida:= CodigoSalida + 1;
-      btCorreoClick(self);
+
+      { El correo y su aviso deben finalizar antes de cerrar esta ventana.
+        Si se cierra primero, el aviso queda detrás del formulario modal. }
+      btCorreoClick(Self);
+      btSalirClick(Self);
      end;
       // Imprime Facturas/albaranes
 end;
@@ -387,15 +1030,17 @@ var
 
 begin
 
+  InputStr := '';
+
   if not cbEnviarCorreo.Checked then exit;
 
   if CorreoEmisor='' then begin
-                                   DataModule1.Mensaje('Información','Falta correo electrónico del EMISOR', 2000 , clRed);
+                                   VF_MostrarAvisoFrontal('Información', 'Falta correo electrónico del EMISOR', 2000, clRed);
                                    exit;
                                   end;
 
   if edDestinatario.Text='' then begin
-                                   DataModule1.Mensaje('Información','Falta correo electrónico del cliente', 2000 , clRed);
+                                   VF_MostrarAvisoFrontal('Información', 'Falta correo electrónico del cliente', 2000, clRed);
                                    exit;
                                   end;
 
@@ -441,7 +1086,8 @@ begin
 
           // Convertir el contenido del MemoryStream a AnsiString
           SetLength(InputStr, MemStream.Size);
-          MemStream.ReadBuffer(InputStr[1], MemStream.Size);
+          if MemStream.Size > 0 then
+            MemStream.ReadBuffer(InputStr[1], MemStream.Size);
 
           // Codificar el contenido en Base64 usando EncodeBase64
           Base64Str := EncodeBase64(InputStr);
@@ -535,8 +1181,9 @@ begin
           if SMTP.MailData(Mensaje) then
           begin
             // ShowMessage('Correo enviado correctamente.');
-            DataModule1.Mensaje('Información','Correo enviado correctamente', 2000 , clGreen);
+            VF_MostrarAvisoFrontal('Información', 'Correo enviado correctamente', 2000, clGreen);
             if (CodigoSalida < 2) then CodigoSalida:= CodigoSalida + 2;
+            VF_OfrecerGuardarCorreoCliente;
           end
           else
           begin
@@ -933,7 +1580,7 @@ begin
   frReport.LoadFromFile(Impreso);
   frReport.PrepareReport;
 
-  lbGenerando.Visible:=True;
+  VF_MostrarGenerandoPDF(True);
 
   frReport.ExportTo(TFrTNPDFExportFilter, NombrePDF);
 
@@ -948,7 +1595,7 @@ begin
        if FileExists(NombrePDF) and (FileSize(NombrePDF) > 0) then
            begin
                PDFCreado:=True;
-               lbGenerando.Visible:=False;
+               VF_MostrarGenerandoPDF(False);
              end
        else
              Contador:= Contador+1;
@@ -957,11 +1604,12 @@ begin
 
        if not PDFCreado then
          begin
-             DataModule1.Mensaje(' Error ','El archivo PDF no se pudo generar.', 2000 , clRed);
+             VF_MostrarGenerandoPDF(False);
+             VF_MostrarAvisoFrontal('Error', 'El archivo PDF no se pudo generar.', 2000, clRed);
              Exit;
           end;
 
-       lbGenerando.Visible:=false;
+       VF_MostrarGenerandoPDF(False);
 
 end;
 
@@ -1002,6 +1650,8 @@ var
   posNombrePDF: integer;
 
 begin
+  nuevoPDF := '';
+
   // ------------------------------------------------------------
   // Modo FACTURAR (facturación rápida):
   //  - Evita ExportTo(PDF) + Delay + espera de fichero, porque el PDF ya
@@ -1049,7 +1699,7 @@ begin
              #13 + ' Desea reemplazarlo ?', 'FacturLinEx',
              MB_ICONQUESTION + MB_YESNO) = idYes then DeleteFile(NombrePDF);
 
-           if FileExists(nuevoPDF) then
+           if (nuevoPDF <> '') and FileExists(nuevoPDF) then
              if Application.MessageBox(' Factura ya existente en otro formato. ' +
                #13 + ' Utilizar la existente ?', 'FacturLinEx',
                MB_ICONQUESTION + MB_YESNO) = idYes then begin
@@ -1057,11 +1707,10 @@ begin
                                                          Edit1.Text:= NombrePDF;
                                                          edAdjunto.Text:= NombrePDF;
                                                          BuscarAnexos();
-                                                         btSalirClick(self);
                                                          exit;
                                                         end;
 
-        lbGenerando.Visible:=True;
+        VF_MostrarGenerandoPDF(True);
 
         frReport.ExportTo(TFrTNPDFExportFilter, NombrePDF);
 
@@ -1076,7 +1725,7 @@ begin
          if FileExists(NombrePDF) and (FileSize(NombrePDF) > 0) then
              begin
                PDFCreado:=True;
-               lbGenerando.Visible:=False;
+               VF_MostrarGenerandoPDF(False);
              end
          else
              Contador:= Contador+1;
@@ -1085,11 +1734,12 @@ begin
 
         if not PDFCreado then
           begin
-             DataModule1.Mensaje(' Error ','El archivo PDF no se pudo generar.', 2000 , clRed);
+             VF_MostrarGenerandoPDF(False);
+             VF_MostrarAvisoFrontal('Error', 'El archivo PDF no se pudo generar.', 2000, clRed);
              Exit;
           end;
 
-        lbGenerando.Visible:=false;
+        VF_MostrarGenerandoPDF(False);
 
         end;
 
@@ -1099,7 +1749,6 @@ begin
   //       AProcess.Destroy;
 
   BuscarAnexos();
-  btSalirClick(self);
 
 end;
 //================= BUSCAR DOCUMENTOS ANEXOS ===============
@@ -1614,8 +2263,11 @@ end;
 
 procedure TFImpresion.FormShow(Sender: TObject);
 begin
+  VF_AplicarEstiloModerno;
+  VF_ActualizarTituloModerno;
   Edit1.Text:= NombrePDF;
   edAdjunto.Text:= NombrePDF;
+  FLXAplicarTemaVisual(Self);
 end;
 
 procedure TFImpresion.frReportBeginDoc;
@@ -1649,6 +2301,11 @@ end;
 
 procedure TFImpresion.FormCreate(Sender: TObject);
 begin
+  FCorreoClienteGestionado := False;
+  FCargandoCorreoCliente := False;
+  FCorreoClienteInicial := '';
+  FCorreoUltimoEvaluado := '';
+
   // Conectate(dbConect);               // Usamos dbConexion como conexión única para todo el proyecto.
 
   if DatosEmpresa='S' then CheckBox1.Checked:=False;
@@ -1660,12 +2317,24 @@ begin
 
   DirectorioReport:=RutaReports;
 
+  VF_AplicarEstiloModerno;
+  FLXAplicarTemaVisual(Self);
 end;
 
 procedure TFImpresion.CorreosElectronicos;
 begin
 
-  edDestinatario.Text:= dbdatoscliente.FieldByName('C40').AsString;
+  FCargandoCorreoCliente := True;
+  try
+    FCorreoClienteInicial :=
+      Trim(dbdatoscliente.FieldByName('C40').AsString);
+    edDestinatario.Text := FCorreoClienteInicial;
+    FCorreoUltimoEvaluado := FCorreoClienteInicial;
+    FCorreoClienteGestionado := False;
+  finally
+    FCargandoCorreoCliente := False;
+  end;
+
   edAsunto.Text:= Documento+' / Cliente # '+ dbdatoscliente.FieldByName('C0').AsString;                                         //CorreoCabecera;
   edDestinatarioCopia.Text:= CorreoCopia;
 
@@ -1681,8 +2350,4 @@ begin
 
 end;
 
-initialization
-  {$I imprimir.lrs}
-
 end.
-

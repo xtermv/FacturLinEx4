@@ -1,5 +1,3 @@
-{ This is an automatically generated lazarus resource file }
-
 LazarusResources.Add('TFSeries','FORMDATA',[
   'TPF0'#8'TFSeries'#7'FSeries'#4'Left'#3#136#1#6'Height'#3#23#1#3'Top'#3#140#2
   +#5'Width'#3#177#2#13'ActiveControl'#7#7'DBGrid1'#7'Caption'#6#21'Series de F'

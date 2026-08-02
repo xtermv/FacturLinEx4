@@ -30,7 +30,12 @@ Interface
 Uses
   Classes, Sysutils, Lresources, Forms, Controls, Graphics, Dialogs,
   LCLType, ExtCtrls, Process, Buttons, ZConnection, ZDataset, DBGrids,
-  StdCtrls, db, LR_DBSet, LR_Class, ExtDlgs, EditBtn, CheckLst, lr_e_pdf;
+  StdCtrls, db, LR_DBSet, LR_Class, ExtDlgs, EditBtn, CheckLst, lr_e_pdf,
+  Grids
+  {$IFDEF LCLGTK2}
+  , gtk2, gdk2
+  {$ENDIF}
+  ;
 
 Type
 
@@ -238,7 +243,33 @@ Type
 
     //procedure EscogeNombreComboCambiable(TxtCampo: String; ComboCambiableNombre: TComboBox;  dbCambiable: TZQuery; EditCambiableNombre: TEdit; StaticTextCambiableNombre: TStaticText);
   Private
-    { Private Declarations }
+    FPanelCabecera: TPanel;
+    FPanelConfiguracion: TPanel;
+    FPanelFiltros: TPanel;
+    FPanelTipos: TPanel;
+    FLabelCabTitulo: TLabel;
+    FLabelCabSubtitulo: TLabel;
+    FLabelFiltros: TLabel;
+    FLabelAyudaFiltros: TLabel;
+    FLabelAyudaTipos: TLabel;
+    FEnResultados: Boolean;
+    procedure AplicarDisenoModerno;
+    procedure ConfigurarBoton(AButton: TBitBtn; const ACaption, AHint: String;
+      AColor: TColor);
+    procedure ConfigurarGrid(AGrid: TDBGrid);
+    procedure ConfigurarControlesRecursivo(AParent: TWinControl);
+    procedure AplicarContrasteSeleccion(AControl: TWinControl);
+    procedure AplicarContrasteSeleccionControles(AParent: TWinControl);
+    procedure RecolocarControles;
+    procedure MostrarZonaFiltros;
+    procedure MostrarZonaResultados;
+    procedure ActualizarFlechaOrdenacion(AGrid: TDBGrid; AColumn: TColumn);
+    procedure GridDrawColumnCell(Sender: TObject; const Rect: TRect;
+      DataCol: Integer; Column: TColumn; State: TGridDrawState);
+    procedure AplicarFocoInicial(Data: PtrInt);
+    procedure FormularioKeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure FormularioResize(Sender: TObject);
   Public
     { Public Declarations }
   End;
@@ -255,6 +286,683 @@ Implementation
 
 uses
   Global, Busquedas, Funciones;
+
+procedure TFLArticulos.ConfigurarBoton(AButton: TBitBtn;
+  const ACaption, AHint: String; AColor: TColor);
+begin
+  if not Assigned(AButton) then Exit;
+  AButton.Caption := ACaption;
+  AButton.Hint := AHint;
+  AButton.ShowHint := True;
+  AButton.Color := AColor;
+  AButton.Font.Name := 'Sans';
+  AButton.Font.Height := -14;
+  AButton.Font.Color := RGBToColor(24, 36, 48);
+  AButton.Font.Style := [fsBold];
+  AButton.Layout := blGlyphLeft;
+  AButton.Margin := 8;
+  AButton.Spacing := 8;
+  AButton.Visible := True;
+  AButton.BringToFront;
+end;
+
+procedure TFLArticulos.ConfigurarGrid(AGrid: TDBGrid);
+begin
+  if not Assigned(AGrid) then Exit;
+  AGrid.Color := clWhite;
+  AGrid.FixedColor := RGBToColor(224, 235, 244);
+  AGrid.Font.Name := 'Sans';
+  AGrid.Font.Height := -13;
+  AGrid.Font.Color := RGBToColor(20, 30, 40);
+  AGrid.TitleFont.Name := 'Sans';
+  AGrid.TitleFont.Height := -13;
+  AGrid.TitleFont.Color := RGBToColor(24, 52, 78);
+  AGrid.TitleFont.Style := [fsBold];
+  AGrid.Options := AGrid.Options + [dgTitles, dgIndicator, dgColumnResize,
+    dgColumnMove, dgColLines, dgRowLines, dgRowSelect,
+    dgAlwaysShowSelection];
+  AGrid.OnDrawColumnCell := @GridDrawColumnCell;
+end;
+
+procedure TFLArticulos.AplicarContrasteSeleccion(AControl: TWinControl);
+{$IFDEF LCLGTK2}
+var
+  FondoNormal, TextoNormal, FondoSeleccion, TextoSeleccion: TGdkColor;
+  Widget: PGtkWidget;
+{$ENDIF}
+begin
+  if not Assigned(AControl) then Exit;
+  AControl.HandleNeeded;
+  {$IFDEF LCLGTK2}
+  Widget := PGtkWidget(AControl.Handle);
+  if Assigned(Widget) then
+  begin
+    gdk_color_parse(PChar('#FFFFFF'), @FondoNormal);
+    gdk_color_parse(PChar('#101820'), @TextoNormal);
+    gtk_widget_modify_base(Widget, GTK_STATE_NORMAL, @FondoNormal);
+    gtk_widget_modify_text(Widget, GTK_STATE_NORMAL, @TextoNormal);
+
+    gdk_color_parse(PChar('#2A5684'), @FondoSeleccion);
+    gdk_color_parse(PChar('#FFFFFF'), @TextoSeleccion);
+    gtk_widget_modify_base(Widget, GTK_STATE_SELECTED, @FondoSeleccion);
+    gtk_widget_modify_text(Widget, GTK_STATE_SELECTED, @TextoSeleccion);
+  end;
+  {$ENDIF}
+end;
+
+procedure TFLArticulos.AplicarContrasteSeleccionControles(AParent: TWinControl);
+var
+  I: Integer;
+  C: TControl;
+begin
+  if not Assigned(AParent) then Exit;
+  for I := 0 to AParent.ControlCount - 1 do
+  begin
+    C := AParent.Controls[I];
+    if (C is TCustomEdit) or (C is TComboBox) or
+       (C is TListBox) or (C is TCheckListBox) then
+      AplicarContrasteSeleccion(TWinControl(C));
+    if C is TWinControl then
+      AplicarContrasteSeleccionControles(TWinControl(C));
+  end;
+end;
+
+procedure TFLArticulos.ConfigurarControlesRecursivo(AParent: TWinControl);
+var
+  I: Integer;
+  C: TControl;
+begin
+  if not Assigned(AParent) then Exit;
+  for I := 0 to AParent.ControlCount - 1 do
+  begin
+    C := AParent.Controls[I];
+
+    if (C = FLabelCabTitulo) or (C = FLabelCabSubtitulo) or
+       (C = FLabelFiltros) or (C = FLabelAyudaFiltros) or
+       (C = FLabelAyudaTipos) or (C = Label13) or
+       (C = LabelTituloDBGrid) then
+    begin
+      { Estos labels tienen un estilo específico aplicado por el formulario. }
+    end
+    else if C is TLabel then
+    begin
+      TLabel(C).ParentColor := True;
+      TLabel(C).Transparent := True;
+      TLabel(C).Font.Name := 'Sans';
+      TLabel(C).Font.Height := -13;
+      TLabel(C).Font.Color := RGBToColor(24, 36, 48);
+    end
+    else if C is TRadioButton then
+    begin
+      TRadioButton(C).ParentColor := True;
+      TRadioButton(C).Font.Name := 'Sans';
+      TRadioButton(C).Font.Height := -13;
+      TRadioButton(C).Font.Color := RGBToColor(24, 36, 48);
+    end
+    else if C is TCheckBox then
+    begin
+      TCheckBox(C).ParentColor := True;
+      TCheckBox(C).Font.Name := 'Sans';
+      TCheckBox(C).Font.Height := -13;
+      TCheckBox(C).Font.Color := RGBToColor(24, 36, 48);
+    end
+    else if C is TCustomEdit then
+    begin
+      TCustomEdit(C).Color := clWhite;
+      TCustomEdit(C).Font.Name := 'Sans';
+      TCustomEdit(C).Font.Height := -13;
+      TCustomEdit(C).Font.Color := RGBToColor(16, 24, 32);
+    end
+    else if C is TComboBox then
+    begin
+      TComboBox(C).Color := clWhite;
+      TComboBox(C).Font.Name := 'Sans';
+      TComboBox(C).Font.Height := -13;
+      TComboBox(C).Font.Color := RGBToColor(16, 24, 32);
+    end
+    else if C is TStaticText then
+    begin
+      TStaticText(C).Color := clWhite;
+      TStaticText(C).Font.Name := 'Sans';
+      TStaticText(C).Font.Height := -13;
+      TStaticText(C).Font.Color := RGBToColor(16, 24, 32);
+    end
+    else if C is TCheckListBox then
+    begin
+      TCheckListBox(C).Color := clWhite;
+      TCheckListBox(C).Font.Name := 'Sans';
+      TCheckListBox(C).Font.Height := -13;
+      TCheckListBox(C).Font.Color := RGBToColor(16, 24, 32);
+    end
+    else if C is TListBox then
+    begin
+      TListBox(C).Color := clWhite;
+      TListBox(C).Font.Name := 'Sans';
+      TListBox(C).Font.Height := -13;
+      TListBox(C).Font.Color := RGBToColor(16, 24, 32);
+    end;
+
+    if C is TWinControl then
+      ConfigurarControlesRecursivo(TWinControl(C));
+  end;
+end;
+
+procedure TFLArticulos.AplicarDisenoModerno;
+var
+  Paneles: array[0..6] of TPanel;
+  I: Integer;
+begin
+  Caption := 'Listados y estadísticas de artículos';
+  WindowState := wsMaximized;
+  Position := poScreenCenter;
+  KeyPreview := True;
+  Color := RGBToColor(242, 246, 249);
+  Font.Name := 'Sans';
+  Font.Height := -13;
+  Constraints.MinWidth := 1100;
+  Constraints.MinHeight := 800;
+  OnKeyDown := @FormularioKeyDown;
+  OnResize := @FormularioResize;
+
+  FPanelCabecera := TPanel.Create(Self);
+  FPanelCabecera.Name := 'PanelCabeceraModerna';
+  FPanelCabecera.Caption := '';
+  FPanelCabecera.Parent := Self;
+  FPanelCabecera.BevelOuter := bvNone;
+  FPanelCabecera.Color := RGBToColor(37, 73, 108);
+
+  FLabelCabTitulo := TLabel.Create(Self);
+  FLabelCabTitulo.Parent := FPanelCabecera;
+  FLabelCabTitulo.Caption := 'LISTADOS Y ESTADÍSTICAS DE ARTÍCULOS';
+  FLabelCabTitulo.AutoSize := False;
+  FLabelCabTitulo.Font.Name := 'Sans';
+  FLabelCabTitulo.Font.Height := -22;
+  FLabelCabTitulo.Font.Style := [fsBold];
+  FLabelCabTitulo.Font.Color := clWhite;
+  FLabelCabTitulo.Transparent := True;
+
+  FLabelCabSubtitulo := TLabel.Create(Self);
+  FLabelCabSubtitulo.Parent := FPanelCabecera;
+  FLabelCabSubtitulo.Caption :=
+    'Seleccione el tipo de informe, defina sus filtros y consulte el resultado.';
+  FLabelCabSubtitulo.AutoSize := False;
+  FLabelCabSubtitulo.Font.Name := 'Sans';
+  FLabelCabSubtitulo.Font.Height := -13;
+  FLabelCabSubtitulo.Font.Color := RGBToColor(221, 234, 245);
+  FLabelCabSubtitulo.Transparent := True;
+
+  FPanelConfiguracion := TPanel.Create(Self);
+  FPanelConfiguracion.Name := 'PanelConfiguracionModerna';
+  FPanelConfiguracion.Caption := '';
+  FPanelConfiguracion.Parent := Self;
+  FPanelConfiguracion.BevelOuter := bvNone;
+  FPanelConfiguracion.Color := RGBToColor(242, 246, 249);
+
+  FPanelTipos := TPanel.Create(Self);
+  FPanelTipos.Name := 'PanelTiposListado';
+  FPanelTipos.Caption := '';
+  FPanelTipos.Parent := FPanelConfiguracion;
+  FPanelTipos.BevelOuter := bvNone;
+  FPanelTipos.Color := RGBToColor(231, 240, 248);
+
+  FPanelFiltros := TPanel.Create(Self);
+  FPanelFiltros.Name := 'PanelFiltrosListado';
+  FPanelFiltros.Caption := '';
+  FPanelFiltros.Parent := FPanelConfiguracion;
+  FPanelFiltros.BevelOuter := bvNone;
+  FPanelFiltros.Color := RGBToColor(249, 251, 253);
+
+  FLabelFiltros := TLabel.Create(Self);
+  FLabelFiltros.Parent := FPanelFiltros;
+  FLabelFiltros.Caption := 'FILTROS Y PARÁMETROS';
+  FLabelFiltros.AutoSize := False;
+  FLabelFiltros.Font.Name := 'Sans';
+  FLabelFiltros.Font.Height := -16;
+  FLabelFiltros.Font.Style := [fsBold];
+  FLabelFiltros.Font.Color := RGBToColor(37, 73, 108);
+  FLabelFiltros.Transparent := True;
+
+  FLabelAyudaFiltros := TLabel.Create(Self);
+  FLabelAyudaFiltros.Parent := FPanelFiltros;
+  FLabelAyudaFiltros.Caption :=
+    'Los filtros visibles cambian según el listado seleccionado.';
+  FLabelAyudaFiltros.AutoSize := False;
+  FLabelAyudaFiltros.Font.Name := 'Sans';
+  FLabelAyudaFiltros.Font.Height := -12;
+  FLabelAyudaFiltros.Font.Color := RGBToColor(80, 96, 112);
+  FLabelAyudaFiltros.Transparent := True;
+
+  FLabelAyudaTipos := TLabel.Create(Self);
+  FLabelAyudaTipos.Parent := FPanelTipos;
+  FLabelAyudaTipos.Caption := 'TIPO DE LISTADO';
+  FLabelAyudaTipos.AutoSize := False;
+  FLabelAyudaTipos.Font.Name := 'Sans';
+  FLabelAyudaTipos.Font.Height := -16;
+  FLabelAyudaTipos.Font.Style := [fsBold];
+  FLabelAyudaTipos.Font.Color := RGBToColor(37, 73, 108);
+  FLabelAyudaTipos.Transparent := True;
+
+  Label5.Visible := False;
+  Bevel1.Visible := False;
+
+  rbTarifas.Parent := FPanelTipos;
+  RadioButton1.Parent := FPanelTipos;
+  RadioButton2.Parent := FPanelTipos;
+  RadioButton3.Parent := FPanelTipos;
+  RadioButton4.Parent := FPanelTipos;
+  RadioButton5.Parent := FPanelTipos;
+  RadioButton6.Parent := FPanelTipos;
+  RadioButton8.Parent := FPanelTipos;
+  RadioButton7.Parent := FPanelTipos;
+
+  rbTarifas.Caption := 'Tarifas de precios';
+  RadioButton1.Caption := 'Existencias y valoración de stock';
+  RadioButton2.Caption := 'Artículos agrupados por familia';
+  RadioButton3.Caption := 'Artículos agrupados por proveedor';
+  RadioButton4.Caption := 'Ventas de artículos';
+  RadioButton5.Caption := 'Compras de artículos';
+  RadioButton6.Caption := 'Estadísticas por familia';
+  RadioButton8.Caption := 'Estadísticas por proveedor';
+  RadioButton7.Caption := 'Estadísticas por autor / fabricante';
+
+  PanelCambiable1.Parent := FPanelFiltros;
+  PanelDesdeHasta.Parent := FPanelFiltros;
+  PanelCambiable.Parent := FPanelFiltros;
+  PanelFechaDesdeHasta.Parent := FPanelFiltros;
+  PanelStock.Parent := FPanelFiltros;
+  PanelSelectAno.Parent := FPanelFiltros;
+  PanelTarifas.Parent := FPanelFiltros;
+
+  Paneles[0] := PanelCambiable1;
+  Paneles[1] := PanelDesdeHasta;
+  Paneles[2] := PanelCambiable;
+  Paneles[3] := PanelFechaDesdeHasta;
+  Paneles[4] := PanelStock;
+  Paneles[5] := PanelSelectAno;
+  Paneles[6] := PanelTarifas;
+  for I := Low(Paneles) to High(Paneles) do
+  begin
+    Paneles[I].Caption := '';
+    Paneles[I].BevelOuter := bvNone;
+    Paneles[I].Color := RGBToColor(236, 244, 250);
+  end;
+  PanelDesdeHasta.Color := RGBToColor(245, 248, 251);
+  PanelTarifas.Color := RGBToColor(239, 247, 241);
+  PanelStock.Color := RGBToColor(255, 247, 225);
+  PanelSelectAno.Color := RGBToColor(248, 241, 252);
+
+  LabelCambiable1.Caption := 'Tienda';
+  Label2.Caption := 'Código inicial';
+  Label1.Caption := 'Código final';
+  Label3.Caption := 'Nombre inicial';
+  Label4.Caption := 'Nombre final';
+  Label10.Caption := 'Fecha inicial';
+  Label11.Caption := 'Fecha final';
+  CheckBox1.Caption := 'Excluir artículos con stock 0';
+  CheckBox2.Caption := 'Excluir artículos con stock negativo';
+  Label6.Caption := 'Ejercicio';
+  Label7.Caption := 'Mes inicial';
+  Label8.Caption := 'Mes final';
+
+  PanelTituloGrid.Caption := '';
+  PanelTituloGrid.BevelOuter := bvNone;
+  PanelTituloGrid.Color := RGBToColor(222, 235, 246);
+  LabelTituloDBGrid.Alignment := taCenter;
+  LabelTituloDBGrid.Font.Name := 'Sans';
+  LabelTituloDBGrid.Font.Height := -15;
+  LabelTituloDBGrid.Font.Style := [fsBold];
+  LabelTituloDBGrid.Font.Color := RGBToColor(37, 73, 108);
+  LabelTituloDBGrid.Transparent := True;
+
+  Panel1.Align := alNone;
+  Panel1.Caption := '';
+  Panel1.BevelOuter := bvNone;
+  Panel1.Color := RGBToColor(224, 234, 242);
+
+  ConfigurarBoton(BitBtn1, 'Consultar listado',
+    'Generar y mostrar el listado con los filtros seleccionados',
+    RGBToColor(166, 214, 181));
+  ConfigurarBoton(BitBtn2, 'Imprimir informe',
+    'Imprimir o previsualizar el listado actual',
+    RGBToColor(184, 218, 244));
+  ConfigurarBoton(BitBtn3, 'Nueva consulta',
+    'Volver a los filtros para preparar otro listado',
+    RGBToColor(255, 224, 166));
+  ConfigurarBoton(BitBtn4, 'Cerrar',
+    'Cerrar el formulario de listados de artículos',
+    RGBToColor(238, 190, 190));
+
+  ConfigurarBoton(BitBtnCambiable1, '...',
+    'Buscar y seleccionar una tienda', RGBToColor(184, 218, 244));
+  ConfigurarBoton(BitBtnCambiable, '...',
+    'Buscar el valor del filtro seleccionado', RGBToColor(184, 218, 244));
+  ConfigurarBoton(btProveedor, '...',
+    'Buscar un proveedor', RGBToColor(184, 218, 244));
+  ConfigurarBoton(btFamilia, '...',
+    'Buscar una familia', RGBToColor(184, 218, 244));
+  ConfigurarBoton(btManual, 'Selección manual de artículos',
+    'Elegir manualmente los artículos que se incluirán en el informe',
+    RGBToColor(212, 229, 244));
+
+  pSeleccionManual.Caption := '';
+  pSeleccionManual.BevelOuter := bvNone;
+  pSeleccionManual.Color := RGBToColor(245, 249, 252);
+  Label13.AutoSize := False;
+  Label13.Alignment := taCenter;
+  Label13.Caption := 'SELECCIÓN MANUAL DE ARTÍCULOS';
+  Label13.Transparent := False;
+  Label13.Color := RGBToColor(37, 73, 108);
+  Label13.Font.Name := 'Sans';
+  Label13.Font.Height := -16;
+  Label13.Font.Style := [fsBold];
+  Label13.Font.Color := clWhite;
+  ConfigurarBoton(btSeleccionTodos, 'Seleccionar todos',
+    'Marcar todos los artículos', RGBToColor(184, 218, 244));
+  ConfigurarBoton(btSeleccionInvertir, 'Invertir selección',
+    'Intercambiar los artículos marcados y desmarcados',
+    RGBToColor(255, 224, 166));
+  ConfigurarBoton(btSeleccionFiltrar, 'Aplicar selección',
+    'Utilizar únicamente los artículos marcados',
+    RGBToColor(166, 214, 181));
+  ConfigurarBoton(btSeleccionSalir, 'Cancelar',
+    'Cerrar la selección manual sin continuar',
+    RGBToColor(238, 190, 190));
+
+  ConfigurarGrid(DBGrid1);
+  ConfigurarGrid(DBGrid2);
+  ConfigurarGrid(DBGrid3);
+  ConfigurarGrid(DBGrid4);
+  ConfigurarGrid(DBGrid5);
+  ConfigurarGrid(DBGrid6);
+  ConfigurarGrid(DBGrid7);
+  ConfigurarGrid(DBGrid8);
+  ConfigurarGrid(dbgTarifa);
+  DBGrid1.OnTitleClick := @DBGrid1TitleClick;
+  DBGrid2.OnTitleClick := @DBGrid2TitleClick;
+  DBGrid3.OnTitleClick := @DBGrid3TitleClick;
+  DBGrid4.OnTitleClick := @DBGrid4TitleClick;
+  DBGrid5.OnTitleClick := @DBGrid5TitleClick;
+  DBGrid6.OnTitleClick := @DBGrid6TitleClick;
+  DBGrid7.OnTitleClick := @DBGrid7TitleClick;
+  DBGrid8.OnTitleClick := @DBGrid8TitleClick;
+  dbgTarifa.OnTitleClick := @dbgTarifaTitleClick;
+
+  ConfigurarControlesRecursivo(Self);
+  FEnResultados := False;
+  RecolocarControles;
+end;
+
+procedure TFLArticulos.RecolocarControles;
+var
+  W, H, CabeceraH, BarraH, Margen, ConfigTop, ConfigH: Integer;
+  TiposW, PanelW: Integer;
+  I, RadioTop, ManualW, ManualH: Integer;
+  Radios: array[0..8] of TRadioButton;
+begin
+  if not Assigned(FPanelCabecera) then Exit;
+  W := ClientWidth;
+  H := ClientHeight;
+  CabeceraH := 82;
+  BarraH := 82;
+  Margen := 18;
+
+  FPanelCabecera.SetBounds(0, 0, W, CabeceraH);
+  FLabelCabTitulo.SetBounds(24, 15, W - 48, 31);
+  FLabelCabSubtitulo.SetBounds(26, 51, W - 52, 22);
+
+  Panel1.SetBounds(0, H - BarraH, W, BarraH);
+  BitBtn1.SetBounds(18, 14, 180, 54);
+  BitBtn2.SetBounds(212, 14, 180, 54);
+  BitBtn3.SetBounds(406, 14, 180, 54);
+  BitBtn4.SetBounds(W - 198, 14, 180, 54);
+
+  ConfigTop := CabeceraH + 14;
+  ConfigH := H - ConfigTop - BarraH - 14;
+  if ConfigH < 520 then ConfigH := 520;
+  FPanelConfiguracion.SetBounds(Margen, ConfigTop, W - (Margen * 2), ConfigH);
+
+  TiposW := 370;
+  if FPanelConfiguracion.Width < 1050 then TiposW := 330;
+  FPanelTipos.SetBounds(FPanelConfiguracion.Width - TiposW, 0,
+    TiposW, FPanelConfiguracion.Height);
+  FPanelFiltros.SetBounds(0, 0, FPanelConfiguracion.Width - TiposW - 14,
+    FPanelConfiguracion.Height);
+
+  FLabelFiltros.SetBounds(20, 16, FPanelFiltros.Width - 40, 25);
+  FLabelAyudaFiltros.SetBounds(20, 42, FPanelFiltros.Width - 40, 21);
+  FLabelAyudaTipos.SetBounds(20, 18, FPanelTipos.Width - 40, 25);
+
+  Radios[0] := rbTarifas;
+  Radios[1] := RadioButton1;
+  Radios[2] := RadioButton2;
+  Radios[3] := RadioButton3;
+  Radios[4] := RadioButton4;
+  Radios[5] := RadioButton5;
+  Radios[6] := RadioButton6;
+  Radios[7] := RadioButton8;
+  Radios[8] := RadioButton7;
+  RadioTop := 58;
+  for I := Low(Radios) to High(Radios) do
+  begin
+    Radios[I].SetBounds(22, RadioTop + (I * 39),
+      FPanelTipos.Width - 44, 28);
+    Radios[I].BringToFront;
+  end;
+
+  PanelW := FPanelFiltros.Width - 36;
+  if PanelW < 600 then PanelW := 600;
+
+  PanelCambiable1.SetBounds(18, 72, PanelW, 58);
+  LabelCambiable1.SetBounds(16, 19, 105, 22);
+  EditCambiableCodigo1.SetBounds(130, 14, 120, 30);
+  BitBtnCambiable1.SetBounds(260, 13, 42, 32);
+  StaticTextCambiableNombre1.SetBounds(312, 14, PanelW - 328, 30);
+  ComboCambiableNombre1.SetBounds(312, 14, PanelW - 328, 30);
+
+  PanelDesdeHasta.SetBounds(18, 142, PanelW, 152);
+  Label2.SetBounds(16, 20, 105, 22);
+  Edit1.SetBounds(130, 15, 130, 30);
+  Label1.SetBounds(300, 20, 105, 22);
+  Edit2.SetBounds(415, 15, 130, 30);
+  Label3.SetBounds(16, 67, 105, 22);
+  Edit3.SetBounds(130, 62, PanelW - 150, 30);
+  Label4.SetBounds(16, 114, 105, 22);
+  Edit4.SetBounds(130, 109, PanelW - 150, 30);
+
+  PanelCambiable.SetBounds(18, 306, PanelW, 58);
+  LabelCambiable.SetBounds(16, 19, 105, 22);
+  EditCambiableCodigo.SetBounds(130, 14, 120, 30);
+  BitBtnCambiable.SetBounds(260, 13, 42, 32);
+  StaticTextCambiableNombre.SetBounds(312, 14, PanelW - 328, 30);
+  ComboCambiableNombre.SetBounds(312, 14, PanelW - 328, 30);
+
+  PanelFechaDesdeHasta.SetBounds(18, 376, PanelW, 66);
+  Label10.SetBounds(16, 22, 100, 22);
+  DateEditDesde.SetBounds(125, 16, 165, 32);
+  Label11.SetBounds(320, 22, 95, 22);
+  DateEditHasta.SetBounds(420, 16, 165, 32);
+
+  PanelStock.SetBounds(18, 454, PanelW, 62);
+  CheckBox1.SetBounds(18, 19, 245, 28);
+  CheckBox2.SetBounds(290, 19, 290, 28);
+
+  PanelSelectAno.SetBounds(18, 376, PanelW, 132);
+  Label6.SetBounds(18, 17, 90, 22);
+  ListBoxAnos.SetBounds(18, 43, 120, 76);
+  Label7.SetBounds(175, 55, 90, 22);
+  Edit7.SetBounds(270, 50, 70, 30);
+  Label8.SetBounds(380, 55, 85, 22);
+  Edit8.SetBounds(470, 50, 70, 30);
+
+  PanelTarifas.SetBounds(18, 306, PanelW, 300);
+  Label9.SetBounds(16, 12, PanelW - 32, 22);
+  chbPvp.SetBounds(16, 40, 76, 28);
+  chbTarifa1.SetBounds(108, 40, 90, 28);
+  chbTarifa2.SetBounds(210, 40, 90, 28);
+  chbTarifa3.SetBounds(312, 40, 90, 28);
+  chbCoste.SetBounds(414, 40, 125, 28);
+  Label12.SetBounds(16, 80, PanelW - 32, 22);
+  chbPorProveedor.SetBounds(16, 112, 110, 28);
+  edCodigoProveedor.SetBounds(132, 108, 85, 30);
+  btProveedor.SetBounds(225, 107, 42, 32);
+  edProveedor.SetBounds(277, 108, PanelW - 293, 30);
+  chbPorFamilia.SetBounds(16, 153, 110, 28);
+  edCodigoFamilia.SetBounds(132, 149, 85, 30);
+  btFamilia.SetBounds(225, 148, 42, 32);
+  edFamilia.SetBounds(277, 149, PanelW - 293, 30);
+  chbSinPrecio.SetBounds(16, 195, 260, 28);
+  chbSinIva.SetBounds(300, 195, 290, 28);
+  btManual.SetBounds(16, 239, 240, 40);
+
+  PanelTituloGrid.Align := alNone;
+  PanelTituloGrid.SetBounds(Margen, CabeceraH + 12, W - (Margen * 2), 44);
+  LabelTituloDBGrid.SetBounds(12, 10, PanelTituloGrid.Width - 24, 25);
+
+  DimensionarColocarBDGrid;
+
+  if pSeleccionManual.Visible then
+  begin
+    ManualW := 820;
+    if ManualW > W - 80 then ManualW := W - 80;
+    ManualH := 600;
+    if ManualH > H - 150 then ManualH := H - 150;
+    pSeleccionManual.SetBounds((W - ManualW) div 2,
+      CabeceraH + ((H - CabeceraH - BarraH - ManualH) div 2),
+      ManualW, ManualH);
+    Label13.SetBounds(0, 0, ManualW, 44);
+    clbSeleccionManual.SetBounds(18, 58, ManualW - 36, ManualH - 128);
+    btSeleccionInvertir.SetBounds(18, ManualH - 56, 180, 40);
+    btSeleccionTodos.SetBounds(210, ManualH - 56, 180, 40);
+    btSeleccionFiltrar.SetBounds(402, ManualH - 56, 180, 40);
+    btSeleccionSalir.SetBounds(ManualW - 198, ManualH - 56, 180, 40);
+    pSeleccionManual.BringToFront;
+  end;
+end;
+
+procedure TFLArticulos.MostrarZonaFiltros;
+begin
+  FEnResultados := False;
+  if Assigned(FPanelConfiguracion) then FPanelConfiguracion.Visible := True;
+  PanelTituloGrid.Visible := False;
+  BitBtn1.Enabled := True;
+  BitBtn2.Enabled := False;
+  BitBtn3.Enabled := False;
+  RecolocarControles;
+  { Durante FormCreate el formulario aún no puede recibir foco.
+    Si ya está visible (por ejemplo al volver desde resultados),
+    solicitamos el foco de forma asíncrona. }
+  if Visible then
+    Application.QueueAsyncCall(@AplicarFocoInicial, 0);
+end;
+
+procedure TFLArticulos.MostrarZonaResultados;
+begin
+  FEnResultados := True;
+  if Assigned(FPanelConfiguracion) then FPanelConfiguracion.Visible := False;
+  PanelTituloGrid.Visible := True;
+  BitBtn1.Enabled := False;
+  BitBtn2.Enabled := True;
+  BitBtn3.Enabled := True;
+  RecolocarControles;
+end;
+
+procedure TFLArticulos.DimensionarColocarBDGrid;
+var
+  Margen, ResultadoTop, ResultadoH, W: Integer;
+  procedure ColocarGrid(AGrid: TDBGrid);
+  begin
+    AGrid.Align := alNone;
+    AGrid.SetBounds(Margen, ResultadoTop, W - (Margen * 2), ResultadoH);
+  end;
+begin
+  Margen := 18;
+  W := ClientWidth;
+  ResultadoTop := 150;
+  ResultadoH := ClientHeight - ResultadoTop - 96;
+  if ResultadoH < 260 then ResultadoH := 260;
+  ColocarGrid(dbgTarifa);
+  ColocarGrid(DBGrid1);
+  ColocarGrid(DBGrid2);
+  ColocarGrid(DBGrid3);
+  ColocarGrid(DBGrid4);
+  ColocarGrid(DBGrid5);
+  ColocarGrid(DBGrid6);
+  ColocarGrid(DBGrid7);
+  ColocarGrid(DBGrid8);
+end;
+
+procedure TFLArticulos.ActualizarFlechaOrdenacion(AGrid: TDBGrid;
+  AColumn: TColumn);
+var
+  I: Integer;
+  Texto, Flecha: String;
+begin
+  if (not Assigned(AGrid)) or (not Assigned(AColumn)) then Exit;
+  for I := 0 to AGrid.Columns.Count - 1 do
+  begin
+    Texto := AGrid.Columns[I].Title.Caption;
+    Texto := StringReplace(Texto, ' ▲', '', [rfReplaceAll]);
+    Texto := StringReplace(Texto, ' ▼', '', [rfReplaceAll]);
+    AGrid.Columns[I].Title.Caption := Texto;
+  end;
+  if SameText(Orden, 'ASC') then Flecha := ' ▲' else Flecha := ' ▼';
+  AColumn.Title.Caption := AColumn.Title.Caption + Flecha;
+end;
+
+procedure TFLArticulos.GridDrawColumnCell(Sender: TObject;
+  const Rect: TRect; DataCol: Integer; Column: TColumn;
+  State: TGridDrawState);
+var
+  Grid: TDBGrid;
+begin
+  Grid := TDBGrid(Sender);
+  if gdSelected in State then
+  begin
+    Grid.Canvas.Brush.Color := RGBToColor(42, 86, 132);
+    Grid.Canvas.Font.Color := clWhite;
+  end
+  else
+  begin
+    Grid.Canvas.Brush.Color := clWhite;
+    Grid.Canvas.Font.Color := RGBToColor(20, 30, 40);
+  end;
+  Grid.Canvas.FillRect(Rect);
+  Grid.DefaultDrawColumnCell(Rect, DataCol, Column, State);
+end;
+
+procedure TFLArticulos.AplicarFocoInicial(Data: PtrInt);
+begin
+  { El foco debe asignarse después de que GTK haya mostrado realmente
+    la ventana. Hacerlo desde FormCreate/FormShow provoca
+    "TCustomForm.SetFocus Can not focus" al abrir desde el menú. }
+  if (csDestroying in ComponentState) or (not Visible) then Exit;
+  if not Assigned(EditCambiableCodigo1) then Exit;
+  if not EditCambiableCodigo1.Visible then Exit;
+  if not EditCambiableCodigo1.Enabled then Exit;
+  if EditCambiableCodigo1.CanFocus then
+  begin
+    ActiveControl := EditCambiableCodigo1;
+    EditCambiableCodigo1.SetFocus;
+  end;
+end;
+
+procedure TFLArticulos.FormularioKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key <> VK_ESCAPE then Exit;
+  Key := 0;
+  if pSeleccionManual.Visible then
+    btSeleccionSalirClick(btSeleccionSalir)
+  else if FEnResultados then
+    BitBtn3Click(BitBtn3)
+  else
+    BitBtn4Click(BitBtn4);
+end;
+
+procedure TFLArticulos.FormularioResize(Sender: TObject);
+begin
+  RecolocarControles;
+end;
 
 //=============== Crea el formulario ================
 procedure ShowFormlistaarticulos;
@@ -299,10 +1007,13 @@ Begin
    DateEditHasta.Date:=Date;
 
    LabelCambiable1.Caption:='Tienda';
-   
+
+   AplicarDisenoModerno;
+
    //Ocultamos todos los DBGrid
    DimensionarColocarBDGrid();
    OcultarBDGrid();
+   MostrarZonaFiltros;
   
 End;
 
@@ -325,7 +1036,7 @@ Var
 //  nContador, nCampos: integer;
 begin
   AntColun:='0';Ordenado:=False; Orden:='DESC';
-  BitBtn2.Enabled:=True; BitBtn3.Enabled:=True;
+  BitBtn2.Enabled:=False; BitBtn3.Enabled:=False;
   if EditCambiableCodigo1.Text<>'' then Tienda:=DataModule1.LFill(EditCambiableCodigo1.Text,4,'0')
   else
    begin
@@ -650,6 +1361,10 @@ begin
      DBGrid8.BringToFront; DBGrid8.Visible:=True;
    end;
   LabelTituloDBGrid.Caption:=TituloGrid;
+  if DBGrid1.Visible or DBGrid2.Visible or DBGrid3.Visible or
+     DBGrid4.Visible or DBGrid5.Visible or DBGrid6.Visible or
+     DBGrid7.Visible or DBGrid8.Visible or dbgTarifa.Visible then
+    MostrarZonaResultados;
   //WriteLn(TxtQuery);
 end;
 
@@ -660,6 +1375,7 @@ begin
   BitBtn2.Enabled:=False; BitBtn3.Enabled:=False;
   Ordenado:=False;
   OcultarBDGrid();
+  MostrarZonaFiltros;
  end;
 
 //==================== IMPRIMIR ===================
@@ -955,59 +1671,52 @@ procedure TFLArticulos.OcultarBDGrid();
     LabelTituloDBGrid.Caption:='';
     DimensionarColocarBDGrid();
   end;
-//======================= DIMENSIONA LOS DBGrid
-// Los DBGrid estan "minimizados" (50x50) para poder trabajar en el resto del
-// formulario, con esta funcion los adapto al Panel donde se encuentran
-procedure TFLArticulos.DimensionarColocarBDGrid();
-  begin
-    dbgTarifa.Align:=alClient;
-    DBGrid1.Align:=alClient;
-    DBGrid2.Align:=alClient;
-    DBGrid3.Align:=alClient;
-    DBGrid4.Align:=alClient;
-    DBGrid5.Align:=alClient;
-    DBGrid6.Align:=alClient;
-    DBGrid7.Align:=alClient;
-    DBGrid8.Align:=alClient;
-  end;
-
 //-------- Al pulsar en el titulo de la columna ordenar por ella
 procedure TFLArticulos.DBGrid1TitleClick(Column: TColumn);
 begin
   Colorea(Column,DBGrid1,dbQuery, AntColun, Orden, TituloColumn, Ordenado);
+  ActualizarFlechaOrdenacion(DBGrid1, Column);
 end;
 procedure TFLArticulos.DBGrid2TitleClick(Column: TColumn);
 begin
   Colorea(Column,DBGrid2,dbQuery, AntColun, Orden, TituloColumn, Ordenado);
+  ActualizarFlechaOrdenacion(DBGrid2, Column);
 end;
 procedure TFLArticulos.DBGrid3TitleClick(Column: TColumn);
 begin
   Colorea(Column,DBGrid3,dbQuery, AntColun, Orden, TituloColumn, Ordenado);
+  ActualizarFlechaOrdenacion(DBGrid3, Column);
 end;
 procedure TFLArticulos.DBGrid4TitleClick(Column: TColumn);
 begin
   Colorea(Column,DBGrid4,dbQuery, AntColun, Orden, TituloColumn, Ordenado);
+  ActualizarFlechaOrdenacion(DBGrid4, Column);
 end;
 procedure TFLArticulos.DBGrid5TitleClick(Column: TColumn);
 begin
   Colorea(Column,DBGrid5,dbQuery, AntColun, Orden, TituloColumn, Ordenado);
+  ActualizarFlechaOrdenacion(DBGrid5, Column);
 end;
 procedure TFLArticulos.DBGrid6TitleClick(Column: TColumn);
 begin
   Colorea(Column,DBGrid6,dbQuery, AntColun, Orden, TituloColumn, Ordenado);
+  ActualizarFlechaOrdenacion(DBGrid6, Column);
 end;
 procedure TFLArticulos.DBGrid7TitleClick(Column: TColumn);
 begin
   Colorea(Column,DBGrid7,dbQuery, AntColun, Orden, TituloColumn, Ordenado);
+  ActualizarFlechaOrdenacion(DBGrid7, Column);
 end;
 procedure TFLArticulos.DBGrid8TitleClick(Column: TColumn);
 begin
   Colorea(Column,DBGrid8,dbQuery, AntColun, Orden, TituloColumn, Ordenado);
+  ActualizarFlechaOrdenacion(DBGrid8, Column);
 end;
 
 procedure TFLArticulos.dbgTarifaTitleClick(Column: TColumn);
 begin
   Colorea(Column,dbgTarifa,dbSeleccion, AntColun, Orden, TituloColumn, Ordenado);
+  ActualizarFlechaOrdenacion(dbgTarifa, Column);
 end;
 
 //========= Boton de busqueda del panel cambiable y seleccion del nombre elejido
@@ -1472,7 +2181,11 @@ begin
     clbSeleccionManual.Items.Add(dbQuery.Fields[0].AsString+' '+dbQuery.Fields[1].AsString);
     dbQuery.Next;
  end;
- pSeleccionManual.Visible:=True; clbSeleccionManual.SetFocus;
+ pSeleccionManual.Visible:=True;
+ RecolocarControles;
+ AplicarContrasteSeleccionControles(pSeleccionManual);
+ pSeleccionManual.BringToFront;
+ clbSeleccionManual.SetFocus;
 end;
 
 Procedure TFLArticulos.Formclose(Sender: Tobject; Var Closeaction: Tcloseaction);
@@ -1482,14 +2195,21 @@ End;
 
 procedure TFLArticulos.FormShow(Sender: TObject);
 begin
-     //---------------------Paneles visibles por defecto, los de rbTarifas
+   //---------------------Paneles visibles por defecto, los de rbTarifas
    PanelDesdeHasta.Visible:=True;
    PanelFechaDesdeHasta.Visible:=False;
    PanelCambiable.Visible:=False;
    PanelCambiable1.Visible:=True;
    PanelStock.Visible:=False;
+   PanelSelectAno.Visible:=False;
    PanelTarifas.Visible:=True;
    rbTarifas.Checked:=True;
+   MostrarZonaFiltros;
+   RecolocarControles;
+   AplicarContrasteSeleccionControles(Self);
+   { En GTK el formulario todavía puede no ser enfocable dentro de OnShow.
+     El callback se ejecuta al regresar al bucle de mensajes. }
+   Application.QueueAsyncCall(@AplicarFocoInicial, 0);
 end;
 
 

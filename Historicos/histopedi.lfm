@@ -3,10 +3,13 @@ object FHistopedi: TFHistopedi
   Height = 692
   Top = 281
   Width = 1016
-  ActiveControl = Panel4
+  ActiveControl = DBGrid1
   Caption = 'Histórico de pedidos'
   ClientHeight = 692
   ClientWidth = 1016
+  Color = $00F7F5F1
+  Font.Height = -12
+  Font.Name = 'Sans'
   KeyPreview = True
   OnClose = FormClose
   OnCreate = FormCreate

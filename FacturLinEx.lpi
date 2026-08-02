@@ -1098,7 +1098,7 @@
   <CompilerOptions>
     <Version Value="11"/>
     <SearchPaths>
-      <OtherUnitFiles Value="Tiendas;Facturas;Clientes;Articulos;Configuracion;Globales;Ventas;Proveedores;Familias;Usuarios;Departamentos;Varios/FormaPago;Varios/Rutas;Varios/Fabricantes;Albaranes;Historicos;Pedidos;ivas;Cajas;Comunicaciones;Puestos;Varios/Busquedas;Facturar;Etiquetas;Presupuestos;Varios;Produccion;CopiaSeg;AStock;copiaseg;Varios/Roles;Funciones;Varios/Modelo347;../../../Lazarus 3.8/mail4delphi-master/src;../../../../../.lazarus/onlinepackagemanager/packages/Indy10;../../../../../.lazarus/onlinepackagemanager/packages/Indy10/Protocols;verifactu;VFMonitor;dashboard;Analisis"/>
+      <OtherUnitFiles Value="Tiendas;Facturas;Clientes;Articulos;Configuracion;Globales;Ventas;Proveedores;Familias;Usuarios;Departamentos;Varios/FormaPago;Varios/Rutas;Varios/Fabricantes;Albaranes;Historicos;Pedidos;Listados;ivas;Cajas;Comunicaciones;Puestos;Varios/Busquedas;Facturar;Etiquetas;Presupuestos;Varios;Produccion;CopiaSeg;AStock;copiaseg;Varios/Roles;Funciones;Varios/Modelo347;../../../Lazarus 3.8/mail4delphi-master/src;../../../../../.lazarus/onlinepackagemanager/packages/Indy10;../../../../../.lazarus/onlinepackagemanager/packages/Indy10/Protocols;verifactu;VFMonitor;dashboard;Analisis"/>
       <UnitOutputDirectory Value="Bin"/>
       <SrcPath Value="$(LazarusDir)/lcl;$(LazarusDir)/lcl/interfaces/$(LCLWidgetType)"/>
     </SearchPaths>

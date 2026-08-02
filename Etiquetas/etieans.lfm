@@ -8,6 +8,7 @@ object EtiBarras: TEtiBarras
   ClientHeight = 692
   ClientWidth = 1016
   KeyPreview = True
+  OnKeyDown = FormKeyDown
   OnClose = FormClose
   OnCreate = FormCreate
   Position = poDesktopCenter

@@ -1,16 +1,17 @@
 object FFacturaped: TFFacturaped
   Left = 264
-  Height = 684
+  Height = 800
   Top = 289
-  Width = 1012
+  Width = 1280
   ActiveControl = ComboBox1
-  Caption = 'Facturacion de albaranes de pedidos'
-  ClientHeight = 684
-  ClientWidth = 1012
+  Caption = 'Facturación de albaranes de pedidos'
+  ClientHeight = 800
+  ClientWidth = 1280
   KeyPreview = True
   OnClose = FormClose
   OnCreate = FormCreate
-  Position = poDesktopCenter
+  Position = poScreenCenter
+  WindowState = wsMaximized
   LCLVersion = '1.6.4.0'
   object Label1: TLabel
     Left = 16
@@ -242,7 +243,7 @@ object FFacturaped: TFFacturaped
     Height = 42
     Top = 184
     Width = 147
-    Caption = 'Aplicar filto'
+    Caption = 'Consultar albaranes'
     Glyph.Data = {
       36100000424D3610000000000000360000002800000020000000200000000100
       2000000000000010000064000000640000000000000000000000000000000000
@@ -383,7 +384,7 @@ object FFacturaped: TFFacturaped
     Height = 42
     Top = 184
     Width = 147
-    Caption = 'Fact.Albaranes'
+    Caption = 'Facturar albaranes'
     Enabled = False
     Glyph.Data = {
       36100000424D3610000000000000360000002800000020000000200000000100
@@ -669,6 +670,7 @@ object FFacturaped: TFFacturaped
     Align = alBottom
     ClientHeight = 83
     ClientWidth = 1012
+    Caption = ''
     TabOrder = 15
     object Label8: TLabel
       Left = 536
@@ -798,6 +800,7 @@ object FFacturaped: TFFacturaped
     Width = 465
     ClientHeight = 362
     ClientWidth = 465
+    Caption = ''
     Color = clMoneyGreen
     ParentColor = False
     TabOrder = 12
@@ -1136,6 +1139,7 @@ object FFacturaped: TFFacturaped
     Width = 336
     ClientHeight = 152
     ClientWidth = 336
+    Caption = ''
     TabOrder = 16
     object Label7: TLabel
       Left = 8
@@ -1144,7 +1148,7 @@ object FFacturaped: TFFacturaped
       Width = 320
       Alignment = taCenter
       AutoSize = False
-      Caption = 'ALBARANES MARACADOS/SIN MARCAR'
+      Caption = 'ALBARANES MARCADOS / SIN MARCAR'
       Layout = tlCenter
       ParentColor = False
     end
@@ -1234,6 +1238,7 @@ object FFacturaped: TFFacturaped
     top = 344
   end
   object dbMuestraf: TZQuery
+    Connection = DataModule1.dbConexion
     AutoCalcFields = False
     Params = <>
     left = 216

@@ -764,17 +764,23 @@ object FClientes: TFClientes
         OnExit = Edit12Exit
         TabOrder = 10
       end
-      object BitBtn7: TBitBtn
-        Left = 592
-        Height = 21
-        Top = 285
-        Width = 20
-        Caption = '...'
-        Layout = blGlyphTop
-        Margin = 0
+      object BitBtn7: TButton
+        Left = 184
+        Height = 30
+        Top = 312
+        Width = 74
+        Caption = 'Buscar'
+        Font.Color = clBlack
+        Font.Height = -11
+        Font.Name = 'Sans'
+        Font.Style = [fsBold]
+        Hint = 'Buscar tipo de pago'
         OnClick = BitBtn7Click
-        Spacing = 0
+        ParentFont = False
+        ShowHint = True
         TabOrder = 11
+        TabStop = True        Visible = False
+
       end
       object Edit13: TEdit
         Left = 123
@@ -811,7 +817,56 @@ object FClientes: TFClientes
         Layout = blGlyphTop
         Margin = 0
         Spacing = 0
-        TabOrder = 15
+        TabOrder = 15        Visible = False
+
+      end
+      object PanelCoste: TPanel
+        Left = 615
+        Height = 132
+        Top = 58
+        Width = 295
+        BevelOuter = bvNone
+        Color = 15595244
+        ParentBackground = False
+        ParentColor = False
+        TabOrder = 20
+        object LabelCosteTitulo: TLabel
+          Left = 16
+          Height = 20
+          Top = 12
+          Width = 263
+          AutoSize = False
+          Caption = 'PRECIO DE COSTE / AUTOCONSUMO'
+          Font.Height = -14
+          Font.Name = 'Sans'
+          Font.Style = [fsBold]
+          ParentColor = False
+          ParentFont = False
+        end
+        object LabelCosteInfo: TLabel
+          Left = 16
+          Height = 52
+          Top = 66
+          Width = 263
+          AutoSize = False
+          Caption = 'Usa A24 como base sin IVA y aplica el IVA del articulo. Si no hay coste valido, conserva el precio normal.'
+          Font.Height = -11
+          Font.Name = 'Sans'
+          ParentColor = False
+          ParentFont = False
+          WordWrap = True
+        end
+        object CheckBox8: TCheckBox
+          Left = 16
+          Height = 22
+          Top = 39
+          Width = 263
+          Caption = 'Usar precio de coste en Ventas'
+          Hint = 'Solo para autoconsumo real. Usa el coste A24 como base sin IVA.'
+          ParentFont = False
+          ShowHint = True
+          TabOrder = 0
+        end
       end
       object Panel5: TPanel
         Left = 122
@@ -1085,7 +1140,8 @@ object FClientes: TFClientes
         Margin = 0
         OnClick = BitBtn18Click
         Spacing = 0
-        TabOrder = 19
+        TabOrder = 19        Visible = False
+
       end
       object BitBtn21: TBitBtn
         Left = 615
@@ -1185,7 +1241,8 @@ object FClientes: TFClientes
           0000
         }
         OnClick = BitBtn21Click
-        TabOrder = 20
+        TabOrder = 20        Visible = False
+
       end
       object Memo1: TMemo
         Left = 123
@@ -1209,18 +1266,20 @@ object FClientes: TFClientes
       object cbEmail: TCheckBox
         Left = 620
         Height = 22
-        Top = 214
-        Width = 207
-        Caption = 'Enviar documentos por email.'
+        Top = 258
+        Width = 270
+        Caption = 'Enviar documentos por e-mail'
         TabOrder = 22
+        Visible = True
       end
       object CheckBox7: TCheckBox
-        Left = 22
-        Height = 49
-        Top = 413
-        Width = 82
-        Caption = 'Capturar '#10'en '#10'Ventas'
+        Left = 620
+        Height = 36
+        Top = 298
+        Width = 270
+        Caption = 'Capturar observaciones en Ventas'
         TabOrder = 23
+        Visible = True
       end
     end
     object TabSheet4: TTabSheet
@@ -1238,7 +1297,7 @@ object FClientes: TFClientes
         Height = 15
         Top = 23
         Width = 115
-        Caption = 'Dias hasta 1º plazo'
+        Caption = 'Dias hasta 1er plazo'
         Layout = tlCenter
         ParentColor = False
       end
@@ -1256,7 +1315,7 @@ object FClientes: TFClientes
         Height = 15
         Top = 25
         Width = 110
-        Caption = 'Número de plazos'
+        Caption = 'Numero de plazos'
         Layout = tlCenter
         ParentColor = False
       end
@@ -1310,7 +1369,7 @@ object FClientes: TFClientes
         Height = 15
         Top = 113
         Width = 123
-        Caption = 'Importe crédito act.'
+        Caption = 'Importe credito act.'
         Layout = tlCenter
         ParentColor = False
       end
@@ -1328,7 +1387,7 @@ object FClientes: TFClientes
         Height = 15
         Top = 157
         Width = 92
-        Caption = 'Riesgo máximo'
+        Caption = 'Riesgo maximo'
         Layout = tlCenter
         ParentColor = False
       end
@@ -1337,7 +1396,7 @@ object FClientes: TFClientes
         Height = 15
         Top = 157
         Width = 113
-        Caption = 'Fecha últ. entrega'
+        Caption = 'Fecha ult. entrega'
         Layout = tlCenter
         ParentColor = False
       end
@@ -1346,7 +1405,7 @@ object FClientes: TFClientes
         Height = 15
         Top = 201
         Width = 107
-        Caption = 'Mínimo a facturar'
+        Caption = 'Minimo a facturar'
         Layout = tlCenter
         ParentColor = False
       end
@@ -1355,7 +1414,7 @@ object FClientes: TFClientes
         Height = 15
         Top = 201
         Width = 97
-        Caption = 'Mínimo 1º plazo'
+        Caption = 'Minimo 1er plazo'
         Layout = tlCenter
         ParentColor = False
       end
@@ -1364,7 +1423,7 @@ object FClientes: TFClientes
         Height = 15
         Top = 201
         Width = 126
-        Caption = 'Importe últ. entrega'
+        Caption = 'Importe ult. entrega'
         Layout = tlCenter
         ParentColor = False
       end
@@ -1427,7 +1486,7 @@ object FClientes: TFClientes
         Height = 15
         Top = 292
         Width = 121
-        Caption = 'Ruta de Facturación'
+        Caption = 'Ruta de Facturacion'
         Layout = tlCenter
         ParentColor = False
       end
@@ -1594,24 +1653,26 @@ object FClientes: TFClientes
         TabOrder = 14
       end
       object Edit31: TEdit
-        Left = 379
+        Left = 430
         Height = 25
-        Top = 243
-        Width = 455
+        Top = 304
+        Width = 404
         CharCase = ecUppercase
         MaxLength = 50
         TabOrder = 16
       end
       object BitBtn10: TBitBtn
-        Left = 841
-        Height = 21
-        Top = 243
-        Width = 20
+        Left = 380
+        Height = 28
+        Top = 304
+        Width = 42
         Caption = '...'
         Layout = blGlyphTop
         Margin = 0
+        OnClick = BotonFormularioVisualClick
         Spacing = 0
         TabOrder = 17
+        Visible = False
       end
       object Edit32: TEdit
         Left = 151
@@ -1655,7 +1716,8 @@ object FClientes: TFClientes
         Top = 330
         Width = 250
         Caption = 'Generar recibos bancarios al facturar'
-        TabOrder = 25
+        TabOrder = 25        Visible = True
+
       end
       object CheckBox2: TCheckBox
         Left = 644
@@ -1663,7 +1725,8 @@ object FClientes: TFClientes
         Top = 361
         Width = 238
         Caption = 'Imprimir banco/caja en las facturas'
-        TabOrder = 26
+        TabOrder = 26        Visible = True
+
       end
       object Edit50: TEdit
         Left = 144
@@ -1693,17 +1756,23 @@ object FClientes: TFClientes
         BorderStyle = sbsSingle
         TabOrder = 28
       end
-      object BitBtn8: TBitBtn
-        Left = 364
-        Height = 21
-        Top = 287
-        Width = 20
-        Caption = '...'
-        Layout = blGlyphTop
-        Margin = 0
+      object BitBtn8: TButton
+        Left = 436
+        Height = 30
+        Top = 344
+        Width = 74
+        Caption = 'Buscar'
+        Font.Color = clBlack
+        Font.Height = -11
+        Font.Name = 'Sans'
+        Font.Style = [fsBold]
+        Hint = 'Buscar subruta de facturacion'
         OnClick = BitBtn8Click
-        Spacing = 0
+        ParentFont = False
+        ShowHint = True
         TabOrder = 20
+        TabStop = True        Visible = False
+
       end
       object Edit52: TEdit
         Left = 762
@@ -1728,36 +1797,58 @@ object FClientes: TFClientes
       end
       object Panel7: TPanel
         Left = 364
-        Height = 384
+        Height = 430
         Top = 83
-        Width = 546
-        ClientHeight = 384
-        ClientWidth = 546
+        Width = 650
+        BevelOuter = bvRaised
+        BorderWidth = 10
+        ClientHeight = 430
+        ClientWidth = 650
+        Color = 15393229
+        ParentColor = False
         TabOrder = 27
         Visible = False
         object Label54: TLabel
-          Left = 176
-          Height = 15
-          Top = 6
-          Width = 151
+          Left = 8
+          Height = 28
+          Top = 8
+          Width = 634
           Alignment = taCenter
+          AutoSize = False
           Caption = 'RUTAS DE FACTURACION'
+          Color = 5983250
+          Font.Color = clWhite
+          Font.Height = -12
+          Font.Name = 'Sans'
+          Font.Style = [fsBold]
+          Layout = tlCenter
           ParentColor = False
+          ParentFont = False
+          Transparent = False
         end
         object Label56: TLabel
-          Left = 161
-          Height = 15
-          Top = 176
-          Width = 180
+          Left = 8
+          Height = 28
+          Top = 178
+          Width = 634
           Alignment = taCenter
+          AutoSize = False
           Caption = 'SUB RUTAS DE FACTURACION'
+          Color = 5983250
+          Font.Color = clWhite
+          Font.Height = -12
+          Font.Name = 'Sans'
+          Font.Style = [fsBold]
+          Layout = tlCenter
           ParentColor = False
+          ParentFont = False
+          Transparent = False
         end
         object DBGrid3: TDBGrid
           Left = 8
-          Height = 127
-          Top = 34
-          Width = 531
+          Height = 126
+          Top = 42
+          Width = 634
           Color = clWindow
           Columns = <          
             item
@@ -1779,9 +1870,9 @@ object FClientes: TFClientes
         end
         object DBGrid4: TDBGrid
           Left = 8
-          Height = 132
-          Top = 198
-          Width = 531
+          Height = 152
+          Top = 212
+          Width = 634
           Color = clWindow
           Columns = <          
             item
@@ -1947,17 +2038,23 @@ object FClientes: TFClientes
         OnExit = Edit51Exit
         TabOrder = 19
       end
-      object BitBtn17: TBitBtn
-        Left = 210
-        Height = 21
-        Top = 287
-        Width = 20
-        Caption = '...'
-        Layout = blGlyphTop
-        Margin = 0
+      object BitBtn17: TButton
+        Left = 218
+        Height = 30
+        Top = 344
+        Width = 74
+        Caption = 'Buscar'
+        Font.Color = clBlack
+        Font.Height = -11
+        Font.Name = 'Sans'
+        Font.Style = [fsBold]
+        Hint = 'Buscar ruta de facturacion'
         OnClick = BitBtn8Click
-        Spacing = 0
+        ParentFont = False
+        ShowHint = True
         TabOrder = 29
+        TabStop = True        Visible = False
+
       end
     end
     object TabSheet5: TTabSheet
@@ -2374,7 +2471,7 @@ object FClientes: TFClientes
             MinSize = 9
             MaxSize = 183
             Title.Alignment = taCenter
-            Title.Caption = 'AÑO'
+            Title.Caption = 'ANO'
             Width = 55
             FieldName = 'CC1'
           end        
@@ -2643,7 +2740,7 @@ object FClientes: TFClientes
         Height = 15
         Top = 329
         Width = 90
-        Caption = 'Tipo de gráfica'
+        Caption = 'Tipo de grafica'
         ParentColor = False
       end
       object Chart1: TChart
@@ -2766,7 +2863,7 @@ object FClientes: TFClientes
         Height = 15
         Top = 83
         Width = 70
-        Caption = 'Contraseña'
+        Caption = 'Contrasena'
         Layout = tlCenter
         ParentColor = False
       end
@@ -2881,7 +2978,7 @@ object FClientes: TFClientes
   object btCodigo: TBitBtn
     Left = 150
     Height = 24
-    Hint = 'Genera número de cliente nuevo.'
+    Hint = 'Genera numero de cliente nuevo.'
     Top = 24
     Width = 72
     Caption = ' Crear'

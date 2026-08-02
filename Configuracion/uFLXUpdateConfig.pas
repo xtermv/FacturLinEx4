@@ -9,7 +9,7 @@ procedure MostrarConfigActualizacionesFLX(const AIniFile, ACurrentExecutable: st
 implementation
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, StdCtrls, ExtCtrls, Dialogs, IniFiles, Process, ComCtrls, ZDataset, BaseUnix, Global;
+  Classes, SysUtils, Forms, Controls, Graphics, StdCtrls, ExtCtrls, Dialogs, IniFiles, Process, ComCtrls, ZDataset, BaseUnix, LCLType, Global;
 
 const
   FLX_UPD_SECTION = 'Actualizaciones';
@@ -449,6 +449,7 @@ type
     procedure BtnReportTodoClick(Sender: TObject);
     procedure GenerateMaintenanceReport;
     procedure FormResize(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure LoadIni;
     procedure SaveIni;
     function AddLabelEdit(AParent: TWinControl; const ACaption, AText: string; var Y: Integer; AWidth: Integer = 500): TEdit;
@@ -574,6 +575,8 @@ begin
   ParentFont := False;
   Font.Name := 'Sans';
   Font.Height := -13;
+  KeyPreview := True;
+  OnKeyDown := @FormKeyDown;
   OnResize := @FormResize;
 
   PnlHeader := TPanel.Create(Self);
@@ -1045,6 +1048,15 @@ begin
   MemoInfo.Lines.Add('');
   MemoInfo.Lines.Add('Configuración guardada: ' + FIniFile);
   ShowMessage('Configuración de actualizaciones guardada en:' + LineEnding + FIniFile);
+end;
+
+procedure TFLXUpdateConfigForm.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key <> VK_ESCAPE then Exit;
+
+  Key := 0;
+  BtnCerrarClick(Self);
 end;
 
 procedure TFLXUpdateConfigForm.BtnCerrarClick(Sender: TObject);

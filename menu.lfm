@@ -24650,6 +24650,18 @@ object FMenu: TFMenu
         TabOrder = 0
         OnClick = BitBtnAboutClick
       end
+    object BitBtnManual: TBitBtn
+      Left = 110
+      Height = 80
+      Top = 8
+      Width = 86
+      Caption = 'Manual'
+      Hint = 'Consultar el manual de FacturLinEx'
+      Layout = blGlyphTop
+      ShowHint = True
+      TabOrder = 1
+      OnClick = BitBtnManualClick
+    end
       object Image12: TImage
         AnchorSideTop.Control = TabSheet1
         AnchorSideTop.Side = asrCenter

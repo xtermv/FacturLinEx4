@@ -100,6 +100,7 @@ type
     procedure Edit7Exit(Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCreate(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure RadioButton1Change(Sender: TObject);
     procedure RadioButton2Change(Sender: TObject);
     procedure RadioButton3Change(Sender: TObject);
@@ -362,6 +363,18 @@ begin
      dbDirec.Active := False;
      dbProve.Active := False;
      CloseAction := CaFree;
+end;
+
+procedure TEtiBarras.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key <> VK_ESCAPE then
+    Exit;
+
+  { Esta unidad no tiene pantallas interiores navegables: en la pantalla
+    principal, ESC ejecuta exactamente la misma acción que el botón Cerrar. }
+  Key := 0;
+  BitBtn6Click(BitBtn6);
 end;
 
 procedure TEtiBarras.BitBtn1Click(Sender: TObject);

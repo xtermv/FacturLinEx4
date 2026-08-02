@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Manual de uso y configuración de FacturLinEx" name="description"/>
+<meta content="#155eef" name="theme-color"/>
+<title>12. Solución de problemas | Manual FacturLinEx</title>
+<link href="../assets/img/favicon.svg" rel="icon" type="image/svg+xml"/>
+<link href="../assets/css/styles.css" rel="stylesheet"/>
+<script defer="" src="../assets/js/search-index.js"></script>
+<script defer="" src="../assets/js/app.js"></script>
+</head>
+<body>
+<a class="skip-link" href="#contenido">Saltar al contenido</a>
+<header class="topbar">
+<button aria-expanded="false" aria-label="Abrir menú" class="icon-button menu-button" data-menu-button="" type="button">☰</button>
+<a aria-label="Inicio del manual FacturLinEx" class="brand" href="../index.html">
+<span class="brand-mark">FLX</span><span><strong>FacturLinEx</strong><small>Manual de uso y configuración</small></span>
+</a>
+<div class="top-actions">
+<button aria-label="Buscar en el manual" class="search-button" data-search-open="" type="button"><span aria-hidden="true">⌕</span><span>Buscar</span><kbd>Ctrl K</kbd></button>
+<button aria-label="Cambiar modo de color" class="icon-button" data-theme-toggle="" type="button">◐</button>
+</div>
+</header>
+<div class="menu-overlay" data-menu-overlay=""></div>
+<div class="app-shell">
+<aside class="sidebar" data-sidebar="">
+<div class="sidebar-inner">
+<a class="sidebar-home" href="../index.html">⌂ Página principal</a>
+<nav aria-label="Capítulos del manual"><a href="../capitulos/control-del-documento.html"><span class="nav-number">i</span><span>Control del documento</span></a>
+<a href="../capitulos/01-primeros-pasos-y-navegacion.html"><span class="nav-number">1</span><span>Primeros pasos y navegación</span></a>
+<a href="../capitulos/02-configuracion-inicial.html"><span class="nav-number">2</span><span>Configuración inicial</span></a>
+<a href="../capitulos/03-clientes.html"><span class="nav-number">3</span><span>Clientes</span></a>
+<a href="../capitulos/04-articulos-familias-y-tarifas.html"><span class="nav-number">4</span><span>Artículos, familias y tarifas</span></a>
+<a href="../capitulos/05-ventas-y-tpv.html"><span class="nav-number">5</span><span>Ventas y TPV</span></a>
+<a href="../capitulos/06-caja-cobros-y-creditos.html"><span class="nav-number">6</span><span>Caja, cobros y créditos</span></a>
+<a href="../capitulos/07-compras-pedidos-y-existencias.html"><span class="nav-number">7</span><span>Compras, pedidos y existencias</span></a>
+<a href="../capitulos/08-facturacion-impresion-pdf-y-correo.html"><span class="nav-number">8</span><span>Facturación, impresión, PDF y correo</span></a>
+<a href="../capitulos/09-verifactu-y-documentos-rectificativos.html"><span class="nav-number">9</span><span>VeriFactu y documentos rectificativos</span></a>
+<a href="../capitulos/10-dashboard-consultas-y-estadisticas.html"><span class="nav-number">10</span><span>Dashboard, consultas y estadísticas</span></a>
+<a href="../capitulos/11-copias-de-seguridad-y-mantenimiento.html"><span class="nav-number">11</span><span>Copias de seguridad y mantenimiento</span></a>
+<a aria-current="page" class="active" href="../capitulos/12-solucion-de-problemas.html"><span class="nav-number">12</span><span>Solución de problemas</span></a>
+<a href="../capitulos/13-anexos-y-referencia-rapida.html"><span class="nav-number">13</span><span>Anexos y referencia rápida</span></a>
+<a href="../capitulos/14-plan-de-ampliacion-del-manual.html"><span class="nav-number">14</span><span>Plan de ampliación del manual</span></a></nav>
+<div class="sidebar-downloads"><strong>Descargas</strong>
+<a href="../descargas/Manual_FacturLinEx_v1.2_Mantenimiento_Solucion_Problemas_Ilustrado.pdf">Manual PDF</a>
+<a href="../descargas/Manual_FacturLinEx_v1.2_Mantenimiento_Solucion_Problemas_Ilustrado.docx">Manual DOCX</a>
+</div>
+</div>
+</aside>
+<main class="main-content" id="contenido">
+<article class="manual-page">
+<header class="chapter-header"><span class="eyebrow">Capítulo 12</span><h1>Solución de problemas</h1><p class="chapter-version">Edición v1.2 · Mantenimiento y solución de problemas ilustrado</p></header>
+<nav aria-label="En esta página" class="page-toc"><strong>En esta página</strong>
+<a href="#12-1-diagnostico">12.1 Diagnóstico inicial</a><a href="#12-2-matriz">12.2 Matriz rápida</a>
+<a href="#12-3-datos">12.3 Sin datos</a><a href="#12-4-boton">12.4 Botón</a>
+<a href="#12-5-foco">12.5 Foco y atajos</a><a href="#12-6-visual">12.6 Problemas visuales</a>
+<a href="#12-7-sql">12.7 SQL</a><a href="#12-8-compilar">12.8 Compilación/plantillas</a>
+<a href="#12-9-info">12.9 Información</a><a href="#12-10-lista">12.10 Lista final</a></nav>
+<div class="chapter-content">
+<aside class="callout callout-info"><span class="callout-icon">i</span><div><strong>OBJETIVO</strong><p>Reproducir el síntoma, confirmar la unidad realmente ejecutada y recopilar información antes de modificar código, plantillas o datos.</p></div></aside>
+<h2 id="12-1-diagnostico">12.1 Diagnóstico inicial <a class="heading-link" href="#12-1-diagnostico">#</a></h2>
+<figure class="manual-figure figure-wide"><a href="../assets/img/mantenimiento/06_diagnostico_inicial_reconstruccion_anotado.png" target="_blank"><img alt="Diagnóstico inicial con tres zonas numeradas" loading="lazy" src="../assets/img/mantenimiento/06_diagnostico_inicial_reconstruccion_anotado.png"/></a><figcaption>Figura 12.1. Síntoma, comprobaciones e información necesaria.<span>Pulse para ampliar.</span></figcaption></figure>
+<div class="table-scroll"><table><thead><tr><th>N.º</th><th>Zona</th><th>Uso</th></tr></thead><tbody><tr><td>1</td><td>Síntoma</td><td>Definir qué no funciona y en qué pantalla.</td></tr><tr><td>2</td><td>Comprobaciones</td><td>Conexión, filtros, datos, eventos, unidad, SQL, interfaz y regresión.</td></tr><tr><td>3</td><td>Información</td><td>Mensaje, ruta, pasos, captura, unidades, SQL, versiones y compilación.</td></tr></tbody></table></div>
+<ol><li>Reproduzca el problema con pasos concretos.</li><li>Confirme el binario y unidad que se ejecutan.</li><li>Pruebe con el mínimo de filtros.</li><li>Lea el mensaje completo.</li><li>Compare con la versión estable.</li><li>Cambie una sola causa probable.</li></ol>
+<h2 id="12-2-matriz">12.2 Matriz de problemas frecuentes <a class="heading-link" href="#12-2-matriz">#</a></h2>
+<figure class="manual-figure figure-wide"><a href="../assets/img/mantenimiento/07_matriz_errores_frecuentes_anotado.png" target="_blank"><img alt="Matriz de problemas frecuentes numerada" loading="lazy" src="../assets/img/mantenimiento/07_matriz_errores_frecuentes_anotado.png"/></a><figcaption>Figura 12.2. Síntoma, causa probable y primera comprobación segura.<span>Pulse para ampliar.</span></figcaption></figure>
+<aside class="callout callout-success"><span class="callout-icon">✓</span><div><strong>PRUEBA RELACIONADA</strong><p>Tras corregir, repita el caso original y una función relacionada.</p></div></aside>
+<h2 id="12-3-datos">12.3 El formulario abre, pero no muestra datos <a class="heading-link" href="#12-3-datos">#</a></h2>
+<ol><li>Comprobar conexión y tienda.</li><li>Revisar código, fechas, serie, puesto y período.</li><li>Probar sin filtro.</li><li>Confirmar registros reales.</li><li>Verificar campos del dataset.</li><li>Revisar eventos y procedimiento de consulta.</li><li>Mostrar SQL final y parámetros.</li></ol>
+<h2 id="12-4-boton">12.4 Un botón no hace nada <a class="heading-link" href="#12-4-boton">#</a></h2>
+<ul><li>OnClick asignado.</li><li>Enabled, Visible y permisos.</li><li>Controles superpuestos.</li><li>Traza temporal.</li><li>Unidad realmente ejecutada.</li></ul>
+<h2 id="12-5-foco">12.5 Problemas de foco y atajos <a class="heading-link" href="#12-5-foco">#</a></h2>
+<ul><li>ActiveControl y TabOrder.</li><li>KeyPreview y eventos de teclado.</li><li>No dañar atajos F(x) existentes.</li><li>ESC cancela primero paneles auxiliares.</li><li>Probar en la pantalla exacta.</li></ul>
+<h2 id="12-6-visual">12.6 Texto oculto, negro, cortado o superpuesto <a class="heading-link" href="#12-6-visual">#</a></h2>
+<ul><li>Forzar color legible.</li><li>Revisar BringToFront/SendToBack.</li><li>Evitar etiquetas duplicadas.</li><li>Comprobar Anchors, Align y resoluciones.</li><li>Mostrar avisos por encima y sin texto emborronado.</li></ul>
+<h2 id="12-7-sql">12.7 Errores SQL y datos históricos <a class="heading-link" href="#12-7-sql">#</a></h2>
+<div class="table-scroll"><table><thead><tr><th>Síntoma</th><th>Causa</th><th>Acción</th></tr></thead><tbody><tr><td>Error cerca de AND</td><td>Condición incompleta.</td><td>Mostrar SQL y parámetros.</td></tr><tr><td>Sin datos</td><td>Filtro o campo equivocado.</td><td>Consulta mínima.</td></tr><tr><td>Histórico pide serie</td><td>Origen mal interpretado.</td><td>Conservar tipo y referencia.</td></tr><tr><td>Fields[n] incorrecto</td><td>Índice cambiado.</td><td>Preferir FieldByName.</td></tr><tr><td>Collation mix</td><td>Cotejamientos incompatibles.</td><td>Identificar columnas y normalizar con control.</td></tr></tbody></table></div>
+<h2 id="12-8-compilar">12.8 Compilación, impresión y plantillas <a class="heading-link" href="#12-8-compilar">#</a></h2>
+<div class="table-scroll"><table><thead><tr><th>Mensaje</th><th>Interpretación</th><th>Comprobación</th></tr></thead><tbody><tr><td>Identifier not found</td><td>Nombre, ámbito o uses.</td><td>Versión y objeto real.</td></tr><tr><td>Fields cannot appear after a method</td><td>Declaración mal situada.</td><td>Ordenar la clase.</td></tr><tr><td>Undefined symbol IMP5</td><td>.lrf incompatible.</td><td>Plantilla y dataset reales.</td></tr><tr><td>Documentos.lrf inesperado</td><td>Ruta dinámica.</td><td>LoadFromFile y rutas efectivas.</td></tr><tr><td>Cambio no aparece</td><td>Otro binario/unidad.</td><td>Ruta y lazbuild -B.</td></tr></tbody></table></div>
+<h2 id="12-9-info">12.9 Información que debe recopilarse <a class="heading-link" href="#12-9-info">#</a></h2>
+<ul class="checklist"><li><span class="checkbox"></span><span>Resultado esperado y real.</span></li><li><span class="checkbox"></span><span>Pasos para reproducir.</span></li><li><span class="checkbox"></span><span>Mensaje, ruta y línea.</span></li><li><span class="checkbox"></span><span>Captura visual.</span></li><li><span class="checkbox"></span><span>.pas y .lfm.</span></li><li><span class="checkbox"></span><span>SQL y parámetros.</span></li><li><span class="checkbox"></span><span>Versión estable y versión que falla.</span></li><li><span class="checkbox"></span><span>Resultado de lazbuild -B.</span></li></ul>
+<aside class="callout callout-danger"><span class="callout-icon">!</span><div><strong>NO MODIFICAR A CIEGAS</strong><p>No repare tablas, cambie motores, borre datos ni altere plantillas de producción sin identificar la causa y conservar una copia.</p></div></aside>
+<h2 id="12-10-lista">12.10 Lista final de diagnóstico <a class="heading-link" href="#12-10-lista">#</a></h2>
+<ul class="checklist"><li><span class="checkbox"></span><span>Problema reproducido.</span></li><li><span class="checkbox"></span><span>Binario y unidad confirmados.</span></li><li><span class="checkbox"></span><span>Conexión, tienda, puesto y filtros revisados.</span></li><li><span class="checkbox"></span><span>SQL o evento identificado.</span></li><li><span class="checkbox"></span><span>Comparación con versión estable.</span></li><li><span class="checkbox"></span><span>Una causa cambiada cada vez.</span></li><li><span class="checkbox"></span><span>Prueba original y relacionada superadas.</span></li><li><span class="checkbox"></span><span>Copia previa disponible cuando se tocaron datos.</span></li><li><span class="checkbox"></span><span>Cuadros, números y leyendas coinciden.</span></li></ul>
+<aside class="callout callout-success"><span class="callout-icon">✓</span><div><strong>CIERRE CORRECTO</strong><p>El problema queda descrito, reproducido y delimitado; la corrección se prueba y conserva una vía de vuelta.</p></div></aside>
+</div>
+<nav aria-label="Capítulos anterior y siguiente" class="chapter-navigation"><a class="chapter-nav-card previous" href="11-copias-de-seguridad-y-mantenimiento.html"><small>Anterior</small><strong>← 11. Copias de seguridad y mantenimiento</strong></a><a class="chapter-nav-card next" href="13-anexos-y-referencia-rapida.html"><small>Siguiente</small><strong>13. Anexos y referencia rápida →</strong></a></nav>
+</article>
+<footer class="site-footer">
+<p><strong>Manual FacturLinEx v1.2</strong> · Mantenimiento y solución de problemas ilustrado · 25 de julio de 2026</p>
+<p>Documento vivo: los procedimientos se actualizarán cuando cambie una función validada.</p>
+<a href="../descargas/Manual_FacturLinEx_v1.2_Mantenimiento_Solucion_Problemas_Ilustrado.pdf">Descargar PDF</a>
+</footer>
+</main>
+</div>
+<dialog aria-label="Buscar en el manual" class="search-dialog" data-search-dialog="">
+<form class="search-panel" method="dialog">
+<div class="search-input-row">
+<span aria-hidden="true">⌕</span>
+<input aria-label="Texto de búsqueda" autocomplete="off" data-search-input="" placeholder="Buscar clientes, ventas, VeriFactu..." type="search"/>
+<button aria-label="Cerrar búsqueda" class="dialog-close" type="submit">Esc</button>
+</div>
+<div class="search-hint" data-search-hint="">Escribe al menos dos caracteres.</div>
+<div aria-live="polite" class="search-results" data-search-results=""></div>
+</form>
+</dialog>
+</body>
+</html>

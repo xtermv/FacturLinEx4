@@ -1,25 +1,30 @@
 object FLIvaReci: TFLIvaReci
-  Left = 260
-  Height = 692
-  Top = 281
-  Width = 1016
-  ActiveControl = PanelTituloGrid
+  Left = 0
+  Height = 768
+  Top = 0
+  Width = 1366
   Caption = 'Listados de IVA Recibido'
-  ClientHeight = 692
-  ClientWidth = 1016
+  ClientHeight = 768
+  ClientWidth = 1366
   KeyPreview = True
   OnClose = Formclose
   OnCreate = Formcreate
-  Position = poDesktopCenter
+  Position = poScreenCenter
   ShowHint = True
   LCLVersion = '1.6.4.0'
+  WindowState = wsMaximized
+  DoubleBuffered = True
+  Color = 16775416
+  OnKeyDown = FormKeyDown
+  OnResize = FormResize
+  OnShow = FormShow
   object Panel1: TPanel
     Left = 0
-    Height = 64
+    Height = 68
     Top = 628
     Width = 1016
     Align = alBottom
-    ClientHeight = 64
+    ClientHeight = 68
     ClientWidth = 1016
     TabOrder = 1
     object BitBtn1: TBitBtn
@@ -856,6 +861,7 @@ object FLIvaReci: TFLIvaReci
     TabOrder = 0
     Visible = False
     OnTitleClick = DBGrid1TitleClick
+    OnDrawColumnCell = DBGridDrawColumnCell
   end
   object PanelTituloGrid: TPanel
     Left = 0

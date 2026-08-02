@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Manual de uso y configuración de FacturLinEx" name="description"/>
+<meta content="#155eef" name="theme-color"/>
+<title>10. Dashboard, consultas y estadísticas | Manual FacturLinEx</title>
+<link href="../assets/img/favicon.svg" rel="icon" type="image/svg+xml"/>
+<link href="../assets/css/styles.css" rel="stylesheet"/>
+<script defer="" src="../assets/js/search-index.js"></script>
+<script defer="" src="../assets/js/app.js"></script>
+</head>
+<body>
+<a class="skip-link" href="#contenido">Saltar al contenido</a>
+<header class="topbar">
+<button aria-expanded="false" aria-label="Abrir menú" class="icon-button menu-button" data-menu-button="" type="button">☰</button>
+<a aria-label="Inicio del manual FacturLinEx" class="brand" href="../index.html">
+<span class="brand-mark">FLX</span><span><strong>FacturLinEx</strong><small>Manual de uso y configuración</small></span>
+</a>
+<div class="top-actions">
+<button aria-label="Buscar en el manual" class="search-button" data-search-open="" type="button"><span aria-hidden="true">⌕</span><span>Buscar</span><kbd>Ctrl K</kbd></button>
+<button aria-label="Cambiar modo de color" class="icon-button" data-theme-toggle="" type="button">◐</button>
+</div>
+</header>
+<div class="menu-overlay" data-menu-overlay=""></div>
+<div class="app-shell">
+<aside class="sidebar" data-sidebar="">
+<div class="sidebar-inner">
+<a class="sidebar-home" href="../index.html">⌂ Página principal</a>
+<nav aria-label="Capítulos del manual"><a href="../capitulos/control-del-documento.html"><span class="nav-number">i</span><span>Control del documento</span></a>
+<a href="../capitulos/01-primeros-pasos-y-navegacion.html"><span class="nav-number">1</span><span>Primeros pasos y navegación</span></a>
+<a href="../capitulos/02-configuracion-inicial.html"><span class="nav-number">2</span><span>Configuración inicial</span></a>
+<a href="../capitulos/03-clientes.html"><span class="nav-number">3</span><span>Clientes</span></a>
+<a href="../capitulos/04-articulos-familias-y-tarifas.html"><span class="nav-number">4</span><span>Artículos, familias y tarifas</span></a>
+<a href="../capitulos/05-ventas-y-tpv.html"><span class="nav-number">5</span><span>Ventas y TPV</span></a>
+<a href="../capitulos/06-caja-cobros-y-creditos.html"><span class="nav-number">6</span><span>Caja, cobros y créditos</span></a>
+<a href="../capitulos/07-compras-pedidos-y-existencias.html"><span class="nav-number">7</span><span>Compras, pedidos y existencias</span></a>
+<a href="../capitulos/08-facturacion-impresion-pdf-y-correo.html"><span class="nav-number">8</span><span>Facturación, impresión, PDF y correo</span></a>
+<a href="../capitulos/09-verifactu-y-documentos-rectificativos.html"><span class="nav-number">9</span><span>VeriFactu y documentos rectificativos</span></a>
+<a aria-current="page" class="active" href="../capitulos/10-dashboard-consultas-y-estadisticas.html"><span class="nav-number">10</span><span>Dashboard, consultas y estadísticas</span></a>
+<a href="../capitulos/11-copias-de-seguridad-y-mantenimiento.html"><span class="nav-number">11</span><span>Copias de seguridad y mantenimiento</span></a>
+<a href="../capitulos/12-solucion-de-problemas.html"><span class="nav-number">12</span><span>Solución de problemas</span></a>
+<a href="../capitulos/13-anexos-y-referencia-rapida.html"><span class="nav-number">13</span><span>Anexos y referencia rápida</span></a>
+<a href="../capitulos/14-plan-de-ampliacion-del-manual.html"><span class="nav-number">14</span><span>Plan de ampliación del manual</span></a></nav>
+<div class="sidebar-downloads"><strong>Descargas</strong>
+<a href="../descargas/Manual_FacturLinEx_v1.2_Mantenimiento_Solucion_Problemas_Ilustrado.pdf">Manual PDF</a>
+<a href="../descargas/Manual_FacturLinEx_v1.2_Mantenimiento_Solucion_Problemas_Ilustrado.docx">Manual DOCX</a>
+</div>
+</div>
+</aside>
+<main class="main-content" id="contenido">
+<article class="manual-page">
+<header class="chapter-header"><span class="eyebrow">Capítulo 10</span><h1>Dashboard, consultas y estadísticas</h1><p class="chapter-version">Edición v1.2 · Mantenimiento y solución de problemas ilustrado</p></header>
+<nav aria-label="En esta página" class="page-toc"><strong>En esta página</strong>
+<a href="#10-1-general">10.1 Pantalla general</a><a href="#10-2-graficas">10.2 Gráficas legibles</a>
+<a href="#10-3-periodo">10.3 Período y rendimiento</a><a href="#10-4-consulta">10.4 Consulta libre</a>
+<a href="#10-5-descuentos">10.5 Precio real y descuentos</a><a href="#10-6-salida">10.6 Ordenación y salida</a>
+<a href="#10-7-interpretacion">10.7 Interpretación</a><a href="#10-8-errores">10.8 Errores</a>
+<a href="#10-9-procedimiento">10.9 Procedimiento</a><a href="#10-10-lista">10.10 Lista final</a></nav>
+<div class="chapter-content">
+<aside class="callout callout-success"><span class="callout-icon">✓</span><div><strong>ESTADO ACTUAL</strong><p>El Dashboard está integrado en la pestaña Ventas, junto a Proformas, y abre inicialmente en Dashboard. Las figuras de esta edición muestran cifras completas, márgenes suficientes y etiquetas directamente interpretables.</p></div></aside>
+<h2 id="10-1-general">10.1 Pantalla general del Dashboard de productividad <a class="heading-link" href="#10-1-general">#</a></h2>
+<p>La pantalla reúne filtros de período, cuatro gráficas principales, indicadores del día y acceso a la consulta libre. Su objetivo es facilitar una lectura rápida sin obligar a interpretar barras, puntos o sectores sin cifras.</p>
+<figure class="manual-figure figure-wide"><a href="../assets/img/dashboard/01_dashboard_general_reconstruccion_anotado.png" target="_blank"><img alt="Dashboard general con siete zonas numeradas" loading="lazy" src="../assets/img/dashboard/01_dashboard_general_reconstruccion_anotado.png"/></a><figcaption>Figura 10.1. Vista general del Dashboard con filtros, gráficas e indicadores.<span>Pulse para ampliar.</span></figcaption></figure>
+<div class="table-scroll"><table><thead><tr><th>N.º</th><th>Zona</th><th>Lectura principal</th></tr></thead><tbody>
+<tr><td>1</td><td>Formas de pago</td><td>Importe y porcentaje de cada método de cobro.</td></tr><tr><td>2</td><td>Top artículos</td><td>Artículos ordenados por importe o actividad.</td></tr><tr><td>3</td><td>Top familias</td><td>Peso de cada familia sobre las ventas.</td></tr><tr><td>4</td><td>Ventas por horas</td><td>Evolución horaria con valores visibles.</td></tr><tr><td>5</td><td>Indicadores de hoy</td><td>Ventas, tickets y ticket medio.</td></tr><tr><td>6</td><td>Consulta rápida</td><td>Comprobaciones para interpretar el conjunto.</td></tr><tr><td>7</td><td>Período</td><td>Hoy, períodos rápidos o fechas libres.</td></tr></tbody></table></div>
+<aside class="callout callout-info"><span class="callout-icon">i</span><div><strong>REGLA VISUAL</strong><p>Una gráfica que no muestre sus cifras no es suficiente para estudiar el resultado. El valor debe figurar junto a la barra, sobre el punto o en una leyenda clara.</p></div></aside>
+<h2 id="10-2-graficas">10.2 Gráficas con valores completos y legibles <a class="heading-link" href="#10-2-graficas">#</a></h2>
+<p>Las barras dejan margen a ambos lados; los nombres largos se entienden mejor en horizontal; las líneas muestran etiquetas en cada punto y los sectores incluyen importe y porcentaje.</p>
+<figure class="manual-figure figure-wide"><a href="../assets/img/dashboard/02_graficas_valores_legibles_anotado.png" target="_blank"><img alt="Cuatro gráficas con valores legibles y zonas numeradas" loading="lazy" src="../assets/img/dashboard/02_graficas_valores_legibles_anotado.png"/></a><figcaption>Figura 10.2. Criterios aplicados para que ninguna gráfica pierda sus valores.<span>Pulse para ampliar.</span></figcaption></figure>
+<ul><li>No depender únicamente del color.</li><li>Evitar cifras pegadas al borde del panel.</li><li>Mostrar unidades coherentes: euros, unidades o porcentajes.</li><li>Acortar nombres solo cuando la descripción completa siga disponible.</li></ul>
+<h2 id="10-3-periodo">10.3 Período de análisis y rendimiento <a class="heading-link" href="#10-3-periodo">#</a></h2>
+<p>El período predeterminado debe ser <strong>Hoy</strong> para que la apertura sea rápida. Los intervalos amplios pueden tardar más según el volumen de históricos; conviene ampliar solo después de comprobar que la lectura diaria es correcta.</p>
+<figure class="manual-figure figure-wide"><a href="../assets/img/dashboard/03_periodo_analisis_rendimiento_anotado.png" target="_blank"><img alt="Período de análisis con tres zonas numeradas" loading="lazy" src="../assets/img/dashboard/03_periodo_analisis_rendimiento_anotado.png"/></a><figcaption>Figura 10.3. Selección de período y precauciones de rendimiento.<span>Pulse para ampliar.</span></figcaption></figure>
+<aside class="callout callout-warning"><span class="callout-icon">!</span><div><strong>COMPARACIONES</strong><p>Dos períodos solo son comparables si utilizan el mismo puesto, filtros, tipos documentales y criterio de agrupación.</p></div></aside>
+<h2 id="10-4-consulta">10.4 Consulta libre: selector y SQL manual <a class="heading-link" href="#10-4-consulta">#</a></h2>
+<p>La consulta libre permite elegir tabla y campos o escribir una sentencia SQL. Está limitada a <code>SELECT</code> para reducir el riesgo de modificaciones accidentales. Puede guardar y recuperar consultas <code>.sql</code>.</p>
+<figure class="manual-figure figure-wide"><a href="../assets/img/dashboard/04_consulta_libre_select_anotado.png" target="_blank"><img alt="Consulta libre SELECT con tres zonas numeradas" loading="lazy" src="../assets/img/dashboard/04_consulta_libre_select_anotado.png"/></a><figcaption>Figura 10.4. Construcción visual, SQL manual y rejilla de resultados.<span>Pulse para ampliar.</span></figcaption></figure>
+<div class="table-scroll"><table><thead><tr><th>N.º</th><th>Zona</th><th>Función</th></tr></thead><tbody><tr><td>1</td><td>Selector</td><td>Tabla y campos que formarán la consulta.</td></tr><tr><td>2</td><td>Editor SQL</td><td>Abrir, guardar y ejecutar SELECT.</td></tr><tr><td>3</td><td>Resultados</td><td>Grid legible; BLOB o MEMO visualizado cuando sea posible.</td></tr></tbody></table></div>
+<aside class="callout callout-danger"><span class="callout-icon">!</span><div><strong>SOLO LECTURA</strong><p>No deben ejecutarse INSERT, UPDATE, DELETE, ALTER, DROP ni otras instrucciones que modifiquen datos o estructura.</p></div></aside>
+<h2 id="10-5-descuentos">10.5 Precio real, descuentos y calidad estadística <a class="heading-link" href="#10-5-descuentos">#</a></h2>
+<p>Los análisis de precio y margen deben utilizar el precio efectivo vendido después de descuentos. Guardar únicamente el PVP de tarifa puede inflar precios medios y producir conclusiones incorrectas.</p>
+<figure class="manual-figure figure-wide"><a href="../assets/img/dashboard/05_precio_real_descuento_estadisticas_anotado.png" target="_blank"><img alt="Comparación entre precio real y PVP con tres zonas numeradas" loading="lazy" src="../assets/img/dashboard/05_precio_real_descuento_estadisticas_anotado.png"/></a><figcaption>Figura 10.5. Diferencia entre PVP original y precio efectivo vendido.<span>Pulse para ampliar.</span></figcaption></figure>
+<div class="table-scroll"><table><thead><tr><th>Registro</th><th>Resultado</th></tr></thead><tbody><tr><td>Correcto</td><td>Precio efectivo después del descuento.</td></tr><tr><td>Incorrecto</td><td>PVP original usado como si fuera el precio real.</td></tr></tbody></table></div>
+<h2 id="10-6-salida">10.6 Ordenación, exportación y reutilización <a class="heading-link" href="#10-6-salida">#</a></h2>
+<p>Antes de exportar, compruebe período, puesto, unidad, orden y totales. La salida puede utilizarse en CSV, PDF, impresión o consulta guardada, pero no sustituye la revisión visual y contable.</p>
+<figure class="manual-figure figure-wide"><a href="../assets/img/dashboard/06_revision_exportacion_dashboard_anotado.png" target="_blank"><img alt="Revisión y exportación con dos zonas numeradas" loading="lazy" src="../assets/img/dashboard/06_revision_exportacion_dashboard_anotado.png"/></a><figcaption>Figura 10.6. Revisión previa y opciones de salida.<span>Pulse para ampliar.</span></figcaption></figure>
+<h2 id="10-7-interpretacion">10.7 Interpretación práctica de los indicadores <a class="heading-link" href="#10-7-interpretacion">#</a></h2>
+<div class="table-scroll"><table><thead><tr><th>Indicador</th><th>Qué representa</th><th>Precaución</th></tr></thead><tbody><tr><td>Venta hoy</td><td>Importe acumulado del día.</td><td>Confirmar puesto y documentos incluidos.</td></tr><tr><td>Tickets</td><td>Número de operaciones cerradas.</td><td>No confundir líneas con documentos.</td></tr><tr><td>Ticket medio</td><td>Venta dividida entre tickets.</td><td>Un abono o rectificativa puede alterar el promedio.</td></tr><tr><td>Top artículos</td><td>Productos con mayor importe o actividad.</td><td>Comprobar el criterio usado.</td></tr><tr><td>Top familias</td><td>Concentración por familia.</td><td>Artículos sin familia pueden agruparse aparte.</td></tr><tr><td>Ventas por horas</td><td>Momentos de mayor actividad.</td><td>Comparar jornadas equivalentes.</td></tr><tr><td>Formas de pago</td><td>Distribución de cobros.</td><td>Separar deuda/crédito del cobro efectivo.</td></tr></tbody></table></div>
+<h2 id="10-8-errores">10.8 Errores frecuentes <a class="heading-link" href="#10-8-errores">#</a></h2>
+<div class="table-scroll"><table><thead><tr><th>Síntoma</th><th>Causa probable</th><th>Comprobación</th></tr></thead><tbody><tr><td>Número cortado</td><td>Margen insuficiente o panel pequeño.</td><td>Aumentar margen y revisar redimensionado.</td></tr><tr><td>Gráfica sin valores</td><td>Etiquetas desactivadas.</td><td>Mostrar cifra en barra, punto o leyenda.</td></tr><tr><td>Período tarda demasiado</td><td>Intervalo amplio o consulta pesada.</td><td>Volver a Hoy y ampliar progresivamente.</td></tr><tr><td>Totales no coinciden</td><td>Filtros o tipos documentales distintos.</td><td>Revisar puesto, fechas y criterio.</td></tr><tr><td>Precio medio demasiado alto</td><td>Se usa PVP sin descuento.</td><td>Usar precio efectivo vendido.</td></tr><tr><td>Consulta rechazada</td><td>No es SELECT o contiene instrucciones.</td><td>Simplificar y ejecutar solo lectura.</td></tr><tr><td>BLOB/MEMO ilegible</td><td>Campo binario o contenido largo.</td><td>Usar visualización textual o exportación.</td></tr></tbody></table></div>
+<h2 id="10-9-procedimiento">10.9 Procedimiento recomendado <a class="heading-link" href="#10-9-procedimiento">#</a></h2>
+<ol><li>Abra el Dashboard y confirme que el período inicial es Hoy.</li><li>Compruebe puesto, fechas y filtros.</li><li>Revise primero los KPI y después las gráficas.</li><li>Lea importes y porcentajes visibles.</li><li>Ordene artículos y familias según el criterio estudiado.</li><li>Amplíe el período solo cuando la consulta diaria sea correcta.</li><li>Para necesidades específicas, utilice Consulta libre con SELECT.</li><li>Revise descuentos y precio efectivo antes de calcular precios medios.</li><li>Exporte únicamente después de comprobar totales y unidades.</li></ol>
+<h2 id="10-10-lista">10.10 Lista final de comprobación <a class="heading-link" href="#10-10-lista">#</a></h2>
+<ul class="checklist"><li><span class="checkbox"></span><span>Dashboard abre inicialmente con Hoy.</span></li><li><span class="checkbox"></span><span>Puesto y período correctos.</span></li><li><span class="checkbox"></span><span>Todas las gráficas muestran números visibles.</span></li><li><span class="checkbox"></span><span>Ninguna etiqueta queda cortada.</span></li><li><span class="checkbox"></span><span>Formas de pago muestran importe y porcentaje.</span></li><li><span class="checkbox"></span><span>Top artículos y familias están ordenados.</span></li><li><span class="checkbox"></span><span>Ventas por horas muestran el valor de cada punto.</span></li><li><span class="checkbox"></span><span>KPI y totales son coherentes.</span></li><li><span class="checkbox"></span><span>Consulta libre ejecuta solo SELECT.</span></li><li><span class="checkbox"></span><span>BLOB y MEMO se visualizan de forma comprensible cuando es posible.</span></li><li><span class="checkbox"></span><span>Precio medio utiliza el precio efectivo tras descuento.</span></li><li><span class="checkbox"></span><span>Exportación revisada antes de guardar o imprimir.</span></li><li><span class="checkbox"></span><span>Cuadros, números y leyendas de las figuras coinciden.</span></li></ul>
+<aside class="callout callout-success"><span class="callout-icon">✓</span><div><strong>CIERRE CORRECTO</strong><p>El Dashboard puede interpretarse sin adivinar valores: período, cifras, unidades y criterio de ordenación están visibles; las consultas son de lectura y los análisis de precio utilizan el importe realmente vendido.</p></div></aside>
+</div>
+<nav aria-label="Capítulos anterior y siguiente" class="chapter-navigation"><a class="chapter-nav-card previous" href="09-verifactu-y-documentos-rectificativos.html"><small>Anterior</small><strong>← 9. VeriFactu y documentos rectificativos</strong></a><a class="chapter-nav-card next" href="11-copias-de-seguridad-y-mantenimiento.html"><small>Siguiente</small><strong>11. Copias de seguridad y mantenimiento →</strong></a></nav>
+</article>
+<footer class="site-footer">
+<p><strong>Manual FacturLinEx v1.2</strong> · Mantenimiento y solución de problemas ilustrado · 25 de julio de 2026</p>
+<p>Documento vivo: los procedimientos se actualizarán cuando cambie una función validada.</p>
+<a href="../descargas/Manual_FacturLinEx_v1.2_Mantenimiento_Solucion_Problemas_Ilustrado.pdf">Descargar PDF</a>
+</footer>
+</main>
+</div>
+<dialog aria-label="Buscar en el manual" class="search-dialog" data-search-dialog="">
+<form class="search-panel" method="dialog">
+<div class="search-input-row">
+<span aria-hidden="true">⌕</span>
+<input aria-label="Texto de búsqueda" autocomplete="off" data-search-input="" placeholder="Buscar clientes, ventas, VeriFactu..." type="search"/>
+<button aria-label="Cerrar búsqueda" class="dialog-close" type="submit">Esc</button>
+</div>
+<div class="search-hint" data-search-hint="">Escribe al menos dos caracteres.</div>
+<div aria-live="polite" class="search-results" data-search-results=""></div>
+</form>
+</dialog>
+</body>
+</html>

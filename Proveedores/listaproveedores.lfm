@@ -3,14 +3,13 @@ object FLProveedores: TFLProveedores
   Height = 692
   Top = 210
   Width = 1016
-  ActiveControl = PanelTituloGrid
-  Caption = 'Listados de Proveedores'
+  Caption = 'Listados y análisis de proveedores'
   ClientHeight = 692
   ClientWidth = 1016
   KeyPreview = True
   OnClose = Formclose
   OnCreate = Formcreate
-  Position = poDesktopCenter
+  Position = poScreenCenter
   ShowHint = True
   LCLVersion = '1.6.4.0'
   object Label5: TLabel

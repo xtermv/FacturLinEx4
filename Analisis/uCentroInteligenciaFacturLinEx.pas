@@ -5,7 +5,7 @@ unit uCentroInteligenciaFacturLinEx;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Dialogs, ExtCtrls, StdCtrls, Buttons,
+  Classes, SysUtils, Forms, Controls, LCLType, Dialogs, ExtCtrls, StdCtrls, Buttons,
   Grids, Graphics, DateUtils, Math, DB, ZConnection, ZDataset,
   uFLXCompraAnalyzer, uAsesorComprasFacturLinEx, uFLXIntelligenceEngine,
   uFLXGridStyle, uFLXExport, uFLXDialogs, uFLXLogger, uFLXIcons;
@@ -54,6 +54,7 @@ type
     procedure AbrirSeleccionClick(Sender: TObject);
     procedure CSVClick(Sender: TObject);
     procedure InformeClick(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure CerrarClick(Sender: TObject);
     procedure GridDblClick(Sender: TObject);
     procedure GridHeaderClick(Sender: TObject; IsColumn: Boolean; Index: Integer);
@@ -166,6 +167,8 @@ var
   L: TLabel;
 begin
   inherited CreateNew(AOwner, 1);
+  KeyPreview := True;
+  OnKeyDown := @FormKeyDown;
   FConn := AConnection;
   FTienda := ATienda;
   FSortCol := -1;
@@ -794,6 +797,22 @@ begin
   FLXGuardarTXTConDialogo(Memo.Lines.Text,
     'Guardar informe Centro de Inteligencia',
     'informe_centro_inteligencia_' + FormatDateTime('yyyymmdd_hhnnss', Now) + '.txt');
+end;
+
+procedure TCentroInteligenciaForm.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if Key <> VK_ESCAPE then Exit;
+
+  // Si hay un desplegable activo, ESC lo cierra antes de salir del formulario.
+  if (ActiveControl is TComboBox) and TComboBox(ActiveControl).DroppedDown then
+  begin
+    TComboBox(ActiveControl).DroppedDown := False;
+    Key := 0;
+    Exit;
+  end;
+
+  Key := 0;
+  CerrarClick(Self);
 end;
 
 procedure TCentroInteligenciaForm.CerrarClick(Sender: TObject);

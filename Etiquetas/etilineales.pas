@@ -121,6 +121,7 @@ type
     procedure CargaReg();
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCreate(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure BitBtn1Click(Sender: TObject);
     procedure TabSheet1Hide(Sender: TObject);
     procedure TabSheet1Show(Sender: TObject);
@@ -329,6 +330,45 @@ begin
   BitBtn8.SetBounds(Panel1.ClientWidth - 124, 10, 112, 52);
   BitBtn8.Anchors := [akTop, akRight];
   BitBtn8.Layout := blGlyphLeft;
+end;
+
+procedure TFEtiLineal.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key <> VK_ESCAPE then
+    Exit;
+
+  { El selector de descripciones es el nivel interior más inmediato. ESC lo
+    cancela sin aplicar el elemento que estuviera seleccionado. }
+  if (PageControl1.ActivePage = TabSheet2) and Combo1.Visible and
+     Combo1.Focused then
+  begin
+    Combo1.OnExit := nil;
+    try
+      Combo1.Visible := False;
+      dbBusca.Active := False;
+      if Edit8.CanFocus then
+        Edit8.SetFocus;
+    finally
+      Combo1.OnExit := @Combo1Exit;
+    end;
+    Key := 0;
+    Exit;
+  end;
+
+  { Preparar y Verificar son pantallas interiores. ESC vuelve a Generar. }
+  if PageControl1.ActivePage <> TabSheet1 then
+  begin
+    PageControl1.ActivePage := TabSheet1;
+    if Edit1.CanFocus then
+      Edit1.SetFocus;
+    Key := 0;
+    Exit;
+  end;
+
+  { En la pantalla principal, ESC ejecuta exactamente el botón Cerrar. }
+  Key := 0;
+  BitBtn8Click(BitBtn8);
 end;
 
 procedure TFEtiLineal.BitBtn1Click(Sender: TObject);

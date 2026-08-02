@@ -1,18 +1,18 @@
 object FLArticulos: TFLArticulos
   Left = 420
-  Height = 645
+  Height = 820
   Top = 169
-  Width = 931
-  ActiveControl = PanelTituloGrid
-  Caption = 'Listados de Articulos'
-  ClientHeight = 645
-  ClientWidth = 931
+  Width = 1280
+  Caption = 'Listados y estadísticas de artículos'
+  ClientHeight = 820
+  ClientWidth = 1280
   DesignTimePPI = 88
   KeyPreview = True
   OnClose = Formclose
   OnCreate = Formcreate
   OnShow = FormShow
-  Position = poDesktopCenter
+  Position = poScreenCenter
+  WindowState = wsMaximized
   ShowHint = True
   LCLVersion = '2.0.6.0'
   object Label5: TLabel

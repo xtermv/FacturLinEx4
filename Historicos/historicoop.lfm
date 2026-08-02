@@ -4772,6 +4772,7 @@ object FLHistoop: TFLHistoop
   WindowState = wsMaximized
   OnClose = Formclose
   OnCreate = Formcreate
+  OnKeyDown = FormKeyDown
   object Label2: TLabel
     Left = 48
     Height = 17
@@ -6912,13 +6913,11 @@ object FLHistoop: TFLHistoop
     end
   end
   object PanelPuesto: TPanel
-    AnchorSideRight.Control = PanelRadioButton
     Left = 48
     Height = 120
     Top = 269
     Width = 552
-    Anchors = [akTop, akLeft, akRight]
-    BorderSpacing.Right = 29
+    Anchors = [akTop, akLeft]
     ClientHeight = 120
     ClientWidth = 552
     ParentFont = False

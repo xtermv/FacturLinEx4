@@ -59,6 +59,7 @@ type
     BitBtn23: TBitBtn;
     BitBtn24: TBitBtn;
     BitBtn25: TBitBtn;
+    BitBtn26: TBitBtn;
     BitBtn3: TBitBtn;
     BitBtn4: TBitBtn;
     BitBtn5: TBitBtn;
@@ -292,6 +293,7 @@ type
     procedure BitBtn23Click(Sender: TObject);
     procedure BitBtn24Click(Sender: TObject);
     procedure BitBtn25Click(Sender: TObject);
+    procedure BitBtn26Click(Sender: TObject);
     procedure BitBtn2Click(Sender: TObject);
     procedure BitBtn3Click(Sender: TObject);
     procedure BitBtn5Click(Sender: TObject);
@@ -334,6 +336,7 @@ type
     procedure Edit8Exit(Sender: TObject);
     procedure Edit9Exit(Sender: TObject);
     procedure FormActivate(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 
     procedure RadioButton1Click(Sender: TObject);
 
@@ -341,7 +344,7 @@ type
     procedure Relleno();
     procedure RellenoInfo();
     procedure LlenaReg();
-    procedure ICambio();
+    procedure ICambio(const AImporte: Double);
     procedure CuentaCaja();
 
 //    procedure keyloger(const monedas,cantidad: string);
@@ -358,7 +361,24 @@ type
     procedure frReport1GetValue(const ParName: String; var ParValue: Variant);
     procedure frReport1EnterRect(Memo: TStringList; View: TfrView);
   private
+    FPanelDiagnostico: TPanel;
+    FDiagTitulo: TLabel;
+    FDiagEfectivo: TLabel;
+    FDiagTarjetas: TLabel;
+    FDiagTotal: TLabel;
+    FDiagCausa: TLabel;
+    FDiagMovimientos: TLabel;
+    FDiagQuery: TZQuery;
+    FResumenMovimientos: String;
+    procedure CrearPanelDiagnostico;
+    procedure ActualizarPanelDiagnostico;
+    procedure ActualizarResumenMovimientos;
+    function ValorNumericoSeguro(const ATexto: String): Double;
+    function TextoDiferencia(const AValor: Double): String;
+    function SolicitarImporteCambio(const APropuesto, AExistente: Double;
+      const AYaExiste: Boolean; out AImporte: Double): Boolean;
     procedure AplicarEstiloModernoSeguro;
+    function SeleccionarFechaCaja(out AFecha: TDateTime): Boolean;
     { private declarations }
   public
     { public declarations }
@@ -383,7 +403,7 @@ Var
 Implementation
 
 uses
-  Global, Funciones, pagos;
+  Global, Funciones, pagos, uFLXInformeIVAPeriodos;
 
 { TFCaja }
 
@@ -455,6 +475,75 @@ begin
      End;
 end;
 
+procedure TFCaja.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key <> VK_ESCAPE then
+    Exit;
+
+  { Los selectores auxiliares se cierran antes de cambiar de pantalla. }
+  if ComboBox1.Visible then
+  begin
+    ComboBox1.Visible := False;
+    if Edit9.CanFocus then
+      Edit9.SetFocus;
+    Key := 0;
+    Exit;
+  end;
+
+  if ComboBox2.Visible then
+  begin
+    ComboBox2.Visible := False;
+    if Edit19.CanFocus then
+      Edit19.SetFocus;
+    Key := 0;
+    Exit;
+  end;
+
+  if ComboBox3.Visible then
+  begin
+    ComboBox3.Visible := False;
+    if Edit20.CanFocus then
+      Edit20.SetFocus;
+    Key := 0;
+    Exit;
+  end;
+
+  { En consultas, ESC retrocede un nivel: resultados/modificaciones ->
+    selección -> pantalla principal. }
+  if PageControl1.ActivePage = TabSheet2 then
+  begin
+    if DBGrid1.Visible or DBGrid2.Visible or DBGrid3.Visible or
+       (not Panel8.Visible) then
+    begin
+      BitBtn16Click(BitBtn16);
+      DBGrid3.Visible := False;
+      Key := 0;
+      Exit;
+    end;
+
+    PageControl1.ActivePage := TabSheet1;
+    if Edit9.CanFocus then
+      Edit9.SetFocus;
+    Key := 0;
+    Exit;
+  end;
+
+  { Cualquier otra pestaña interna creada en ejecución vuelve al arqueo. }
+  if PageControl1.ActivePage <> TabSheet1 then
+  begin
+    PageControl1.ActivePage := TabSheet1;
+    if Edit9.CanFocus then
+      Edit9.SetFocus;
+    Key := 0;
+    Exit;
+  end;
+
+  { En la pantalla principal, ESC ejecuta exactamente el botón Cerrar. }
+  Key := 0;
+  BitBtn1Click(BitBtn1);
+end;
+
 Procedure TFCaja.Formcreate(Sender: Tobject);
 Begin
   ShortDateFormat:='DD/MM/YYYY';
@@ -515,8 +604,330 @@ Begin
   StaticText93.Caption:=txtMoneda;
 
   AplicarEstiloModernoSeguro;
+
+  // Informe independiente por mes, trimestre, año o periodo personalizado.
+  // La pestaña y todos sus controles se crean en tiempo de ejecución.
+  FLXInstalarInformeIVAPeriodos(Self, PageControl1, dbCajas.Connection, Tienda);
 end;
 
+function TFCaja.ValorNumericoSeguro(const ATexto: String): Double;
+var
+  S: String;
+begin
+  S := Trim(ATexto);
+  if S = '' then
+  begin
+    Result := 0;
+    Exit;
+  end;
+
+  { Acepta tanto coma como punto al introducir importes, respetando el
+    separador decimal que ya utiliza FacturLinEx en cada plataforma. }
+  if DecimalSeparator = '.' then
+    S := StringReplace(S, ',', '.', [rfReplaceAll])
+  else
+    S := StringReplace(S, '.', ',', [rfReplaceAll]);
+
+  if not TryStrToFloat(S, Result) then
+    Result := 0;
+end;
+
+function TFCaja.TextoDiferencia(const AValor: Double): String;
+begin
+  if Abs(AValor) < 0.005 then
+    Result := '0.00 (correcto)'
+  else if AValor > 0 then
+    Result := '+' + FormatFloat('0.00', AValor) + ' (sobra)'
+  else
+    Result := FormatFloat('0.00', AValor) + ' (falta)';
+end;
+
+procedure TFCaja.CrearPanelDiagnostico;
+const
+  CAlturaCabecera = 64;
+  CAlturaDiagnostico = 112;
+begin
+  if Assigned(FPanelDiagnostico) then
+    Exit;
+
+  { El formulario maximizado deja una franja libre sobre las pestañas.
+    Se aprovecha para mostrar información de ayuda sin mover el arqueo. }
+  Panel2.Height := CAlturaCabecera + CAlturaDiagnostico;
+
+  FPanelDiagnostico := TPanel.Create(Self);
+  FPanelDiagnostico.Name := 'pnlDiagnosticoCaja';
+  FPanelDiagnostico.Caption := '';
+  FPanelDiagnostico.Parent := Panel2;
+  FPanelDiagnostico.Align := alBottom;
+  FPanelDiagnostico.Height := CAlturaDiagnostico;
+  FPanelDiagnostico.BevelOuter := bvNone;
+  FPanelDiagnostico.Color := $00F4EEE5;
+  FPanelDiagnostico.ParentFont := False;
+  FPanelDiagnostico.Font.Name := 'Sans';
+
+  FDiagTitulo := TLabel.Create(Self);
+  FDiagTitulo.Name := 'lblDiagnosticoCajaTitulo';
+  FDiagTitulo.Parent := FPanelDiagnostico;
+  FDiagTitulo.SetBounds(14, 5, 520, 18);
+  FDiagTitulo.Caption := 'AYUDA PARA LOCALIZAR DESCUADRES';
+  FDiagTitulo.ParentFont := False;
+  FDiagTitulo.Font.Name := 'Sans';
+  FDiagTitulo.Font.Height := -12;
+  FDiagTitulo.Font.Style := [fsBold];
+  FDiagTitulo.Font.Color := clNavy;
+  FDiagTitulo.Transparent := True;
+  FDiagTitulo.BringToFront;
+
+  FDiagEfectivo := TLabel.Create(Self);
+  FDiagEfectivo.Name := 'lblDiagnosticoEfectivo';
+  FDiagEfectivo.Parent := FPanelDiagnostico;
+  FDiagEfectivo.SetBounds(14, 26, 425, 18);
+  FDiagEfectivo.AutoSize := False;
+  FDiagEfectivo.ParentFont := False;
+  FDiagEfectivo.Font.Name := 'Sans';
+  FDiagEfectivo.Font.Height := -11;
+  FDiagEfectivo.Font.Style := [fsBold];
+  FDiagEfectivo.Transparent := True;
+
+  FDiagTarjetas := TLabel.Create(Self);
+  FDiagTarjetas.Name := 'lblDiagnosticoTarjetas';
+  FDiagTarjetas.Parent := FPanelDiagnostico;
+  FDiagTarjetas.SetBounds(450, 26, 458, 18);
+  FDiagTarjetas.AutoSize := False;
+  FDiagTarjetas.Anchors := [akLeft, akTop, akRight];
+  FDiagTarjetas.ParentFont := False;
+  FDiagTarjetas.Font.Name := 'Sans';
+  FDiagTarjetas.Font.Height := -11;
+  FDiagTarjetas.Font.Style := [fsBold];
+  FDiagTarjetas.Transparent := True;
+
+  FDiagTotal := TLabel.Create(Self);
+  FDiagTotal.Name := 'lblDiagnosticoTotal';
+  FDiagTotal.Parent := FPanelDiagnostico;
+  FDiagTotal.SetBounds(14, 49, 245, 22);
+  FDiagTotal.AutoSize := False;
+  FDiagTotal.ParentFont := False;
+  FDiagTotal.Font.Name := 'Sans';
+  FDiagTotal.Font.Height := -13;
+  FDiagTotal.Font.Style := [fsBold];
+  FDiagTotal.Transparent := True;
+
+  FDiagCausa := TLabel.Create(Self);
+  FDiagCausa.Name := 'lblDiagnosticoCausa';
+  FDiagCausa.Parent := FPanelDiagnostico;
+  FDiagCausa.SetBounds(270, 48, 638, 36);
+  FDiagCausa.AutoSize := False;
+  FDiagCausa.WordWrap := True;
+  FDiagCausa.Anchors := [akLeft, akTop, akRight];
+  FDiagCausa.ParentFont := False;
+  FDiagCausa.Font.Name := 'Sans';
+  FDiagCausa.Font.Height := -11;
+  FDiagCausa.Font.Color := clNavy;
+  FDiagCausa.Transparent := True;
+
+  FDiagMovimientos := TLabel.Create(Self);
+  FDiagMovimientos.Name := 'lblDiagnosticoMovimientos';
+  FDiagMovimientos.Parent := FPanelDiagnostico;
+  FDiagMovimientos.SetBounds(14, 82, 894, 28);
+  FDiagMovimientos.AutoSize := False;
+  FDiagMovimientos.WordWrap := True;
+  FDiagMovimientos.Anchors := [akLeft, akTop, akRight];
+  FDiagMovimientos.ParentFont := False;
+  FDiagMovimientos.Font.Name := 'Sans';
+  FDiagMovimientos.Font.Height := -10;
+  FDiagMovimientos.Font.Color := $00404040;
+  FDiagMovimientos.Transparent := True;
+
+  FDiagQuery := TZQuery.Create(Self);
+  FDiagQuery.Connection := dbCajas.Connection;
+
+  FResumenMovimientos := 'Movimientos del periodo: todavía sin calcular.';
+  ActualizarPanelDiagnostico;
+end;
+
+procedure TFCaja.ActualizarResumenMovimientos;
+var
+  Ventas, Devoluciones, Albaranes, Tarjetas, SaldoInicial, Cambios,
+  Retiradas, Pagos, Deudas, Cobros, Entregas, Descuentos: Double;
+begin
+  if (not Assigned(FDiagQuery)) or (DateEdit1.Text = '') or
+     (DateEdit2.Text = '') or (StaticText95.Caption = '') then
+    Exit;
+
+  try
+    FDiagQuery.Close;
+    FDiagQuery.SQL.Text :=
+      'SELECT COALESCE(SUM(CA5),0) AS VENTAS,' +
+      ' COALESCE(SUM(CA7),0) AS DEVOLUCIONES,' +
+      ' COALESCE(SUM(CA12),0) AS ALBARANES,' +
+      ' COALESCE(SUM(CA14),0) AS TARJETAS,' +
+      ' COALESCE(SUM(CA16),0) AS SALDOINI,' +
+      ' COALESCE(SUM(CA17),0) AS CAMBIOS,' +
+      ' COALESCE(SUM(CA18),0) AS RETIRADAS,' +
+      ' COALESCE(SUM(CA19),0) AS PAGOS,' +
+      ' COALESCE(SUM(CA20),0) AS DEUDAS,' +
+      ' COALESCE(SUM(CA21),0) AS COBROS,' +
+      ' COALESCE(SUM(CA22),0) AS ENTREGAS,' +
+      ' COALESCE(SUM(CA23),0)+COALESCE(SUM(CA24),0) AS DESCUENTOS' +
+      ' FROM cajas' + Tienda +
+      ' WHERE (CA0 >= "' +
+        FormatDateTime('YYYY/MM/DD', StrToDate(DateEdit1.Text)) +
+      '" AND CA0 <= "' +
+        FormatDateTime('YYYY/MM/DD', StrToDate(DateEdit2.Text)) +
+      '") AND CA2 = "' + StaticText95.Caption + '"';
+    FDiagQuery.Open;
+
+    Ventas := FDiagQuery.FieldByName('VENTAS').AsFloat;
+    Devoluciones := FDiagQuery.FieldByName('DEVOLUCIONES').AsFloat;
+    Albaranes := FDiagQuery.FieldByName('ALBARANES').AsFloat;
+    Tarjetas := FDiagQuery.FieldByName('TARJETAS').AsFloat;
+    SaldoInicial := FDiagQuery.FieldByName('SALDOINI').AsFloat;
+    Cambios := FDiagQuery.FieldByName('CAMBIOS').AsFloat;
+    Retiradas := FDiagQuery.FieldByName('RETIRADAS').AsFloat;
+    Pagos := FDiagQuery.FieldByName('PAGOS').AsFloat;
+    Deudas := FDiagQuery.FieldByName('DEUDAS').AsFloat;
+    Cobros := FDiagQuery.FieldByName('COBROS').AsFloat;
+    Entregas := FDiagQuery.FieldByName('ENTREGAS').AsFloat;
+    Descuentos := FDiagQuery.FieldByName('DESCUENTOS').AsFloat;
+
+    FResumenMovimientos :=
+      'Movimientos: ventas ' + FormatFloat('0.00', Ventas) +
+      ' | devoluciones ' + FormatFloat('0.00', Devoluciones) +
+      ' | albaranes ' + FormatFloat('0.00', Albaranes) +
+      ' | tarjetas ' + FormatFloat('0.00', Tarjetas) +
+      ' | saldo inicial ' + FormatFloat('0.00', SaldoInicial) +
+      ' | cambios/ingresos ' + FormatFloat('0.00', Cambios) +
+      ' | retiradas ' + FormatFloat('0.00', Retiradas) +
+      ' | pagos ' + FormatFloat('0.00', Pagos) +
+      ' | crédito/cobros ' + FormatFloat('0.00', Deudas) + '/' +
+        FormatFloat('0.00', Cobros) +
+      ' | entregas ' + FormatFloat('0.00', Entregas) +
+      ' | descuentos ' + FormatFloat('0.00', Descuentos) + ' ' + txtMoneda;
+  except
+    on E: Exception do
+      FResumenMovimientos :=
+        'No se pudo obtener el detalle de movimientos: ' + E.Message;
+  end;
+
+  ActualizarPanelDiagnostico;
+end;
+
+procedure TFCaja.ActualizarPanelDiagnostico;
+var
+  EfectivoEsperado, EfectivoContado, TarjetasEsperadas, TarjetasAnotadas,
+  DifEfectivo, DifTarjetas, DifTotal, SaldoInicial: Double;
+  Causa: String;
+const
+  Tolerancia = 0.005;
+begin
+  if not Assigned(FPanelDiagnostico) then
+    Exit;
+
+  EfectivoEsperado := ValorNumericoSeguro(StaticText68.Caption);
+  EfectivoContado := ValorNumericoSeguro(StaticText84.Caption) +
+    ValorNumericoSeguro(StaticText86.Caption);
+  TarjetasEsperadas := ValorNumericoSeguro(StaticText69.Caption);
+  TarjetasAnotadas := ValorNumericoSeguro(StaticText82.Caption);
+  SaldoInicial := ValorNumericoSeguro(StaticText71.Caption);
+
+  DifEfectivo := EfectivoContado - EfectivoEsperado;
+  DifTarjetas := TarjetasAnotadas - TarjetasEsperadas;
+  DifTotal := DifEfectivo + DifTarjetas;
+
+  FDiagEfectivo.Caption :=
+    'Efectivo: esperado ' + FormatFloat('0.00', EfectivoEsperado) +
+    ' | contado ' + FormatFloat('0.00', EfectivoContado) +
+    ' | ' + TextoDiferencia(DifEfectivo) + ' ' + txtMoneda;
+  FDiagTarjetas.Caption :=
+    'Tarjetas/talones: esperado ' + FormatFloat('0.00', TarjetasEsperadas) +
+    ' | anotado ' + FormatFloat('0.00', TarjetasAnotadas) +
+    ' | ' + TextoDiferencia(DifTarjetas) + ' ' + txtMoneda;
+  FDiagTotal.Caption :=
+    'DESCUADRE TOTAL: ' + TextoDiferencia(DifTotal) + ' ' + txtMoneda;
+
+  if Abs(DifEfectivo) < Tolerancia then
+    FDiagEfectivo.Font.Color := $00007000
+  else
+    FDiagEfectivo.Font.Color := clMaroon;
+
+  if Abs(DifTarjetas) < Tolerancia then
+    FDiagTarjetas.Font.Color := $00007000
+  else
+    FDiagTarjetas.Font.Color := clMaroon;
+
+  if Abs(DifTotal) < Tolerancia then
+    FDiagTotal.Font.Color := $00007000
+  else
+    FDiagTotal.Font.Color := clRed;
+
+  if (Abs(DifTotal) < Tolerancia) and
+     ((Abs(DifEfectivo) >= Tolerancia) or (Abs(DifTarjetas) >= Tolerancia)) then
+    Causa := 'El total cuadra, pero efectivo y tarjeta se compensan: revise una venta ' +
+      'registrada con una forma de pago distinta de la realmente cobrada.'
+  else if Abs(DifTotal) < Tolerancia then
+    Causa := 'Sin diferencias. El efectivo y las tarjetas/talones coinciden con lo esperado.'
+  else if (Abs(DifEfectivo) >= Tolerancia) and
+          (Abs(DifTarjetas) >= Tolerancia) and
+          ((DifEfectivo > 0) <> (DifTarjetas > 0)) then
+    Causa := 'Las diferencias van en sentidos opuestos: es muy probable que exista un cobro ' +
+      'clasificado como efectivo en vez de tarjeta, o al contrario.'
+  else if (Abs(DifEfectivo) >= Tolerancia) and
+          (Abs(DifTarjetas) < Tolerancia) then
+  begin
+    if (Abs(SaldoInicial) >= Tolerancia) and
+       (Abs(Abs(DifEfectivo) - Abs(SaldoInicial)) < Tolerancia) then
+      Causa := 'La diferencia coincide con el saldo inicial/cambio anterior. Compruebe que ' +
+        'el cambio se anotó para la fecha y la caja correctas.'
+    else
+      Causa := 'El fallo está concentrado en efectivo: revise recuento, cambio inicial, ' +
+        'retiradas de fondos, pagos varios, cobros de deuda y entregas a cuenta.';
+  end
+  else if (Abs(DifTarjetas) >= Tolerancia) and
+          (Abs(DifEfectivo) < Tolerancia) then
+    Causa := 'El fallo está en tarjetas/talones: compare el cierre del terminal bancario y ' +
+      'revise duplicados, anulaciones y formas de pago incorrectas.'
+  else
+    Causa := 'Hay diferencias en efectivo y en tarjetas/talones. Revise primero el cierre ' +
+      'del terminal y después los movimientos manuales mostrados debajo.';
+
+  FDiagCausa.Caption := 'Revisión sugerida: ' + Causa;
+  FDiagMovimientos.Caption := FResumenMovimientos;
+end;
+
+function TFCaja.SolicitarImporteCambio(const APropuesto, AExistente: Double;
+  const AYaExiste: Boolean; out AImporte: Double): Boolean;
+var
+  Texto, Mensaje: String;
+begin
+  Result := False;
+  Texto := FormatFloat('0.00', APropuesto);
+
+  Mensaje := 'Se propone anotar ' + FormatFloat('0.00', APropuesto) + ' ' +
+    txtMoneda + ' como cambio para el día ' + DateEdit3.Text + '.' + LineEnding +
+    'Puede modificar la cantidad antes de guardarla.';
+  if AYaExiste then
+    Mensaje := Mensaje + LineEnding + 'Actualmente ya constan ' +
+      FormatFloat('0.00', AExistente) + ' ' + txtMoneda +
+      '; el nuevo importe sustituirá al anterior.';
+
+  repeat
+    if not InputQuery('Confirmar cambio', Mensaje, Texto) then
+      Exit;
+
+    Texto := Trim(Texto);
+    if DecimalSeparator = '.' then
+      Texto := StringReplace(Texto, ',', '.', [rfReplaceAll])
+    else
+      Texto := StringReplace(Texto, '.', ',', [rfReplaceAll]);
+
+    if TryStrToFloat(Texto, AImporte) and (AImporte >= 0) then
+      Break;
+
+    ShowMessage('Introduzca una cantidad válida, igual o superior a cero.');
+  until False;
+
+  Result := True;
+end;
 
 
 procedure TFCaja.AplicarEstiloModernoSeguro;
@@ -812,6 +1223,9 @@ begin
   AsignarIconoSimple(BitBtn23, 1, 18);  { cajon }
   AsignarIconoSimple(BitBtn24, 3, 16);  { ultimo }
   AsignarIconoSimple(BitBtn25, 2, 16);  { primero }
+  AsignarIconoSimple(BitBtn26, 16, 16); { buscar caja por fecha }
+
+  CrearPanelDiagnostico;
 end;
 
 //==================== CERRAR ======================
@@ -1055,8 +1469,9 @@ Begin
      StaticText90.Caption:= FormatFloat('0.00',Temporal); // -- Campo de RESULTADO DESCUADRE - (TARJETAS Y TALONES)
      
      StaticText88.Caption:= FormatFloat('0.00',Global); // -- Campo de RESULTADO DESCUADRE - (GLOBAL)
-     
-     
+
+     ActualizarPanelDiagnostico;
+
 //---------- Asigna un color informativo segun el RESULTADO del arqueo
       If ((StaticText88.Caption='0.00') or (StaticText88.Caption='-0.00') or (StaticText88.Caption='0')) Then
         Begin
@@ -1235,6 +1650,182 @@ end;
 //--- Fin Metodo Antonio rellenado combo PUESTO ---
 
 //==================== RECALCULA Y REPINTA LA INFORMACION DE CAJA =========
+function TFCaja.SeleccionarFechaCaja(
+  out AFecha: TDateTime): Boolean;
+var
+  F: TForm;
+  LTitulo, LInfo: TLabel;
+  Fecha: TDateEdit;
+  BtnAceptar, BtnCancelar: TButton;
+  R: TModalResult;
+begin
+  Result := False;
+  AFecha := Date;
+
+  F := TForm.CreateNew(Self, 1);
+  try
+    F.Caption := 'Buscar caja por fecha';
+    F.BorderStyle := bsDialog;
+    F.Position := poScreenCenter;
+    F.ClientWidth := 420;
+    F.ClientHeight := 190;
+    F.Color := $00F0EBE4;
+
+    LTitulo := TLabel.Create(F);
+    LTitulo.Parent := F;
+    LTitulo.SetBounds(24, 18, 372, 28);
+    LTitulo.AutoSize := False;
+    LTitulo.Caption := 'LOCALIZAR UNA CAJA GUARDADA';
+    LTitulo.Font.Name := 'Sans';
+    LTitulo.Font.Height := -16;
+    LTitulo.Font.Style := [fsBold];
+    LTitulo.Font.Color := clNavy;
+
+    LInfo := TLabel.Create(F);
+    LInfo.Parent := F;
+    LInfo.SetBounds(24, 54, 372, 22);
+    LInfo.AutoSize := False;
+    LInfo.Caption := 'Puesto actual: ' + StaticText95.Caption;
+    LInfo.Font.Name := 'Sans';
+    LInfo.Font.Height := -12;
+    LInfo.Font.Color := clGray;
+
+    Fecha := TDateEdit.Create(F);
+    Fecha.Parent := F;
+    Fecha.Left := 24;
+    Fecha.Top := 86;
+    Fecha.Width := 180;
+    Fecha.DateOrder := doDMY;
+    Fecha.DateFormat := 'dd/mm/yyyy';
+    Fecha.DefaultToday := True;
+    Fecha.DirectInput := True;
+    Fecha.ButtonOnlyWhenFocused := False;
+    Fecha.FocusOnButtonClick := False;
+    Fecha.ButtonHint := 'Seleccionar fecha en el calendario';
+    Fecha.ShowHint := True;
+    Fecha.TabOrder := 0;
+
+    if DateEdit2.Date > 0 then
+      Fecha.Date := DateEdit2.Date
+    else
+      Fecha.Date := Date;
+
+    BtnAceptar := TButton.Create(F);
+    BtnAceptar.Parent := F;
+    BtnAceptar.SetBounds(216, 84, 88, 32);
+    BtnAceptar.Caption := 'Aceptar';
+    BtnAceptar.ModalResult := mrOK;
+    BtnAceptar.Default := True;
+    BtnAceptar.TabOrder := 1;
+
+    BtnCancelar := TButton.Create(F);
+    BtnCancelar.Parent := F;
+    BtnCancelar.SetBounds(310, 84, 86, 32);
+    BtnCancelar.Caption := 'Cancelar';
+    BtnCancelar.ModalResult := mrCancel;
+    BtnCancelar.Cancel := True;
+    BtnCancelar.TabOrder := 2;
+
+    repeat
+      F.ModalResult := mrNone;
+      R := F.ShowModal;
+
+      if R <> mrOK then
+        Exit;
+
+      if TryStrToDate(Trim(Fecha.Text), AFecha) then
+      begin
+        Result := True;
+        Exit;
+      end;
+
+      ShowMessage('LA FECHA INDICADA NO ES VÁLIDA.');
+    until False;
+  finally
+    F.Free;
+  end;
+end;
+
+procedure TFCaja.BitBtn26Click(Sender: TObject);
+var
+  FechaCaja: TDateTime;
+  Q: TZQuery;
+begin
+  if not SeleccionarFechaCaja(FechaCaja) then
+    Exit;
+
+  Q := TZQuery.Create(nil);
+  try
+    Q.Connection := dbCajas.Connection;
+    Q.SQL.Text :=
+      'SELECT * FROM `arqueos' + Tienda + '` ' +
+      'WHERE fecha=:FECHA AND CAJA=:CAJA';
+    Q.ParamByName('FECHA').AsDateTime := FechaCaja;
+    Q.ParamByName('CAJA').AsString := Trim(StaticText95.Caption);
+
+    try
+      Q.Open;
+    except
+      on E: Exception do
+      begin
+        ShowMessage(
+          'NO SE PUDO LOCALIZAR LA CAJA.' + LineEnding +
+          E.Message
+        );
+        Exit;
+      end;
+    end;
+
+    if Q.IsEmpty then
+    begin
+      ShowMessage(
+        'NO HAY NINGUNA CAJA GUARDADA PARA EL DÍA ' +
+        FormatDateTime('dd/mm/yyyy', FechaCaja) + LineEnding +
+        'EN EL PUESTO ' + StaticText95.Caption + '.'
+      );
+      Exit;
+    end;
+  finally
+    Q.Free;
+  end;
+
+  // Actualiza el periodo visible y carga el arqueo almacenado.
+  // DateEdit1Change mantiene sincronizada la fecha Hasta y
+  // DateEdit2Change calcula el día del cambio.
+  DateEdit1.Date := FechaCaja;
+  DateEdit2.Date := FechaCaja;
+
+  dbCajas.Close;
+  dbCajas.SQL.Text :=
+    'SELECT * FROM `arqueos' + Tienda + '` ' +
+    'WHERE fecha=:FECHA AND CAJA=:CAJA';
+  dbCajas.ParamByName('FECHA').AsDateTime := FechaCaja;
+  dbCajas.ParamByName('CAJA').AsString := Trim(StaticText95.Caption);
+
+  try
+    dbCajas.Open;
+  except
+    on E: Exception do
+    begin
+      ShowMessage(
+        'LA CAJA EXISTE, PERO NO SE PUDO CARGAR.' + LineEnding +
+        E.Message
+      );
+      Exit;
+    end;
+  end;
+
+  LimpiaForm();
+  Relleno();
+  CuentaCaja();
+
+  PageControl1.ActivePage := TabSheet1;
+  StaticText94.Caption :=
+    'CAJA ' + FormatDateTime('dd/mm/yyyy', FechaCaja);
+
+  // Queda preparada para usar el botón Imprimir original.
+end;
+
 procedure TFCaja.BitBtn11Click(Sender: TObject);
 begin
 //--- Recalcula y repinta la informacion sobre la caja con los nuevos datos si los hay, (caso de tener que repetir el arqueo de un dia ya hecho)
@@ -1242,19 +1833,47 @@ begin
 end;
 
 procedure TFCaja.BitBtn12Click(Sender: TObject);
+var
+  ImportePropuesto, ImporteExistente, ImporteConfirmado: Double;
+  YaExiste: Boolean;
 begin
-//--- Almacena el cambio para el dia indicado en la tabla CAJAS0000
+//--- Propone el cambio calculado, permite corregirlo y solo lo guarda tras confirmar.
+
+     if DateEdit3.Text = '' then
+     begin
+       ShowMessage('Indique primero la fecha para la que se anotará el cambio.');
+       Exit;
+     end;
+
+     ImportePropuesto := ValorNumericoSeguro(StaticText86.Caption);
 
      dbACaja.Active:=false;
      dbACaja.Sql.text:='select * from cajas' + Tienda + ' where ca1="9999" and ca3="9999" and ca0="' + FormatDateTime('YYYY/MM/DD',StrToDate(DateEdit3.Text)) + '" and ca2="' + StaticText95.Caption + '"';
      dbACaja.Active:=true;
 
-     if dbACaja.RecordCount=0 then dbACaja.Append else dbACaja.Edit;
-     ICambio();
+     YaExiste := dbACaja.RecordCount > 0;
+     ImporteExistente := 0;
+     if YaExiste then
+       ImporteExistente := dbACaja.FieldByName('CA16').AsFloat;
+
+     if not SolicitarImporteCambio(ImportePropuesto, ImporteExistente,
+       YaExiste, ImporteConfirmado) then
+     begin
+       StaticText94.Caption := 'CAMBIO NO ANOTADO';
+       Exit;
+     end;
+
+     if not YaExiste then
+       dbACaja.Append
+     else
+       dbACaja.Edit;
+     ICambio(ImporteConfirmado);
      dbACaja.Post;
      dbACaja.ApplyUpdates;
-     
-     StaticText94.Caption:='ANOTADO CAMBIO';
+
+     StaticText94.Caption:='CAMBIO CONFIRMADO';
+     keyloger('Cambio confirmado para ' + DateEdit3.Text,
+       FormatFloat('0.00', ImporteConfirmado));
 
 end;
 
@@ -1269,6 +1888,7 @@ begin
   dbCajas.Active := True;
 
   Relleno();
+  CuentaCaja();
 end;
 
 procedure TFCaja.BitBtn8Click(Sender: TObject); //--- Indica desde que dia se hara el arqueo, y en caso de ser mayor que el dia hasta, actualiza las fechas
@@ -1358,6 +1978,7 @@ Begin
   //----------- Información Extra --------
   Memo1.Text:=dbCajas.FieldByName('INCIDENCIA').AsString;//-------------- Posibles incidencias en la venta del día (Metereología y varios)
   StaticText94.Caption:='ACTUALIZADO';
+  ActualizarResumenMovimientos;
 End;
 
 Procedure TFCaja.RellenoInfo();
@@ -1384,6 +2005,7 @@ Begin
        StaticText74.Caption:='0.00';//--------------- Importe de Ventas a Credito
        StaticText75.Caption:='0';//--------------- Nº de Albaranes realizados
        StaticText109.Caption:='0.00';//-------------- Importe Puntos de fidelización
+       ActualizarResumenMovimientos;
        CuentaCaja();
        Exit;
     End;
@@ -1397,7 +2019,7 @@ Begin
   StaticText74.Caption:=dbACaja.Fields[8].AsString;//--------------- Importe de Ventas a Credito
   StaticText75.Caption:=dbACaja.Fields[2].AsString;//--------------- Nº de Albaranes realizados
 
-
+  ActualizarResumenMovimientos;
   CuentaCaja();
   
 End;
@@ -1450,7 +2072,7 @@ Begin
 
 End;
 
-Procedure TFCaja.ICambio();
+Procedure TFCaja.ICambio(const AImporte: Double);
 Begin
   dbACaja.FieldByName('CA0').AsDateTime:=DateEdit3.Date;//-------- Fecha para insertar el Cambio
   dbACaja.FieldByName('CA1').AsString:='9999';//-------- Indica que es linea de Cambio
@@ -1465,7 +2087,7 @@ Begin
       dbACaja.FieldByName('CA16').AsString:=FloatToStr(StrToFloat(dbACaja.FieldByName('CA16').AsString)+StrToFloat(StaticText86.Caption));//-------- Importe del Cambio si hay algún PAGO ANOTADO
     end;
  NO SE PUEDE HACER UNA ANOTACIÓN INCREMENTAL, PUES CADA VEZ QUE PULSES EL BOTÓN VUELVE A SUMAR LA CANTIDAD }
-  dbACaja.FieldByName('CA16').AsString:=StaticText86.Caption;//-------- Importe del Cambio, SI HAY ALGÚN INCREMENTO DE SALDO, SE PIERDE.
+  dbACaja.FieldByName('CA16').AsFloat:=AImporte;//-------- Importe confirmado por el usuario para el cambio.
 
   dbACaja.FieldByName('CA2').AsString:=StaticText95.Caption;//-------- Puesto para el que se inserta el Cambio en Caja
 End;

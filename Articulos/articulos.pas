@@ -22,6 +22,7 @@
 unit articulos;
 
 {$mode objfpc}{$H+}
+{$codepage utf8}
 
 interface
 
@@ -329,6 +330,7 @@ type
     procedure Edit5Exit(Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCreate(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure ListBox3Click(Sender: TObject);
     procedure ListBox4Click(Sender: TObject);
     procedure ListBox5Click(Sender: TObject);
@@ -357,6 +359,37 @@ type
 
   private
     { private declarations }
+    FPanelCabecera: TPanel;
+    FLabelPVP: TLabel;
+    FGeneralCardMain: TShape;
+    FGeneralCardImage: TShape;
+    FGeneralCardDetails: TShape;
+    FGeneralTitleMain: TLabel;
+    FGeneralTitleImage: TLabel;
+    FGeneralTitleDetails: TLabel;
+    FCostsCardPurchase: TShape;
+    FCostsCardSales: TShape;
+    FCostsCardSupplier: TShape;
+    FCostsCardPoints: TShape;
+    FCostsSupplierTitle: TLabel;
+    FStatsSummaryPanel: TPanel;
+    FChartsSidePanel: TPanel;
+    FBtnDescripcionVisual: TPanel;
+    FBtnFabricanteVisual: TPanel;
+    FBtnFamiliaVisual: TPanel;
+    FBtnImagenVisual: TPanel;
+    FBtnEnvaseVisual: TPanel;
+    FBtnProveedorVisual: TPanel;
+    function CrearPanelVisual(AParent: TWinControl; AColor: TColor): TPanel;
+    function CrearTarjetaVisual(AParent: TWinControl; AColor: TColor): TShape;
+    procedure EstilarBoton(ABoton: TBitBtn; AColor: TColor; ATextoClaro: Boolean);
+    procedure PrepararBotonVisual(APanel: TPanel; AOnClick: TNotifyEvent;
+      const ACaption, AHint: string);
+    procedure BotonVisualKeyPress(Sender: TObject; var Key: char);
+    function CrearTituloVisual(AParent: TWinControl; const ACaption: string): TLabel;
+    procedure AplicarEstiloModerno;
+    procedure ReorganizarFormulario;
+    procedure FormResizeModerno(Sender: TObject);
     function HistPreciosTableName: string;
     procedure EnsureHistPreciosTable;
     procedure RegistrarCambioPrecio(const ACodigo, ADescripcion, ACampo, AAnterior, ANuevo, AMotivo: string);
@@ -375,7 +408,7 @@ var
 implementation
 
 uses
-  Global, Funciones, Busquedas;
+  Global, Funciones, Busquedas, uFLXTemaVisual;
 
 // -----------------------------------------------------------------------------
 // Limpieza defensiva de descripciones de articulos.
@@ -612,6 +645,966 @@ begin
   end;
 end;
 
+
+//============================================================================
+//====================== DISEÑO MODERNO Y ADAPTABLE ==========================
+//============================================================================
+function TFArticulos.CrearPanelVisual(AParent: TWinControl; AColor: TColor): TPanel;
+begin
+  Result := TPanel.Create(Self);
+  Result.Parent := AParent;
+  Result.Caption := '';
+  Result.BevelOuter := bvNone;
+  Result.Color := AColor;
+  Result.ParentColor := False;
+  Result.TabStop := False;
+  Result.SendToBack;
+end;
+
+function TFArticulos.CrearTarjetaVisual(AParent: TWinControl;
+  AColor: TColor): TShape;
+begin
+  // TShape es deliberado: en Lazarus/GTK un TPanel dinámico puede tapar
+  // TLabel, TCheckBox, TBitBtn y otros controles aunque se envíe al fondo.
+  // Clientes usa este mismo patrón para sus tarjetas visuales.
+  Result := TShape.Create(Self);
+  Result.Parent := AParent;
+  Result.Shape := stRectangle;
+  Result.Brush.Style := bsSolid;
+  Result.Brush.Color := AColor;
+  Result.Pen.Style := psSolid;
+  Result.Pen.Color := RGBToColor(218, 226, 230);
+  Result.Pen.Width := 1;
+  Result.SendToBack;
+end;
+
+procedure TFArticulos.EstilarBoton(ABoton: TBitBtn; AColor: TColor;
+  ATextoClaro: Boolean);
+begin
+  if not Assigned(ABoton) then
+    Exit;
+
+  ABoton.ParentFont := False;
+  ABoton.Font.Name := 'Sans';
+  ABoton.Font.Height := -12;
+  ABoton.Font.Style := [fsBold];
+  ABoton.Color := AColor;
+  ABoton.ShowHint := True;
+
+  if ATextoClaro then
+    ABoton.Font.Color := clWhite
+  else
+    ABoton.Font.Color := RGBToColor(30, 41, 59);
+end;
+
+procedure TFArticulos.PrepararBotonVisual(APanel: TPanel;
+  AOnClick: TNotifyEvent; const ACaption, AHint: string);
+var
+  LTexto: TLabel;
+begin
+  if not Assigned(APanel) then
+    Exit;
+
+  // Mismo sistema utilizado en Clientes: el panel mantiene el color visible
+  // con los temas GTK donde los TBitBtn pequenos pueden quedar transparentes.
+  APanel.Caption := '';
+  APanel.BevelOuter := bvRaised;
+  APanel.BevelInner := bvNone;
+  APanel.BorderWidth := 2;
+  APanel.ParentColor := False;
+  APanel.Color := RGBToColor(23, 96, 116);
+  APanel.Cursor := crHandPoint;
+  APanel.Hint := AHint;
+  APanel.ShowHint := True;
+  APanel.OnClick := AOnClick;
+  APanel.OnKeyPress := @BotonVisualKeyPress;
+  APanel.Visible := True;
+  APanel.Enabled := True;
+  APanel.TabStop := True;
+
+  LTexto := TLabel.Create(Self);
+  LTexto.Parent := APanel;
+  LTexto.Align := alClient;
+  LTexto.Alignment := taCenter;
+  LTexto.Layout := tlCenter;
+  LTexto.AutoSize := False;
+  LTexto.Transparent := False;
+  LTexto.ParentColor := False;
+  LTexto.Color := RGBToColor(23, 96, 116);
+  LTexto.ParentFont := False;
+  LTexto.Font.Name := 'Sans';
+  LTexto.Font.Height := -12;
+  LTexto.Font.Style := [fsBold];
+  LTexto.Font.Color := clWhite;
+  LTexto.Cursor := crHandPoint;
+  LTexto.Caption := ACaption;
+  LTexto.Hint := AHint;
+  LTexto.ShowHint := True;
+  LTexto.OnClick := AOnClick;
+  LTexto.BringToFront;
+end;
+
+procedure TFArticulos.BotonVisualKeyPress(Sender: TObject; var Key: char);
+begin
+  if (Key = #13) or (Key = #32) then
+  begin
+    if (Sender is TPanel) and Assigned(TPanel(Sender).OnClick) then
+      TPanel(Sender).OnClick(Sender);
+    Key := #0;
+  end;
+end;
+
+function TFArticulos.CrearTituloVisual(AParent: TWinControl; const ACaption: string): TLabel;
+begin
+  Result := TLabel.Create(Self);
+  Result.Parent := AParent;
+  Result.AutoSize := False;
+  Result.Caption := ACaption;
+  Result.Transparent := True;
+  Result.Layout := tlCenter;
+  Result.Font.Name := 'Sans';
+  Result.Font.Height := -12;
+  Result.Font.Style := [fsBold];
+  Result.Font.Color := RGBToColor(38, 77, 96);
+end;
+
+procedure TFArticulos.AplicarEstiloModerno;
+var
+  I: Integer;
+  C: TComponent;
+  E: TEdit;
+  G: TDBGrid;
+begin
+  Caption := 'FacturLinEx · Gestión de artículos';
+  Color := RGBToColor(241, 245, 247);
+  Font.Name := 'Sans';
+  Font.Height := -12;
+  Constraints.MinWidth := 980;
+  Constraints.MinHeight := 650;
+
+  // Cabecera independiente. Se crea en ejecución para conservar sincronizados
+  // el LFM y el LRS histórico que utiliza esta unidad.
+  FPanelCabecera := CrearPanelVisual(Self, RGBToColor(18, 76, 91));
+  FPanelCabecera.Align := alTop;
+  FPanelCabecera.Height := 76;
+
+  Label1.Parent := FPanelCabecera;
+  Edit1.Parent := FPanelCabecera;
+  Label2.Parent := FPanelCabecera;
+  LabelPrecio.Parent := FPanelCabecera;
+
+  FLabelPVP := CrearTituloVisual(FPanelCabecera, 'PVP');
+  FLabelPVP.Alignment := taRightJustify;
+  FLabelPVP.Font.Height := -10;
+
+  Panel1.Align := alBottom;
+  Panel1.Height := 64;
+  Panel1.Caption := '';
+  Panel1.BevelOuter := bvNone;
+  Panel1.Color := RGBToColor(225, 233, 236);
+  Panel1.ParentColor := False;
+  Label7.Visible := False;
+
+  PageControl1.Align := alClient;
+  PageControl1.Font.Name := 'Sans';
+  PageControl1.Font.Height := -12;
+
+  TabSheet2.Color := RGBToColor(241, 245, 247);
+  if Assigned(TabSheet4) then TabSheet4.Color := RGBToColor(241, 245, 247);
+  TabSheet6.Color := RGBToColor(241, 245, 247);
+  TabSheet1.Color := RGBToColor(241, 245, 247);
+  if Assigned(TabSheet3) then TabSheet3.Color := RGBToColor(241, 245, 247);
+  if Assigned(TabSheet5) then TabSheet5.Color := RGBToColor(241, 245, 247);
+
+  // Tarjetas de la pestaña General.
+  FGeneralCardMain := CrearTarjetaVisual(TabSheet2, RGBToColor(231, 243, 234));
+  FGeneralCardImage := CrearTarjetaVisual(TabSheet2, RGBToColor(226, 238, 242));
+  FGeneralCardDetails := CrearTarjetaVisual(TabSheet2, RGBToColor(239, 235, 247));
+  FGeneralTitleMain := CrearTituloVisual(TabSheet2, 'DATOS COMERCIALES');
+  FGeneralTitleImage := CrearTituloVisual(TabSheet2, 'IMAGEN Y PUBLICACIÓN');
+  FGeneralTitleDetails := CrearTituloVisual(TabSheet2, 'CLASIFICACIÓN Y OBSERVACIONES');
+
+  FBtnDescripcionVisual := TPanel.Create(Self);
+  FBtnDescripcionVisual.Parent := TabSheet2;
+  PrepararBotonVisual(FBtnDescripcionVisual, @BitBtn21Click, '...',
+    'Buscar artículo por descripción');
+  FBtnDescripcionVisual.TabOrder := BitBtn21.TabOrder;
+
+  FBtnFabricanteVisual := TPanel.Create(Self);
+  FBtnFabricanteVisual.Parent := TabSheet2;
+  PrepararBotonVisual(FBtnFabricanteVisual, @BitBtn10Click, '...',
+    'Buscar autor o fabricante');
+  FBtnFabricanteVisual.TabOrder := BitBtn10.TabOrder;
+
+  FBtnFamiliaVisual := TPanel.Create(Self);
+  FBtnFamiliaVisual.Parent := TabSheet2;
+  PrepararBotonVisual(FBtnFamiliaVisual, @BitBtn11Click, '...',
+    'Buscar familia');
+  FBtnFamiliaVisual.TabOrder := BitBtn11.TabOrder;
+
+  FBtnImagenVisual := TPanel.Create(Self);
+  FBtnImagenVisual.Parent := TabSheet2;
+  PrepararBotonVisual(FBtnImagenVisual, @BitBtn12Click, '...',
+    'Seleccionar imagen');
+  FBtnImagenVisual.TabOrder := BitBtn12.TabOrder;
+
+  FBtnEnvaseVisual := TPanel.Create(Self);
+  FBtnEnvaseVisual.Parent := TabSheet2;
+  PrepararBotonVisual(FBtnEnvaseVisual, @BitBtn13Click, '...',
+    'Buscar envase');
+  FBtnEnvaseVisual.TabOrder := BitBtn13.TabOrder;
+
+  Panel8.BevelOuter := bvNone;
+  Panel8.Color := RGBToColor(222, 238, 247);
+  Panel8.ParentColor := False;
+  Panel8.BringToFront;
+
+  // Tarjetas de Costes. Solo se crean si el rol permite ver la pestaña.
+  if Assigned(TabSheet4) then
+  begin
+    FCostsCardPurchase := CrearTarjetaVisual(TabSheet4, RGBToColor(226, 238, 242));
+    FCostsCardPurchase.Pen.Color := RGBToColor(137, 179, 192);
+    FCostsCardPurchase.Pen.Width := 2;
+    FCostsCardSales := CrearTarjetaVisual(TabSheet4, RGBToColor(231, 243, 234));
+    FCostsCardSales.Pen.Color := RGBToColor(139, 187, 154);
+    FCostsCardSales.Pen.Width := 2;
+    FCostsCardSupplier := CrearTarjetaVisual(TabSheet4, RGBToColor(239, 235, 247));
+    FCostsCardPoints := CrearTarjetaVisual(TabSheet4, RGBToColor(242, 238, 226));
+    FCostsSupplierTitle := CrearTituloVisual(TabSheet4, 'COSTE MEDIO Y PROVEEDOR');
+
+    FBtnProveedorVisual := TPanel.Create(Self);
+    FBtnProveedorVisual.Parent := TabSheet4;
+    PrepararBotonVisual(FBtnProveedorVisual, @BitBtn19Click, '...',
+      'Buscar proveedor');
+    FBtnProveedorVisual.TabOrder := BitBtn19.TabOrder;
+
+    Panel4.BevelOuter := bvNone;
+    Panel4.Color := RGBToColor(226, 239, 247);
+    Panel4.ParentColor := False;
+    Label5.Font.Style := [fsBold];
+    Label5.Font.Color := RGBToColor(38, 77, 96);
+    Bevel5.Visible := False;
+    Bevel6.Visible := False;
+  end;
+
+  // Historial de compras.
+  Panel6.BevelOuter := bvNone;
+  Panel6.Color := RGBToColor(226, 238, 242);
+  Panel6.ParentColor := False;
+
+  // Códigos auxiliares.
+  Panel7.BevelOuter := bvNone;
+  Panel7.Color := RGBToColor(231, 243, 234);
+  Panel7.ParentColor := False;
+
+  // Estadísticas: resumen inferior separado del grid.
+  if Assigned(TabSheet3) then
+  begin
+    FStatsSummaryPanel := CrearPanelVisual(TabSheet3, RGBToColor(231, 243, 234));
+    FStatsSummaryPanel.Align := alBottom;
+    FStatsSummaryPanel.Height := 86;
+
+    Label76.Parent := FStatsSummaryPanel; lbUC.Parent := FStatsSummaryPanel;
+    Label75.Parent := FStatsSummaryPanel; lbIC.Parent := FStatsSummaryPanel;
+    Label68.Parent := FStatsSummaryPanel; lbUV.Parent := FStatsSummaryPanel;
+    Label65.Parent := FStatsSummaryPanel; lbIVP.Parent := FStatsSummaryPanel;
+    Label4.Parent := FStatsSummaryPanel; lbIVC.Parent := FStatsSummaryPanel;
+    Label3.Parent := FStatsSummaryPanel; lbBeneficio.Parent := FStatsSummaryPanel;
+
+    Panel5.BevelOuter := bvNone;
+    Panel5.Color := RGBToColor(226, 238, 242);
+    Panel5.ParentColor := False;
+    Panel5.Align := alRight;
+    DBGrid1.Align := alClient;
+  end;
+
+  // Gráficas: selectores en panel lateral y gráfica ocupando el resto.
+  if Assigned(TabSheet5) then
+  begin
+    FChartsSidePanel := CrearPanelVisual(TabSheet5, RGBToColor(226, 238, 242));
+    FChartsSidePanel.Align := alRight;
+    FChartsSidePanel.Width := 230;
+
+    Label6.Parent := FChartsSidePanel; ListBox3.Parent := FChartsSidePanel;
+    Label8.Parent := FChartsSidePanel; ListBox4.Parent := FChartsSidePanel;
+    Label70.Parent := FChartsSidePanel; ListBox9.Parent := FChartsSidePanel;
+    Chart1.Align := alClient;
+    Chart1.Color := RGBToColor(250, 251, 252);
+  end;
+
+  // Tipografía y aspecto uniforme sin alterar eventos ni lógica.
+  for I := 0 to ComponentCount - 1 do
+  begin
+    C := Components[I];
+
+    if C is TEdit then
+    begin
+      E := TEdit(C);
+      E.Font.Name := 'Sans';
+      E.Font.Height := -12;
+      E.Height := 28;
+      if E.ReadOnly then
+        E.Color := RGBToColor(244, 246, 248)
+      else
+        E.Color := clWhite;
+    end
+    else if C is TMemo then
+    begin
+      TMemo(C).Font.Name := 'Sans';
+      TMemo(C).Font.Height := -12;
+      TMemo(C).Color := clWhite;
+    end
+    else if C is TBitBtn then
+    begin
+      TBitBtn(C).Font.Name := 'Sans';
+      TBitBtn(C).Font.Height := -11;
+      TBitBtn(C).Font.Style := [fsBold];
+      TBitBtn(C).ShowHint := True;
+    end
+    else if C is TCheckBox then
+    begin
+      TCheckBox(C).ParentFont := False;
+      TCheckBox(C).Font.Name := 'Sans';
+      TCheckBox(C).Font.Height := -12;
+      TCheckBox(C).Font.Color := RGBToColor(51, 65, 85);
+    end
+    else if C is TLabel then
+    begin
+      TLabel(C).ParentFont := False;
+      TLabel(C).Font.Name := 'Sans';
+      if TLabel(C).Font.Height > -12 then
+        TLabel(C).Font.Height := -12;
+      TLabel(C).Font.Color := RGBToColor(51, 65, 85);
+      TLabel(C).Transparent := True;
+    end
+    else if C is TStaticText then
+    begin
+      TStaticText(C).ParentFont := False;
+      TStaticText(C).Font.Name := 'Sans';
+      TStaticText(C).Font.Height := -12;
+      TStaticText(C).Font.Color := RGBToColor(51, 65, 85);
+      TStaticText(C).Color := RGBToColor(248, 250, 252);
+    end
+    else if C is TListBox then
+    begin
+      TListBox(C).Font.Name := 'Sans';
+      TListBox(C).Font.Height := -12;
+      TListBox(C).Color := clWhite;
+    end
+    else if C is TDBGrid then
+    begin
+      G := TDBGrid(C);
+      G.Font.Name := 'Sans';
+      G.Font.Height := -12;
+      G.TitleFont.Name := 'Sans';
+      G.TitleFont.Height := -11;
+      G.TitleFont.Style := [fsBold];
+      G.Color := clWhite;
+      G.FixedColor := RGBToColor(219, 231, 238);
+      G.DefaultRowHeight := 26;
+    end;
+  end;
+
+  // Paleta de botones validada en el formulario Clientes.
+  EstilarBoton(BitBtn2, RGBToColor(5, 150, 105), True);       // Nuevo
+  EstilarBoton(btnClonar, RGBToColor(219, 234, 254), False);  // Clonar
+  EstilarBoton(BitBtn4, RGBToColor(18, 76, 91), True);        // Modificar
+  EstilarBoton(BitBtn3, RGBToColor(185, 28, 28), True);       // Borrar
+  EstilarBoton(BitBtn5, RGBToColor(226, 232, 240), False);    // Anterior
+  EstilarBoton(BitBtn6, RGBToColor(226, 232, 240), False);    // Siguiente
+  EstilarBoton(BitBtn1, RGBToColor(71, 85, 105), True);       // Cerrar
+
+  EstilarBoton(BitBtn21, RGBToColor(219, 234, 254), False);
+  EstilarBoton(BitBtn10, RGBToColor(219, 234, 254), False);
+  EstilarBoton(BitBtn11, RGBToColor(219, 234, 254), False);
+  EstilarBoton(BitBtn12, RGBToColor(219, 234, 254), False);
+  EstilarBoton(BitBtn13, RGBToColor(219, 234, 254), False);
+  if Assigned(TabSheet4) then
+    EstilarBoton(BitBtn19, RGBToColor(219, 234, 254), False);
+  EstilarBoton(BitBtn14, RGBToColor(18, 76, 91), True);
+  EstilarBoton(BitBtn7, RGBToColor(5, 150, 105), True);
+  EstilarBoton(BitBtn9, RGBToColor(18, 76, 91), True);
+  EstilarBoton(BitBtn8, RGBToColor(185, 28, 28), True);
+  EstilarBoton(BitBtn15, RGBToColor(30, 64, 79), True);
+  EstilarBoton(BitBtn16, RGBToColor(5, 150, 105), True);
+  EstilarBoton(BitBtn17, RGBToColor(18, 76, 91), True);
+  EstilarBoton(BitBtn18, RGBToColor(185, 28, 28), True);
+
+  // Los botones principales siempre deben estar visibles. No se fuerza la
+  // visibilidad de SIC ni de ventanas auxiliares porque depende de la lógica.
+  Panel1.Visible := True;
+  BitBtn2.Visible := True;
+  btnClonar.Visible := True;
+  BitBtn4.Visible := True;
+  BitBtn3.Visible := True;
+  BitBtn5.Visible := True;
+  BitBtn6.Visible := True;
+  BitBtn1.Visible := True;
+  Panel1.BringToFront;
+  BitBtn2.BringToFront;
+  btnClonar.BringToFront;
+  BitBtn4.BringToFront;
+  BitBtn3.BringToFront;
+  BitBtn5.BringToFront;
+  BitBtn6.BringToFront;
+  BitBtn1.BringToFront;
+
+  // Textos visibles corregidos y normalizados en UTF-8.
+  Label1.Caption := 'CÓDIGO';
+  BitBtn4.Caption := 'Modificar';
+  BitBtn5.Caption := 'Anterior';
+  BitBtn6.Caption := 'Siguiente';
+  TabSheet2.Caption := '  General  ';
+  if Assigned(TabSheet4) then TabSheet4.Caption := '  Costes y tarifas  ';
+  TabSheet6.Caption := '  Códigos auxiliares  ';
+  TabSheet1.Caption := '  Historial de compras  ';
+  if Assigned(TabSheet3) then TabSheet3.Caption := '  Estadísticas  ';
+  if Assigned(TabSheet5) then TabSheet5.Caption := '  Gráficas  ';
+
+  Label19.Caption := 'Stock actual';
+  Label20.Caption := 'Stock mínimo';
+  Label21.Caption := 'Stock máximo';
+  Label24.Caption := 'Descuento 3';
+  Label25.Caption := 'Descuento 2';
+  Label26.Caption := 'Pendiente pedido';
+  Label27.Caption := 'Última venta';
+  Label28.Caption := 'Mínimo a pedir';
+  Label29.Caption := 'Último pedido';
+  Label31.Caption := 'Precio sin IVA';
+  Label33.Caption := 'Archivo de imagen';
+  Label35.Caption := 'Ubicación';
+
+  Label60.Caption := 'CÓDIGO';
+  Label61.Caption := 'DESCRIPCIÓN';
+  Label62.Caption := 'UNIDADES';
+  Label64.Caption := 'UDS. DESCUENTO';
+
+  if Assigned(TabSheet4) then
+  begin
+    Label38.Caption := 'Precio de coste';
+    Label22.Caption := 'Coste medio';
+    Label45.Caption := 'Precio de tarifa';
+    Label46.Caption := 'Descuento en importe';
+    Label49.Caption := 'Último proveedor';
+    Label53.Caption := 'P.V.P. Tarifa 2';
+    Label55.Caption := 'P.V.P. Tarifa 3';
+  end;
+
+  Label58.Caption := 'Desde fecha';
+  Label59.Caption := 'Hasta fecha';
+  if Assigned(TabSheet3) then
+  begin
+    Label57.Caption := 'Periodo a visualizar';
+    Label65.Caption := 'Importe venta a PVP';
+  end;
+
+  BitBtn21.Hint := 'Buscar artículo por descripción';
+  BitBtn10.Hint := 'Buscar autor o fabricante';
+  BitBtn11.Hint := 'Buscar familia';
+  BitBtn12.Hint := 'Seleccionar imagen';
+  BitBtn13.Hint := 'Buscar envase';
+  if Assigned(TabSheet4) then
+    BitBtn19.Hint := 'Buscar proveedor';
+
+  // Los TBitBtn originales conservan sus manejadores, pero se ocultan porque
+  // el tema GTK no siempre pinta su fondo ni el texto. Los paneles visuales
+  // anteriores ejecutan exactamente los mismos eventos.
+  BitBtn21.Visible := False;
+  BitBtn10.Visible := False;
+  BitBtn11.Visible := False;
+  BitBtn12.Visible := False;
+  BitBtn13.Visible := False;
+  if Assigned(TabSheet4) then
+    BitBtn19.Visible := False;
+
+  OnResize := @FormResizeModerno;
+  ReorganizarFormulario;
+end;
+
+procedure TFArticulos.FormResizeModerno(Sender: TObject);
+begin
+  ReorganizarFormulario;
+end;
+
+procedure TFArticulos.ReorganizarFormulario;
+var
+  W, H, Pad, Gap, RightW, LeftW, MainH, DetailsY, DetailsH: Integer;
+  CellW, CellW4, X, Y, I, BtnW, TotalW, StartX: Integer;
+  HalfW, ContentW, ImgW, PanelW, PanelH: Integer;
+  TariffX, TariffW, LowerY, LowerH, PointsW, SupplierW: Integer;
+  ColW, CX, StatsW, StatsCellW: Integer;
+  Btns: array[0..6] of TBitBtn;
+  StatCaptions: array[0..5] of TLabel;
+  StatValues: array[0..5] of TLabel;
+
+  procedure PlaceField(ALabel: TLabel; AEdit: TEdit; AX, AY, AWidth: Integer);
+  begin
+    ALabel.SetBounds(AX, AY, AWidth, 17);
+    AEdit.SetBounds(AX, AY + 18, AWidth, 28);
+  end;
+
+  procedure PlaceHorizontal(ALabel: TLabel; AEdit: TEdit;
+    AX, AY, ACardWidth, AEditWidth: Integer);
+  begin
+    ALabel.SetBounds(AX + 16, AY, ACardWidth - AEditWidth - 42, 28);
+    AEdit.SetBounds(AX + ACardWidth - AEditWidth - 16, AY, AEditWidth, 28);
+  end;
+
+begin
+  if not Assigned(FPanelCabecera) then Exit;
+
+  // Cabecera.
+  W := FPanelCabecera.ClientWidth;
+  Label1.SetBounds(24, 11, 170, 17);
+  Label1.Font.Name := 'Sans';
+  Label1.Font.Height := -10;
+  Label1.Font.Style := [fsBold];
+  Label1.Font.Color := RGBToColor(205, 232, 237);
+  Edit1.SetBounds(24, 31, 170, 31);
+  Edit1.Font.Height := -13;
+  Edit1.Font.Style := [fsBold];
+  Edit1.Font.Color := RGBToColor(18, 76, 91);
+  Edit1.Color := clWhite;
+
+  Label2.SetBounds(220, 18, W - 430, 43);
+  if Label2.Width < 250 then Label2.Width := 250;
+  Label2.Font.Name := 'Sans';
+  Label2.Font.Height := -17;
+  Label2.Font.Style := [fsBold];
+  Label2.Font.Color := clWhite;
+  Label2.Layout := tlCenter;
+
+  FLabelPVP.SetBounds(W - 190, 8, 160, 15);
+  FLabelPVP.Font.Color := RGBToColor(205, 232, 237);
+  LabelPrecio.SetBounds(W - 190, 22, 160, 39);
+  LabelPrecio.Font.Name := 'Sans';
+  LabelPrecio.Font.Height := -22;
+  LabelPrecio.Font.Style := [fsBold];
+  LabelPrecio.Font.Color := RGBToColor(187, 247, 208);
+  LabelPrecio.Layout := tlCenter;
+
+  // Barra inferior de acciones, centrada y apta para ratón o pantalla táctil.
+  Btns[0] := BitBtn2;
+  Btns[1] := btnClonar;
+  Btns[2] := BitBtn4;
+  Btns[3] := BitBtn3;
+  Btns[4] := BitBtn5;
+  Btns[5] := BitBtn6;
+  Btns[6] := BitBtn1;
+
+  Gap := 14;
+  BtnW := 110;
+  TotalW := (BtnW * 7) + (Gap * 6);
+  if Panel1.ClientWidth < TotalW + 16 then
+  begin
+    Gap := 6;
+    BtnW := (Panel1.ClientWidth - 16 - (Gap * 6)) div 7;
+    if BtnW < 82 then BtnW := 82;
+    TotalW := (BtnW * 7) + (Gap * 6);
+  end;
+  StartX := (Panel1.ClientWidth - TotalW) div 2;
+  if StartX < 8 then StartX := 8;
+  for I := 0 to 6 do
+  begin
+    Btns[I].SetBounds(StartX + I * (BtnW + Gap), 11, BtnW, 41);
+    Btns[I].TabOrder := I;
+  end;
+
+  // ------------------------------- GENERAL -------------------------------
+  W := TabSheet2.ClientWidth;
+  H := TabSheet2.ClientHeight;
+  Pad := 18;
+  Gap := 14;
+  RightW := 300;
+  if W < 1000 then RightW := 260;
+  LeftW := W - (Pad * 2) - Gap - RightW;
+  if LeftW < 560 then
+  begin
+    RightW := 235;
+    LeftW := W - (Pad * 2) - Gap - RightW;
+  end;
+
+  MainH := 322;
+  DetailsY := Pad + MainH + Gap;
+  DetailsH := H - DetailsY - Pad;
+  if DetailsH < 180 then DetailsH := 180;
+
+  FGeneralCardMain.SetBounds(Pad, Pad, LeftW, MainH);
+  FGeneralCardImage.SetBounds(Pad + LeftW + Gap, Pad, RightW, MainH);
+  FGeneralCardDetails.SetBounds(Pad, DetailsY, W - (Pad * 2), DetailsH);
+  FGeneralCardMain.SendToBack;
+  FGeneralCardImage.SendToBack;
+  FGeneralCardDetails.SendToBack;
+
+  FGeneralTitleMain.SetBounds(Pad + 16, Pad + 9, LeftW - 32, 20);
+  FGeneralTitleImage.SetBounds(Pad + LeftW + Gap + 16, Pad + 9, RightW - 32, 20);
+  FGeneralTitleDetails.SetBounds(Pad + 16, DetailsY + 9, W - (Pad * 2) - 32, 20);
+
+  // Descripción.
+  Label14.SetBounds(Pad + 16, Pad + 36, LeftW - 32, 17);
+  Edit2.SetBounds(Pad + 16, Pad + 54, LeftW - 80, 30);
+  BitBtn21.SetBounds(Pad + LeftW - 50, Pad + 54, 34, 30);
+  BitBtn21.Visible := False;
+  FBtnDescripcionVisual.SetBounds(Pad + LeftW - 50, Pad + 54, 34, 30);
+  FBtnDescripcionVisual.BringToFront;
+
+  // Precio, stock y descuentos.
+  CellW := (LeftW - 32 - (Gap * 2)) div 3;
+  PlaceField(Label31, Edit3, Pad + 16, Pad + 92, CellW);
+  PlaceField(Label16, Edit4, Pad + 16 + CellW + Gap, Pad + 92, CellW);
+  PlaceField(Label18, Edit5, Pad + 16 + (CellW + Gap) * 2, Pad + 92, CellW);
+
+  PlaceField(Label19, Edit6, Pad + 16, Pad + 147, CellW);
+  PlaceField(Label20, Edit7, Pad + 16 + CellW + Gap, Pad + 147, CellW);
+  PlaceField(Label21, Edit8, Pad + 16 + (CellW + Gap) * 2, Pad + 147, CellW);
+
+  PlaceField(Label32, Edit9, Pad + 16, Pad + 202, CellW);
+  PlaceField(Label25, Edit10, Pad + 16 + CellW + Gap, Pad + 202, CellW);
+  PlaceField(Label24, Edit11, Pad + 16 + (CellW + Gap) * 2, Pad + 202, CellW);
+
+  CellW4 := (LeftW - 32 - (Gap * 3)) div 4;
+  PlaceField(Label28, Edit12, Pad + 16, Pad + 257, CellW4);
+  PlaceField(Label26, Edit13, Pad + 16 + CellW4 + Gap, Pad + 257, CellW4);
+  PlaceField(Label27, Edit14, Pad + 16 + (CellW4 + Gap) * 2, Pad + 257, CellW4);
+  PlaceField(Label29, Edit15, Pad + 16 + (CellW4 + Gap) * 3, Pad + 257, CellW4);
+
+  // Imagen, stock visual, publicación y SIC.
+  X := Pad + LeftW + Gap;
+  ImgW := RightW - 70;
+  if ImgW < 150 then ImgW := 150;
+  Image1.SetBounds(X + 16, Pad + 40, ImgW, 153);
+  ProgressBar1.SetBounds(X + RightW - 38, Pad + 40, 16, 153);
+  LabelMax.SetBounds(X + RightW - 56, Pad + 22, 48, 17);
+  LabelMax.Alignment := taCenter;
+  LabelMin.SetBounds(X + RightW - 56, Pad + 195, 48, 17);
+  LabelMin.Alignment := taCenter;
+  Label33.SetBounds(X + 16, Pad + 207, RightW - 32, 17);
+  Edit16.SetBounds(X + 16, Pad + 225, RightW - 68, 28);
+  BitBtn12.SetBounds(X + RightW - 48, Pad + 225, 32, 28);
+  BitBtn12.Visible := False;
+  FBtnImagenVisual.SetBounds(X + RightW - 48, Pad + 225, 32, 28);
+  FBtnImagenVisual.BringToFront;
+  CheckBox1.SetBounds(X + 16, Pad + 268, RightW - 120, 24);
+  BitBtn15.SetBounds(X + RightW - 96, Pad + 265, 80, 31);
+
+  // Clasificación, fabricante, ubicación, envase y observaciones.
+  ContentW := W - (Pad * 2) - 32;
+  HalfW := (ContentW - Gap) div 2;
+  X := Pad + 16;
+  Y := DetailsY + 38;
+
+  Label34.SetBounds(X, Y, HalfW, 17);
+  Edit17.SetBounds(X, Y + 19, 74, 28);
+  BitBtn10.SetBounds(X + 80, Y + 19, 32, 28);
+  BitBtn10.Visible := False;
+  FBtnFabricanteVisual.SetBounds(X + 80, Y + 19, 32, 28);
+  FBtnFabricanteVisual.BringToFront;
+  Edit18.SetBounds(X + 118, Y + 19, HalfW - 118, 28);
+
+  Label35.SetBounds(X + HalfW + Gap, Y, HalfW, 17);
+  Edit19.SetBounds(X + HalfW + Gap, Y + 19, HalfW, 28);
+
+  Y := DetailsY + 98;
+  Label36.SetBounds(X, Y, HalfW, 17);
+  Edit20.SetBounds(X, Y + 19, 74, 28);
+  BitBtn11.SetBounds(X + 80, Y + 19, 32, 28);
+  BitBtn11.Visible := False;
+  FBtnFamiliaVisual.SetBounds(X + 80, Y + 19, 32, 28);
+  FBtnFamiliaVisual.BringToFront;
+  Edit21.SetBounds(X + 118, Y + 19, HalfW - 118, 28);
+
+  Label37.SetBounds(X + HalfW + Gap, Y, HalfW, 17);
+  Edit22.SetBounds(X + HalfW + Gap, Y + 19, 68, 28);
+  BitBtn13.SetBounds(X + HalfW + Gap + 74, Y + 19, 32, 28);
+  BitBtn13.Visible := False;
+  FBtnEnvaseVisual.SetBounds(X + HalfW + Gap + 74, Y + 19, 32, 28);
+  FBtnEnvaseVisual.BringToFront;
+  Edit23.SetBounds(X + HalfW + Gap + 112, Y + 19, HalfW - 112, 28);
+
+  Label30.SetBounds(X, DetailsY + 158, ContentW, 17);
+  Memo1.SetBounds(X, DetailsY + 177, ContentW, DetailsH - 193);
+  if Memo1.Height < 28 then Memo1.Height := 28;
+  Bevel1.Visible := False;
+
+  // Ventana auxiliar SIC superpuesta y centrada.
+  PanelW := 540;
+  if W - 80 < PanelW then PanelW := W - 80;
+  PanelH := 430;
+  if H - 60 < PanelH then PanelH := H - 60;
+  Panel8.SetBounds((W - PanelW) div 2, (H - PanelH) div 2, PanelW, PanelH);
+  Label67.SetBounds(0, 0, PanelW, 38);
+  Label67.Alignment := taCenter;
+  Label67.Font.Name := 'Sans';
+  Label67.Font.Height := -12;
+  Label67.Font.Style := [fsBold];
+  BitBtn18.SetBounds(PanelW - 38, 6, 30, 27);
+  ListBox6.SetBounds(16, 48, PanelW - 32, PanelH - 152);
+  Label66.SetBounds(16, PanelH - 94, 70, 17);
+  Edit57.SetBounds(16, PanelH - 75, PanelW - 32, 28);
+  BitBtn17.SetBounds(16, PanelH - 39, 105, 31);
+  BitBtn16.SetBounds(PanelW - 121, PanelH - 39, 105, 31);
+
+  // ---------------------------- COSTES Y TARIFAS --------------------------
+  if Assigned(TabSheet4) then
+  begin
+    W := TabSheet4.ClientWidth;
+    H := TabSheet4.ClientHeight;
+    Pad := 18;
+    Gap := 14;
+
+    // Compras y Ventas son los bloques principales de esta pestaña.
+    // En una ventana normal/maximizada ganan 190 px respecto a v3
+    // (aprox. 5 cm a 96 ppp). En resoluciones menores se adaptan sin
+    // dejar las tres tarifas por debajo de un ancho práctico.
+    LeftW := 440;
+    if W - (Pad * 2) - Gap - LeftW < 520 then
+      LeftW := W - (Pad * 2) - Gap - 520;
+    if LeftW < 380 then LeftW := 380;
+
+    TariffX := Pad + LeftW + Gap;
+    TariffW := W - TariffX - Pad;
+    if TariffW < 500 then TariffW := 500;
+
+    FCostsCardPurchase.SetBounds(Pad, Pad, LeftW, 208);
+    FCostsCardSales.SetBounds(Pad, Pad + 222, LeftW,
+      H - Pad - (Pad + 222));
+    if FCostsCardSales.Height < 284 then FCostsCardSales.Height := 284;
+    Panel4.SetBounds(TariffX, Pad, TariffW, 260);
+
+    LowerY := Pad + 274;
+    LowerH := H - LowerY - Pad;
+    if LowerH < 174 then LowerH := 174;
+    // Nivel de Puntos gana 170 px respecto a v4 (aprox. 4,5 cm
+    // a 96 ppp) para que la explicación completa resulte legible.
+    // En ventanas estrechas se adapta antes de invadir Proveedor.
+    PointsW := 420;
+    SupplierW := TariffW - PointsW - Gap;
+    if SupplierW < 270 then
+    begin
+      SupplierW := 270;
+      PointsW := TariffW - SupplierW - Gap;
+    end;
+
+    FCostsCardSupplier.SetBounds(TariffX, LowerY, SupplierW, LowerH);
+    FCostsCardPoints.SetBounds(TariffX + SupplierW + Gap, LowerY, PointsW, LowerH);
+    FCostsCardPurchase.SendToBack;
+    FCostsCardSales.SendToBack;
+    FCostsCardSupplier.SendToBack;
+    FCostsCardPoints.SendToBack;
+    Panel4.BringToFront;
+
+    Label69.SetBounds(Pad + 18, Pad + 8, LeftW - 36, 24);
+    Label69.Font.Height := -15;
+    Label69.Font.Style := [fsBold];
+    Label69.Font.Color := RGBToColor(38, 77, 96);
+    PlaceHorizontal(Label45, Edit37, Pad, Pad + 39, LeftW, 145);
+    PlaceHorizontal(Label46, Edit38, Pad, Pad + 71, LeftW, 145);
+    PlaceHorizontal(Label47, Edit39, Pad, Pad + 103, LeftW, 112);
+    PlaceHorizontal(Label48, Edit40, Pad, Pad + 135, LeftW, 112);
+    PlaceHorizontal(Label38, Edit24, Pad, Pad + 167, LeftW, 145);
+
+    Y := Pad + 222;
+    Label50.SetBounds(Pad + 18, Y + 8, LeftW - 36, 24);
+    Label50.Font.Height := -15;
+    Label50.Font.Style := [fsBold];
+    Label50.Font.Color := RGBToColor(38, 96, 73);
+    PlaceHorizontal(Label74, Edit59, Pad, Y + 40, LeftW, 112);
+    PlaceHorizontal(Label17, Edit26, Pad, Y + 74, LeftW, 112);
+    PlaceHorizontal(Label23, Edit27, Pad, Y + 108, LeftW, 145);
+    PlaceHorizontal(Label39, Edit28, Pad, Y + 142, LeftW, 96);
+    PlaceHorizontal(Label73, Edit58, Pad, Y + 176, LeftW, 96);
+    PlaceHorizontal(Label40, Edit29, Pad, Y + 210, LeftW, 145);
+    PlaceHorizontal(Label44, Edit36, Pad, Y + 244, LeftW, 112);
+
+    // Tres tarjetas de tarifa dentro de Panel4.
+    Label5.SetBounds(0, 0, Panel4.ClientWidth, 28);
+    ColW := (Panel4.ClientWidth - 32 - (Gap * 2)) div 3;
+
+    for I := 0 to 2 do
+    begin
+      CX := 16 + I * (ColW + Gap);
+      case I of
+        0:
+          begin
+            Bevel2.SetBounds(CX - 5, 34, ColW + 10, 214);
+            Label9.SetBounds(CX, 37, ColW, 20); Label9.Alignment := taCenter;
+            PlaceField(Label12, Edit30, CX + 10, 62, ColW - 20);
+            PlaceField(Label13, Edit31, CX + 10, 108, ColW - 20);
+            Label51.SetBounds(CX + 10, 154, ColW - 20, 17);
+            StaticText1.SetBounds(CX + 10, 172, ColW - 20, 25);
+            PlaceField(Label52, Edit43, CX + 10, 200, ColW - 20);
+          end;
+        1:
+          begin
+            Bevel3.SetBounds(CX - 5, 34, ColW + 10, 214);
+            Label10.SetBounds(CX, 37, ColW, 20); Label10.Alignment := taCenter;
+            PlaceField(Label15, Edit32, CX + 10, 62, ColW - 20);
+            PlaceField(Label41, Edit33, CX + 10, 108, ColW - 20);
+            Label54.SetBounds(CX + 10, 154, ColW - 20, 17);
+            StaticText2.SetBounds(CX + 10, 172, ColW - 20, 25);
+            PlaceField(Label53, Edit44, CX + 10, 200, ColW - 20);
+          end;
+        2:
+          begin
+            Bevel4.SetBounds(CX - 5, 34, ColW + 10, 214);
+            Label11.SetBounds(CX, 37, ColW, 20); Label11.Alignment := taCenter;
+            PlaceField(Label42, Edit34, CX + 10, 62, ColW - 20);
+            PlaceField(Label43, Edit35, CX + 10, 108, ColW - 20);
+            Label56.SetBounds(CX + 10, 154, ColW - 20, 17);
+            StaticText3.SetBounds(CX + 10, 172, ColW - 20, 25);
+            PlaceField(Label55, Edit45, CX + 10, 200, ColW - 20);
+          end;
+      end;
+    end;
+
+    FCostsSupplierTitle.SetBounds(TariffX + 16, LowerY + 9, SupplierW - 32, 20);
+    PlaceHorizontal(Label22, Edit25, TariffX, LowerY + 48, SupplierW, 110);
+    Label49.SetBounds(TariffX + 16, LowerY + 91, SupplierW - 32, 17);
+    Edit41.SetBounds(TariffX + 16, LowerY + 111, 95, 28);
+    BitBtn19.SetBounds(TariffX + 117, LowerY + 111, 32, 28);
+    BitBtn19.Visible := False;
+    FBtnProveedorVisual.SetBounds(TariffX + 117, LowerY + 111, 32, 28);
+    FBtnProveedorVisual.BringToFront;
+    Edit42.SetBounds(TariffX + 155, LowerY + 111, SupplierW - 171, 28);
+
+    X := TariffX + SupplierW + Gap;
+    Label71.SetBounds(X + 16, LowerY + 14, PointsW - 32, 22);
+    Label71.Font.Height := -13;
+    Label71.Font.Style := [fsBold];
+    Label71.Font.Color := RGBToColor(112, 82, 31);
+    Edit56.SetBounds(X + 16, LowerY + 44, PointsW - 32, 30);
+    Label72.SetBounds(X + 16, LowerY + 84, PointsW - 32, LowerH - 100);
+    Label72.Font.Height := -12;
+    Label72.Font.Color := RGBToColor(76, 63, 38);
+  end;
+
+  // -------------------------- CÓDIGOS AUXILIARES --------------------------
+  W := TabSheet6.ClientWidth;
+  Panel7.Height := 154;
+  DBGrid3.Align := alClient;
+  Panel7.Align := alBottom;
+  CellW := W - 52;
+  Label60.SetBounds(24, 12, 130, 17);
+  Edit51.SetBounds(24, 31, 130, 29);
+  Label61.SetBounds(170, 12, CellW - 500, 17);
+  Edit52.SetBounds(170, 31, CellW - 500, 29);
+  Label62.SetBounds(W - 360, 12, 76, 17);
+  Edit53.SetBounds(W - 360, 31, 76, 29);
+  Label63.SetBounds(W - 268, 12, 90, 17);
+  Edit54.SetBounds(W - 268, 31, 90, 29);
+  Label64.SetBounds(W - 162, 12, 138, 17);
+  Edit55.SetBounds(W - 162, 31, 138, 29);
+  BitBtn7.SetBounds(24, 88, 110, 38);
+  BitBtn8.SetBounds((W - 110) div 2, 88, 110, 38);
+  BitBtn9.SetBounds(W - 134, 88, 110, 38);
+
+  // --------------------------- HISTORIAL COMPRAS --------------------------
+  Panel6.Width := 240;
+  Panel6.Align := alRight;
+  DBGrid2.Align := alClient;
+  Label58.SetBounds(22, 24, 190, 17);
+  Edit46.SetBounds(22, 43, 196, 29);
+  Label59.SetBounds(22, 84, 190, 17);
+  Edit47.SetBounds(22, 103, 196, 29);
+  CheckBox3.SetBounds(18, 157, 200, 24);
+  Edit48.SetBounds(22, 186, 196, 29);
+  CheckBox4.SetBounds(18, 235, 200, 24);
+  Edit49.SetBounds(22, 264, 196, 29);
+  CheckBox5.SetBounds(18, 313, 200, 24);
+  Edit50.SetBounds(22, 342, 196, 29);
+  BitBtn14.SetBounds(56, Panel6.ClientHeight - 58, 128, 39);
+
+  // ------------------------------ ESTADÍSTICAS ----------------------------
+  if Assigned(TabSheet3) then
+  begin
+    Panel5.Width := 190;
+    Panel5.Align := alRight;
+    FStatsSummaryPanel.Height := 86;
+    FStatsSummaryPanel.Align := alBottom;
+    DBGrid1.Align := alClient;
+
+    Label57.SetBounds(16, 18, 158, 18);
+    ListBox5.SetBounds(16, 42, 158, 130);
+
+    StatCaptions[0] := Label76; StatValues[0] := lbUC;
+    StatCaptions[1] := Label75; StatValues[1] := lbIC;
+    StatCaptions[2] := Label68; StatValues[2] := lbUV;
+    StatCaptions[3] := Label65; StatValues[3] := lbIVP;
+    StatCaptions[4] := Label4; StatValues[4] := lbIVC;
+    StatCaptions[5] := Label3; StatValues[5] := lbBeneficio;
+
+    StatsW := FStatsSummaryPanel.ClientWidth;
+    StatsCellW := StatsW div 6;
+    for I := 0 to 5 do
+    begin
+      StatCaptions[I].SetBounds(I * StatsCellW + 6, 10, StatsCellW - 12, 20);
+      StatCaptions[I].Alignment := taCenter;
+      StatCaptions[I].Font.Name := 'Sans';
+      StatCaptions[I].Font.Height := -10;
+      StatValues[I].SetBounds(I * StatsCellW + 6, 35, StatsCellW - 12, 34);
+      StatValues[I].Alignment := taCenter;
+      StatValues[I].Font.Name := 'Sans';
+      StatValues[I].Font.Height := -15;
+      StatValues[I].Font.Style := [fsBold];
+      StatValues[I].Font.Color := RGBToColor(35, 112, 83);
+    end;
+  end;
+
+  // -------------------------------- GRÁFICAS ------------------------------
+  if Assigned(TabSheet5) then
+  begin
+    FChartsSidePanel.Width := 240;
+    FChartsSidePanel.Align := alRight;
+    Chart1.Align := alClient;
+
+    H := FChartsSidePanel.ClientHeight;
+    Label6.SetBounds(18, 20, 204, 18);
+    ListBox3.SetBounds(18, 43, 204, 80);
+    Label8.SetBounds(18, 145, 204, 18);
+    ListBox4.SetBounds(18, 168, 204, H - 338);
+    if ListBox4.Height < 120 then ListBox4.Height := 120;
+    Label70.SetBounds(18, H - 145, 204, 18);
+    ListBox9.SetBounds(18, H - 122, 204, 100);
+  end;
+
+  // Refuerzo de orden Z para Lazarus/GTK. Las tarjetas son TShape y quedan
+  // al fondo; etiquetas, botones y checkboxes conservan su estado Visible.
+  FGeneralCardMain.SendToBack;
+  FGeneralCardImage.SendToBack;
+  FGeneralCardDetails.SendToBack;
+  FGeneralTitleMain.BringToFront;
+  FGeneralTitleImage.BringToFront;
+  FGeneralTitleDetails.BringToFront;
+
+  if Assigned(TabSheet4) then
+  begin
+    FCostsCardPurchase.SendToBack;
+    FCostsCardSales.SendToBack;
+    FCostsCardSupplier.SendToBack;
+    FCostsCardPoints.SendToBack;
+    FCostsSupplierTitle.BringToFront;
+  end;
+
+  Panel8.BringToFront;
+  Panel7.BringToFront;
+  Panel6.BringToFront;
+  if Assigned(TabSheet3) then
+  begin
+    Panel5.BringToFront;
+    FStatsSummaryPanel.BringToFront;
+  end;
+  if Assigned(TabSheet5) then
+    FChartsSidePanel.BringToFront;
+
+  CheckBox1.BringToFront;
+  CheckBox3.BringToFront;
+  CheckBox4.BringToFront;
+  CheckBox5.BringToFront;
+  Panel1.BringToFront;
+  FPanelCabecera.BringToFront;
+end;
+
+
 //=============== Crea el formulario ================
 procedure ShowFormArticulos;
 begin
@@ -636,9 +1629,9 @@ begin
   //------------------- Roles ---------------------
   BitBtn4.Enabled:=CheckRoles(dbRoles, CgRol, 'Articulos', 2);//------------------ Boton Modificar
   BitBtn3.Enabled:=CheckRoles(dbRoles, CgRol, 'Articulos', 3);//------------------ Boton Borrar
-  if CheckRoles(dbRoles, CgRol, 'Articulos', 4)=False then Tabsheet3.Destroy;//--- Estadisticas
-  if CheckRoles(dbRoles, CgRol, 'Articulos', 4)=False then Tabsheet5.Destroy;//--- Graficas
-  if CheckRoles(dbRoles, CgRol, 'Articulos', 5)=False then Tabsheet4.Destroy;//--- Costos
+  if CheckRoles(dbRoles, CgRol, 'Articulos', 4)=False then FreeAndNil(TabSheet3);//--- Estadisticas
+  if CheckRoles(dbRoles, CgRol, 'Articulos', 4)=False then FreeAndNil(TabSheet5);//--- Graficas
+  if CheckRoles(dbRoles, CgRol, 'Articulos', 5)=False then FreeAndNil(TabSheet4);//--- Costos
   //---------------- CONEXION SIC -----------------
   if ActivarSIC='S' then
    begin
@@ -659,7 +1652,33 @@ begin
      CheckBox1.Enabled := False;
      CheckBox1.Visible := False;
   {$ENDIF}
+  AplicarEstiloModerno();
   LimpiaForm();// Inicializar los edit del formulario
+
+  { Al abrir el formulario, dejar preparado el campo Codigo. }
+  ActiveControl := Edit1;
+
+  { ESC actua antes que el control activo y respeta los paneles auxiliares. }
+  KeyPreview := True;
+  OnKeyDown := @FormKeyDown;
+  FLXAplicarTemaVisual(Self);
+end;
+
+procedure TFArticulos.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if Key <> VK_ESCAPE then Exit;
+
+  { El panel del S.I.C. se cierra antes de permitir salir del formulario. }
+  if Panel8.Visible then
+  begin
+    BitBtn18Click(nil);
+    Key := 0;
+    Exit;
+  end;
+
+  { En la pantalla principal equivale exactamente al boton Cerrar. }
+  Key := 0;
+  BitBtn1Click(nil);
 end;
 
 //================ CERRAR FORMULARIO ================

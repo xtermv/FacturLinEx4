@@ -23,11 +23,12 @@
 Unit Departamentos;
 
 {$mode Objfpc}{$H+}
+{$codepage utf8}
 
 Interface
 
 Uses
-  Classes, Sysutils, Lresources, Forms, Controls, Graphics, Dialogs, ComCtrls,
+  Classes, Sysutils, Math, StrUtils, Lresources, Forms, Controls, Graphics, Dialogs, ComCtrls,
   Buttons, ZConnection, ZDataset, StdCtrls, ExtCtrls, LCLType, DBGrids,
   TAGraph, TASeries, db, DbCtrls;
 
@@ -96,6 +97,7 @@ Type
     procedure BitBtn8Click(Sender: TObject);
     procedure Edit2KeyPress(Sender: TObject; var Key: char);
     Procedure Formcreate(Sender: Tobject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     Procedure Edit1enter(Sender: Tobject);
     Procedure Edit1exit(Sender: Tobject);
     Procedure LimpiaForm();
@@ -118,6 +120,29 @@ Type
 
     
   Private
+    { Capa visual moderna: no altera consultas ni tratamiento de datos. }
+    FHeaderBar: TPanel;
+    FHeaderTitle: TLabel;
+    FHeaderSubtitle: TLabel;
+    FCardGeneral: TShape;
+    FCardActivity: TShape;
+    FCardNotes: TShape;
+    FTitleGeneral: TLabel;
+    FTitleActivity: TLabel;
+    FTitleNotes: TLabel;
+    FStatsSummaryPanel: TPanel;
+    FGraphSidePanel: TPanel;
+    FOrdenGridCampo: string;
+    FOrdenGridDireccion: string;
+    function CrearPanelVisual(AParent: TWinControl; AColor: TColor): TPanel;
+    function CrearTarjetaVisual(AParent: TWinControl; AColor: TColor): TShape;
+    function CrearTituloVisual(AParent: TWinControl; const ACaption: string): TLabel;
+    procedure EstilarBoton(ABoton: TBitBtn; AColor: TColor; ATextoClaro: Boolean);
+    procedure AplicarEstiloModerno;
+    procedure RecolocarControles(Sender: TObject);
+    function SQLSinOrden(const ASQL: string): string;
+    procedure ActualizarFlechaGrid(AGrid: TDBGrid; const ACampo, ADireccion: string);
+    procedure DBGrid1TitleClick(Column: TColumn);
     { Private Declarations }
   Public
     { Public Declarations }
@@ -134,7 +159,461 @@ Implementation
 
 Uses
   Global, Funciones, Busquedas;
-  
+
+//============================================================================
+//====================== DISEÑO MODERNO Y ADAPTABLE ==========================
+//============================================================================
+function TFDepartamentos.CrearPanelVisual(AParent: TWinControl;
+  AColor: TColor): TPanel;
+begin
+  Result := TPanel.Create(Self);
+  Result.Parent := AParent;
+  Result.Caption := '';
+  Result.BevelOuter := bvNone;
+  Result.BevelInner := bvNone;
+  Result.ParentColor := False;
+  Result.Color := AColor;
+  Result.TabStop := False;
+end;
+
+function TFDepartamentos.CrearTarjetaVisual(AParent: TWinControl;
+  AColor: TColor): TShape;
+begin
+  Result := TShape.Create(Self);
+  Result.Parent := AParent;
+  Result.Shape := stRectangle;
+  Result.Brush.Style := bsSolid;
+  Result.Brush.Color := AColor;
+  Result.Pen.Style := psSolid;
+  Result.Pen.Color := RGBToColor(207, 219, 224);
+  Result.Pen.Width := 1;
+  Result.SendToBack;
+end;
+
+function TFDepartamentos.CrearTituloVisual(AParent: TWinControl;
+  const ACaption: string): TLabel;
+begin
+  Result := TLabel.Create(AParent);
+  Result.Parent := AParent;
+  Result.AutoSize := False;
+  Result.Caption := ACaption;
+  Result.Transparent := True;
+  Result.Layout := tlCenter;
+  Result.ParentFont := False;
+  Result.Font.Name := 'Sans';
+  Result.Font.Height := -13;
+  Result.Font.Style := [fsBold];
+  Result.Font.Color := RGBToColor(36, 76, 94);
+end;
+
+procedure TFDepartamentos.EstilarBoton(ABoton: TBitBtn;
+  AColor: TColor; ATextoClaro: Boolean);
+begin
+  if not Assigned(ABoton) then Exit;
+  ABoton.ParentFont := False;
+  ABoton.Font.Name := 'Sans';
+  ABoton.Font.Height := -12;
+  ABoton.Font.Style := [fsBold];
+  ABoton.Color := AColor;
+  ABoton.ShowHint := True;
+  if ATextoClaro then
+    ABoton.Font.Color := clWhite
+  else
+    ABoton.Font.Color := RGBToColor(30, 41, 59);
+end;
+
+function TFDepartamentos.SQLSinOrden(const ASQL: string): string;
+var
+  P: SizeInt;
+begin
+  Result := Trim(ASQL);
+  P := RPos(' ORDER BY ', UpperCase(Result));
+  if P > 0 then Result := Trim(Copy(Result, 1, P - 1));
+  if (Result <> '') and (Result[Length(Result)] = ';') then
+    Delete(Result, Length(Result), 1);
+end;
+
+procedure TFDepartamentos.ActualizarFlechaGrid(AGrid: TDBGrid;
+  const ACampo, ADireccion: string);
+var
+  I: Integer;
+  Titulo: string;
+begin
+  if not Assigned(AGrid) then Exit;
+  for I := 0 to AGrid.Columns.Count - 1 do
+  begin
+    Titulo := AGrid.Columns[I].Title.Caption;
+    Titulo := StringReplace(Titulo, ' ▲', '', [rfReplaceAll]);
+    Titulo := StringReplace(Titulo, ' ▼', '', [rfReplaceAll]);
+    if SameText(AGrid.Columns[I].FieldName, ACampo) then
+      if SameText(ADireccion, 'DESC') then
+        Titulo := Titulo + ' ▼'
+      else
+        Titulo := Titulo + ' ▲';
+    AGrid.Columns[I].Title.Caption := Titulo;
+  end;
+end;
+
+procedure TFDepartamentos.DBGrid1TitleClick(Column: TColumn);
+var
+  Campo, BaseSQL: string;
+begin
+  if not Assigned(Column) then Exit;
+  Campo := Trim(Column.FieldName);
+  if Campo = '' then Exit;
+
+  if SameText(FOrdenGridCampo, Campo) then
+  begin
+    if SameText(FOrdenGridDireccion, 'ASC') then
+      FOrdenGridDireccion := 'DESC'
+    else
+      FOrdenGridDireccion := 'ASC';
+  end
+  else
+  begin
+    FOrdenGridCampo := Campo;
+    FOrdenGridDireccion := 'ASC';
+  end;
+
+  BaseSQL := SQLSinOrden(dbEsta.SQL.Text);
+  if BaseSQL = '' then Exit;
+
+  dbEsta.DisableControls;
+  try
+    dbEsta.Close;
+    dbEsta.SQL.Text := BaseSQL + ' ORDER BY `' + Campo + '` ' +
+      FOrdenGridDireccion;
+    dbEsta.Open;
+  finally
+    dbEsta.EnableControls;
+  end;
+  ActualizarFlechaGrid(DBGrid1, FOrdenGridCampo, FOrdenGridDireccion);
+end;
+
+procedure TFDepartamentos.AplicarEstiloModerno;
+var
+  I: Integer;
+  C: TComponent;
+begin
+  Caption := 'FacturLinEx · Gestión de departamentos';
+  Color := RGBToColor(241, 245, 247);
+  ParentFont := False;
+  Font.Name := 'Sans';
+  Font.Height := -12;
+  Constraints.MinWidth := 1100;
+  Constraints.MinHeight := 720;
+  WindowState := wsMaximized;
+
+  FHeaderBar := CrearPanelVisual(Self, RGBToColor(18, 76, 91));
+  FHeaderBar.Align := alTop;
+  FHeaderBar.Height := 92;
+  FHeaderBar.TabOrder := 0;
+  FHeaderBar.BringToFront;
+
+  FHeaderTitle := CrearTituloVisual(FHeaderBar, 'GESTIÓN DE DEPARTAMENTOS');
+  FHeaderTitle.Font.Height := -20;
+  FHeaderTitle.Font.Color := clWhite;
+  FHeaderSubtitle := CrearTituloVisual(FHeaderBar,
+    'Organización, seguimiento, estadísticas y evolución de ventas');
+  FHeaderSubtitle.Font.Height := -11;
+  FHeaderSubtitle.Font.Style := [];
+  FHeaderSubtitle.Font.Color := RGBToColor(205, 232, 237);
+
+  Label1.Parent := FHeaderBar;
+  Edit1.Parent := FHeaderBar;
+  Label7.Parent := FHeaderBar;
+  Label1.Caption := 'Código de departamento';
+  Label1.Transparent := True;
+  Label7.Transparent := True;
+
+  Panel1.Align := alBottom;
+  Panel1.TabOrder := 2;
+  Panel1.Height := 66;
+  Panel1.Caption := '';
+  Panel1.BevelOuter := bvNone;
+  Panel1.BevelInner := bvNone;
+  Panel1.ParentColor := False;
+  Panel1.Color := RGBToColor(225, 233, 236);
+  Panel1.BringToFront;
+
+  PageControl1.Align := alClient;
+  PageControl1.TabOrder := 1;
+  PageControl1.Font.Name := 'Sans';
+  PageControl1.Font.Height := -12;
+  PageControl1.Color := RGBToColor(241, 245, 247);
+  PageControl1.SendToBack;
+  TabSheet1.Color := RGBToColor(241, 245, 247);
+  if Assigned(TabSheet2) then TabSheet2.Color := RGBToColor(241, 245, 247);
+  if Assigned(TabSheet3) then TabSheet3.Color := RGBToColor(241, 245, 247);
+
+  TabSheet1.Caption := ' Ficha general ';
+  if Assigned(TabSheet2) then TabSheet2.Caption := ' Estadísticas ';
+  if Assigned(TabSheet3) then TabSheet3.Caption := ' Gráficas ';
+
+  FCardGeneral := CrearTarjetaVisual(TabSheet1, RGBToColor(226, 238, 242));
+  FCardActivity := CrearTarjetaVisual(TabSheet1, RGBToColor(231, 243, 234));
+  FCardNotes := CrearTarjetaVisual(TabSheet1, RGBToColor(250, 244, 226));
+  FTitleGeneral := CrearTituloVisual(TabSheet1, 'IDENTIFICACIÓN DEL DEPARTAMENTO');
+  FTitleActivity := CrearTituloVisual(TabSheet1, 'ACTIVIDAD');
+  FTitleNotes := CrearTituloVisual(TabSheet1, 'OBSERVACIONES');
+
+  Label2.Caption := 'Nombre';
+  Label11.Caption := 'Última venta';
+  Label12.Caption := 'Última compra';
+  Label17.Caption := 'Observaciones';
+
+  for I := 0 to ComponentCount - 1 do
+  begin
+    C := Components[I];
+    if C is TLabel then
+    begin
+      TLabel(C).ParentFont := False;
+      TLabel(C).Font.Name := 'Sans';
+      if TLabel(C).Font.Height > -11 then TLabel(C).Font.Height := -11;
+      if (C <> FHeaderTitle) and (C <> FHeaderSubtitle) then
+        TLabel(C).Font.Color := RGBToColor(37, 52, 61);
+    end
+    else if C is TEdit then
+    begin
+      TEdit(C).ParentFont := False;
+      TEdit(C).Font.Name := 'Sans';
+      TEdit(C).Font.Height := -12;
+      TEdit(C).Color := clWhite;
+    end
+    else if C is TMemo then
+    begin
+      TMemo(C).ParentFont := False;
+      TMemo(C).Font.Name := 'Sans';
+      TMemo(C).Font.Height := -12;
+    end
+    else if C is TListBox then
+    begin
+      TListBox(C).ParentFont := False;
+      TListBox(C).Font.Name := 'Sans';
+      TListBox(C).Font.Height := -11;
+      TListBox(C).Color := clWhite;
+    end;
+  end;
+
+  Label1.Font.Color := clWhite;
+  Label1.Font.Style := [fsBold];
+  Label1.Font.Height := -11;
+  Label7.Font.Color := clWhite;
+  Label7.Font.Style := [fsBold];
+  Label7.Font.Height := -13;
+  Label7.Layout := tlCenter;
+
+  Edit1.ParentFont := False;
+  Edit1.Font.Name := 'Sans';
+  Edit1.Font.Height := -13;
+  Edit1.Font.Style := [fsBold];
+  Edit1.Font.Color := RGBToColor(18, 76, 91);
+  Edit1.Color := clWhite;
+
+  Label2.Font.Style := [fsBold];
+  Label11.Font.Style := [fsBold];
+  Label12.Font.Style := [fsBold];
+  Label17.Font.Style := [fsBold];
+
+  Memo1.Color := RGBToColor(255, 253, 247);
+  Memo1.Font.Color := RGBToColor(30, 41, 59);
+  Memo1.BorderStyle := bsSingle;
+  Memo1.ScrollBars := ssAutoVertical;
+
+  { Recorrido de teclado coherente con la nueva disposición. }
+  Edit2.TabOrder := 0;
+  BitBtn8.TabOrder := 1;
+  BitBtn8.TabStop := True;
+  Edit10.TabOrder := 2;
+  Edit11.TabOrder := 3;
+  Memo1.TabOrder := 4;
+
+  EstilarBoton(BitBtn2, RGBToColor(5, 150, 105), True);
+  EstilarBoton(BitBtn3, RGBToColor(185, 28, 28), True);
+  EstilarBoton(BitBtn4, RGBToColor(18, 76, 91), True);
+  EstilarBoton(BitBtn5, RGBToColor(218, 226, 230), False);
+  EstilarBoton(BitBtn6, RGBToColor(218, 226, 230), False);
+  EstilarBoton(BitBtn1, RGBToColor(71, 85, 105), True);
+  EstilarBoton(BitBtn8, RGBToColor(23, 96, 116), True);
+  BitBtn4.Caption := 'Modificar';
+  BitBtn5.Caption := 'Anterior';
+  BitBtn6.Caption := 'Siguiente';
+  BitBtn8.Hint := 'Buscar departamento por nombre';
+
+  if Assigned(TabSheet2) then
+  begin
+    FStatsSummaryPanel := CrearPanelVisual(TabSheet2, RGBToColor(232, 239, 242));
+    FStatsSummaryPanel.Align := alBottom;
+    FStatsSummaryPanel.Height := 90;
+
+    Panel3.Align := alRight;
+    Panel3.Width := 220;
+    Panel3.Caption := '';
+    Panel3.BevelOuter := bvNone;
+    Panel3.ParentColor := False;
+    Panel3.Color := RGBToColor(230, 241, 234);
+
+    DBGrid1.Align := alClient;
+    DBGrid1.BorderSpacing.Bottom := 0;
+    DBGrid1.DefaultRowHeight := 27;
+    DBGrid1.ParentFont := False;
+    DBGrid1.Font.Name := 'Sans';
+    DBGrid1.Font.Height := -11;
+    DBGrid1.TitleFont.Name := 'Sans';
+    DBGrid1.TitleFont.Style := [fsBold];
+    DBGrid1.FixedColor := RGBToColor(211, 225, 231);
+    DBGrid1.OnTitleClick := @DBGrid1TitleClick;
+    FOrdenGridCampo := 'DD1';
+    FOrdenGridDireccion := 'ASC';
+    ActualizarFlechaGrid(DBGrid1, FOrdenGridCampo, FOrdenGridDireccion);
+
+    Label76.Parent := FStatsSummaryPanel; lbUC.Parent := FStatsSummaryPanel;
+    Label75.Parent := FStatsSummaryPanel; lbIC.Parent := FStatsSummaryPanel;
+    Label68.Parent := FStatsSummaryPanel; lbUV.Parent := FStatsSummaryPanel;
+    Label65.Parent := FStatsSummaryPanel; lbIVP.Parent := FStatsSummaryPanel;
+    Label4.Parent := FStatsSummaryPanel; lbIVC.Parent := FStatsSummaryPanel;
+    Label3.Parent := FStatsSummaryPanel; lbBeneficio.Parent := FStatsSummaryPanel;
+
+    Label76.Caption := 'U. compradas';
+    Label75.Caption := 'Importe comprado';
+    Label68.Caption := 'U. vendidas';
+    Label65.Caption := 'Venta a PVP';
+    Label4.Caption := 'Venta a coste';
+    Label3.Caption := 'Beneficio';
+    lbBeneficio.Font.Color := RGBToColor(5, 150, 105);
+  end;
+
+  if Assigned(TabSheet3) then
+  begin
+    FGraphSidePanel := CrearPanelVisual(TabSheet3, RGBToColor(232, 239, 242));
+    FGraphSidePanel.Align := alRight;
+    FGraphSidePanel.Width := 260;
+    Label47.Parent := FGraphSidePanel;
+    Label48.Parent := FGraphSidePanel;
+    Label49.Parent := FGraphSidePanel;
+    ListBox3.Parent := FGraphSidePanel;
+    ListBox4.Parent := FGraphSidePanel;
+    ListBox6.Parent := FGraphSidePanel;
+    Chart1.Align := alClient;
+    Chart1.Visible := True;
+    Chart1.Color := clWhite;
+    Chart1.Title.Font.Color := RGBToColor(18, 76, 91);
+    Chart1.Title.Font.Style := [fsBold];
+  end;
+
+  OnResize := @RecolocarControles;
+  RecolocarControles(Self);
+end;
+
+procedure TFDepartamentos.RecolocarControles(Sender: TObject);
+const
+  Pad = 24;
+  Gap = 18;
+var
+  W, H, ContentW, TopH, BottomY, BottomH, LeftW, RightW: Integer;
+  X, Y, FieldX, FieldW, ItemW, I: Integer;
+  LabelsStats: array[0..5] of TLabel;
+  ValuesStats: array[0..5] of TLabel;
+begin
+  if not Assigned(FHeaderBar) then Exit;
+
+  W := FHeaderBar.ClientWidth;
+  FHeaderTitle.SetBounds(24, 10, Max(360, W - 610), 30);
+  FHeaderSubtitle.SetBounds(26, 44, Max(360, W - 610), 22);
+
+  X := Max(560, W - 520);
+  Label1.SetBounds(X, 18, 154, 24);
+  Edit1.SetBounds(X + 160, 14, 92, 32);
+  Label7.SetBounds(X + 266, 14, Max(210, W - X - 284), 32);
+
+  ContentW := Max(760, TabSheet1.ClientWidth - (Pad * 2));
+  H := TabSheet1.ClientHeight;
+  TopH := 142;
+  BottomY := Pad + TopH + Gap;
+  BottomH := Max(230, H - BottomY - Pad);
+  LeftW := Max(350, (ContentW * 38) div 100);
+  RightW := ContentW - LeftW - Gap;
+
+  FCardGeneral.SetBounds(Pad, Pad, ContentW, TopH);
+  FTitleGeneral.SetBounds(Pad + 18, Pad + 10, ContentW - 36, 28);
+
+  FCardActivity.SetBounds(Pad, BottomY, LeftW, BottomH);
+  FTitleActivity.SetBounds(Pad + 18, BottomY + 10, LeftW - 36, 28);
+
+  FCardNotes.SetBounds(Pad + LeftW + Gap, BottomY, RightW, BottomH);
+  FTitleNotes.SetBounds(Pad + LeftW + Gap + 18, BottomY + 10,
+    RightW - 36, 28);
+
+  X := Pad + 20;
+  FieldX := X + 120;
+  FieldW := ContentW - 174;
+  Y := Pad + 62;
+  Label2.SetBounds(X, Y + 5, 104, 22);
+  Edit2.SetBounds(FieldX, Y, Max(260, FieldW - 48), 30);
+  BitBtn8.SetBounds(FieldX + Max(260, FieldW - 40), Y, 40, 30);
+
+  X := Pad + 20;
+  FieldX := X + 116;
+  Y := BottomY + 62;
+  Label11.SetBounds(X, Y + 5, 100, 22);
+  Edit10.SetBounds(FieldX, Y, Max(130, LeftW - 156), 30);
+  Inc(Y, 58);
+  Label12.SetBounds(X, Y + 5, 100, 22);
+  Edit11.SetBounds(FieldX, Y, Max(130, LeftW - 156), 30);
+
+  X := Pad + LeftW + Gap + 20;
+  Y := BottomY + 50;
+  Label17.SetBounds(X, Y, RightW - 40, 22);
+  Memo1.SetBounds(X, Y + 26, RightW - 40, Max(120, BottomH - 92));
+
+  BitBtn2.SetBounds(18, 12, 126, 42);
+  BitBtn3.SetBounds(156, 12, 126, 42);
+  BitBtn4.SetBounds(294, 12, 126, 42);
+  BitBtn5.SetBounds(432, 12, 126, 42);
+  BitBtn6.SetBounds(570, 12, 126, 42);
+  BitBtn1.SetBounds(Panel1.ClientWidth - 144, 12, 126, 42);
+
+  if Assigned(TabSheet2) and Assigned(FStatsSummaryPanel) then
+  begin
+    Label57.SetBounds(16, 16, Panel3.ClientWidth - 32, 22);
+    ListBox5.SetBounds(16, 44, Panel3.ClientWidth - 32, 160);
+
+    LabelsStats[0] := Label76; ValuesStats[0] := lbUC;
+    LabelsStats[1] := Label75; ValuesStats[1] := lbIC;
+    LabelsStats[2] := Label68; ValuesStats[2] := lbUV;
+    LabelsStats[3] := Label65; ValuesStats[3] := lbIVP;
+    LabelsStats[4] := Label4; ValuesStats[4] := lbIVC;
+    LabelsStats[5] := Label3; ValuesStats[5] := lbBeneficio;
+    ItemW := Max(120, FStatsSummaryPanel.ClientWidth div 6);
+    for I := 0 to 5 do
+    begin
+      LabelsStats[I].SetBounds(I * ItemW + 8, 10, ItemW - 16, 20);
+      LabelsStats[I].Alignment := taCenter;
+      LabelsStats[I].Font.Style := [fsBold];
+      ValuesStats[I].SetBounds(I * ItemW + 8, 34, ItemW - 16, 34);
+      ValuesStats[I].Alignment := taCenter;
+      ValuesStats[I].Font.Height := -15;
+      ValuesStats[I].Font.Style := [fsBold];
+    end;
+  end;
+
+  if Assigned(TabSheet3) and Assigned(FGraphSidePanel) then
+  begin
+    Label47.SetBounds(16, 18, 228, 22);
+    ListBox3.SetBounds(16, 44, 228, 92);
+    Label48.SetBounds(16, 154, 228, 22);
+    ListBox4.SetBounds(16, 180, 228, 210);
+    Label49.SetBounds(16, 408, 228, 22);
+    ListBox6.SetBounds(16, 434, 228,
+      Max(90, FGraphSidePanel.ClientHeight - 450));
+    FGraphSidePanel.BringToFront;
+  end;
+
+  FCardGeneral.SendToBack;
+  FCardActivity.SendToBack;
+  FCardNotes.SendToBack;
+end;
+
 //=============== Crea el formulario ================
 procedure ShowFormDepartamentos;
 begin
@@ -153,8 +632,27 @@ Begin
   //------------------- Roles ---------------------
   BitBtn4.Enabled:=CheckRoles(dbRoles, CgRol, 'Departa', 2);//------------------ Boton Modificar
   BitBtn3.Enabled:=CheckRoles(dbRoles, CgRol, 'Departa', 3);//------------------ Boton Borrar
-  if CheckRoles(dbRoles, CgRol, 'Departa', 4)=False then Tabsheet2.Destroy;//--- Estadisticas
-  if CheckRoles(dbRoles, CgRol, 'Departa', 4)=False then Tabsheet3.Destroy;//--- Graficas
+  if CheckRoles(dbRoles, CgRol, 'Departa', 4)=False then FreeAndNil(Tabsheet2);//--- Estadisticas
+  if CheckRoles(dbRoles, CgRol, 'Departa', 4)=False then FreeAndNil(Tabsheet3);//--- Graficas
+
+  AplicarEstiloModerno;
+
+  { Al abrir el formulario, dejar preparado el campo Código. }
+  ActiveControl := Edit1;
+
+  { ESC actúa antes que el control activo. }
+  KeyPreview := True;
+  OnKeyDown := @FormKeyDown;
+end;
+
+procedure TFDepartamentos.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key <> VK_ESCAPE then Exit;
+
+  { En la página principal equivale exactamente al botón Cerrar. }
+  Key := 0;
+  BitBtn1Click(nil);
 end;
 
 //==================== CERRAR ======================
@@ -267,14 +765,28 @@ Begin
   Edit11.Text:=dbDepartamentos.FieldByName('D3').AsString;//------------- F.Ult.Compra
   Memo1.Lines.Text:=dbDepartamentos.FieldByName('D4').AsString;//-------- Observaciones
   //-------------- Estadisticas --------------------
-  RellenaEsta(FormatDateTime('YYYY',Date));//--------- Rellenar los meses que esten a 0
-  dbEsta.Active:=False;
-  dbEsta.SQL.Text:='SELECT *, DD6-DD7 As BENEF FROM estadepa'+Tienda+' WHERE DD0="'+Edit1.Text+'"'+
-                   ' AND DD1='+FormatDateTime('YYYY',Date)+
-                   ' ORDER BY DD1 ASC, DD2 ASC';
-  dbEsta.Active:=True;
+  if Assigned(TabSheet2) then
+  begin
+    RellenaEsta(FormatDateTime('YYYY',Date));//--------- Rellenar los meses que esten a 0
+    dbEsta.Active:=False;
+    dbEsta.SQL.Text:='SELECT *, DD6-DD7 As BENEF FROM estadepa'+Tienda+' WHERE DD0="'+Edit1.Text+'"'+
+                     ' AND DD1='+FormatDateTime('YYYY',Date)+
+                     ' ORDER BY DD1 ASC, DD2 ASC';
+    dbEsta.Active:=True;
+    FOrdenGridCampo := 'DD1';
+    FOrdenGridDireccion := 'ASC';
+    ActualizarFlechaGrid(DBGrid1, FOrdenGridCampo, FOrdenGridDireccion);
+  end;
   //------------------------------------------------
-  CargaGrafica:=1; Graficas(); CargaGrafica:=0;//---------------- Pintar Graficas
+  if Assigned(TabSheet3) then
+  begin
+    CargaGrafica:=1;
+    try
+      Graficas();//---------------- Pintar Graficas
+    finally
+      CargaGrafica:=0;
+    end;
+  end;
 End;
 //===================== RELLENAR DATOS =======================
 Procedure TFDepartamentos.LlenaReg();

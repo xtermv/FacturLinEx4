@@ -5,7 +5,7 @@ unit uAsesorComprasFacturLinEx;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Dialogs, ExtCtrls, StdCtrls, Buttons,
+  Classes, SysUtils, Forms, Controls, LCLType, Dialogs, ExtCtrls, StdCtrls, Buttons,
   Grids, Graphics, IniFiles, ZConnection,
   uFLXCompraAnalyzer, uFLXGridStyle, uFLXExport, uFLXIcons, uFLXDialogs;
 
@@ -80,6 +80,7 @@ type
     procedure GuardarConfigClick(Sender: TObject);
     procedure CargarConfigClick(Sender: TObject);
     procedure FiltroRecomendadoClick(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure CerrarClick(Sender: TObject);
     function ConfigFileName: string;
     procedure GuardarConfig;
@@ -192,6 +193,8 @@ var
   L: TLabel;
 begin
   inherited CreateNew(AOwner, 1);
+  KeyPreview := True;
+  OnKeyDown := @FormKeyDown;
   FConn := AConnection;
   FTienda := ATienda;
   FResultados := TList.Create;
@@ -1019,6 +1022,22 @@ begin
     'Ahorro mínimo: 3%' + LineEnding +
     'Diagnóstico: cambios + revisar' + LineEnding + LineEnding +
     'Pulsa Analizar para recalcular con estos criterios.', 'Asesor de compras');
+end;
+
+procedure TAsesorComprasFacturLinExForm.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if Key <> VK_ESCAPE then Exit;
+
+  // Si hay un desplegable activo, ESC lo cierra antes de salir del formulario.
+  if (ActiveControl is TComboBox) and TComboBox(ActiveControl).DroppedDown then
+  begin
+    TComboBox(ActiveControl).DroppedDown := False;
+    Key := 0;
+    Exit;
+  end;
+
+  Key := 0;
+  CerrarClick(Self);
 end;
 
 procedure TAsesorComprasFacturLinExForm.CerrarClick(Sender: TObject);

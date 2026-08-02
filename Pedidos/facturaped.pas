@@ -29,7 +29,7 @@ interface
 uses
   Classes, SysUtils, FileUtil, LResources, Forms, Controls, Graphics, Dialogs,
   Buttons, ZConnection, StdCtrls, ZDataset, ExtDlgs, EditBtn, DBGrids, ExtCtrls,
-  db, LCLType, ComCtrls, LR_Class, LR_DBSet, dateutils;
+  db, Grids, LCLType, LCLIntf, ComCtrls, LR_Class, LR_DBSet, dateutils, StrUtils, Types;
 
 type
 
@@ -134,7 +134,40 @@ type
     function VerUltimaLinea: Integer;
 
   private
-    { private declarations }
+    FPanelSuperior: TPanel;
+    FPanelCabecera: TPanel;
+    FPanelFiltros: TPanel;
+    FLabelTitulo: TLabel;
+    FLabelSubtitulo: TLabel;
+    FOrdenGrid1Campo: String;
+    FOrdenGrid2Campo: String;
+    FOrdenGrid1Asc: Boolean;
+    FOrdenGrid2Asc: Boolean;
+    FArrastrandoPanel: Boolean;
+    FPanelMovido: Boolean;
+    FInicioArrastre: TPoint;
+    FInicioPanel: TPoint;
+    procedure ConfigurarAspecto;
+    procedure AjustarDiseno;
+    procedure FormularioShow(Sender: TObject);
+    procedure FormularioResize(Sender: TObject);
+    procedure FormularioKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure DBGrid1TitleClick(Column: TColumn);
+    procedure DBGrid2TitleClick(Column: TColumn);
+    procedure DBGridDrawColumnCell(Sender: TObject; const Rect: TRect;
+      DataCol: Integer; Column: TColumn; State: TGridDrawState);
+    procedure OrdenarConsulta(AQuery: TZQuery; const ACampo: String;
+      AAscendente: Boolean);
+    procedure ActualizarFlechas(AGrid: TDBGrid; const ACampo: String;
+      AAscendente: Boolean);
+    procedure CabeceraPanelMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure CabeceraPanelMouseMove(Sender: TObject; Shift: TShiftState;
+      X, Y: Integer);
+    procedure CabeceraPanelMouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure CentrarPanelFactura;
+    procedure AplicarSeleccionLegible;
   public
     { public declarations }
   end; 
@@ -155,9 +188,682 @@ var
 implementation
 
 uses
-  Global, Funciones, Busquedas;
+  Global, Funciones, Busquedas
+  {$IFDEF LCLGTK2}, gtk2, gdk2{$ENDIF};
 
 { TFFacturaped }
+
+
+const
+  COLOR_FONDO_FORM = $00F7F4F1;
+  COLOR_AZUL_OSCURO = $00784E1F;
+  COLOR_AZUL_MEDIO = $00B9824A;
+  COLOR_AZUL_CLARO = $00F3E7D8;
+  COLOR_TEXTO = $00413A35;
+  COLOR_VERDE_CLARO = $00E8F4E8;
+  COLOR_AMARILLO_CLARO = $00EAF7FF;
+  COLOR_BLANCO = $00FFFFFF;
+
+function QuitarFlechaOrden(const ATexto: String): String;
+begin
+  Result := StringReplace(ATexto, ' ▲', '', [rfReplaceAll]);
+  Result := StringReplace(Result, ' ▼', '', [rfReplaceAll]);
+end;
+
+procedure TFFacturaped.ConfigurarAspecto;
+var
+  I: Integer;
+begin
+  Caption := 'Facturación de albaranes de pedidos';
+  Color := COLOR_FONDO_FORM;
+  WindowState := wsMaximized;
+  Position := poScreenCenter;
+  KeyPreview := True;
+  Font.Name := 'Sans';
+  Font.Height := -14;
+
+  FPanelSuperior := TPanel.Create(Self);
+  FPanelSuperior.Parent := Self;
+  FPanelSuperior.Name := 'PanelSuperiorModerno';
+  FPanelSuperior.Caption := '';
+  FPanelSuperior.Align := alTop;
+  FPanelSuperior.Height := 310;
+  FPanelSuperior.BevelOuter := bvNone;
+  FPanelSuperior.Color := COLOR_FONDO_FORM;
+
+  FPanelCabecera := TPanel.Create(Self);
+  FPanelCabecera.Parent := FPanelSuperior;
+  FPanelCabecera.Name := 'PanelCabeceraModerna';
+  FPanelCabecera.Caption := '';
+  FPanelCabecera.Align := alTop;
+  FPanelCabecera.Height := 72;
+  FPanelCabecera.BevelOuter := bvNone;
+  FPanelCabecera.Color := COLOR_AZUL_OSCURO;
+
+  FLabelTitulo := TLabel.Create(Self);
+  FLabelTitulo.Parent := FPanelCabecera;
+  FLabelTitulo.Left := 24;
+  FLabelTitulo.Top := 10;
+  FLabelTitulo.Caption := 'FACTURACIÓN DE ALBARANES DE PEDIDOS';
+  FLabelTitulo.Font.Color := clWhite;
+  FLabelTitulo.Font.Height := -22;
+  FLabelTitulo.Font.Style := [fsBold];
+  FLabelTitulo.Transparent := True;
+
+  FLabelSubtitulo := TLabel.Create(Self);
+  FLabelSubtitulo.Parent := FPanelCabecera;
+  FLabelSubtitulo.Left := 25;
+  FLabelSubtitulo.Top := 42;
+  FLabelSubtitulo.Caption :=
+    'Seleccione los albaranes, revise los totales y genere la factura del proveedor.';
+  FLabelSubtitulo.Font.Color := clWhite;
+  FLabelSubtitulo.Font.Height := -13;
+  FLabelSubtitulo.Transparent := True;
+
+  FPanelFiltros := TPanel.Create(Self);
+  FPanelFiltros.Parent := FPanelSuperior;
+  FPanelFiltros.Name := 'PanelFiltrosModerno';
+  FPanelFiltros.Caption := '';
+  FPanelFiltros.Align := alClient;
+  FPanelFiltros.BevelOuter := bvNone;
+  FPanelFiltros.Color := COLOR_AZUL_CLARO;
+
+  Label1.Parent := FPanelFiltros;
+  Label3.Parent := FPanelFiltros;
+  Label4.Parent := FPanelFiltros;
+  Label5.Parent := FPanelFiltros;
+  Label6.Parent := FPanelFiltros;
+  Label14.Parent := FPanelFiltros;
+  Edit1.Parent := FPanelFiltros;
+  Edit3.Parent := FPanelFiltros;
+  Edit7.Parent := FPanelFiltros;
+  Edit8.Parent := FPanelFiltros;
+  ComboBox1.Parent := FPanelFiltros;
+  ComboBox4.Parent := FPanelFiltros;
+  ComboBox5.Parent := FPanelFiltros;
+  Button1.Parent := FPanelFiltros;
+  Button3.Parent := FPanelFiltros;
+  Button4.Parent := FPanelFiltros;
+  BitBtn1.Parent := FPanelFiltros;
+  BitBtn2.Parent := FPanelFiltros;
+  BitBtn3.Parent := FPanelFiltros;
+  Panel1.Parent := FPanelFiltros;
+
+  Label4.Caption := 'Tienda a facturar';
+  Label1.Caption := 'Proveedor';
+  Label14.Caption := 'Tipo doc. proveedor';
+  Label5.Caption := 'Serie de pedidos';
+  Label3.Caption := 'Desde fecha';
+  Label6.Caption := 'Hasta fecha';
+
+  for I := 0 to FPanelFiltros.ControlCount - 1 do
+    if FPanelFiltros.Controls[I] is TLabel then
+    begin
+      TLabel(FPanelFiltros.Controls[I]).ParentColor := True;
+      TLabel(FPanelFiltros.Controls[I]).Font.Color := COLOR_TEXTO;
+      TLabel(FPanelFiltros.Controls[I]).Font.Style := [fsBold];
+      TLabel(FPanelFiltros.Controls[I]).Transparent := True;
+    end;
+
+  Panel1.Caption := '';
+  Panel1.Color := COLOR_AMARILLO_CLARO;
+  Panel1.BevelOuter := bvNone;
+  Panel1.Visible := True;
+  Label7.Caption := 'ALBARANES MARCADOS / SIN MARCAR';
+  Label7.ParentColor := True;
+  Label7.Transparent := True;
+  Label7.Font.Color := COLOR_AZUL_OSCURO;
+  Label7.Font.Style := [fsBold];
+  Label7.Alignment := taCenter;
+  RadioButton1.ParentColor := True;
+  RadioButton2.ParentColor := True;
+  RadioButton3.ParentColor := True;
+  RadioButton1.Font.Color := COLOR_TEXTO;
+  RadioButton2.Font.Color := COLOR_TEXTO;
+  RadioButton3.Font.Color := COLOR_TEXTO;
+
+  Button1.Caption := '...';
+  Button1.Hint := 'Buscar proveedor por nombre';
+  Button1.ShowHint := True;
+  Button3.Caption := '...';
+  Button3.Hint := 'Seleccionar fecha inicial';
+  Button3.ShowHint := True;
+  Button4.Caption := '...';
+  Button4.Hint := 'Seleccionar fecha final';
+  Button4.ShowHint := True;
+  Button1.Color := COLOR_AZUL_MEDIO;
+  Button3.Color := COLOR_AZUL_MEDIO;
+  Button4.Color := COLOR_AZUL_MEDIO;
+  Button1.Font.Color := clWhite;
+  Button3.Font.Color := clWhite;
+  Button4.Font.Color := clWhite;
+  Button1.Font.Style := [fsBold];
+  Button3.Font.Style := [fsBold];
+  Button4.Font.Style := [fsBold];
+
+  BitBtn2.Caption := 'Consultar albaranes';
+  BitBtn3.Caption := 'Facturar albaranes';
+  BitBtn1.Caption := 'Cerrar';
+  BitBtn2.Color := COLOR_AZUL_MEDIO;
+  BitBtn3.Color := RGBToColor(74, 145, 92);
+  BitBtn1.Color := RGBToColor(220, 230, 238);
+  BitBtn2.Font.Color := clWhite;
+  BitBtn3.Font.Color := clWhite;
+  BitBtn1.Font.Color := COLOR_TEXTO;
+  BitBtn2.Font.Style := [fsBold];
+  BitBtn3.Font.Style := [fsBold];
+  BitBtn1.Font.Style := [fsBold];
+  BitBtn1.Visible := True;
+  BitBtn2.Visible := True;
+  BitBtn3.Visible := True;
+
+  Panel2.Caption := '';
+  Panel2.Align := alBottom;
+  Panel2.Height := 96;
+  Panel2.BevelOuter := bvNone;
+  Panel2.Color := RGBToColor(232, 240, 247);
+
+  Label12.Caption := 'N.º albaranes';
+  Label13.Caption := 'N.º facturas';
+  Label8.Caption := 'N.º líneas';
+  Label9.Caption := 'N.º artículos';
+  Label10.Caption := 'Importe';
+  Label11.Caption := 'Importe + impuestos';
+
+  for I := 0 to Panel2.ControlCount - 1 do
+  begin
+    if Panel2.Controls[I] is TLabel then
+    begin
+      TLabel(Panel2.Controls[I]).ParentColor := True;
+      TLabel(Panel2.Controls[I]).Transparent := True;
+      TLabel(Panel2.Controls[I]).Font.Color := COLOR_TEXTO;
+      TLabel(Panel2.Controls[I]).Font.Style := [fsBold];
+      TLabel(Panel2.Controls[I]).Alignment := taCenter;
+    end
+    else if Panel2.Controls[I] is TStaticText then
+    begin
+      TStaticText(Panel2.Controls[I]).Color := clWhite;
+      TStaticText(Panel2.Controls[I]).Font.Color := COLOR_AZUL_OSCURO;
+      TStaticText(Panel2.Controls[I]).Font.Height := -17;
+      TStaticText(Panel2.Controls[I]).Font.Style := [fsBold];
+      TStaticText(Panel2.Controls[I]).Alignment := taCenter;
+    end;
+  end;
+
+  PageControl1.Align := alClient;
+  PageControl1.TabPosition := tpTop;
+  PageControl1.Font.Color := COLOR_TEXTO;
+  PageControl1.Font.Style := [fsBold];
+  TabSheet1.Caption := '  Albaranes seleccionados  ';
+  TabSheet2.Caption := '  Facturas que se generarán  ';
+
+  DBGrid1.DefaultRowHeight := 28;
+  DBGrid2.DefaultRowHeight := 28;
+  DBGrid1.Color := clWhite;
+  DBGrid2.Color := clWhite;
+  DBGrid1.Font.Color := COLOR_TEXTO;
+  DBGrid2.Font.Color := COLOR_TEXTO;
+  DBGrid1.TitleFont.Color := COLOR_AZUL_OSCURO;
+  DBGrid2.TitleFont.Color := COLOR_AZUL_OSCURO;
+  DBGrid1.TitleFont.Style := [fsBold];
+  DBGrid2.TitleFont.Style := [fsBold];
+  DBGrid1.OnTitleClick := @DBGrid1TitleClick;
+  DBGrid2.OnTitleClick := @DBGrid2TitleClick;
+  DBGrid1.OnDrawColumnCell := @DBGridDrawColumnCell;
+  DBGrid2.OnDrawColumnCell := @DBGridDrawColumnCell;
+
+  Panel8.Caption := '';
+  Panel8.Width := 720;
+  Panel8.Height := 400;
+  Panel8.BevelOuter := bvNone;
+  Panel8.Color := RGBToColor(245, 248, 252);
+  Bevel2.Visible := False;
+  Label15.Visible := False;
+  Label36.Caption := 'DATOS DE LA FACTURA DEL PROVEEDOR';
+  Label36.Align := alNone;
+  Label36.Left := 0;
+  Label36.Top := 0;
+  Label36.Width := Panel8.ClientWidth;
+  Label36.Height := 54;
+  Label36.Alignment := taCenter;
+  Label36.Layout := tlCenter;
+  Label36.Color := COLOR_AZUL_OSCURO;
+  Label36.ParentColor := False;
+  Label36.Transparent := False;
+  Label36.Font.Color := clWhite;
+  Label36.Font.Height := -18;
+  Label36.Font.Style := [fsBold];
+  Label36.Cursor := crSizeAll;
+  Label36.OnMouseDown := @CabeceraPanelMouseDown;
+  Label36.OnMouseMove := @CabeceraPanelMouseMove;
+  Label36.OnMouseUp := @CabeceraPanelMouseUp;
+  Panel8.OnMouseMove := @CabeceraPanelMouseMove;
+  Panel8.OnMouseUp := @CabeceraPanelMouseUp;
+
+  Label37.Caption := 'Serie factura';
+  Label37.Left := 24;
+  Label37.Top := 78;
+  Label37.Width := 112;
+  Edit22.Left := 150;
+  Edit22.Top := 76;
+  Edit22.Width := 120;
+  Edit22.Height := 30;
+
+  Label33.Caption := 'N.º factura';
+  Label33.Left := 302;
+  Label33.Top := 78;
+  Label33.Width := 100;
+  Edit21.Left := 410;
+  Edit21.Top := 76;
+  Edit21.Width := 180;
+  Edit21.Height := 30;
+
+  Label34.Caption := 'Fecha factura';
+  Label34.Left := 24;
+  Label34.Top := 126;
+  Label34.Width := 112;
+  DateEdit1.Left := 150;
+  DateEdit1.Top := 124;
+  DateEdit1.Width := 170;
+  DateEdit1.Height := 30;
+
+  Label35.Caption := 'Observaciones';
+  Label35.Left := 24;
+  Label35.Top := 176;
+  Label35.Width := 112;
+  Memo1.Left := 150;
+  Memo1.Top := 170;
+  Memo1.Width := 540;
+  Memo1.Height := 92;
+
+  Label16.Left := 24;
+  Label16.Top := 278;
+  Label16.Width := 300;
+  Label16.Caption := 'Procesando documentos...';
+  Label16.ParentColor := True;
+  Label16.Transparent := True;
+  Label16.Font.Color := COLOR_TEXTO;
+  ProgressBar1.Left := 24;
+  ProgressBar1.Top := 304;
+  ProgressBar1.Width := 666;
+  ProgressBar1.Height := 22;
+
+  BitBtn23.Left := 24;
+  BitBtn23.Top := 344;
+  BitBtn23.Width := 190;
+  BitBtn23.Height := 44;
+  BitBtn23.Caption := 'Aceptar y facturar';
+  BitBtn23.Color := RGBToColor(74, 145, 92);
+  BitBtn23.Font.Color := clWhite;
+  BitBtn23.Font.Style := [fsBold];
+
+  BitBtn20.Left := 520;
+  BitBtn20.Top := 344;
+  BitBtn20.Width := 170;
+  BitBtn20.Height := 44;
+  BitBtn20.Caption := 'Cancelar';
+  BitBtn20.Color := RGBToColor(220, 230, 238);
+  BitBtn20.Font.Color := COLOR_TEXTO;
+  BitBtn20.Font.Style := [fsBold];
+
+  Label33.ParentColor := True;
+  Label34.ParentColor := True;
+  Label35.ParentColor := True;
+  Label37.ParentColor := True;
+  Label33.Transparent := True;
+  Label34.Transparent := True;
+  Label35.Transparent := True;
+  Label37.Transparent := True;
+  Label33.Font.Color := COLOR_TEXTO;
+  Label34.Font.Color := COLOR_TEXTO;
+  Label35.Font.Color := COLOR_TEXTO;
+  Label37.Font.Color := COLOR_TEXTO;
+  Label33.Font.Style := [fsBold];
+  Label34.Font.Style := [fsBold];
+  Label35.Font.Style := [fsBold];
+  Label37.Font.Style := [fsBold];
+
+  OnShow := @FormularioShow;
+  OnResize := @FormularioResize;
+  OnKeyDown := @FormularioKeyDown;
+
+  FOrdenGrid1Campo := '';
+  FOrdenGrid2Campo := '';
+  FOrdenGrid1Asc := True;
+  FOrdenGrid2Asc := True;
+  FArrastrandoPanel := False;
+  FPanelMovido := False;
+
+  FPanelSuperior.BringToFront;
+  Panel2.BringToFront;
+  AjustarDiseno;
+end;
+
+procedure TFFacturaped.AjustarDiseno;
+var
+  W, MainRight, Grupo, X, I: Integer;
+  Etiquetas: array[0..5] of TLabel;
+  Valores: array[0..5] of TStaticText;
+begin
+  if (FPanelSuperior = nil) or (FPanelFiltros = nil) then Exit;
+  W := FPanelFiltros.ClientWidth;
+
+  if W >= 1200 then
+  begin
+    FPanelSuperior.Height := 310;
+    Panel1.Left := W - 390;
+    Panel1.Top := 12;
+    Panel1.Width := 366;
+    Panel1.Height := 170;
+    MainRight := Panel1.Left - 20;
+
+    Label4.SetBounds(24, 16, 118, 30);
+    ComboBox1.SetBounds(150, 16, 300, 30);
+    Label14.SetBounds(470, 16, 126, 30);
+    ComboBox5.SetBounds(605, 16, MainRight - 605, 30);
+
+    Label1.SetBounds(24, 60, 118, 30);
+    Edit1.SetBounds(150, 60, 90, 30);
+    Button1.SetBounds(248, 60, 42, 30);
+    Edit3.SetBounds(298, 60, MainRight - 298, 30);
+
+    Label5.SetBounds(24, 104, 118, 30);
+    ComboBox4.SetBounds(150, 104, 300, 30);
+    Label3.SetBounds(470, 104, 88, 30);
+    Edit7.SetBounds(565, 104, 135, 30);
+    Button3.SetBounds(708, 104, 42, 30);
+
+    Label6.SetBounds(470, 148, 88, 30);
+    Edit8.SetBounds(565, 148, 135, 30);
+    Button4.SetBounds(708, 148, 42, 30);
+
+    BitBtn2.SetBounds(24, 184, 200, 44);
+    BitBtn3.SetBounds(238, 184, 220, 44);
+    BitBtn1.SetBounds(472, 184, 150, 44);
+  end
+  else
+  begin
+    FPanelSuperior.Height := 430;
+    Panel1.Left := W - 350;
+    Panel1.Top := 12;
+    Panel1.Width := 326;
+    Panel1.Height := 170;
+    MainRight := Panel1.Left - 20;
+
+    Label4.SetBounds(24, 16, 118, 30);
+    ComboBox1.SetBounds(150, 16, MainRight - 150, 30);
+    Label14.SetBounds(24, 58, 118, 30);
+    ComboBox5.SetBounds(150, 58, MainRight - 150, 30);
+
+    Label1.SetBounds(24, 100, 118, 30);
+    Edit1.SetBounds(150, 100, 90, 30);
+    Button1.SetBounds(248, 100, 42, 30);
+    Edit3.SetBounds(298, 100, MainRight - 298, 30);
+
+    Label5.SetBounds(24, 142, 118, 30);
+    ComboBox4.SetBounds(150, 142, MainRight - 150, 30);
+
+    Label3.SetBounds(24, 190, 118, 30);
+    Edit7.SetBounds(150, 190, 145, 30);
+    Button3.SetBounds(303, 190, 42, 30);
+    Label6.SetBounds(356, 190, 84, 30);
+    Edit8.SetBounds(442, 190, 145, 30);
+    Button4.SetBounds(595, 190, 42, 30);
+
+    BitBtn2.SetBounds(24, 244, 200, 44);
+    BitBtn3.SetBounds(238, 244, 220, 44);
+    BitBtn1.SetBounds(472, 244, 150, 44);
+  end;
+
+  Label7.SetBounds(12, 10, Panel1.ClientWidth - 24, 28);
+  RadioButton1.SetBounds(20, 48, Panel1.ClientWidth - 40, 26);
+  RadioButton2.SetBounds(20, 87, Panel1.ClientWidth - 40, 26);
+  RadioButton3.SetBounds(20, 126, Panel1.ClientWidth - 40, 26);
+
+  Etiquetas[0] := Label12;
+  Etiquetas[1] := Label13;
+  Etiquetas[2] := Label8;
+  Etiquetas[3] := Label9;
+  Etiquetas[4] := Label10;
+  Etiquetas[5] := Label11;
+  Valores[0] := StaticText4;
+  Valores[1] := StaticText5;
+  Valores[2] := StaticText2;
+  Valores[3] := StaticText3;
+  Valores[4] := StaticText7;
+  Valores[5] := StaticText8;
+
+  Grupo := (Panel2.ClientWidth - 36) div 6;
+  for I := 0 to 5 do
+  begin
+    X := 18 + (I * Grupo);
+    Etiquetas[I].SetBounds(X, 10, Grupo - 12, 22);
+    Valores[I].SetBounds(X, 38, Grupo - 12, 36);
+  end;
+
+  if Panel8.Visible and (not FPanelMovido) then
+    CentrarPanelFactura;
+end;
+
+procedure TFFacturaped.FormularioShow(Sender: TObject);
+begin
+  AjustarDiseno;
+  AplicarSeleccionLegible;
+end;
+
+procedure TFFacturaped.FormularioResize(Sender: TObject);
+begin
+  AjustarDiseno;
+end;
+
+procedure TFFacturaped.FormularioKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key <> VK_ESCAPE then Exit;
+  Key := 0;
+  if Panel8.Visible then
+  begin
+    if Label16.Enabled then Exit;
+    BitBtn20Click(BitBtn20);
+  end
+  else
+    Close;
+end;
+
+procedure TFFacturaped.DBGridDrawColumnCell(Sender: TObject;
+  const Rect: TRect; DataCol: Integer; Column: TColumn; State: TGridDrawState);
+var
+  Grid: TDBGrid;
+begin
+  Grid := TDBGrid(Sender);
+  if gdSelected in State then
+  begin
+    Grid.Canvas.Brush.Color := COLOR_AZUL_OSCURO;
+    Grid.Canvas.Font.Color := clWhite;
+  end
+  else
+  begin
+    Grid.Canvas.Brush.Color := clWhite;
+    Grid.Canvas.Font.Color := COLOR_TEXTO;
+  end;
+  Grid.Canvas.FillRect(Rect);
+  Grid.DefaultDrawColumnCell(Rect, DataCol, Column, State);
+end;
+
+procedure TFFacturaped.OrdenarConsulta(AQuery: TZQuery;
+  const ACampo: String; AAscendente: Boolean);
+var
+  SQLTexto, SQLMayusculas, Direccion: String;
+  P: SizeInt;
+begin
+  if (AQuery = nil) or (not AQuery.Active) or (ACampo = '') then Exit;
+
+  SQLTexto := Trim(AQuery.SQL.Text);
+  if (SQLTexto <> '') and (SQLTexto[Length(SQLTexto)] = ';') then
+    Delete(SQLTexto, Length(SQLTexto), 1);
+  SQLMayusculas := UpperCase(SQLTexto);
+  P := RPos(' ORDER BY ', SQLMayusculas);
+  if P > 0 then
+    Delete(SQLTexto, P, Length(SQLTexto) - P + 1);
+
+  if AAscendente then
+    Direccion := ' ASC'
+  else
+    Direccion := ' DESC';
+
+  AQuery.DisableControls;
+  try
+    AQuery.Close;
+    AQuery.SQL.Text := TrimRight(SQLTexto) + ' ORDER BY ' + ACampo + Direccion;
+    AQuery.Open;
+  finally
+    AQuery.EnableControls;
+  end;
+end;
+
+procedure TFFacturaped.ActualizarFlechas(AGrid: TDBGrid;
+  const ACampo: String; AAscendente: Boolean);
+var
+  I: Integer;
+  TextoBase: String;
+begin
+  for I := 0 to AGrid.Columns.Count - 1 do
+  begin
+    TextoBase := QuitarFlechaOrden(AGrid.Columns[I].Title.Caption);
+    if SameText(AGrid.Columns[I].FieldName, ACampo) then
+    begin
+      if AAscendente then
+        AGrid.Columns[I].Title.Caption := TextoBase + ' ▲'
+      else
+        AGrid.Columns[I].Title.Caption := TextoBase + ' ▼';
+    end
+    else
+      AGrid.Columns[I].Title.Caption := TextoBase;
+  end;
+end;
+
+procedure TFFacturaped.DBGrid1TitleClick(Column: TColumn);
+begin
+  if (Column = nil) or (Column.FieldName = '') then Exit;
+  if SameText(FOrdenGrid1Campo, Column.FieldName) then
+    FOrdenGrid1Asc := not FOrdenGrid1Asc
+  else
+  begin
+    FOrdenGrid1Campo := Column.FieldName;
+    FOrdenGrid1Asc := True;
+  end;
+  OrdenarConsulta(dbMuestraf, FOrdenGrid1Campo, FOrdenGrid1Asc);
+  ActualizarFlechas(DBGrid1, FOrdenGrid1Campo, FOrdenGrid1Asc);
+end;
+
+procedure TFFacturaped.DBGrid2TitleClick(Column: TColumn);
+begin
+  if (Column = nil) or (Column.FieldName = '') then Exit;
+  if SameText(FOrdenGrid2Campo, Column.FieldName) then
+    FOrdenGrid2Asc := not FOrdenGrid2Asc
+  else
+  begin
+    FOrdenGrid2Campo := Column.FieldName;
+    FOrdenGrid2Asc := True;
+  end;
+  OrdenarConsulta(dbAlbacc, FOrdenGrid2Campo, FOrdenGrid2Asc);
+  ActualizarFlechas(DBGrid2, FOrdenGrid2Campo, FOrdenGrid2Asc);
+end;
+
+procedure TFFacturaped.CabeceraPanelMouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  if Button <> mbLeft then Exit;
+  FArrastrandoPanel := True;
+  FPanelMovido := True;
+  GetCursorPos(FInicioArrastre);
+  FInicioPanel := Point(Panel8.Left, Panel8.Top);
+  SetCapture(Panel8.Handle);
+end;
+
+procedure TFFacturaped.CabeceraPanelMouseMove(Sender: TObject;
+  Shift: TShiftState; X, Y: Integer);
+var
+  P: TPoint;
+  NovoLeft, NovoTop: Integer;
+begin
+  if not FArrastrandoPanel then Exit;
+  GetCursorPos(P);
+  NovoLeft := FInicioPanel.X + (P.X - FInicioArrastre.X);
+  NovoTop := FInicioPanel.Y + (P.Y - FInicioArrastre.Y);
+  if ClientWidth <= Panel8.Width then
+    NovoLeft := 0
+  else
+  begin
+    if NovoLeft < 0 then NovoLeft := 0;
+    if NovoLeft > ClientWidth - Panel8.Width then
+      NovoLeft := ClientWidth - Panel8.Width;
+  end;
+  if ClientHeight <= Panel8.Height then
+    NovoTop := 0
+  else
+  begin
+    if NovoTop < 0 then NovoTop := 0;
+    if NovoTop > ClientHeight - Panel8.Height then
+      NovoTop := ClientHeight - Panel8.Height;
+  end;
+  Panel8.Left := NovoLeft;
+  Panel8.Top := NovoTop;
+end;
+
+procedure TFFacturaped.CabeceraPanelMouseUp(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  if Button <> mbLeft then Exit;
+  FArrastrandoPanel := False;
+  ReleaseCapture;
+end;
+
+procedure TFFacturaped.CentrarPanelFactura;
+begin
+  Panel8.Left := (ClientWidth - Panel8.Width) div 2;
+  Panel8.Top := (ClientHeight - Panel8.Height) div 2;
+  if Panel8.Left < 0 then Panel8.Left := 0;
+  if Panel8.Top < 0 then Panel8.Top := 0;
+  Panel8.BringToFront;
+end;
+
+procedure TFFacturaped.AplicarSeleccionLegible;
+
+  procedure AplicarRecursivo(AControl: TWinControl);
+  var
+    I: Integer;
+    WC: TWinControl;
+    {$IFDEF LCLGTK2}
+    CorFondo, CorTexto: TGdkColor;
+    {$ENDIF}
+  begin
+    {$IFDEF LCLGTK2}
+    if AControl.HandleAllocated and
+       ((AControl is TCustomEdit) or
+        (AControl is TCustomComboBox) or
+        (AControl is TCustomMemo)) then
+    begin
+      gdk_color_parse(PChar('#1F4E78'), @CorFondo);
+      gdk_color_parse(PChar('#FFFFFF'), @CorTexto);
+      gtk_widget_modify_base(PGtkWidget(AControl.Handle),
+        GTK_STATE_SELECTED, @CorFondo);
+      gtk_widget_modify_text(PGtkWidget(AControl.Handle),
+        GTK_STATE_SELECTED, @CorTexto);
+    end;
+    {$ENDIF}
+    for I := 0 to AControl.ControlCount - 1 do
+      if AControl.Controls[I] is TWinControl then
+      begin
+        WC := TWinControl(AControl.Controls[I]);
+        AplicarRecursivo(WC);
+      end;
+  end;
+
+begin
+  AplicarRecursivo(Self);
+end;
+
 
 //====================== CREAR FORMULARIO =======================
 procedure ShowFormFacturaPedi();
@@ -169,6 +875,11 @@ begin
 end;
 procedure TFFacturaped.FormCreate(Sender: TObject);
 begin
+  ConfigurarAspecto;
+
+  { Protección adicional: esta consulta alimenta el resumen de facturas y
+    debe usar la misma conexión común que el resto de consultas del formulario. }
+  dbMuestraf.Connection := DataModule1.dbConexion;
   //--------- Conectar con la bbdd e inicializar datos globales
   //Conectate(dbConnect);   // Utilizamos datamodule1.dbConexión para toda la aplicación.
   //------------------------
@@ -262,7 +973,7 @@ begin
   StaticText7.Caption:=FormatFloat('0.00',dbSumas.Fields[2].AsFloat);//--------- Importe
   StaticText8.Caption:=FormatFloat('0.00',dbSumas.Fields[3].AsFloat);//--------- Importe + impuestos
   dbSumas.Active:=False;
-  if dbAlbacc.RecordCount>0 then BitBtn3.Enabled:=True;
+  BitBtn3.Enabled:=dbAlbacc.RecordCount>0;
 end;
 
 
@@ -280,7 +991,11 @@ begin
   if Application.MessageBox(PChar(TxtQ),'FacturLinEx', boxstyle) = IDNO Then Exit;
   Label33.Caption:='N. Factura';  Label34.Caption:='Fecha Factura';
   DateEdit1.Date:=Date; Edit21.Text:='';
+  FPanelMovido:=False;
   Panel8.Visible:=True;
+  CentrarPanelFactura;
+  Application.ProcessMessages;
+  AplicarSeleccionLegible;
   PageControl1.Enabled:=False; BitBtn2.Enabled:=False; BitBtn3.Enabled:=False;
 end;
 
@@ -332,6 +1047,7 @@ end;
 procedure TFFacturaped.BitBtn20Click(Sender: TObject);
 begin
   Panel8.Visible:=False;
+  FPanelMovido:=False;
   PageControl1.Enabled:=True; BitBtn2.Enabled:=True; BitBtn3.Enabled:=True;
 end;
 

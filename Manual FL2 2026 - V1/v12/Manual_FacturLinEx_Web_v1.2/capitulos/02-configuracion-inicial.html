@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Manual de uso y configuración de FacturLinEx" name="description"/>
+<meta content="#155eef" name="theme-color"/>
+<title>2. Configuración inicial | Manual FacturLinEx</title>
+<link href="../assets/img/favicon.svg" rel="icon" type="image/svg+xml"/>
+<link href="../assets/css/styles.css" rel="stylesheet"/>
+<script defer="" src="../assets/js/search-index.js"></script>
+<script defer="" src="../assets/js/app.js"></script>
+</head>
+<body>
+<a class="skip-link" href="#contenido">Saltar al contenido</a>
+<header class="topbar">
+<button aria-expanded="false" aria-label="Abrir menú" class="icon-button menu-button" data-menu-button="" type="button">☰</button>
+<a aria-label="Inicio del manual FacturLinEx" class="brand" href="../index.html">
+<span class="brand-mark">FLX</span><span><strong>FacturLinEx</strong><small>Manual de uso y configuración</small></span>
+</a>
+<div class="top-actions">
+<button aria-label="Buscar en el manual" class="search-button" data-search-open="" type="button"><span aria-hidden="true">⌕</span><span>Buscar</span><kbd>Ctrl K</kbd></button>
+<button aria-label="Cambiar modo de color" class="icon-button" data-theme-toggle="" type="button">◐</button>
+</div>
+</header>
+<div class="menu-overlay" data-menu-overlay=""></div>
+<div class="app-shell">
+<aside class="sidebar" data-sidebar="">
+<div class="sidebar-inner">
+<a class="sidebar-home" href="../index.html">⌂ Página principal</a>
+<nav aria-label="Capítulos del manual"><a href="../capitulos/control-del-documento.html"><span class="nav-number">i</span><span>Control del documento</span></a>
+<a href="../capitulos/01-primeros-pasos-y-navegacion.html"><span class="nav-number">1</span><span>Primeros pasos y navegación</span></a>
+<a aria-current="page" class="active" href="../capitulos/02-configuracion-inicial.html"><span class="nav-number">2</span><span>Configuración inicial</span></a>
+<a href="../capitulos/03-clientes.html"><span class="nav-number">3</span><span>Clientes</span></a>
+<a href="../capitulos/04-articulos-familias-y-tarifas.html"><span class="nav-number">4</span><span>Artículos, familias y tarifas</span></a>
+<a href="../capitulos/05-ventas-y-tpv.html"><span class="nav-number">5</span><span>Ventas y TPV</span></a>
+<a href="../capitulos/06-caja-cobros-y-creditos.html"><span class="nav-number">6</span><span>Caja, cobros y créditos</span></a>
+<a href="../capitulos/07-compras-pedidos-y-existencias.html"><span class="nav-number">7</span><span>Compras, pedidos y existencias</span></a>
+<a href="../capitulos/08-facturacion-impresion-pdf-y-correo.html"><span class="nav-number">8</span><span>Facturación, impresión, PDF y correo</span></a>
+<a href="../capitulos/09-verifactu-y-documentos-rectificativos.html"><span class="nav-number">9</span><span>VeriFactu y documentos rectificativos</span></a>
+<a href="../capitulos/10-dashboard-consultas-y-estadisticas.html"><span class="nav-number">10</span><span>Dashboard, consultas y estadísticas</span></a>
+<a href="../capitulos/11-copias-de-seguridad-y-mantenimiento.html"><span class="nav-number">11</span><span>Copias de seguridad y mantenimiento</span></a>
+<a href="../capitulos/12-solucion-de-problemas.html"><span class="nav-number">12</span><span>Solución de problemas</span></a>
+<a href="../capitulos/13-anexos-y-referencia-rapida.html"><span class="nav-number">13</span><span>Anexos y referencia rápida</span></a>
+<a href="../capitulos/14-plan-de-ampliacion-del-manual.html"><span class="nav-number">14</span><span>Plan de ampliación del manual</span></a></nav>
+<div class="sidebar-downloads"><strong>Descargas</strong>
+<a href="../descargas/Manual_FacturLinEx_v1.2_Mantenimiento_Solucion_Problemas_Ilustrado.pdf">Manual PDF</a>
+<a href="../descargas/Manual_FacturLinEx_v1.2_Mantenimiento_Solucion_Problemas_Ilustrado.docx">Manual DOCX</a>
+</div>
+</div>
+</aside>
+<main class="main-content" id="contenido">
+<article class="manual-page">
+<header class="chapter-header"><span class="eyebrow">Capítulo 2</span><h1>Configuración inicial</h1><p class="chapter-version">Edición v1.2 · Mantenimiento y solución de problemas ilustrado</p></header>
+<nav aria-label="En esta página" class="page-toc"><strong>En esta página</strong><a href="#2-1-orden-recomendado-de-configuracion">2.1 Orden recomendado de configuración</a><a href="#2-2-pantalla-general-y-acciones">2.2 Pantalla general y acciones</a><a href="#2-3-conexiones-tienda-puesto-correo">2.3 Conexiones, tienda, puesto y correo</a><a href="#2-4-empresa-tienda-puesto-usuario">2.4 Empresa, tienda, puesto y usuario</a><a href="#2-5-series-y-numeraciones">2.5 Series y numeraciones</a><a href="#2-6-impresion-pdf-qr-rutas">2.6 Impresión, PDF, QR y rutas</a><a href="#2-7-verifactu-entorno-produccion">2.7 VeriFactu y entorno de producción</a><a href="#2-8-sistema-de-puntos">2.8 Sistema de puntos</a><a href="#2-9-copias-seguridad-iniciales">2.9 Copias de seguridad iniciales</a><a href="#2-10-lista-final-verificacion">2.10 Lista final de verificación</a></nav>
+<div class="chapter-content">
+<aside class="callout callout-success"><span aria-hidden="true" class="callout-icon">✓</span><div><strong>ESTADO</strong><p>Capítulo ilustrado con capturas reales de la configuración modernizada v9 final. Los datos de servidor, correo y rutas personales se han anonimizado porque la versión web está pensada para publicación pública.</p></div></aside>
+<h2 id="2-1-orden-recomendado-de-configuracion">2.1 Orden recomendado de configuración <a aria-label="Enlace a esta sección" class="heading-link" href="#2-1-orden-recomendado-de-configuracion">#</a></h2>
+<ol>
+<li>Comprobar la conexión con la base de datos principal.</li>
+<li>Configurar empresa, tienda activa y puesto.</li>
+<li>Revisar series, numeraciones y tipos de documento.</li>
+<li>Configurar impresoras, plantillas y generación de PDF.</li>
+<li>Configurar el correo electrónico y realizar una prueba de envío.</li>
+<li>Revisar impuestos, entorno de producción y opciones de VeriFactu.</li>
+<li>Configurar rutas de informes, recursos, iconos y copias de seguridad.</li>
+<li>Crear o revisar usuarios, permisos y formas de pago.</li>
+<li>Realizar una copia de seguridad y una venta completa de prueba.</li>
+</ol>
+<h2 id="2-2-pantalla-general-y-acciones">2.2 Pantalla general y acciones de configuración <a aria-label="Enlace a esta sección" class="heading-link" href="#2-2-pantalla-general-y-acciones">#</a></h2>
+<p>La ventana Configuración general de FacturLinEx reúne en pestañas los parámetros de empresa, conexión, actualizaciones, tickets y periféricos, impuestos, informes, aplicaciones externas, sistema de puntos y VeriFactu. La pestaña Conexiones permite comprobar en una sola pantalla la base principal, la tienda y el puesto activos, el sistema de información común y el envío SMTP.</p>
+<figure class="manual-figure figure-wide"><a href="../assets/img/configuracion/01_conexiones_anotada_anonima.png" target="_blank" title="Abrir imagen a tamaño completo"><img alt="Pantalla Conexiones de Configuración general, anotada y con datos sensibles anonimizados" loading="lazy" src="../assets/img/configuracion/01_conexiones_anotada_anonima.png"/></a><figcaption>Figura 2.1. Pestaña Conexiones de la configuración general. Captura real con datos sensibles anonimizados.<span>Pulse la imagen para ampliarla.</span></figcaption></figure>
+<div class="table-scroll"><table><thead><tr><th scope="col">N.º</th><th scope="col">Zona</th><th scope="col">Uso principal</th></tr></thead><tbody>
+<tr><td>1</td><td>Base de datos principal</td><td>Servidor, usuario, clave, nombre de BBDD, puerto, protocolo, motor y prueba de conexión.</td></tr>
+<tr><td>2</td><td>Tienda activa y puesto</td><td>Selecciona la tienda de trabajo y el puesto que identificará ventas e históricos.</td></tr>
+<tr><td>3</td><td>Sistema de información común</td><td>Conexión opcional a una segunda base compartida. Solo debe activarse cuando la instalación la utilice.</td></tr>
+<tr><td>4</td><td>Correo electrónico (SMTP)</td><td>Cuenta de envío, copia, usuario, clave, servidor, puerto, SSL/TLS, asunto y mensaje predeterminado.</td></tr>
+<tr><td>5</td><td>Acciones superiores</td><td>Guardar, Recuperar, Aplicar y Cerrar.</td></tr>
+</tbody></table></div>
+<aside class="callout callout-info"><span aria-hidden="true" class="callout-icon">i</span><div><strong>FLUJO RECOMENDADO</strong><p>Modifique un bloque cada vez, pulse la prueba correspondiente, use Aplicar para comprobar el cambio en la sesión y Guardar cuando los valores hayan quedado verificados. Recuperar vuelve a cargar la configuración guardada; no debe utilizarse como sustituto de una copia de seguridad.</p></div></aside>
+<h2 id="2-3-conexiones-tienda-puesto-correo">2.3 Conexiones, tienda, puesto y correo <a aria-label="Enlace a esta sección" class="heading-link" href="#2-3-conexiones-tienda-puesto-correo">#</a></h2>
+<h3 id="2-3-1-base-datos-principal">2.3.1 Base de datos principal <a aria-label="Enlace a esta sección" class="heading-link" href="#2-3-1-base-datos-principal">#</a></h3>
+<p>Los parámetros deben coincidir con el servidor MariaDB que utiliza la instalación. Antes de guardar, pulse Test de conexión. Si la prueba falla, no cambie otros apartados hasta resolver servidor, red, puerto, credenciales o nombre de la base de datos.</p>
+<div class="figure-grid">
+<figure class="manual-figure"><a href="../assets/img/configuracion/01a_bbdd_principal.png" target="_blank"><img alt="Base de datos principal y botón Test de conexión" loading="lazy" src="../assets/img/configuracion/01a_bbdd_principal.png"/></a><figcaption>Figura 2.2. Base de datos principal y prueba de conexión.</figcaption></figure>
+<figure class="manual-figure"><a href="../assets/img/configuracion/01b_tienda_puesto_sic.png" target="_blank"><img alt="Tienda, puesto y sistema de información común" loading="lazy" src="../assets/img/configuracion/01b_tienda_puesto_sic.png"/></a><figcaption>Figura 2.3. Tienda, puesto y sistema de información común.</figcaption></figure>
+</div>
+<ul class="checklist">
+<li><span aria-hidden="true" class="checkbox"></span><span>El servidor responde desde el equipo donde se ejecuta FacturLinEx.</span></li>
+<li><span aria-hidden="true" class="checkbox"></span><span>La base de datos indicada existe y corresponde al entorno esperado.</span></li>
+<li><span aria-hidden="true" class="checkbox"></span><span>El usuario dispone de permisos suficientes, pero no más de los necesarios.</span></li>
+<li><span aria-hidden="true" class="checkbox"></span><span>Puerto, protocolo y motor coinciden con la instalación real.</span></li>
+<li><span aria-hidden="true" class="checkbox"></span><span>La prueba de conexión finaliza correctamente antes de Guardar.</span></li>
+</ul>
+<aside class="callout callout-warning"><span aria-hidden="true" class="callout-icon">!</span><div><strong>PRECAUCIÓN</strong><p>No cambie charset, collation o motor de tablas en producción sin copia previa y sin comprobar las tablas afectadas. Las mezclas de collations pueden provocar errores en consultas JOIN.</p></div></aside>
+<h3 id="2-3-2-tienda-puesto">2.3.2 Tienda activa y puesto <a aria-label="Enlace a esta sección" class="heading-link" href="#2-3-2-tienda-puesto">#</a></h3>
+<p>La tienda determina el conjunto de tablas y configuraciones sobre el que se trabaja. El puesto identifica la terminal de venta y debe coincidir con la letra mostrada en Ventas y con la registrada en históricos. Cambiar de tienda o puesto no es un cambio visual: puede dirigir las operaciones a otra numeración o conjunto de datos.</p>
+<h3 id="2-3-3-sic">2.3.3 Sistema de información común <a aria-label="Enlace a esta sección" class="heading-link" href="#2-3-3-sic">#</a></h3>
+<p>El bloque SIC es opcional. Cuando no se utilice, debe permanecer desactivado y sus controles aparecerán inactivos. Al activarlo, configure y pruebe su conexión de forma independiente a la base principal.</p>
+<h3 id="2-3-4-correo-smtp">2.3.4 Correo electrónico SMTP <a aria-label="Enlace a esta sección" class="heading-link" href="#2-3-4-correo-smtp">#</a></h3>
+<figure class="manual-figure figure-medium"><a href="../assets/img/configuracion/01c_correo_smtp.png" target="_blank"><img alt="Configuración SMTP con datos anonimizados" loading="lazy" src="../assets/img/configuracion/01c_correo_smtp.png"/></a><figcaption>Figura 2.4. Configuración del correo SMTP. Datos de acceso anonimizados.</figcaption></figure>
+<p>Compruebe cuenta de envío, usuario, clave, servidor, puerto y seguridad. SSL y TLS deben seguir los requisitos del proveedor de correo. La cuenta de copia es opcional. El asunto y el texto predeterminados pueden adaptarse, pero conviene mantenerlos claros y no incluir información confidencial.</p>
+<ul class="checklist">
+<li><span aria-hidden="true" class="checkbox"></span><span>El remitente y el usuario son correctos.</span></li>
+<li><span aria-hidden="true" class="checkbox"></span><span>El servidor y el puerto corresponden al proveedor.</span></li>
+<li><span aria-hidden="true" class="checkbox"></span><span>SSL/TLS están configurados según el servicio utilizado.</span></li>
+<li><span aria-hidden="true" class="checkbox"></span><span>La cuenta puede enviar desde el equipo de FacturLinEx.</span></li>
+<li><span aria-hidden="true" class="checkbox"></span><span>La prueba llega al destinatario y el aviso final queda visible por encima de los demás controles.</span></li>
+</ul>
+<h2 id="2-4-empresa-tienda-puesto-usuario">2.4 Empresa, tienda, puesto y usuario <a aria-label="Enlace a esta sección" class="heading-link" href="#2-4-empresa-tienda-puesto-usuario">#</a></h2>
+<p>Los datos de empresa se utilizan en documentos, informes y comunicaciones. La tienda determina el ámbito de trabajo; el puesto identifica la terminal; y el usuario debe quedar asociado a las operaciones que realiza.</p>
+<div class="table-scroll"><table><thead><tr><th scope="col">Elemento</th><th scope="col">Comprobaciones</th></tr></thead><tbody>
+<tr><td>Empresa</td><td>Razón social, NIF, dirección, datos de contacto, datos fiscales y textos de documentos.</td></tr>
+<tr><td>Tienda</td><td>Código, descripción, rutas y correspondencia con las tablas de la instalación.</td></tr>
+<tr><td>Puesto</td><td>Letra o identificador visible en Ventas y coherente con históricos, caja y series.</td></tr>
+<tr><td>Usuario</td><td>Nombre, credenciales, permisos y asociación correcta a las operaciones.</td></tr>
+</tbody></table></div>
+<h2 id="2-5-series-y-numeraciones">2.5 Series y numeraciones <a aria-label="Enlace a esta sección" class="heading-link" href="#2-5-series-y-numeraciones">#</a></h2>
+<p>Cada tipo de documento utiliza series y contadores. Las series permiten separar tiendas, ejercicios, documentos simplificados, rectificativas y otros circuitos. Antes de comenzar a facturar deben revisarse todos los tipos que se utilizarán.</p>
+<div class="table-scroll"><table><thead><tr><th scope="col">Tipo</th><th scope="col">Ejemplos habituales</th><th scope="col">Uso</th></tr></thead><tbody>
+<tr><td>Normal</td><td>A26, B26...</td><td>Facturas o documentos completos.</td></tr>
+<tr><td>Simplificada</td><td>FS-A26</td><td>Facturas simplificadas o tickets fiscales.</td></tr>
+<tr><td>Rectificativa normal</td><td>R26</td><td>Corrección de factura normal.</td></tr>
+<tr><td>Rectificativa simplificada</td><td>FS-R26</td><td>Corrección de factura simplificada.</td></tr>
+</tbody></table></div>
+<aside class="callout callout-danger"><span aria-hidden="true" class="callout-icon">!</span><div><strong>CRÍTICO</strong><p>No reinicie ni altere manualmente una numeración que ya haya generado documentos fiscales sin analizar sus consecuencias. Puede producir duplicidades, huecos incoherentes o problemas de trazabilidad.</p></div></aside>
+<h2 id="2-6-impresion-pdf-qr-rutas">2.6 Impresión, PDF, QR y rutas del sistema <a aria-label="Enlace a esta sección" class="heading-link" href="#2-6-impresion-pdf-qr-rutas">#</a></h2>
+<p>La pestaña VeriFactu también agrupa opciones de impresión de informes, textos para el QR cuando no se utiliza VeriFactu y un resumen de las rutas efectivas del sistema. Esta información ayuda a comprobar que plantillas, iconos, módulos y ficheros de configuración se buscan en la ubicación correcta.</p>
+<figure class="manual-figure figure-wide"><a href="../assets/img/configuracion/02_informes_verifactu_entorno_anotada.png" target="_blank"><img alt="Impresión, datos QR y entorno del sistema, captura anotada y anonimizada" loading="lazy" src="../assets/img/configuracion/02_informes_verifactu_entorno_anotada.png"/></a><figcaption>Figura 2.5. Impresión de informes, datos QR y entorno del sistema. Captura real anonimizada.<span>Pulse la imagen para ampliarla.</span></figcaption></figure>
+<div class="table-scroll"><table><thead><tr><th scope="col">N.º</th><th scope="col">Zona</th><th scope="col">Qué revisar</th></tr></thead><tbody>
+<tr><td>1</td><td>Impresión de informes</td><td>Visualización previa, impresión directa o generación PDF.</td></tr>
+<tr><td>2</td><td>Datos QR no VeriFactu</td><td>Leyendas y texto usados cuando el circuito no genera el QR fiscal de VeriFactu.</td></tr>
+<tr><td>3</td><td>Entorno del sistema</td><td>Modo producción y rutas de configuración, BBDD, informes, iconos, ejecutable y extras.</td></tr>
+<tr><td>4</td><td>Acciones</td><td>Guardar, Recuperar, Aplicar y Cerrar.</td></tr>
+</tbody></table></div>
+<div class="figure-grid">
+<figure class="manual-figure"><a href="../assets/img/configuracion/02a_impresion_informes.png" target="_blank"><img alt="Modalidades de salida de informes" loading="lazy" src="../assets/img/configuracion/02a_impresion_informes.png"/></a><figcaption>Figura 2.6. Modalidad de salida de informes.</figcaption></figure>
+<figure class="manual-figure"><a href="../assets/img/configuracion/02b_datos_qr.png" target="_blank"><img alt="Datos de QR cuando no se utiliza VeriFactu" loading="lazy" src="../assets/img/configuracion/02b_datos_qr.png"/></a><figcaption>Figura 2.7. Textos del QR cuando no se utiliza VeriFactu.</figcaption></figure>
+</div>
+<p>Seleccione una única modalidad de salida según el puesto: visualizar antes de imprimir para revisar, imprimir directamente para un flujo rápido o generar PDF cuando el documento debe archivarse o enviarse. Los textos del bloque QR no VeriFactu no sustituyen al QR fiscal generado por el circuito VeriFactu.</p>
+<ul class="checklist">
+<li><span aria-hidden="true" class="checkbox"></span><span>Impresora de tickets seleccionada y probada.</span></li>
+<li><span aria-hidden="true" class="checkbox"></span><span>Impresora de informes o facturas seleccionada.</span></li>
+<li><span aria-hidden="true" class="checkbox"></span><span>Plantillas .lrf localizadas y compatibles con los campos utilizados.</span></li>
+<li><span aria-hidden="true" class="checkbox"></span><span>Ruta de PDF con permisos de escritura.</span></li>
+<li><span aria-hidden="true" class="checkbox"></span><span>Previsualización, impresión directa y PDF probados según el uso real.</span></li>
+<li><span aria-hidden="true" class="checkbox"></span><span>Las rutas mostradas corresponden a la instalación que se está ejecutando.</span></li>
+</ul>
+<h2 id="2-7-verifactu-entorno-produccion">2.7 VeriFactu y entorno de producción <a aria-label="Enlace a esta sección" class="heading-link" href="#2-7-verifactu-entorno-produccion">#</a></h2>
+<figure class="manual-figure figure-wide"><a href="../assets/img/configuracion/02c_entorno_produccion.png" target="_blank"><img alt="Indicador del entorno del sistema y rutas efectivas" loading="lazy" src="../assets/img/configuracion/02c_entorno_produccion.png"/></a><figcaption>Figura 2.8. Indicador del entorno y rutas efectivas de FacturLinEx.</figcaption></figure>
+<p>Antes de activar el entorno real deben revisarse los datos de empresa, las series, la fecha y hora del sistema, el encadenamiento, la cola y la configuración de envío. El rótulo Sistema en producción debe ser visible y no debe confundirse con un entorno de pruebas.</p>
+<aside class="callout callout-danger"><span aria-hidden="true" class="callout-icon">!</span><div><strong>PRODUCCIÓN</strong><p>No active el entorno real hasta completar pruebas controladas de venta, generación de documento, cola, hash, impresión y consulta del monitor. Una prueba debe utilizar numeraciones y datos preparados para ese fin.</p></div></aside>
+<h2 id="2-8-sistema-de-puntos">2.8 Sistema de puntos <a aria-label="Enlace a esta sección" class="heading-link" href="#2-8-sistema-de-puntos">#</a></h2>
+<p>El sistema de puntos se activa globalmente en Configuración y además debe habilitarse en la ficha del cliente. Los niveles se asignan en la ficha del artículo; el nivel 0 es el valor predeterminado.</p>
+<figure class="manual-figure figure-wide"><a href="../assets/img/configuracion/03_sistema_puntos_anotado.png" target="_blank"><img alt="Configuración general del sistema de puntos con niveles" loading="lazy" src="../assets/img/configuracion/03_sistema_puntos_anotado.png"/></a><figcaption>Figura 2.9. Configuración general del sistema de puntos.<span>Pulse la imagen para ampliarla.</span></figcaption></figure>
+<div class="table-scroll"><table><thead><tr><th scope="col">Nivel</th><th scope="col">Comportamiento</th></tr></thead><tbody>
+<tr><td>0</td><td>Artículo fuera de promoción de puntos.</td></tr>
+<tr><td>1</td><td>Artículo en promoción de puntos.</td></tr>
+<tr><td>2</td><td>Promoción con porcentaje extra sobre la venta convertido en puntos.</td></tr>
+<tr><td>3</td><td>Promoción con porcentaje extra y puntos fijos adicionales.</td></tr>
+<tr><td>4</td><td>Promoción basada únicamente en puntos fijos.</td></tr>
+</tbody></table></div>
+<aside class="callout callout-info"><span aria-hidden="true" class="callout-icon">i</span><div><strong>ACTIVACIÓN COORDINADA</strong><p>La configuración global por sí sola no basta: compruebe la opción del cliente y el nivel del artículo. Pruebe una venta con importes conocidos antes de utilizar los puntos en producción.</p></div></aside>
+<h2 id="2-9-copias-seguridad-iniciales">2.9 Copias de seguridad iniciales <a aria-label="Enlace a esta sección" class="heading-link" href="#2-9-copias-seguridad-iniciales">#</a></h2>
+<p>Debe existir al menos una copia completa antes de comenzar a trabajar y otra antes de cualquier cambio importante. Una copia solo es fiable cuando puede restaurarse correctamente.</p>
+<ul>
+<li>Guardar una copia fuera del servidor principal.</li>
+<li>Conservar varias fechas, no únicamente la última.</li>
+<li>Registrar qué versión del programa y de la base de datos corresponde a cada copia.</li>
+<li>Probar periódicamente la restauración en un entorno separado.</li>
+</ul>
+<h2 id="2-10-lista-final-verificacion">2.10 Lista final de verificación <a aria-label="Enlace a esta sección" class="heading-link" href="#2-10-lista-final-verificacion">#</a></h2>
+<ul class="checklist">
+<li><span aria-hidden="true" class="checkbox"></span><span>La base de datos principal supera la prueba de conexión.</span></li>
+<li><span aria-hidden="true" class="checkbox"></span><span>Tienda, puesto y usuario corresponden al lugar de trabajo.</span></li>
+<li><span aria-hidden="true" class="checkbox"></span><span>Las series y numeraciones están revisadas.</span></li>
+<li><span aria-hidden="true" class="checkbox"></span><span>Impresoras, plantillas y PDF funcionan.</span></li>
+<li><span aria-hidden="true" class="checkbox"></span><span>El correo SMTP ha superado una prueba real.</span></li>
+<li><span aria-hidden="true" class="checkbox"></span><span>Las rutas mostradas existen y son accesibles.</span></li>
+<li><span aria-hidden="true" class="checkbox"></span><span>VeriFactu está en el entorno correcto y el monitor puede consultarse.</span></li>
+<li><span aria-hidden="true" class="checkbox"></span><span>El sistema de puntos está desactivado o configurado de forma coherente.</span></li>
+<li><span aria-hidden="true" class="checkbox"></span><span>Existe una copia de seguridad verificable.</span></li>
+<li><span aria-hidden="true" class="checkbox"></span><span>Se ha realizado una venta completa de prueba.</span></li>
+</ul>
+<aside class="callout callout-success"><span aria-hidden="true" class="callout-icon">✓</span><div><strong>CONFIGURACIÓN PREPARADA</strong><p>La instalación puede pasar a uso normal cuando todas las comprobaciones anteriores se han completado y se conserva una copia de seguridad del estado validado.</p></div></aside>
+</div>
+<nav aria-label="Capítulos anterior y siguiente" class="chapter-navigation"><a class="chapter-nav-card previous" href="01-primeros-pasos-y-navegacion.html"><small>Anterior</small><strong>← 1. Primeros pasos y navegación</strong></a><a class="chapter-nav-card next" href="03-clientes.html"><small>Siguiente</small><strong>3. Clientes →</strong></a></nav>
+</article>
+<footer class="site-footer">
+<p><strong>Manual FacturLinEx v1.2</strong> · Mantenimiento y solución de problemas ilustrado · 25 de julio de 2026</p>
+<p>Documento vivo: los procedimientos se actualizarán cuando cambie una función validada.</p>
+<a href="../descargas/Manual_FacturLinEx_v1.2_Mantenimiento_Solucion_Problemas_Ilustrado.pdf">Descargar PDF</a>
+</footer>
+</main>
+</div>
+<dialog aria-label="Buscar en el manual" class="search-dialog" data-search-dialog="">
+<form class="search-panel" method="dialog">
+<div class="search-input-row">
+<span aria-hidden="true">⌕</span>
+<input aria-label="Texto de búsqueda" autocomplete="off" data-search-input="" placeholder="Buscar clientes, ventas, VeriFactu..." type="search"/>
+<button aria-label="Cerrar búsqueda" class="dialog-close" type="submit">Esc</button>
+</div>
+<div class="search-hint" data-search-hint="">Escribe al menos dos caracteres.</div>
+<div aria-live="polite" class="search-results" data-search-results=""></div>
+</form>
+</dialog>
+</body>
+</html>

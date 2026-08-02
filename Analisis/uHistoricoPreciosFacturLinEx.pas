@@ -5,7 +5,7 @@ unit uHistoricoPreciosFacturLinEx;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Dialogs, ExtCtrls, StdCtrls, Buttons,
+  Classes, SysUtils, Forms, Controls, LCLType, Dialogs, ExtCtrls, StdCtrls, Buttons,
   Grids, Graphics, DB, ZConnection, ZDataset,
   uFLXGridStyle, uFLXExport, uFLXIcons, uFLXDialogs;
 
@@ -90,6 +90,7 @@ type
     procedure HistClick(Sender: TObject);
     procedure ActualizarClick(Sender: TObject);
     procedure CSVClick(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure CerrarClick(Sender: TObject);
     procedure GridPrepareCanvas(Sender: TObject; aCol, aRow: Integer; aState: TGridDrawState);
     procedure GridMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -193,6 +194,8 @@ var
   L: TLabel;
 begin
   inherited CreateNew(AOwner, 1);
+  KeyPreview := True;
+  OnKeyDown := @FormKeyDown;
   FConn := AConnection;
   FTienda := ATienda;
   FSortCol := -1;
@@ -878,6 +881,22 @@ procedure THistoricoPreciosFacturLinExForm.CSVClick(Sender: TObject);
 begin
   if FLXGuardarCSVConDialogo(Grid, 'Exportar histórico de precios a CSV', 'historico_precios_facturlinex.csv') then
     ShowMessage('CSV generado correctamente.');
+end;
+
+procedure THistoricoPreciosFacturLinExForm.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if Key <> VK_ESCAPE then Exit;
+
+  // Si hay un desplegable activo, ESC lo cierra antes de salir del formulario.
+  if (ActiveControl is TComboBox) and TComboBox(ActiveControl).DroppedDown then
+  begin
+    TComboBox(ActiveControl).DroppedDown := False;
+    Key := 0;
+    Exit;
+  end;
+
+  Key := 0;
+  CerrarClick(Self);
 end;
 
 procedure THistoricoPreciosFacturLinExForm.CerrarClick(Sender: TObject);

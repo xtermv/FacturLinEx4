@@ -1,25 +1,26 @@
 object FUniPedi: TFUniPedi
   Left = 188
-  Height = 692
+  Height = 800
   Top = 148
-  Width = 1012
+  Width = 1200
   ActiveControl = DBGrid1
-  Caption = 'Unión de Pedidos'
-  ClientHeight = 692
-  ClientWidth = 1012
+  Caption = 'FacturLinEx · Unión de pedidos'
+  ClientHeight = 800
+  ClientWidth = 1200
   KeyPreview = True
   OnClose = FormClose
   OnCreate = FormCreate
-  Position = poDesktopCenter
+  Position = poScreenCenter
+  WindowState = wsMaximized
   ShowHint = True
   LCLVersion = '0.9.28.2'
   object BitBtn3: TBitBtn
     Left = 8
     Height = 39
-    Hint = 'Dar entrada al pedido/albaran/factura.'
+    Hint = 'Copia las líneas del pedido origen al destino y elimina el origen'
     Top = 640
     Width = 176
-    Caption = 'Unir Pedidos'
+    Caption = 'Unir pedidos seleccionados'
     Glyph.Data = {
       460E0000424D460E00000000000036000000280000001E0000001E0000000100
       200000000000100E000064000000640000000000000000000000FFFFFFFFFFFF
@@ -144,10 +145,10 @@ object FUniPedi: TFUniPedi
   object BitBtn2: TBitBtn
     Left = 824
     Height = 39
-    Hint = 'Salir de entrada de pedidos'
+    Hint = 'Cerrar sin realizar cambios'
     Top = 640
     Width = 176
-    Caption = 'Salir'
+    Caption = 'Cerrar'
     Glyph.Data = {
       C6070000424DC607000000000000360000002800000016000000160000000100
       2000000000009007000064000000640000000000000000000000EBECED009EA0

@@ -1,5 +1,3 @@
-{ This is an automatically generated lazarus resource file }
-
 LazarusResources.Add('TFUsuarios','FORMDATA',[
   'TPF0'#10'TFUsuarios'#9'FUsuarios'#4'Left'#2#0#6'Height'#3#254#3#3'Top'#2#0#5
   +'Width'#3#128#7#13'ActiveControl'#7#5'Edit1'#7'Caption'#6#22'FacturLinEx (Us'

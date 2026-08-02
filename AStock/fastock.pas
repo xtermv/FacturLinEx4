@@ -60,6 +60,7 @@ type
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCreate(Sender: TObject);
     procedure BitBtn3Click(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure FormShow(Sender: TObject);
     procedure Limpiar();
 
@@ -120,6 +121,26 @@ begin
           Edit1.SetFocus;
           Inicio:=False;
      End;
+end;
+
+procedure TFastock.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key <> VK_ESCAPE then Exit;
+
+  Key := 0;
+
+  { Si el historial está desplegado, ESC retrocede al formulario principal
+    usando exactamente la misma acción que el botón Ocultar historial. }
+  if DBGrid1.Visible then
+  begin
+    BitBtn2Click(BitBtn2);
+    if Edit1.CanFocus then Edit1.SetFocus;
+    Exit;
+  end;
+
+  { En la pantalla principal, ESC ejecuta el cierre normal existente. }
+  BitBtn3Click(BitBtn3);
 end;
 
 Procedure TFastock.Formcreate(Sender: Tobject);

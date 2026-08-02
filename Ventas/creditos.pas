@@ -29,7 +29,7 @@ interface
 uses
   Classes, SysUtils, FileUtil, LResources, Forms, Controls, Graphics, Dialogs,
   ZConnection, ZDataset, db, DBGrids, Buttons, ExtCtrls, StdCtrls, LCLType,
-  Grids, LR_Class, LR_DBSet;
+  Grids, LR_Class, LR_DBSet, uFLXInformeCreditosPDF;
 
 type
 
@@ -178,11 +178,13 @@ type
     procedure BitBtn11Click(Sender: TObject);
     procedure BitBtn12Click(Sender: TObject);
     procedure BitBtn14Click(Sender: TObject);
+    procedure BitBtn15Click(Sender: TObject);
     procedure BitBtn16Click(Sender: TObject);
     procedure BitBtn17Click(Sender: TObject);
     procedure BitBtn18Click(Sender: TObject);
     procedure BitBtn1Click(Sender: TObject);
     procedure BitBtn20Click(Sender: TObject);
+    procedure BitBtn21Click(Sender: TObject);
     procedure BitBtn22Click(Sender: TObject);
     procedure BitBtn23Click(Sender: TObject);
     procedure BitBtn24Click(Sender: TObject);
@@ -215,6 +217,7 @@ type
     procedure Edit4Exit(Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCreate(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure frReport2EnterRect(Memo: TStringList; View: TfrView);
     procedure frReport2GetValue(const ParName: String; var ParValue: Variant);
     procedure ListBox1Click(Sender: TObject);
@@ -227,6 +230,7 @@ type
     procedure RecuperaAlbaran();
     procedure RecuperaFactura();
     procedure TotalizaTicket();
+    procedure ImprimirJustificanteCobro();
     procedure ActuCliente(Importe:Double);
     procedure VerSerieFacturacion();
     procedure NumeroTicket();
@@ -251,6 +255,23 @@ type
     procedure VerRecargo();
 
   private
+    FHeaderBar: TPanel;
+    FHeaderTitle: TLabel;
+    FHeaderSubtitle: TLabel;
+    FGridBand: TPanel;
+    FGridTitle: TLabel;
+    FGridLegend: TLabel;
+    FPanel4Title: TLabel;
+    FSaldarInfo: TLabel;
+    procedure CrearControlesVisuales;
+    procedure AplicarDisenoModerno;
+    procedure AjustarDisenoModerno;
+    procedure FormResizeModerno(Sender: TObject);
+    procedure MostrarPanelModal(APanel: TPanel);
+    procedure CentrarPanelModal(APanel: TPanel);
+    procedure EstiloBoton(ABoton: TBitBtn; AColor: TColor;
+      ATextoClaro: Boolean = True);
+    procedure EstiloCampoImporte(ACampo: TEdit; AColorFondo: TColor);
     { private declarations }
   public
     { public declarations }
@@ -279,6 +300,592 @@ uses
 
 { TFCreditos }
 
+
+procedure TFCreditos.EstiloBoton(ABoton: TBitBtn; AColor: TColor;
+  ATextoClaro: Boolean);
+begin
+  if not Assigned(ABoton) then
+    Exit;
+
+  ABoton.Color := AColor;
+  ABoton.Font.Height := -12;
+  ABoton.Font.Style := [fsBold];
+  if ATextoClaro then
+    ABoton.Font.Color := clWhite
+  else
+    ABoton.Font.Color := RGBToColor(30, 41, 59);
+end;
+
+procedure TFCreditos.EstiloCampoImporte(ACampo: TEdit;
+  AColorFondo: TColor);
+begin
+  if not Assigned(ACampo) then
+    Exit;
+
+  ACampo.ParentColor := False;
+  ACampo.Color := AColorFondo;
+  ACampo.Font.Height := -24;
+  ACampo.Font.Style := [fsBold];
+  ACampo.Font.Color := RGBToColor(30, 41, 59);
+end;
+
+procedure TFCreditos.CrearControlesVisuales;
+begin
+  FHeaderBar := TPanel.Create(Self);
+  FHeaderBar.Parent := Panel2;
+  FHeaderBar.BevelOuter := bvNone;
+  FHeaderBar.ParentColor := False;
+  FHeaderBar.Color := RGBToColor(18, 76, 91);
+
+  FHeaderTitle := TLabel.Create(Self);
+  FHeaderTitle.Parent := FHeaderBar;
+  FHeaderTitle.AutoSize := False;
+  FHeaderTitle.Caption := 'GESTIÓN DE CRÉDITOS';
+  FHeaderTitle.Font.Color := clWhite;
+  FHeaderTitle.Font.Height := -20;
+  FHeaderTitle.Font.Style := [fsBold];
+  FHeaderTitle.Transparent := True;
+  FHeaderTitle.Layout := tlCenter;
+
+  FHeaderSubtitle := TLabel.Create(Self);
+  FHeaderSubtitle.Parent := FHeaderBar;
+  FHeaderSubtitle.AutoSize := False;
+  FHeaderSubtitle.Caption :=
+    'Cuenta del cliente · deudas, entregas, cobros y documentos';
+  FHeaderSubtitle.Font.Color := RGBToColor(205, 232, 237);
+  FHeaderSubtitle.Font.Height := -11;
+  FHeaderSubtitle.Transparent := True;
+  FHeaderSubtitle.Layout := tlCenter;
+
+  FGridBand := TPanel.Create(Self);
+  FGridBand.Parent := Panel2;
+  FGridBand.BevelOuter := bvNone;
+  FGridBand.ParentColor := False;
+  FGridBand.Color := RGBToColor(230, 238, 241);
+
+  FGridTitle := TLabel.Create(Self);
+  FGridTitle.Parent := FGridBand;
+  FGridTitle.AutoSize := False;
+  FGridTitle.Caption := 'MOVIMIENTOS DE LA CUENTA';
+  FGridTitle.Font.Color := RGBToColor(18, 76, 91);
+  FGridTitle.Font.Height := -12;
+  FGridTitle.Font.Style := [fsBold];
+  FGridTitle.Transparent := True;
+  FGridTitle.Layout := tlCenter;
+
+  FGridLegend := TLabel.Create(Self);
+  FGridLegend.Parent := FGridBand;
+  FGridLegend.AutoSize := False;
+  FGridLegend.Caption :=
+    'Rojo: línea marcada para saldar · Doble clic: abrir documento';
+  FGridLegend.Alignment := taRightJustify;
+  FGridLegend.Font.Color := RGBToColor(100, 116, 139);
+  FGridLegend.Font.Height := -10;
+  FGridLegend.Transparent := True;
+  FGridLegend.Layout := tlCenter;
+
+  FPanel4Title := TLabel.Create(Self);
+  FPanel4Title.Parent := Panel4;
+  FPanel4Title.AutoSize := False;
+  FPanel4Title.Caption := 'SALDAR CRÉDITO';
+  FPanel4Title.Alignment := taCenter;
+  FPanel4Title.Layout := tlCenter;
+  FPanel4Title.ParentColor := False;
+  FPanel4Title.Color := RGBToColor(18, 76, 91);
+  FPanel4Title.Font.Color := clWhite;
+  FPanel4Title.Font.Height := -17;
+  FPanel4Title.Font.Style := [fsBold];
+  FPanel4Title.Transparent := False;
+
+  FSaldarInfo := TLabel.Create(Self);
+  FSaldarInfo.Parent := Panel4;
+  FSaldarInfo.AutoSize := False;
+  FSaldarInfo.Alignment := taCenter;
+  FSaldarInfo.Layout := tlCenter;
+  FSaldarInfo.WordWrap := True;
+  FSaldarInfo.Transparent := True;
+  FSaldarInfo.Font.Color := RGBToColor(71, 85, 105);
+  FSaldarInfo.Font.Height := -10;
+  FSaldarInfo.Caption :=
+    'Cobrar registra el pago. Justificante imprime un recibo no fiscal. ' +
+    'Albarán genera el documento solo con tickets y entregas.';
+end;
+
+procedure TFCreditos.AplicarDisenoModerno;
+var
+  I: Integer;
+begin
+  Caption := 'Gestión de créditos';
+  Color := RGBToColor(241, 245, 247);
+  Font.Name := 'Sans';
+  Font.Height := -12;
+
+  Panel2.BevelOuter := bvNone;
+  Panel2.ParentColor := False;
+  Panel2.Color := RGBToColor(247, 249, 250);
+
+  Panel1.BevelOuter := bvNone;
+  Panel1.ParentColor := False;
+  Panel1.Color := RGBToColor(225, 233, 236);
+
+  PanelCredito.BevelOuter := bvNone;
+  PanelCredito.BorderWidth := 2;
+  PanelCredito.ParentColor := False;
+  PanelCredito.Color := RGBToColor(248, 250, 252);
+
+  // Resumen principal de la cuenta: debe leerse de un vistazo.
+  Label56.Font.Color := RGBToColor(185, 28, 28);
+  Label57.Font.Color := RGBToColor(29, 78, 216);
+  Label58.Font.Color := RGBToColor(30, 41, 59);
+  Label56.Font.Height := -15;
+  Label57.Font.Height := -15;
+  Label58.Font.Height := -16;
+  Label56.Font.Style := [fsBold];
+  Label57.Font.Style := [fsBold];
+  Label58.Font.Style := [fsBold];
+
+  LabelDebe.Font.Color := RGBToColor(220, 38, 38);
+  LabelHaber.Font.Color := RGBToColor(37, 99, 235);
+  LabelDebe.Font.Height := -29;
+  LabelHaber.Font.Height := -29;
+  LabelSaldo.Font.Height := -33;
+  LabelDebe.Font.Style := [fsBold];
+  LabelHaber.Font.Style := [fsBold];
+  LabelSaldo.Font.Style := [fsBold];
+
+  Edit1.Color := clWhite;
+  Edit2.Color := clWhite;
+  Edit1.Font.Style := [fsBold];
+  Edit1.Font.Color := RGBToColor(18, 76, 91);
+  Edit2.Font.Style := [fsBold];
+  Edit2.Font.Color := RGBToColor(30, 41, 59);
+
+  Label2.Font.Color := RGBToColor(51, 65, 85);
+  Label3.Font.Color := RGBToColor(51, 65, 85);
+  Label4.Font.Color := RGBToColor(51, 65, 85);
+  Label5.Font.Color := RGBToColor(51, 65, 85);
+  Label21.Font.Color := RGBToColor(30, 41, 59);
+  Label22.Font.Color := RGBToColor(30, 41, 59);
+  Label24.Font.Color := RGBToColor(18, 76, 91);
+  Label25.Font.Color := RGBToColor(18, 76, 91);
+  Label26.Font.Color := RGBToColor(18, 76, 91);
+
+  DBGrid1.ParentFont := False;
+  DBGrid1.Font.Name := 'Sans';
+  DBGrid1.Font.Height := -12;
+  DBGrid1.Font.Color := RGBToColor(30, 41, 59);
+  DBGrid1.Color := clWhite;
+  DBGrid1.FixedColor := RGBToColor(18, 76, 91);
+  DBGrid1.TitleFont.Name := 'Sans';
+  DBGrid1.TitleFont.Height := -11;
+  DBGrid1.TitleFont.Style := [fsBold];
+  DBGrid1.TitleFont.Color := clWhite;
+  DBGrid1.DefaultRowHeight := 28;
+
+  DBGrid2.ParentFont := False;
+  DBGrid2.Font.Name := 'Sans';
+  DBGrid2.Font.Height := -11;
+  DBGrid2.Font.Color := RGBToColor(30, 41, 59);
+  DBGrid2.Color := clWhite;
+  DBGrid2.FixedColor := RGBToColor(18, 76, 91);
+  DBGrid2.TitleFont.Name := 'Sans';
+  DBGrid2.TitleFont.Height := -10;
+  DBGrid2.TitleFont.Style := [fsBold];
+  DBGrid2.TitleFont.Color := clWhite;
+  DBGrid2.DefaultRowHeight := 26;
+
+  EstiloBoton(BitBtn8, RGBToColor(5, 150, 105));
+  EstiloBoton(BitBtn16, RGBToColor(37, 99, 235));
+  EstiloBoton(BitBtn17, RGBToColor(71, 85, 105));
+  EstiloBoton(BitBtn18, RGBToColor(14, 116, 144));
+  BitBtn18.Caption := 'Informe PDF';
+  BitBtn18.Hint := 'Vista previa PDF del estado de cuenta';
+  EstiloBoton(BitBtn22, RGBToColor(217, 119, 6));
+  EstiloBoton(BitBtn28, RGBToColor(124, 58, 237));
+  EstiloBoton(BitBtn21, RGBToColor(8, 145, 178));
+  EstiloBoton(BitBtn15, RGBToColor(220, 38, 38));
+  BitBtn15.Hint := 'Borra los movimientos marcados; si no hay ninguno marcado, borra la linea seleccionada';
+  BitBtn15.ShowHint := True;
+  BitBtn15.OnClick := @BitBtn15Click;
+  EstiloBoton(BitBtn7, RGBToColor(51, 65, 85));
+
+  BitBtn17.Caption := 'Cajón';
+  BitBtn21.Caption := 'Saldo línea';
+  BitBtn21.Hint := 'Consultar el saldo acumulado hasta el movimiento seleccionado';
+  BitBtn21.ShowHint := True;
+  BitBtn21.OnClick := @BitBtn21Click;
+
+  Panel3.BevelOuter := bvNone;
+  Panel3.BorderWidth := 1;
+  Panel3.ParentColor := False;
+  Panel3.Color := clWhite;
+  Label11.AutoSize := False;
+  Label11.Alignment := taCenter;
+  Label11.Layout := tlCenter;
+  Label11.ParentColor := False;
+  Label11.Color := RGBToColor(18, 76, 91);
+  Label11.Font.Color := clWhite;
+  Label11.Font.Height := -16;
+  Label11.Font.Style := [fsBold];
+  Label11.Transparent := False;
+
+  EstiloCampoImporte(Edit3, RGBToColor(239, 246, 255));
+  EstiloCampoImporte(Edit4, RGBToColor(240, 253, 250));
+  EstiloCampoImporte(Edit5, RGBToColor(248, 250, 252));
+  Edit5.Font.Color := RGBToColor(37, 99, 235);
+  Combo3.Font.Height := -18;
+  Combo3.Font.Style := [fsBold];
+  Edit6.Color := RGBToColor(248, 250, 252);
+  Memo1.Color := RGBToColor(248, 250, 252);
+
+  EstiloBoton(BitBtn23, RGBToColor(5, 150, 105));
+  EstiloBoton(BitBtn20, RGBToColor(71, 85, 105));
+  Button1.Font.Style := [fsBold];
+  Button1.Font.Color := RGBToColor(18, 76, 91);
+
+  Panel4.BevelOuter := bvNone;
+  Panel4.BorderWidth := 1;
+  Panel4.ParentColor := False;
+  Panel4.Color := clWhite;
+  Combo2.Font.Height := -18;
+  Combo2.Font.Style := [fsBold];
+  EstiloCampoImporte(Edit12, RGBToColor(248, 250, 252));
+  EstiloCampoImporte(Edit13, RGBToColor(255, 251, 235));
+  EstiloCampoImporte(Edit14, RGBToColor(236, 253, 245));
+  EstiloCampoImporte(Edit15, RGBToColor(239, 246, 255));
+  EstiloCampoImporte(Edit16, RGBToColor(248, 250, 252));
+  Edit14.Font.Color := RGBToColor(5, 150, 105);
+  EstiloBoton(BitBtn10, RGBToColor(5, 150, 105));
+  EstiloBoton(BitBtn11, RGBToColor(14, 116, 144));
+  EstiloBoton(BitBtn12, RGBToColor(37, 99, 235));
+  EstiloBoton(BitBtn13, RGBToColor(124, 58, 237));
+  EstiloBoton(BitBtn9, RGBToColor(71, 85, 105));
+  BitBtn10.Caption := 'Cobrar';
+  BitBtn10.Hint := 'Registrar el cobro sin imprimir';
+  BitBtn10.ShowHint := True;
+  BitBtn11.Caption := 'Justificante';
+  BitBtn11.Hint := 'Registrar el cobro e imprimir un recibo no fiscal';
+  BitBtn11.ShowHint := True;
+  BitBtn12.Caption := 'Crear albarán';
+  BitBtn12.Hint := 'Crear un albarán solo con tickets y entregas seleccionadas';
+  BitBtn12.ShowHint := True;
+  BitBtn13.Visible := False;
+  BitBtn13.Enabled := False;
+
+  Panel5.BevelOuter := bvNone;
+  Panel5.BorderWidth := 1;
+  Panel5.ParentColor := False;
+  Panel5.Color := clWhite;
+  Panel5.Caption := '';
+  StaticText15.BorderStyle := sbsNone;
+  StaticText15.ParentColor := False;
+  StaticText15.Color := RGBToColor(18, 76, 91);
+  StaticText15.Font.Color := clWhite;
+  StaticText15.Font.Height := -16;
+  StaticText15.Font.Style := [fsBold];
+  StaticText15.Alignment := taCenter;
+
+  for I := 1 to 23 do
+    case I of
+      1: StaticText1.Color := RGBToColor(241, 245, 249);
+      2: StaticText2.Color := RGBToColor(241, 245, 249);
+      3: StaticText3.Color := RGBToColor(241, 245, 249);
+      4: StaticText4.Color := RGBToColor(255, 255, 255);
+      5: StaticText5.Color := RGBToColor(255, 255, 255);
+      6: StaticText6.Color := RGBToColor(255, 255, 255);
+    end;
+
+  StaticText4.Font.Style := [fsBold];
+  StaticText5.Font.Style := [fsBold];
+  StaticText6.Font.Style := [fsBold];
+  StaticText21.Font.Style := [fsBold];
+  StaticText23.Font.Style := [fsBold];
+  StaticText5.Font.Color := RGBToColor(37, 99, 235);
+  StaticText6.Font.Color := RGBToColor(220, 38, 38);
+  StaticText23.Font.Color := RGBToColor(5, 150, 105);
+
+  EstiloBoton(BitBtn26, RGBToColor(14, 116, 144));
+  EstiloBoton(BitBtn27, RGBToColor(220, 38, 38));
+  EstiloBoton(BitBtn29, RGBToColor(217, 119, 6));
+  EstiloBoton(BitBtn14, RGBToColor(71, 85, 105));
+
+  Panel8.BevelOuter := bvNone;
+  Panel8.BorderWidth := 1;
+  Panel8.ParentColor := False;
+  Panel8.Color := clWhite;
+  Label36.AutoSize := False;
+  Label36.Alignment := taCenter;
+  Label36.Layout := tlCenter;
+  Label36.ParentColor := False;
+  Label36.Color := RGBToColor(18, 76, 91);
+  Label36.Font.Color := clWhite;
+  Label36.Font.Height := -16;
+  Label36.Font.Style := [fsBold];
+  Label36.Transparent := False;
+  Bevel2.Visible := False;
+  ListBox1.ParentFont := False;
+  ListBox1.Font.Name := 'Sans';
+  ListBox1.Font.Height := -15;
+  ListBox1.Font.Style := [fsBold];
+  ListBox1.Font.Color := RGBToColor(15, 23, 42);
+  ListBox1.Color := clWhite;
+
+  Label33.Font.Color := RGBToColor(30, 41, 59);
+  Label34.Font.Color := RGBToColor(30, 41, 59);
+  Label35.Font.Color := RGBToColor(30, 41, 59);
+  Label33.Font.Style := [fsBold];
+  Label34.Font.Style := [fsBold];
+  Label35.Font.Style := [fsBold];
+
+  Edit21.ParentFont := False;
+  Edit21.Font.Color := RGBToColor(15, 23, 42);
+  Edit21.Font.Height := -13;
+  Edit21.Color := RGBToColor(241, 245, 249);
+  Edit22.ParentFont := False;
+  Edit22.Font.Color := RGBToColor(15, 23, 42);
+  Edit22.Font.Height := -13;
+  Edit22.Color := clWhite;
+  Memo2.ParentFont := False;
+  Memo2.Font.Color := RGBToColor(15, 23, 42);
+  Memo2.Font.Height := -12;
+  Memo2.Color := RGBToColor(248, 250, 252);
+  EstiloBoton(BitBtn19, RGBToColor(5, 150, 105));
+  EstiloBoton(BitBtn25, RGBToColor(5, 150, 105));
+  EstiloBoton(BitBtn24, RGBToColor(71, 85, 105));
+
+  AjustarDisenoModerno;
+end;
+
+procedure TFCreditos.CentrarPanelModal(APanel: TPanel);
+var
+  AreaAltura: Integer;
+begin
+  if not Assigned(APanel) then
+    Exit;
+
+  APanel.Left := (ClientWidth - APanel.Width) div 2;
+  AreaAltura := ClientHeight - Panel1.Height;
+  APanel.Top := (AreaAltura - APanel.Height) div 2;
+  if APanel.Left < 8 then
+    APanel.Left := 8;
+  if APanel.Top < 8 then
+    APanel.Top := 8;
+end;
+
+procedure TFCreditos.MostrarPanelModal(APanel: TPanel);
+begin
+  if not Assigned(APanel) then
+    Exit;
+
+  APanel.Visible := True;
+  APanel.BringToFront;
+  CentrarPanelModal(APanel);
+end;
+
+procedure TFCreditos.AjustarDisenoModerno;
+var
+  AnchoCliente, XDescuentos, AnchoBoton, X, I: Integer;
+  Botones: array[0..8] of TBitBtn;
+begin
+  if not Assigned(FHeaderBar) then
+    Exit;
+
+  Panel2.Height := 270;
+  Panel1.Height := 74;
+
+  FHeaderBar.SetBounds(0, 0, Panel2.ClientWidth, 60);
+  FHeaderTitle.SetBounds(18, 7, Panel2.ClientWidth - 36, 29);
+  FHeaderSubtitle.SetBounds(19, 34, Panel2.ClientWidth - 38, 20);
+
+  // El resumen de cuenta gana anchura y altura porque es la información
+  // principal de esta pantalla.
+  PanelCredito.SetBounds(Panel2.ClientWidth - 338, 72, 322, 154);
+  AnchoCliente := PanelCredito.Left - 16;
+  if AnchoCliente < 600 then
+    AnchoCliente := 600;
+
+  Label8.SetBounds(16, 76, 58, 22);
+  Edit1.SetBounds(78, 72, 96, 29);
+  BitBtn1.SetBounds(180, 72, 32, 29);
+  Edit2.SetBounds(218, 72, AnchoCliente - 234, 29);
+  Combo1.SetBounds(Edit2.Left, Edit2.Top, Edit2.Width, Edit2.Height + 2);
+
+  Label2.AutoSize := False;
+  Label2.SetBounds(16, 110, AnchoCliente - 210, 20);
+  CheckBox1.SetBounds(AnchoCliente - 184, 106, 176, 25);
+
+  Label3.AutoSize := False;
+  Label3.SetBounds(16, 139, 52, 20);
+  Label4.AutoSize := False;
+  Label4.SetBounds(75, 139, 220, 20);
+  Label5.AutoSize := False;
+  Label5.SetBounds(302, 139, 170, 20);
+
+  Label6.SetBounds(16, 171, 38, 20);
+  Label21.AutoSize := False;
+  Label21.SetBounds(58, 171, 148, 20);
+  Label7.SetBounds(218, 171, 68, 20);
+  Label22.AutoSize := False;
+  Label22.SetBounds(290, 171, 190, 20);
+
+  XDescuentos := AnchoCliente - 250;
+  if XDescuentos < 492 then
+    XDescuentos := 492;
+  Label9.SetBounds(XDescuentos, 135, 100, 20);
+  Label24.AutoSize := False;
+  Label24.SetBounds(XDescuentos + 108, 135, 130, 20);
+  Label23.SetBounds(XDescuentos, 158, 104, 20);
+  Label25.AutoSize := False;
+  Label25.SetBounds(XDescuentos + 108, 158, 130, 20);
+  Label10.SetBounds(XDescuentos, 181, 104, 20);
+  Label26.AutoSize := False;
+  Label26.SetBounds(XDescuentos + 108, 181, 130, 20);
+
+  Label56.SetBounds(16, 14, 72, 32);
+  LabelDebe.SetBounds(94, 7, 208, 41);
+  Label57.SetBounds(16, 60, 72, 32);
+  LabelHaber.SetBounds(94, 53, 208, 41);
+  Label58.SetBounds(16, 108, 72, 34);
+  LabelSaldo.SetBounds(94, 98, 208, 48);
+
+  FGridBand.SetBounds(0, 234, Panel2.ClientWidth, 36);
+  FGridTitle.SetBounds(16, 0, 300, 36);
+  FGridLegend.SetBounds(320, 0, Panel2.ClientWidth - 336, 36);
+
+  if DBGrid1.Columns.Count >= 8 then
+  begin
+    DBGrid1.Columns[0].Width := 90;
+    DBGrid1.Columns[1].Width := 72;
+    DBGrid1.Columns[2].Width := 58;
+    DBGrid1.Columns[3].Width := 46;
+    DBGrid1.Columns[4].Width := 86;
+    DBGrid1.Columns[6].Width := 110;
+    DBGrid1.Columns[7].Width := 110;
+    DBGrid1.Columns[5].Width :=
+      DBGrid1.ClientWidth - 90 - 72 - 58 - 46 - 86 - 110 - 110 - 55;
+    if DBGrid1.Columns[5].Width < 260 then
+      DBGrid1.Columns[5].Width := 260;
+  end;
+
+  Botones[0] := BitBtn8;
+  Botones[1] := BitBtn16;
+  Botones[2] := BitBtn17;
+  Botones[3] := BitBtn18;
+  Botones[4] := BitBtn22;
+  Botones[5] := BitBtn28;
+  Botones[6] := BitBtn21;
+  Botones[7] := BitBtn15;
+  Botones[8] := BitBtn7;
+
+  AnchoBoton := (Panel1.ClientWidth - 20 - (8 * 8)) div 9;
+  if AnchoBoton < 88 then
+    AnchoBoton := 88;
+  if AnchoBoton > 128 then
+    AnchoBoton := 128;
+
+  X := 10;
+  for I := 0 to 8 do
+  begin
+    Botones[I].SetBounds(X, 13, AnchoBoton, 48);
+    X := X + AnchoBoton + 8;
+  end;
+
+  Panel3.SetBounds(0, 0, 620, 420);
+  Label11.SetBounds(0, 0, Panel3.ClientWidth, 50);
+  Label62.SetBounds(20, 70, 110, 30);
+  Combo3.SetBounds(135, 65, 455, 42);
+  Label59.SetBounds(20, 130, 105, 34);
+  Edit3.SetBounds(135, 125, 165, 45);
+  Label60.SetBounds(320, 130, 105, 34);
+  Edit4.SetBounds(425, 125, 165, 45);
+  Label61.SetBounds(320, 181, 105, 34);
+  Edit5.SetBounds(425, 176, 165, 45);
+  Label12.SetBounds(20, 236, 105, 25);
+  Edit6.SetBounds(135, 232, 455, 31);
+  Label13.SetBounds(20, 276, 105, 25);
+  Memo1.SetBounds(135, 272, 455, 67);
+  BitBtn23.SetBounds(20, 365, 110, 38);
+  CheckBox2.SetBounds(145, 365, 155, 38);
+  Button1.SetBounds(315, 365, 110, 38);
+  BitBtn20.SetBounds(480, 365, 110, 38);
+
+  Panel4.SetBounds(0, 0, 720, 485);
+  FPanel4Title.SetBounds(0, 0, Panel4.ClientWidth, 50);
+  Label28.SetBounds(20, 70, 120, 34);
+  Combo2.SetBounds(150, 65, 540, 42);
+  Label27.SetBounds(20, 130, 200, 30);
+  Label29.SetBounds(260, 130, 180, 30);
+  Label30.SetBounds(490, 130, 200, 30);
+  Edit12.SetBounds(20, 164, 210, 48);
+  Edit13.SetBounds(260, 164, 190, 48);
+  Edit14.SetBounds(490, 164, 200, 48);
+  RadioGroup1.SetBounds(20, 238, 210, 120);
+  Label31.SetBounds(278, 244, 155, 34);
+  Edit15.SetBounds(470, 236, 220, 48);
+  Label32.SetBounds(278, 307, 155, 34);
+  Edit16.SetBounds(470, 299, 220, 48);
+  FSaldarInfo.SetBounds(245, 350, 445, 55);
+  BitBtn10.SetBounds(20, 425, 145, 40);
+  BitBtn11.SetBounds(180, 425, 145, 40);
+  BitBtn12.SetBounds(340, 425, 160, 40);
+  BitBtn13.SetBounds(505, 425, 1, 1);
+  BitBtn9.SetBounds(560, 425, 130, 40);
+
+  Panel5.SetBounds(0, 0, 760, 600);
+  StaticText15.SetBounds(0, 0, Panel5.ClientWidth, 48);
+  StaticText7.SetBounds(18, 62, 70, 24);
+  StaticText9.SetBounds(92, 62, 110, 24);
+  StaticText8.SetBounds(218, 62, 58, 24);
+  StaticText10.SetBounds(280, 62, 92, 24);
+  StaticText13.SetBounds(390, 62, 86, 24);
+  StaticText14.SetBounds(480, 62, 110, 24);
+  StaticText11.SetBounds(18, 96, 70, 24);
+  StaticText12.SetBounds(92, 96, 498, 24);
+  StaticText16.SetBounds(18, 130, 70, 24);
+  StaticText17.SetBounds(92, 130, 82, 24);
+  StaticText18.SetBounds(200, 130, 82, 24);
+  StaticText19.SetBounds(286, 130, 160, 24);
+  DBGrid2.SetBounds(18, 170, Panel5.ClientWidth - 36, 255);
+  StaticText1.SetBounds(300, 443, 90, 25);
+  StaticText4.SetBounds(395, 443, 105, 25);
+  StaticText20.SetBounds(510, 443, 45, 25);
+  StaticText21.SetBounds(560, 443, 65, 25);
+  StaticText22.SetBounds(300, 477, 90, 25);
+  StaticText23.SetBounds(395, 477, 105, 25);
+  StaticText2.SetBounds(510, 477, 80, 25);
+  StaticText5.SetBounds(595, 477, 110, 25);
+  StaticText3.SetBounds(510, 511, 80, 25);
+  StaticText6.SetBounds(595, 511, 110, 25);
+  BitBtn26.SetBounds(18, 550, 120, 38);
+  BitBtn27.SetBounds(150, 550, 120, 38);
+  BitBtn29.SetBounds(282, 550, 120, 38);
+  BitBtn14.SetBounds(622, 550, 120, 38);
+
+  Panel8.SetBounds(0, 0, 620, 430);
+  Label36.SetBounds(0, 0, Panel8.ClientWidth, 50);
+  ListBox1.SetBounds(20, 68, Panel8.ClientWidth - 40, 145);
+  Label33.SetBounds(20, 223, 105, 27);
+  Edit21.SetBounds(130, 220, 110, 31);
+  Label34.SetBounds(270, 223, 110, 27);
+  Edit22.SetBounds(390, 220, 150, 31);
+  Label35.SetBounds(20, 267, 105, 27);
+  Memo2.SetBounds(130, 263, 460, 78);
+  BitBtn19.SetBounds(20, 370, 120, 40);
+  BitBtn25.SetBounds(20, 370, 120, 40);
+  BitBtn24.SetBounds(470, 370, 120, 40);
+
+  CentrarPanelModal(Panel3);
+  CentrarPanelModal(Panel4);
+  CentrarPanelModal(Panel5);
+  CentrarPanelModal(Panel8);
+end;
+
+procedure TFCreditos.FormResizeModerno(Sender: TObject);
+begin
+  AjustarDisenoModerno;
+end;
+
+
 //====================== CREAR EL FORMULARIO ===================
 procedure ShowFormCreditos(Codigo: String);
 begin
@@ -295,8 +902,64 @@ begin
   {$ENDIF}
   //--------- Conectar con la bbdd
   //Conectate(dbConnect);      // Utilizamos datamodule1.dbConexión para toda la aplicación.
+  CrearControlesVisuales;
+  AplicarDisenoModerno;
+  OnResize := @FormResizeModerno;
+
+  // ESC: primero cierra el panel auxiliar activo y, si no hay ninguno,
+  // ejecuta el mismo cierre que el boton principal del formulario.
+  KeyPreview := True;
+  OnKeyDown := @FormKeyDown;
+
   Edit1.Text:=PasaCodigo;//------- Pasar el cliente desde la venta
   Edit1Exit(Edit1);//------------- Consultar cliente
+end;
+
+//=================== TECLA ESC ====================
+procedure TFCreditos.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key<>VK_ESCAPE then Exit;
+
+  // Evita que el ESC llegue tambien al control que tenia el foco.
+  Key:=0;
+
+  // Panel8 se abre desde Panel4. Debe cerrarse primero para volver
+  // correctamente al panel de saldar, sin cerrar ambos de una vez.
+  if Panel8.Visible then
+  begin
+    BitBtn24Click(Panel8);
+    Exit;
+  end;
+
+  if Panel3.Visible then
+  begin
+    BitBtn20Click(Panel3);
+    Exit;
+  end;
+
+  if Panel5.Visible then
+  begin
+    BitBtn14Click(Panel5);
+    Exit;
+  end;
+
+  if Panel4.Visible then
+  begin
+    BitBtn9Click(Panel4);
+    Exit;
+  end;
+
+  // El selector de clientes es auxiliar aunque no sea un panel.
+  if Combo1.Visible then
+  begin
+    Combo1.Visible:=False;
+    Edit2.SetFocus;
+    Exit;
+  end;
+
+  // Pagina principal: misma accion que el boton Cerrar.
+  BitBtn7Click(Self);
 end;
 
 //=================== CERRAR FORMULARIO ====================
@@ -323,8 +986,67 @@ begin
   //-- showmessage('Entrada en SALDAR');
 
   Panel1.Enabled:=False;Panel2.Enabled:=False;DBGrid1.Enabled:=False;
-  Panel4.Visible:=True;
+  MostrarPanelModal(Panel4);
   Edit15.SetFocus;
+end;
+
+//================ SALDO ACUMULADO HASTA LA LINEA ================
+procedure TFCreditos.BitBtn21Click(Sender: TObject);
+var
+  DebeAcum, HaberAcum, SaldoAcum: Double;
+  Situacion, Documento, Texto: String;
+begin
+  if (not dbCreditos.Active) or (dbCreditos.RecordCount = 0) then
+  begin
+    MessageDlg('Saldo hasta esta línea',
+      'No hay movimientos para consultar.', mtInformation, [mbOK], 0);
+    Exit;
+  end;
+
+  dbTotales.Close;
+  dbTotales.SQL.Text :=
+    'SELECT COALESCE(SUM(CRE7),0),COALESCE(SUM(CRE8),0) ' +
+    'FROM creditos' + Tienda + ' WHERE CRE0=' + Edit1.Text +
+    ' AND (CRE1<"' +
+      FormatDateTime('YYYY/MM/DD', dbCreditos.FieldByName('CRE1').AsDateTime) +
+    '" OR (CRE1="' +
+      FormatDateTime('YYYY/MM/DD', dbCreditos.FieldByName('CRE1').AsDateTime) +
+    '" AND CRE2<="' +
+      FormatDateTime('HH:NN:SS', dbCreditos.FieldByName('CRE2').AsDateTime) +
+    '"))';
+  dbTotales.Open;
+
+  DebeAcum := dbTotales.Fields[0].AsFloat;
+  HaberAcum := dbTotales.Fields[1].AsFloat;
+  SaldoAcum := DebeAcum - HaberAcum;
+  dbTotales.Close;
+
+  if SaldoAcum > 0.004 then
+    Situacion := 'DEUDA  ' + FormatFloat('0.00', SaldoAcum) + ' €'
+  else if SaldoAcum < -0.004 then
+    Situacion := 'A FAVOR  ' + FormatFloat('0.00', Abs(SaldoAcum)) + ' €'
+  else
+    Situacion := 'SALDO  0.00 €';
+
+  Documento := Trim(dbCreditos.FieldByName('CRE3').AsString + ' ' +
+    dbCreditos.FieldByName('CRE4').AsString + '/' +
+    dbCreditos.FieldByName('CRE5').AsString);
+
+  Texto :=
+    'Movimiento seleccionado' + LineEnding +
+    FormatDateTime('DD/MM/YYYY', dbCreditos.FieldByName('CRE1').AsDateTime) +
+    '  ' + FormatDateTime('HH:NN:SS',
+      dbCreditos.FieldByName('CRE2').AsDateTime) + LineEnding +
+    'Documento: ' + Documento + LineEnding +
+    Copy(dbCreditos.FieldByName('CRE6').AsString, 1, 70) +
+    LineEnding + LineEnding +
+    'Debe acumulado:    ' + FormatFloat('0.00', DebeAcum) + ' €' + LineEnding +
+    'Haber acumulado:   ' + FormatFloat('0.00', HaberAcum) + ' €' + LineEnding +
+    '--------------------------------' + LineEnding +
+    Situacion;
+
+  MessageDlg('Saldo hasta esta línea', Texto,
+    mtInformation, [mbOK], 0);
 end;
 
 //===================== CANCELAR SALDAR ==================
@@ -345,7 +1067,8 @@ begin
   Precio:=StrToFloat(Edit3.Text);
   SubTotal:=StrToFloat(Edit4.Text);
   if CheckBox2.Checked then
-    Pendiente:='Pendiente Cta : ' + LabelSaldo.Caption+' a Fecha : ' + DateToStr(Date)
+    Pendiente:='Situación Cta : ' + Label58.Caption + ' ' +
+      LabelSaldo.Caption + ' a Fecha : ' + DateToStr(Date)
   else Pendiente:='';
   FPago:=Combo3.Caption;
 
@@ -404,6 +1127,85 @@ begin
   ImprimirTicket:=True; TotalizaTicket();
 end;
 
+//================== JUSTIFICANTE DE COBRO NO FISCAL ==================
+procedure TFCreditos.ImprimirJustificanteCobro();
+var
+  MarcaActual: TBookmark;
+  ImporteLinea: Double;
+  NumeroLineas: Integer;
+  Documento, Descripcion: String;
+begin
+  AssignFile(PrintText, DevTicket);
+  Rewrite(PrintText);
+  try
+    if Trim(LCTI1)<>'' then Writeln(PrintText, LCTI1);
+    if Trim(LCTI2)<>'' then Writeln(PrintText, LCTI2);
+    if Trim(LCTI3)<>'' then Writeln(PrintText, LCTI3);
+    if Trim(LCTI4)<>'' then Writeln(PrintText, LCTI4);
+    Writeln(PrintText, ' ');
+    Writeln(PrintText, 'J U S T I F I C A N T E   D E   C O B R O');
+    Writeln(PrintText, '________________________________________');
+    Writeln(PrintText, 'Fecha : ' + FormatDateTime('DD/MM/YYYY HH:NN:SS', Now));
+    Writeln(PrintText, 'Cliente: ' + Edit1.Text + ' - ' + Copy(Edit2.Text,1,28));
+    Writeln(PrintText, 'Pago   : ' + Copy(Combo2.Text,1,28));
+    Writeln(PrintText, ' ');
+    Writeln(PrintText, 'MOVIMIENTOS SALDADOS');
+    Writeln(PrintText, '----------------------------------------');
+
+    NumeroLineas := 0;
+    MarcaActual := dbCreditos.GetBookmark;
+    dbCreditos.DisableControls;
+    try
+      dbCreditos.First;
+      while not dbCreditos.EOF do
+      begin
+        if CheckLineas then
+        begin
+          Inc(NumeroLineas);
+          ImporteLinea := dbCreditos.FieldByName('CRE7').AsFloat -
+            dbCreditos.FieldByName('CRE8').AsFloat;
+          Documento := Trim(dbCreditos.FieldByName('CRE3').AsString + ' ' +
+            dbCreditos.FieldByName('CRE4').AsString + '/' +
+            dbCreditos.FieldByName('CRE5').AsString);
+          Descripcion := Copy(dbCreditos.FieldByName('CRE6').AsString,1,22);
+          Writeln(PrintText,
+            FormatDateTime('DD/MM/YY',dbCreditos.FieldByName('CRE1').AsDateTime) +
+            ' ' + Copy(Documento + '          ',1,10));
+          Writeln(PrintText,
+            Copy(Descripcion + '                      ',1,22) +
+            DataModule1.LFill(FormatFloat('0.00',ImporteLinea),10,' '));
+        end;
+        dbCreditos.Next;
+      end;
+    finally
+      if dbCreditos.BookmarkValid(MarcaActual) then
+        dbCreditos.GotoBookmark(MarcaActual);
+      dbCreditos.FreeBookmark(MarcaActual);
+      dbCreditos.EnableControls;
+    end;
+
+    Writeln(PrintText, '----------------------------------------');
+    Writeln(PrintText, 'Lineas saldadas : ' + IntToStr(NumeroLineas));
+    Writeln(PrintText, 'IMPORTE COBRADO : ' +
+      DataModule1.LFill(FormatFloat('0.00',StrToFloat(Edit14.Text)),10,' '));
+    Writeln(PrintText, 'ENTREGADO       : ' +
+      DataModule1.LFill(FormatFloat('0.00',StrToFloat(Edit15.Text)),10,' '));
+    if StrToFloat(Edit16.Text)>=0 then
+      Writeln(PrintText, 'CAMBIO          : ' +
+        DataModule1.LFill(FormatFloat('0.00',StrToFloat(Edit16.Text)),10,' '))
+    else
+      Writeln(PrintText, 'PENDIENTE       : ' +
+        DataModule1.LFill(FormatFloat('0.00',Abs(StrToFloat(Edit16.Text))),10,' '));
+    Writeln(PrintText, ' ');
+    Writeln(PrintText, 'Documento acreditativo del cobro.');
+    Writeln(PrintText, 'No constituye una nueva factura.');
+    PieTicket();
+    Corte();
+  finally
+    CloseFile(PrintText);
+  end;
+end;
+
 //=================== TOTALIZAR CON/SIN TICKET ==============
 procedure TFCreditos.TotalizaTicket();
 begin
@@ -418,7 +1220,7 @@ begin
   FechaVenta:=Date; HoraVenta:=Time;//---- Fecha y hora para grabar los datos
   VerSerieFacturacion();//---- Ver la serie de facturacion por defecto
   NumeroTicket();//----------- Ver el numero de ticket que corresponde
-  if ImprimirTicket=True then BitBtn26Click(Self);//------------ Imprimir Ticket();
+  if ImprimirTicket=True then ImprimirJustificanteCobro();
   dbCreditos.First;
   while not dbCreditos.EOF do
     begin
@@ -467,13 +1269,25 @@ begin
                         dbSeries.FieldByName('SF1').AsString);
      dbSeries.Next;
     end;
-  dbSeries.Locate('SF0', dbTiendas.Fields[11].AsString, [loCaseInsensitive]);
-  ListBox1.ItemIndex:= ListBox1.Items.IndexOf(Space(2-length(dbSeries.FieldByName('SF0').AsString))+ dbSeries.FieldByName('SF0').AsString+' - '+
-                        dbSeries.FieldByName('SF1').AsString);
+  if not dbSeries.Locate('SF0', dbTiendas.Fields[11].AsString,
+    [loCaseInsensitive]) then
+    dbSeries.First;
+  ListBox1.ItemIndex:= ListBox1.Items.IndexOf(
+    Space(2-length(dbSeries.FieldByName('SF0').AsString))+
+    dbSeries.FieldByName('SF0').AsString+' - '+
+    dbSeries.FieldByName('SF1').AsString);
+  if ListBox1.ItemIndex<0 then
+    ListBox1.ItemIndex:=0;
+  ListBox1Click(ListBox1);
   Edit21.Text:=IntToStr(dbSeries.FieldByName('SF3').AsInteger+1);
-  dbTiendas.Active:=False; BitBtn23.BringToFront;
-  Panel8.Visible:=True; Panel4.Enabled:=False;
-  Panel1.Enabled:=False; BitBtn19.SetFocus;
+  Label36.Caption:='SELECCIONAR SERIE DE ALBARAN';
+  BitBtn19.Visible:=False;
+  BitBtn25.Visible:=True;
+  BitBtn25.BringToFront;
+  dbTiendas.Active:=False;
+  MostrarPanelModal(Panel8); Panel4.Enabled:=False;
+  Panel1.Enabled:=False;
+  ListBox1.SetFocus;
 end;
 
 //========================== CANCELAR ALBARAN / FACTURA ===========================
@@ -841,6 +1655,134 @@ begin
 
 end;
 
+//=================== BORRAR MOVIMIENTO(S) DE CREDITO ================
+procedure TFCreditos.BitBtn15Click(Sender: TObject);
+var
+  NumMarcadas, NumABorrar, Resp: Integer;
+  BorrarMarcadas: Boolean;
+  FechaMov, HoraMov: TDateTime;
+  ClienteMov, TipoMov, SerieMov, NumeroMov: String;
+  DebeMov, HaberMov: Double;
+  TextoConfirmacion, TxtQ: String;
+
+  function SQLTexto(const ATexto: String): String;
+  begin
+    Result:=StringReplace(ATexto, '''', '''''', [rfReplaceAll]);
+  end;
+
+  procedure BorrarMovimientoActual(ADataSet: TDataSet);
+  begin
+    ClienteMov:=ADataSet.FieldByName('CRE0').AsString;
+    FechaMov:=ADataSet.FieldByName('CRE1').AsDateTime;
+    HoraMov:=ADataSet.FieldByName('CRE2').AsDateTime;
+    TipoMov:=ADataSet.FieldByName('CRE3').AsString;
+    SerieMov:=ADataSet.FieldByName('CRE4').AsString;
+    NumeroMov:=ADataSet.FieldByName('CRE5').AsString;
+
+    // Primero el detalle y despues la cabecera del movimiento seleccionado.
+    TxtQ:='DELETE FROM creditosdd'+Tienda+
+          ' WHERE CRED0='+ClienteMov+
+          ' AND CRED1='''+FormatDateTime('YYYY/MM/DD',FechaMov)+''''+
+          ' AND CRED2='''+FormatDateTime('HH:NN:SS',HoraMov)+''''+
+          ' AND CRED3='''+SQLTexto(SerieMov)+''''+
+          ' AND CRED4='+NumeroMov;
+    dbTrabajo.SQL.Text:=TxtQ;
+    dbTrabajo.ExecSQL;
+
+    TxtQ:='DELETE FROM creditos'+Tienda+
+          ' WHERE CRE0='+ClienteMov+
+          ' AND CRE1='''+FormatDateTime('YYYY/MM/DD',FechaMov)+''''+
+          ' AND CRE2='''+FormatDateTime('HH:NN:SS',HoraMov)+''''+
+          ' AND CRE3='''+SQLTexto(TipoMov)+''''+
+          ' AND CRE4='''+SQLTexto(SerieMov)+''''+
+          ' AND CRE5='+NumeroMov;
+    dbTrabajo.SQL.Text:=TxtQ;
+    dbTrabajo.ExecSQL;
+  end;
+
+begin
+  if (not dbCreditos.Active) or (dbCreditos.RecordCount=0) then
+  begin
+    MessageDlg('Borrar movimientos de credito',
+      'No hay ningun movimiento que pueda borrarse.', mtInformation, [mbOK], 0);
+    Exit;
+  end;
+
+  // Si hay lineas marcadas, el boton borra unicamente esas lineas.
+  dbCreditosBorrado.Close;
+  dbCreditosBorrado.SQL.Text:='SELECT COUNT(*) AS TOTAL FROM creditos'+Tienda+
+    ' WHERE CRE0='+Edit1.Text+' AND CRE9=''S''';
+  dbCreditosBorrado.Open;
+  NumMarcadas:=dbCreditosBorrado.FieldByName('TOTAL').AsInteger;
+  dbCreditosBorrado.Close;
+
+  BorrarMarcadas:=NumMarcadas>0;
+  if BorrarMarcadas then
+  begin
+    NumABorrar:=NumMarcadas;
+    TextoConfirmacion:='Se eliminaran '+IntToStr(NumABorrar)+
+      ' movimientos MARCADOS de la cuenta de credito.'+LineEnding+LineEnding+
+      'Esta accion no borra la factura, ticket o abono original; solamente elimina '+
+      'sus apuntes de la cuenta de credito.';
+  end
+  else
+  begin
+    NumABorrar:=1;
+    FechaMov:=dbCreditos.FieldByName('CRE1').AsDateTime;
+    HoraMov:=dbCreditos.FieldByName('CRE2').AsDateTime;
+    TipoMov:=dbCreditos.FieldByName('CRE3').AsString;
+    SerieMov:=dbCreditos.FieldByName('CRE4').AsString;
+    NumeroMov:=dbCreditos.FieldByName('CRE5').AsString;
+    DebeMov:=dbCreditos.FieldByName('CRE7').AsFloat;
+    HaberMov:=dbCreditos.FieldByName('CRE8').AsFloat;
+    TextoConfirmacion:='Se eliminara el movimiento SELECCIONADO:'+LineEnding+LineEnding+
+      FormatDateTime('DD/MM/YYYY HH:NN:SS',FechaMov)+LineEnding+
+      'Documento: '+TipoMov+' '+SerieMov+'/'+NumeroMov+LineEnding+
+      'Debe: '+FormatFloat('0.00',DebeMov)+' EUR   Haber: '+
+      FormatFloat('0.00',HaberMov)+' EUR'+LineEnding+LineEnding+
+      'Esta accion no borra la factura, ticket o abono original; solamente elimina '+
+      'su apunte de la cuenta de credito.';
+  end;
+
+  Resp:=MessageDlg('Confirmar borrado',TextoConfirmacion+LineEnding+LineEnding+
+    '¿Desea continuar?',mtWarning,[mbYes,mbNo],0);
+  if Resp<>mrYes then Exit;
+
+  try
+    if BorrarMarcadas then
+    begin
+      dbCreditosBorrado.Close;
+      dbCreditosBorrado.SQL.Text:='SELECT CRE0,CRE1,CRE2,CRE3,CRE4,CRE5 '+
+        'FROM creditos'+Tienda+' WHERE CRE0='+Edit1.Text+
+        ' AND CRE9=''S'' ORDER BY CRE1,CRE2';
+      dbCreditosBorrado.Open;
+      dbCreditosBorrado.First;
+      while not dbCreditosBorrado.EOF do
+      begin
+        BorrarMovimientoActual(dbCreditosBorrado);
+        dbCreditosBorrado.Next;
+      end;
+      dbCreditosBorrado.Close;
+    end
+    else
+      BorrarMovimientoActual(dbCreditos);
+
+    dbCreditos.Refresh;
+    PintarTotal();
+    MessageDlg('Borrado realizado',
+      IntToStr(NumABorrar)+' movimiento(s) eliminado(s) correctamente.',
+      mtInformation,[mbOK],0);
+  except
+    on E: Exception do
+    begin
+      dbCreditosBorrado.Close;
+      MessageDlg('Error al borrar',
+        'No se pudo completar el borrado. Revise la cuenta antes de repetirlo.'+LineEnding+LineEnding+E.Message,
+        mtError,[mbOK],0);
+    end;
+  end;
+end;
+
 //=================== BORRAR TODAS LAS LINEAS ================
 procedure TFCreditos.BorrarLineas();
 var
@@ -848,6 +1790,7 @@ var
   tmpMarcado: string;
 begin
   AuxFecha:='';
+  tmpMarcado:='';
 
   if RadioGroup1.ItemIndex=1 then tmpMarcado:=' AND CRE9="S"';
   if RadioGroup1.ItemIndex=2 then tmpMarcado:=' AND CRE9<>"S"';
@@ -864,7 +1807,8 @@ begin
 //--      showmessage(AuxFecha);
                            // Borra detalles del crédito.
       TxtQ:='DELETE FROM creditosdd'+Tienda+' WHERE CRED0='+dbCreditosBorrado.FieldByName('CRE0').AsString+
-                                              ' AND CRED1="'+FormatDateTime('YYYY/MM/DD',StrtoDate(AuxFecha))+'" '+
+                                              ' AND CRED1="'+FormatDateTime('YYYY/MM/DD',dbCreditosBorrado.FieldByName('CRE1').AsDateTime)+'" '+
+                                              ' AND CRED2="'+FormatDateTime('HH:NN:SS',dbCreditosBorrado.FieldByName('CRE2').AsDateTime)+'" '+
                                               ' AND CRED3="'+dbCreditosBorrado.FieldByName('CRE4').AsString+'" '+
                                               ' AND CRED4="'+dbCreditosBorrado.FieldByName('CRE5').AsString+'"';
 
@@ -898,7 +1842,7 @@ begin
   Label11.Caption:='ENTREGAS A CUENTA € / VALES';
   BitBtn24.Caption:='Cancelar';
   Edit3.Enabled:=True; Edit4.Enabled:=True; Edit6.Enabled:=True;
-  Panel3.Visible:=True; Edit3.Text:='0.00';
+  MostrarPanelModal(Panel3); Edit3.Text:='0.00';
   Edit4.Text:='0.00'; Edit5.Text:='0.00';
   Edit6.Text:='ENTREGA A CUENTA'; Edit3.SetFocus;
 end;
@@ -980,7 +1924,7 @@ end;
 //------------------ VISUALIZAR ENTREGA ------------
 procedure TFCreditos.RecuperaEntrega();
 begin
-  Panel3.Visible:=True; Label11.Caption:='DESGLOSE DE ENTREGAS A CUENTA € / VALES';
+  MostrarPanelModal(Panel3); Label11.Caption:='DESGLOSE DE ENTREGAS A CUENTA € / VALES';
   BitBtn24.Caption:='Cerrar';
   Edit3.Enabled:=False; Edit4.Enabled:=False; Edit6.Enabled:=False;
   Edit3.Text:=FormatFloat('0.00',dbCreditos.FieldByName('CRE8').AsFloat);
@@ -1076,7 +2020,7 @@ begin
         ' AND CRED3="'+dbCreditos.FieldByName('CRE4').AsString+'"'+
         ' AND CRED4='+dbCreditos.FieldByName('CRE5').AsString;
   dbCreditosdd.Active:=False; dbCreditosdd.SQL.Text:=TxtQ; dbCreditosdd.Active:=True;
-  Panel5.Visible:=True;
+  MostrarPanelModal(Panel5);
 end;
 
 //================= CERRAR PANEL TICKETS ====================
@@ -1213,23 +2157,67 @@ end;
 //---------------- PINTAR LINEAS MARCADAS EN ROJO ----------------
 procedure TFCreditos.DBGrid1DrawColumnCell(Sender: TObject; const Rect: TRect;
   DataCol: Integer; Column: TColumn; State: TGridDrawState);
+var
+  EstadoPintado: TGridDrawState;
 begin
+  EstadoPintado := State - [gdSelected, gdFocused];
+  DBGrid1.Canvas.Font.Style := [];
+
   if dbCreditos.FieldByName('CRE9').AsString='S' then
-    begin
-      DBGrid1.Canvas.Font.Color := clRed;
-      //DBGrid2.Canvas.Brush.Color := $00CDDAF1;
-      DBGrid1.DefaultDrawColumnCell(Rect, DataCol, Column, State);
-    end;
+  begin
+    if gdSelected in State then
+      DBGrid1.Canvas.Brush.Color := RGBToColor(254, 242, 242)
+    else
+      DBGrid1.Canvas.Brush.Color := RGBToColor(254, 226, 226);
+    DBGrid1.Canvas.Font.Color := RGBToColor(185, 28, 28);
+    DBGrid1.Canvas.Font.Style := [fsBold];
+  end
+  else if gdSelected in State then
+  begin
+    DBGrid1.Canvas.Brush.Color := RGBToColor(219, 234, 254);
+    DBGrid1.Canvas.Font.Color := RGBToColor(15, 23, 42);
+    DBGrid1.Canvas.Font.Style := [fsBold];
+  end
+  else
+  begin
+    DBGrid1.Canvas.Brush.Color := clWhite;
+    DBGrid1.Canvas.Font.Color := RGBToColor(30, 41, 59);
+  end;
+
+  DBGrid1.Canvas.FillRect(Rect);
+  DBGrid1.DefaultDrawColumnCell(Rect, DataCol, Column, EstadoPintado);
 end;
 procedure TFCreditos.DBGrid2DrawColumnCell(Sender: TObject; const Rect: TRect;
   DataCol: Integer; Column: TColumn; State: TGridDrawState);
+var
+  EstadoPintado: TGridDrawState;
 begin
+  EstadoPintado := State - [gdSelected, gdFocused];
+  DBGrid2.Canvas.Font.Style := [];
+
   if dbCreditosdd.FieldByName('CRED17').AsString='S' then
-    begin
-      DBGrid2.Canvas.Font.Color := clRed;
-      //DBGrid2.Canvas.Brush.Color := $00CDDAF1;
-      DBGrid2.DefaultDrawColumnCell(Rect, DataCol, Column, State);
-    end;
+  begin
+    if gdSelected in State then
+      DBGrid2.Canvas.Brush.Color := RGBToColor(254, 242, 242)
+    else
+      DBGrid2.Canvas.Brush.Color := RGBToColor(254, 226, 226);
+    DBGrid2.Canvas.Font.Color := RGBToColor(185, 28, 28);
+    DBGrid2.Canvas.Font.Style := [fsBold];
+  end
+  else if gdSelected in State then
+  begin
+    DBGrid2.Canvas.Brush.Color := RGBToColor(219, 234, 254);
+    DBGrid2.Canvas.Font.Color := RGBToColor(15, 23, 42);
+    DBGrid2.Canvas.Font.Style := [fsBold];
+  end
+  else
+  begin
+    DBGrid2.Canvas.Brush.Color := clWhite;
+    DBGrid2.Canvas.Font.Color := RGBToColor(30, 41, 59);
+  end;
+
+  DBGrid2.Canvas.FillRect(Rect);
+  DBGrid2.DefaultDrawColumnCell(Rect, DataCol, Column, EstadoPintado);
 end;
 
 //======================== DOBLE CLICK EN GRID DE CREDITOS ==================
@@ -1400,25 +2388,59 @@ begin
     end
   else
     begin
-      Label32.Font.Color:=clWindowText;
+      Label32.Font.Color:=RGBToColor(37, 99, 235);
       Label32.Caption:='CAMBIO';
-      Edit16.Font.Color:=clWindowText;
+      Edit16.Font.Color:=RGBToColor(37, 99, 235);
     end;
 end;
 
 //==================== PINTAR TOTALES ====================
 procedure TFCreditos.PintarTotal();
+var
+  SaldoActual: Double;
 begin
-  LabelDebe.Caption:='0.00'; LabelHaber.Caption:='0.00';
-  LabelSaldo.Caption:='0.00'; LabelSaldo.Font.Color:=clWindowText;
-  dbTotales.SQL.Text:='SELECT SUM(CRE7),SUM(CRE8) FROM creditos'+Tienda+' WHERE CRE0='+Edit1.Text;
+  LabelDebe.Caption:='0.00';
+  LabelHaber.Caption:='0.00';
+  Label58.Caption:='SALDO';
+  Label58.Font.Color:=RGBToColor(30, 41, 59);
+  LabelSaldo.Caption:='0.00';
+  LabelSaldo.Font.Color:=RGBToColor(30, 41, 59);
+
+  dbTotales.SQL.Text:='SELECT SUM(CRE7),SUM(CRE8) FROM creditos'+
+    Tienda+' WHERE CRE0='+Edit1.Text;
   dbTotales.Active:=True;
-  if (dbTotales.RecordCount=0) then begin dbTotales.Active:=False; exit; end;
+  if (dbTotales.RecordCount=0) then
+  begin
+    dbTotales.Active:=False;
+    exit;
+  end;
+
   LabelDebe.Caption:=FormatFloat('0.00',dbTotales.Fields[0].AsFloat);
   LabelHaber.Caption:=FormatFloat('0.00',dbTotales.Fields[1].AsFloat);
-  LabelSaldo.Caption:=FormatFloat('0.00',dbTotales.Fields[0].AsFloat-dbTotales.Fields[1].AsFloat);
-  if StrToFloat(LabelSaldo.Caption)>0 then LabelSaldo.Font.Color:=clRed;
-  if StrToFloat(LabelSaldo.Caption)<0 then LabelSaldo.Font.Color:=clBlue;
+  SaldoActual:=dbTotales.Fields[0].AsFloat-dbTotales.Fields[1].AsFloat;
+
+  if SaldoActual>0.004 then
+  begin
+    Label58.Caption:='DEUDA';
+    Label58.Font.Color:=RGBToColor(185, 28, 28);
+    LabelSaldo.Caption:=FormatFloat('0.00',SaldoActual);
+    LabelSaldo.Font.Color:=RGBToColor(220, 38, 38);
+  end
+  else if SaldoActual<(-0.004) then
+  begin
+    Label58.Caption:='A FAVOR';
+    Label58.Font.Color:=RGBToColor(29, 78, 216);
+    LabelSaldo.Caption:=FormatFloat('0.00',Abs(SaldoActual));
+    LabelSaldo.Font.Color:=RGBToColor(37, 99, 235);
+  end
+  else
+  begin
+    Label58.Caption:='SALDO';
+    Label58.Font.Color:=RGBToColor(30, 41, 59);
+    LabelSaldo.Caption:='0.00';
+    LabelSaldo.Font.Color:=RGBToColor(30, 41, 59);
+  end;
+
   dbTotales.Active:=False;
 end;
 
@@ -1426,7 +2448,10 @@ end;
 procedure TFCreditos.LimpiaDatos();
 begin
   LabelDebe.Caption:='0.00'; LabelHaber.Caption:='0.00';
-  LabelSaldo.Caption:='0.00'; LabelSaldo.Font.Color:=clWindowText;
+  Label58.Caption:='SALDO';
+  Label58.Font.Color:=RGBToColor(30, 41, 59);
+  LabelSaldo.Caption:='0.00';
+  LabelSaldo.Font.Color:=RGBToColor(30, 41, 59);
   Edit2.Text:=''; Label2.Caption:=''; Label4.Caption:='';
   Label3.Caption:='';  Label5.Caption:=''; Label21.Caption:='';
   Label22.Caption:=''; CheckBox1.Checked:=False;
@@ -1777,8 +2802,9 @@ end;
 
 procedure TFCreditos.BitBtn18Click(Sender: TObject);
 begin
-  //-- No implementado en impresora ni correcto ticket
-  BitBtn26Click(Self);
+  FLXVistaPreviaEstadoCuentaCreditos(Self, dbCreditos.Connection,
+    Tienda, Trim(Edit1.Text), Trim(Edit2.Text), Trim(Label21.Caption),
+    Trim(Label2.Caption), Trim(Label4.Caption), Trim(Label5.Caption));
 end;
 
 procedure TFCreditos.Cajon();

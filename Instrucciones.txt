@@ -17,3 +17,11 @@ sudo chown root:root /usr/local/sbin/flx_restore_run_ftp.sh
 sudo visudo -f /etc/sudoers.d/flx-resotre
 usuario ALL=(root) NOPASSWD: /usr/local/sbin/flx_backup.sh, /usr/local/sbin/flx_restore.sh, /usr/local/sbin/flx_restore_run.sh, /usr/local/sbin/flx_restore_run_ftp.sh
 
+
+
+USUARIO_SSH ALL=(root) NOPASSWD: \
+  /usr/local/sbin/flx_remote_backup_server test, \
+  /usr/local/sbin/flx_remote_backup_server backup *, \
+  /usr/local/sbin/flx_remote_backup_server restore-slot *, \
+  /usr/local/sbin/flx_remote_backup_server restore-check *, \
+  /usr/local/sbin/flx_remote_backup_server restore *

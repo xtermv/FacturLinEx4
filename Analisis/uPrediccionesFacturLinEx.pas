@@ -5,7 +5,7 @@ unit uPrediccionesFacturLinEx;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Dialogs, ExtCtrls, StdCtrls, Buttons,
+  Classes, SysUtils, Forms, Controls, LCLType, Dialogs, ExtCtrls, StdCtrls, Buttons,
   Grids, Graphics, DB, ZConnection, ZDataset, Math,
   uFLXGridStyle, uFLXExport, uFLXDialogs, uFLXIcons;
 
@@ -59,6 +59,7 @@ type
     procedure AddRow(const Tipo, Codigo, Descripcion: string; Actual, Anterior, Porc, Prevision: Double; const Confianza, Prioridad, Diagnostico, Accion: string);
     procedure AnalizarClick(Sender: TObject);
     procedure CSVClick(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure CerrarClick(Sender: TObject);
     procedure GridHeaderClick(Sender: TObject; IsColumn: Boolean; Index: Integer);
     procedure GridPrepareCanvas(Sender: TObject; aCol, aRow: Integer; aState: TGridDrawState);
@@ -209,6 +210,8 @@ var
   BtnAplicar: TBitBtn;
 begin
   inherited CreateNew(AOwner, 1);
+  KeyPreview := True;
+  OnKeyDown := @FormKeyDown;
   FConn := AConnection;
   FTienda := ATienda;
   FSortCol := -1;
@@ -1096,6 +1099,22 @@ begin
   FLXGuardarCSVConDialogo(Grid,
     'Exportar Predicciones',
     'predicciones_facturlinex_' + FormatDateTime('yyyymmdd_hhnnss', Now) + '.csv');
+end;
+
+procedure TPrediccionesForm.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if Key <> VK_ESCAPE then Exit;
+
+  // Si hay un desplegable activo, ESC lo cierra antes de salir del formulario.
+  if (ActiveControl is TComboBox) and TComboBox(ActiveControl).DroppedDown then
+  begin
+    TComboBox(ActiveControl).DroppedDown := False;
+    Key := 0;
+    Exit;
+  end;
+
+  Key := 0;
+  CerrarClick(Self);
 end;
 
 procedure TPrediccionesForm.CerrarClick(Sender: TObject);

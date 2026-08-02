@@ -12,9 +12,11 @@ object Fastock: TFastock
   Constraints.MinWidth = 980
   Font.Height = -13
   Font.Name = 'Sans'
+  KeyPreview = True
   OnActivate = FormActivate
   OnClose = FormClose
   OnCreate = FormCreate
+  OnKeyDown = FormKeyDown
   OnPaint = FormShow
   OnShow = FormShow
   Position = poDesktopCenter

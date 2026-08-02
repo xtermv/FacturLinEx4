@@ -1,12 +1,15 @@
 object FHistofaprov: TFHistofaprov
   Left = 260
-  Height = 692
+  Height = 760
   Top = 281
-  Width = 1016
-  ActiveControl = Panel4
-  Caption = 'Histórico de facturas de proveedor'
-  ClientHeight = 692
-  ClientWidth = 1016
+  Width = 1280
+  Caption = 'Histórico de documentos de proveedor'
+  ClientHeight = 760
+  ClientWidth = 1280
+  Color = $00F8F4EF
+  Font.Height = -13
+  Font.Name = 'Sans'
+  ParentFont = False
   KeyPreview = True
   OnClose = FormClose
   OnCreate = FormCreate
@@ -3639,6 +3642,7 @@ object FHistofaprov: TFHistofaprov
       Width = 96
       Anchors = [akTop]
       Caption = 'Imprimir'
+      Visible = False
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
         2000000000009007000064000000640000000000000000000000000000000000

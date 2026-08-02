@@ -73,6 +73,7 @@ type
     procedure BitBtnCerrarClick(Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCreate(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure FormResize(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure sgDatosKeyPress(Sender: TObject; var Key: char);
@@ -436,7 +437,7 @@ begin
   lblSubtitulo.Font.Color := clBlack;
 
   GroupBox1.Align := alTop;
-  GroupBox1.Height := 205;
+  GroupBox1.Height := 238;
   GroupBox1.Caption := '  Seleccion de articulos y tarifas  ';
   GroupBox1.Color := clWhite;
   GroupBox1.ParentColor := False;
@@ -451,11 +452,7 @@ begin
   Label6.Font.Style := [];
   Label7.Font.Style := [];
 
-  eDescrD.Width := 280;
-  eDescrH.Width := 280;
-  cbAutor.Width := 300;
-  cbFamilia.Width := 300;
-  cbProveedor.Width := 300;
+  { Las posiciones definitivas se calculan en RecolocarControlesModernos. }
 
   cgActTarifas.Left := 700;
   cgActTarifas.Top := 18;
@@ -469,7 +466,7 @@ begin
   pnlAjusteComercial.Left := 700;
   pnlAjusteComercial.Top := 98;
   pnlAjusteComercial.Width := 460;
-  pnlAjusteComercial.Height := 92;
+  pnlAjusteComercial.Height := 124;
   pnlAjusteComercial.Anchors := [akTop];
   pnlAjusteComercial.BevelOuter := bvNone;
   pnlAjusteComercial.Color := $00F8FBFF;
@@ -494,24 +491,24 @@ begin
   lblMargenMinimo := TLabel.Create(pnlAjusteComercial);
   lblMargenMinimo.Parent := pnlAjusteComercial;
   lblMargenMinimo.Left := 12;
-  lblMargenMinimo.Top := 62;
+  lblMargenMinimo.Top := 61;
   lblMargenMinimo.Caption := 'Margen minimo sobre venta (%)';
   lblMargenMinimo.Enabled := False;
 
   eMargenMinimo := TEdit.Create(pnlAjusteComercial);
   eMargenMinimo.Parent := pnlAjusteComercial;
-  eMargenMinimo.Left := 165;
-  eMargenMinimo.Top := 56;
-  eMargenMinimo.Width := 75;
+  eMargenMinimo.Left := 12;
+  eMargenMinimo.Top := 80;
+  eMargenMinimo.Width := 82;
   eMargenMinimo.Text := '';
   eMargenMinimo.Enabled := False;
 
   lblAjusteInfo := TLabel.Create(pnlAjusteComercial);
   lblAjusteInfo.Parent := pnlAjusteComercial;
-  lblAjusteInfo.Left := 255;
-  lblAjusteInfo.Top := 58;
-  lblAjusteInfo.Width := 200;
-  lblAjusteInfo.Height := 32;
+  lblAjusteInfo.Left := 112;
+  lblAjusteInfo.Top := 80;
+  lblAjusteInfo.Width := 330;
+  lblAjusteInfo.Height := 38;
   lblAjusteInfo.AutoSize := False;
   lblAjusteInfo.WordWrap := True;
   lblAjusteInfo.Caption := 'Se ajusta el PVP final con IVA (A2).';
@@ -588,15 +585,14 @@ end;
 procedure TfActAutArt.RecolocarControlesModernos;
 var
   WGrupo, WPanel, XDerecha, AnchoDerecha: Integer;
-  AnchoDesc, AnchoDescripcionGrid: Integer;
+  AnchoZonaIzquierda, AnchoCampoDoble, AnchoCombo: Integer;
+  X1, X2, X3, Separacion: Integer;
+  AnchoDescripcionGrid: Integer;
   AnchoFijoGrid: Integer;
 begin
   if (not Assigned(GroupBox1)) or (not Assigned(Panel1)) then Exit;
 
-  { Zona superior derecha: se calcula SIEMPRE respecto al padre real.
-    La version anterior mezclaba ClientWidth del formulario con controles anclados
-    dentro de GroupBox1/Panel1; al maximizar, Lazarus aplicaba dos desplazamientos
-    y los controles terminaban fuera de pantalla. }
+  { Zona superior derecha: se calcula SIEMPRE respecto al padre real. }
   WGrupo := GroupBox1.ClientWidth;
   AnchoDerecha := 460;
   XDerecha := WGrupo - AnchoDerecha - 16;
@@ -609,24 +605,81 @@ begin
 
   cgActTarifas.SetBounds(XDerecha, 18, AnchoDerecha, 68);
   if Assigned(pnlAjusteComercial) then
-    pnlAjusteComercial.SetBounds(XDerecha, 98, AnchoDerecha, 92);
+    pnlAjusteComercial.SetBounds(XDerecha, 98, AnchoDerecha, 124);
 
-  if Assigned(lblAjusteInfo) and Assigned(pnlAjusteComercial) then
+  { Panel de terminaciones: el texto queda separado verticalmente del Edit,
+    evitando solapamientos con fuentes grandes o escalado de escritorio. }
+  if Assigned(pnlAjusteComercial) then
   begin
-    lblAjusteInfo.Left := 255;
-    lblAjusteInfo.Width := pnlAjusteComercial.ClientWidth - lblAjusteInfo.Left - 10;
-    if lblAjusteInfo.Width < 80 then lblAjusteInfo.Width := 80;
+    if Assigned(cbAjustarTerminacion) then
+      cbAjustarTerminacion.SetBounds(12, 31,
+        pnlAjusteComercial.ClientWidth - 24, 24);
+
+    if Assigned(lblMargenMinimo) then
+    begin
+      lblMargenMinimo.AutoSize := True;
+      lblMargenMinimo.Left := 12;
+      lblMargenMinimo.Top := 61;
+    end;
+
+    if Assigned(eMargenMinimo) then
+      eMargenMinimo.SetBounds(12, 80, 82, 27);
+
+    if Assigned(lblAjusteInfo) then
+    begin
+      lblAjusteInfo.SetBounds(112, 80,
+        pnlAjusteComercial.ClientWidth - 124, 38);
+      if lblAjusteInfo.Width < 100 then lblAjusteInfo.Width := 100;
+    end;
   end;
 
-  { Campos de descripcion: aprovechar el espacio izquierdo sin invadir la zona de tarifas. }
-  AnchoDesc := (XDerecha - 500) div 2 + 280;
-  if AnchoDesc < 280 then AnchoDesc := 280;
-  if AnchoDesc > 360 then AnchoDesc := 360;
-  eDescrD.Width := AnchoDesc;
-  eDescrH.Left := 480;
-  eDescrH.Width := XDerecha - eDescrH.Left - 20;
-  if eDescrH.Width < 220 then eDescrH.Width := 220;
-  if eDescrH.Width > 360 then eDescrH.Width := 360;
+  { Zona izquierda de selección. Los labels se colocan ENCIMA de cada campo,
+    no a su izquierda, para que nunca sean pisados por los Edit/ComboBox. }
+  AnchoZonaIzquierda := XDerecha - 32;
+  if AnchoZonaIzquierda < 620 then AnchoZonaIzquierda := 620;
+  Separacion := 12;
+
+  AnchoCampoDoble := (AnchoZonaIzquierda - Separacion) div 2;
+  X1 := 16;
+  X2 := X1 + AnchoCampoDoble + Separacion;
+
+  Label1.Caption := 'Código desde';
+  Label2.Caption := 'Código hasta';
+  Label3.Caption := 'Descripción desde';
+  Label4.Caption := 'Descripción hasta';
+  Label5.Caption := 'Autor / Fabricante';
+  Label6.Caption := 'Familia';
+  Label7.Caption := 'Proveedor';
+
+  Label1.AutoSize := True;
+  Label2.AutoSize := True;
+  Label3.AutoSize := True;
+  Label4.AutoSize := True;
+  Label5.AutoSize := True;
+  Label6.AutoSize := True;
+  Label7.AutoSize := True;
+
+  Label1.SetBounds(X1, 19, Label1.Width, Label1.Height);
+  eCodigoD.SetBounds(X1, 38, 180, 27);
+  Label2.SetBounds(X2, 19, Label2.Width, Label2.Height);
+  eCodigoH.SetBounds(X2, 38, 180, 27);
+
+  Label3.SetBounds(X1, 72, Label3.Width, Label3.Height);
+  eDescrD.SetBounds(X1, 91, AnchoCampoDoble, 27);
+  Label4.SetBounds(X2, 72, Label4.Width, Label4.Height);
+  eDescrH.SetBounds(X2, 91, AnchoCampoDoble, 27);
+
+  AnchoCombo := (AnchoZonaIzquierda - (2 * Separacion)) div 3;
+  X1 := 16;
+  X2 := X1 + AnchoCombo + Separacion;
+  X3 := X2 + AnchoCombo + Separacion;
+
+  Label5.SetBounds(X1, 128, Label5.Width, Label5.Height);
+  cbAutor.SetBounds(X1, 147, AnchoCombo, 29);
+  Label6.SetBounds(X2, 128, Label6.Width, Label6.Height);
+  cbFamilia.SetBounds(X2, 147, AnchoCombo, 29);
+  Label7.SetBounds(X3, 128, Label7.Width, Label7.Height);
+  cbProveedor.SetBounds(X3, 147, AnchoCombo, 29);
 
   { Barra inferior: acciones siempre dentro del panel visible. }
   WPanel := Panel1.ClientWidth;
@@ -634,7 +687,7 @@ begin
   bbAplicar.Left := BitBtnCerrar.Left - bbAplicar.Width - 12;
   bbFiltrar.Left := bbAplicar.Left - bbFiltrar.Width - 12;
 
-  { El grid ocupa toda la anchura; la descripcion absorbe el espacio sobrante. }
+  { El grid ocupa toda la anchura; la descripción absorbe el espacio sobrante. }
   if sgDatos.Columns.Count >= 7 then
   begin
     sgDatos.Columns[0].Width := 110;
@@ -1090,6 +1143,25 @@ begin
   sgDatos.Clear;
 end;
 
+procedure TfActAutArt.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key <> VK_ESCAPE then Exit;
+
+  { Si hay un desplegable abierto, ESC cierra primero únicamente la lista. }
+  if (ActiveControl is TComboBox) and TComboBox(ActiveControl).DroppedDown then
+  begin
+    TComboBox(ActiveControl).DroppedDown := False;
+    Key := 0;
+    Exit;
+  end;
+
+  { Pantalla principal: usar exactamente la misma salida que el botón Cerrar.
+    FormClose mantiene intacta la confirmación si hay precios modificados. }
+  Key := 0;
+  BitBtnCerrarClick(BitBtnCerrar);
+end;
+
 procedure TfActAutArt.FormResize(Sender: TObject);
 begin
   RecolocarControlesModernos;
@@ -1133,6 +1205,8 @@ end;
 
 procedure TfActAutArt.FormCreate(Sender: TObject);
 begin
+  KeyPreview := True;
+  OnKeyDown := @FormKeyDown;
   OnShow := @FormShow;
   AplicarEstiloModerno;
   OnResize := @FormResize;

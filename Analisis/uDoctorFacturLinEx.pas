@@ -5,7 +5,7 @@ unit uDoctorFacturLinEx;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls,
+  Classes, SysUtils, Forms, Controls, LCLType, Graphics, Dialogs, ExtCtrls, StdCtrls,
   Buttons, Grids, DB, ZConnection, ZDataset,
   uFLXIntelligenceEngine, uFLXGridStyle, uFLXExport, uFLXIcons;
 
@@ -25,6 +25,7 @@ type
     MemoSQL: TMemo;
     procedure CargarIconoBoton(ABtn: TBitBtn; const AIcon: string; ASize: Integer);
     procedure ExportarCSV(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure Cerrar(Sender: TObject);
     procedure GridDetalleMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure GridDetalleDrawCell(Sender: TObject; aCol, aRow: Integer; aRect: TRect; aState: TGridDrawState);
@@ -97,6 +98,7 @@ type
     procedure CSVClick(Sender: TObject);
     procedure DetalleClick(Sender: TObject);
     procedure NormalizarNIFClick(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure CerrarClick(Sender: TObject);
     procedure GridMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure GridDblClick(Sender: TObject);
@@ -124,6 +126,8 @@ var
   L: TLabel;
 begin
   inherited CreateNew(AOwner, 1);
+  KeyPreview := True;
+  OnKeyDown := @FormKeyDown;
   FConn := AConnection;
   FSQL := ASQL;
   FSortCol := -1;
@@ -332,6 +336,22 @@ begin
   end;
 end;
 
+procedure TDoctorDetalleSQLForm.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if Key <> VK_ESCAPE then Exit;
+
+  // Si hay un desplegable activo, ESC lo cierra antes de salir del formulario.
+  if (ActiveControl is TComboBox) and TComboBox(ActiveControl).DroppedDown then
+  begin
+    TComboBox(ActiveControl).DroppedDown := False;
+    Key := 0;
+    Exit;
+  end;
+
+  Key := 0;
+  Cerrar(Self);
+end;
+
 procedure TDoctorDetalleSQLForm.Cerrar(Sender: TObject);
 begin
   Close;
@@ -452,6 +472,8 @@ var
   L: TLabel;
 begin
   inherited CreateNew(AOwner, 1);
+  KeyPreview := True;
+  OnKeyDown := @FormKeyDown;
   FConn := AConnection;
   FTienda := ATienda;
   FLastSortCol := -1;
@@ -1355,6 +1377,22 @@ begin
     'Solo se han modificado NIF/CIF validos.' + LineEnding +
     'Ejecute de nuevo Revisar para actualizar el Doctor.', mtInformation, [mbOK], 0);
   RevisarDoctorCompleto;
+end;
+
+procedure TDoctorFacturLinExForm.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if Key <> VK_ESCAPE then Exit;
+
+  // Si hay un desplegable activo, ESC lo cierra antes de salir del formulario.
+  if (ActiveControl is TComboBox) and TComboBox(ActiveControl).DroppedDown then
+  begin
+    TComboBox(ActiveControl).DroppedDown := False;
+    Key := 0;
+    Exit;
+  end;
+
+  Key := 0;
+  CerrarClick(Self);
 end;
 
 procedure TDoctorFacturLinExForm.CerrarClick(Sender: TObject);

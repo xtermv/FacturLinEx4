@@ -31,8 +31,12 @@ interface
 
 uses
   Classes, SysUtils, db, FileUtil, LResources, Forms, Controls, Graphics,
-  Dialogs, ExtCtrls, StdCtrls, DBGrids, Buttons, ZConnection, ZDataset,
-  LCLType;
+  Dialogs, ExtCtrls, StdCtrls, DBGrids, Buttons, EditBtn, ZConnection, ZDataset,
+  LCLType, Grids, Math
+  {$IFDEF LCLGTK2}
+  , gtk2, gdk2
+  {$ENDIF}
+  ;
 
 type
 
@@ -52,11 +56,11 @@ type
     Edit1: TEdit;
     Edit10: TEdit;
     Edit2: TEdit;
-    Edit3: TEdit;
+    Edit3: TDateEdit;
     Edit4: TEdit;
     Edit5: TEdit;
     Edit6: TEdit;
-    Edit7: TEdit;
+    Edit7: TDateEdit;
     Edit8: TEdit;
     Edit9: TEdit;
     Label1: TLabel;
@@ -92,6 +96,17 @@ type
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCreate(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure FormResize(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure CabeceraPanelMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure CabeceraPanelMouseMove(Sender: TObject; Shift: TShiftState;
+      X, Y: Integer);
+    procedure CabeceraPanelMouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure dbgDatosDrawColumnCell(Sender: TObject; const Rect: TRect;
+      DataCol: Integer; Column: TColumn; State: TGridDrawState);
+    procedure dbgDatosTitleClick(Column: TColumn);
     procedure rgFiltroClick(Sender: TObject);
     procedure ActivarPanel;
     procedure DesactivarPanel;
@@ -108,6 +123,24 @@ type
     FOldPromoIni: string;
     FOldPromoFin: string;
     FOldPromoWasSegunda: Boolean;
+    FHeaderPanel: TPanel;
+    FHeaderTitle: TLabel;
+    FHeaderSubtitle: TLabel;
+    FStatusLabel: TLabel;
+    FSortField: string;
+    FSortAsc: Boolean;
+    FMoviendoPanel: Boolean;
+    FPanelMovidoPorUsuario: Boolean;
+    FPanelDragOffset: TPoint;
+    procedure AplicarEstiloModerno;
+    procedure AplicarContrasteSeleccion(AEditControl: TWinControl);
+    procedure AplicarContrasteSeleccionControles(AParent: TWinControl);
+    procedure ActualizarEstado;
+    procedure ConfigurarBoton(ABoton: TBitBtn; const ACaption, AHint: string;
+      AColor: TColor);
+    procedure MarcarColumnaOrdenada(Column: TColumn);
+    procedure LimitarPanelAlAreaVisible;
+    procedure RecolocarControles;
     function ResolverCodigoArticulo(const ACodigo: string): string;
     procedure ImportarPromocionesDesdeXLSX(const AFichero: string);
     function BuscarArticuloDesdeDocumento(const ACodigo, AEan: string; out AArticulo, ADescripcion: string; out APvpFicha, ACosteFicha, AIvaFicha: Double): Boolean;
@@ -1427,9 +1460,17 @@ begin
   if btnImportarXLSX<>nil then
     btnImportarXLSX.Enabled:=False;
   Panel1.Visible:=True;
+  if Operacion='A' then
+    Label13.Caption:='NUEVA PROMOCIÓN'
+  else
+    Label13.Caption:='MODIFICAR PROMOCIÓN';
+  RecolocarControles;
+  Panel1.BringToFront;
+  AplicarContrasteSeleccionControles(Panel1);
 end;
 procedure TfPromociones.DesactivarPanel;
 begin
+  FMoviendoPanel := False;
   Panel1.Visible:=False;
   rgFiltro.Enabled:=True;
   dbgDatos.Enabled:=True;
@@ -1440,6 +1481,8 @@ begin
   btnActualizar.Enabled:=True;
   if btnImportarXLSX<>nil then
     btnImportarXLSX.Enabled:=True;
+  dbgDatos.SetFocus;
+  ActualizarEstado;
 end;
 
 procedure TfPromociones.FormClose(Sender: TObject; var CloseAction: TCloseAction
@@ -1455,6 +1498,450 @@ end;
 Closeaction:=CaFree;
 end;
 
+
+procedure TfPromociones.ConfigurarBoton(ABoton: TBitBtn;
+  const ACaption, AHint: string; AColor: TColor);
+begin
+  if not Assigned(ABoton) then Exit;
+  ABoton.Caption := ACaption;
+  ABoton.Hint := AHint;
+  ABoton.ShowHint := True;
+  ABoton.Color := AColor;
+  ABoton.Font.Color := RGBToColor(24, 36, 48);
+  ABoton.Font.Height := -14;
+  ABoton.Font.Style := [fsBold];
+  ABoton.Visible := True;
+  ABoton.BringToFront;
+end;
+
+procedure TfPromociones.AplicarEstiloModerno;
+var
+  I: Integer;
+  C: TComponent;
+begin
+  Color := RGBToColor(244, 247, 250);
+  Font.Name := 'Sans';
+  Font.Height := -13;
+  Constraints.MinWidth := 1120;
+  Constraints.MinHeight := 650;
+
+  if not Assigned(FHeaderPanel) then
+  begin
+    FHeaderPanel := TPanel.Create(Self);
+    FHeaderPanel.Parent := Self;
+    FHeaderPanel.Caption := '';
+    FHeaderPanel.BevelOuter := bvNone;
+    FHeaderPanel.Color := RGBToColor(36, 78, 118);
+    FHeaderPanel.Left := 0;
+    FHeaderPanel.Top := 0;
+    FHeaderPanel.Height := 88;
+    FHeaderPanel.Width := ClientWidth;
+    FHeaderPanel.Anchors := [akLeft, akTop, akRight];
+    FHeaderPanel.SendToBack;
+
+    FHeaderTitle := TLabel.Create(Self);
+    FHeaderTitle.Parent := FHeaderPanel;
+    FHeaderTitle.Caption := 'GESTIÓN DE PROMOCIONES';
+    FHeaderTitle.Left := 26;
+    FHeaderTitle.Top := 16;
+    FHeaderTitle.Font.Name := 'Sans';
+    FHeaderTitle.Font.Height := -22;
+    FHeaderTitle.Font.Style := [fsBold];
+    FHeaderTitle.Font.Color := clWhite;
+    FHeaderTitle.ParentColor := True;
+
+    FHeaderSubtitle := TLabel.Create(Self);
+    FHeaderSubtitle.Parent := FHeaderPanel;
+    FHeaderSubtitle.Caption :=
+      'Consulta, crea y actualiza ofertas por artículo y periodo de vigencia';
+    FHeaderSubtitle.Left := 28;
+    FHeaderSubtitle.Top := 51;
+    FHeaderSubtitle.Font.Name := 'Sans';
+    FHeaderSubtitle.Font.Height := -13;
+    FHeaderSubtitle.Font.Color := RGBToColor(225, 237, 248);
+    FHeaderSubtitle.ParentColor := True;
+  end;
+
+  if not Assigned(FStatusLabel) then
+  begin
+    FStatusLabel := TLabel.Create(Self);
+    FStatusLabel.Parent := Self;
+    FStatusLabel.AutoSize := False;
+    FStatusLabel.Alignment := taLeftJustify;
+    FStatusLabel.Font.Name := 'Sans';
+    FStatusLabel.Font.Height := -13;
+    FStatusLabel.Font.Style := [fsBold];
+    FStatusLabel.Font.Color := RGBToColor(42, 67, 88);
+    FStatusLabel.ParentColor := True;
+  end;
+
+  rgFiltro.Caption := ' PROMOCIONES A MOSTRAR ';
+  rgFiltro.Font.Name := 'Sans';
+  rgFiltro.Font.Height := -14;
+  rgFiltro.Font.Color := RGBToColor(30, 47, 63);
+  rgFiltro.Color := RGBToColor(231, 241, 249);
+  rgFiltro.ParentColor := False;
+
+  dbgDatos.Color := clWhite;
+  dbgDatos.Font.Name := 'Sans';
+  dbgDatos.Font.Height := -13;
+  dbgDatos.TitleFont.Name := 'Sans';
+  dbgDatos.TitleFont.Height := -13;
+  dbgDatos.TitleFont.Style := [fsBold];
+  dbgDatos.TitleFont.Color := RGBToColor(24, 52, 78);
+  dbgDatos.Options := dbgDatos.Options + [dgRowSelect, dgAlwaysShowSelection];
+  dbgDatos.OnTitleClick := @dbgDatosTitleClick;
+  dbgDatos.OnDrawColumnCell := @dbgDatosDrawColumnCell;
+
+  ConfigurarBoton(btnCrear, 'Nueva promoción',
+    'Crear una promoción nueva (F2)', RGBToColor(199, 235, 210));
+  ConfigurarBoton(btnModificar, 'Modificar',
+    'Modificar la promoción seleccionada', RGBToColor(205, 226, 246));
+  ConfigurarBoton(btnBorrar, 'Eliminar',
+    'Eliminar la promoción seleccionada (F3)', RGBToColor(249, 213, 213));
+  ConfigurarBoton(btnActualizar, 'Finalizar caducadas',
+    'Marca como finalizadas las promociones cuya fecha ya ha vencido',
+    RGBToColor(255, 232, 184));
+  ConfigurarBoton(btnCerrar, 'Cerrar',
+    'Cerrar la gestión de promociones', RGBToColor(224, 229, 234));
+
+  Panel1.Caption := '';
+  Panel1.Color := RGBToColor(246, 249, 252);
+  Panel1.BevelOuter := bvNone;
+
+  Label13.Caption := 'DATOS DE LA PROMOCIÓN';
+  Label13.Color := RGBToColor(36, 78, 118);
+  Label13.Font.Name := 'Sans';
+  Label13.Font.Height := -17;
+  Label13.Font.Style := [fsBold];
+  Label13.Font.Color := clWhite;
+  Label13.Transparent := False;
+  Label13.Cursor := crSizeAll;
+  Label13.Hint := 'Arrastre esta cabecera para mover el panel';
+  Label13.ShowHint := True;
+  Label13.OnMouseDown := @CabeceraPanelMouseDown;
+  Label13.OnMouseMove := @CabeceraPanelMouseMove;
+  Label13.OnMouseUp := @CabeceraPanelMouseUp;
+
+  Label1.Caption := 'Código del artículo';
+  Label2.Caption := 'Descripción';
+  Label3.Caption := 'INICIO Y VALORES DE OFERTA';
+  Label4.Caption := 'Fecha de inicio';
+  Label5.Caption := 'PVP de oferta';
+  Label6.Caption := 'Coste de oferta';
+  Label7.Caption := '% IVA oferta';
+  Label8.Caption := 'FIN Y VALORES A RESTAURAR';
+  Label9.Caption := 'Fecha de fin';
+  Label10.Caption := 'PVP normal';
+  Label11.Caption := 'Coste normal';
+  Label12.Caption := '% IVA normal';
+
+  for I := 1 to 12 do
+    with TLabel(FindComponent('Label' + IntToStr(I))) do
+    begin
+      Font.Name := 'Sans';
+      Font.Height := -13;
+      Font.Color := RGBToColor(32, 49, 64);
+      ParentColor := True;
+    end;
+  Label3.Font.Style := [fsBold];
+  Label3.Font.Color := RGBToColor(35, 93, 137);
+  Label8.Font.Style := [fsBold];
+  Label8.Font.Color := RGBToColor(35, 93, 137);
+
+  for I := 1 to 10 do
+  begin
+    C := FindComponent('Edit' + IntToStr(I));
+    if C is TEdit then
+    begin
+      TEdit(C).Color := clWhite;
+      TEdit(C).Font.Name := 'Sans';
+      TEdit(C).Font.Height := -14;
+      TEdit(C).Font.Color := RGBToColor(16, 24, 32);
+    end
+    else if C is TDateEdit then
+    begin
+      TDateEdit(C).Color := clWhite;
+      TDateEdit(C).Font.Name := 'Sans';
+      TDateEdit(C).Font.Height := -14;
+      TDateEdit(C).Font.Color := RGBToColor(16, 24, 32);
+      TDateEdit(C).DefaultToday := True;
+      TDateEdit(C).DateOrder := doNone;
+      TDateEdit(C).ButtonWidth := 30;
+    end;
+  end;
+
+  ConfigurarBoton(btnAceptar, 'Guardar promoción',
+    'Guardar los datos de la promoción (F8)', RGBToColor(190, 231, 202));
+  ConfigurarBoton(btnCancelar, 'Cancelar',
+    'Cancelar la edición y volver al listado (ESC)', RGBToColor(231, 235, 239));
+  ConfigurarBoton(btnBuscar, '...',
+    'Buscar un artículo', RGBToColor(184, 218, 244));
+
+  RecolocarControles;
+end;
+
+procedure TfPromociones.AplicarContrasteSeleccion(AEditControl: TWinControl);
+{$IFDEF LCLGTK2}
+var
+  FondoNormal, TextoNormal, FondoSeleccion, TextoSeleccion: TGdkColor;
+  Widget: PGtkWidget;
+{$ENDIF}
+begin
+  if not Assigned(AEditControl) then Exit;
+  AEditControl.HandleNeeded;
+
+  {$IFDEF LCLGTK2}
+  Widget := PGtkWidget(AEditControl.Handle);
+  if Assigned(Widget) then
+  begin
+    gdk_color_parse(PChar('#FFFFFF'), @FondoNormal);
+    gdk_color_parse(PChar('#101820'), @TextoNormal);
+    gtk_widget_modify_base(Widget, GTK_STATE_NORMAL, @FondoNormal);
+    gtk_widget_modify_text(Widget, GTK_STATE_NORMAL, @TextoNormal);
+
+    gdk_color_parse(PChar('#2A5684'), @FondoSeleccion);
+    gdk_color_parse(PChar('#FFFFFF'), @TextoSeleccion);
+    gtk_widget_modify_base(Widget, GTK_STATE_SELECTED, @FondoSeleccion);
+    gtk_widget_modify_text(Widget, GTK_STATE_SELECTED, @TextoSeleccion);
+  end;
+  {$ENDIF}
+end;
+
+procedure TfPromociones.AplicarContrasteSeleccionControles(AParent: TWinControl);
+var
+  I: Integer;
+  C: TControl;
+begin
+  if not Assigned(AParent) then Exit;
+  for I := 0 to AParent.ControlCount - 1 do
+  begin
+    C := AParent.Controls[I];
+    if C is TCustomEdit then
+      AplicarContrasteSeleccion(TWinControl(C));
+    if C is TWinControl then
+      AplicarContrasteSeleccionControles(TWinControl(C));
+  end;
+end;
+
+procedure TfPromociones.ActualizarEstado;
+var
+  Tipo: string;
+begin
+  if not Assigned(FStatusLabel) then Exit;
+  case rgFiltro.ItemIndex of
+    0: Tipo := 'activas';
+    1: Tipo := 'finalizadas';
+  else
+    Tipo := 'totales';
+  end;
+  if dbPromo.Active then
+    FStatusLabel.Caption := Format('%d promociones %s.  Pulse una cabecera para ordenar.',
+      [dbPromo.RecordCount, Tipo])
+  else
+    FStatusLabel.Caption := 'Sin datos cargados.';
+end;
+
+procedure TfPromociones.MarcarColumnaOrdenada(Column: TColumn);
+var
+  I: Integer;
+  S, Flecha: string;
+begin
+  for I := 0 to dbgDatos.Columns.Count - 1 do
+  begin
+    S := StringReplace(dbgDatos.Columns[I].Title.Caption, ' ▲', '', [rfReplaceAll]);
+    S := StringReplace(S, ' ▼', '', [rfReplaceAll]);
+    dbgDatos.Columns[I].Title.Caption := S;
+  end;
+
+  if not Assigned(Column) then Exit;
+  if FSortAsc then Flecha := ' ▲' else Flecha := ' ▼';
+  Column.Title.Caption := Column.Title.Caption + Flecha;
+end;
+
+procedure TfPromociones.dbgDatosTitleClick(Column: TColumn);
+var
+  SQLBase, SQLMayus, Direccion: string;
+  P: Integer;
+begin
+  if (not Assigned(Column)) or (Column.FieldName = '') or
+     (not dbPromo.Active) then Exit;
+
+  if SameText(FSortField, Column.FieldName) then
+    FSortAsc := not FSortAsc
+  else
+  begin
+    FSortField := Column.FieldName;
+    FSortAsc := True;
+  end;
+
+  SQLBase := Trim(dbPromo.SQL.Text);
+  SQLMayus := UpperCase(SQLBase);
+  P := Pos(' ORDER BY ', SQLMayus);
+  if P > 0 then
+    SQLBase := Trim(Copy(SQLBase, 1, P - 1));
+
+  if FSortAsc then Direccion := 'ASC' else Direccion := 'DESC';
+
+  dbgDatos.Enabled := False;
+  try
+    dbPromo.Close;
+    dbPromo.SQL.Text := SQLBase + ' ORDER BY ' + FSortField + ' ' + Direccion;
+    dbPromo.Open;
+    MarcarColumnaOrdenada(Column);
+    ActualizarEstado;
+  finally
+    dbgDatos.Enabled := True;
+  end;
+end;
+
+procedure TfPromociones.dbgDatosDrawColumnCell(Sender: TObject;
+  const Rect: TRect; DataCol: Integer; Column: TColumn; State: TGridDrawState);
+var
+  S: string;
+begin
+  if gdSelected in State then
+  begin
+    dbgDatos.Canvas.Brush.Color := RGBToColor(42, 86, 132);
+    dbgDatos.Canvas.Font.Color := clWhite;
+    dbgDatos.Canvas.FillRect(Rect);
+    if Assigned(Column) and Assigned(Column.Field) then
+      S := Column.Field.DisplayText
+    else
+      S := '';
+    dbgDatos.Canvas.TextRect(Rect, Rect.Left + 5, Rect.Top + 3, S);
+    Exit;
+  end;
+  dbgDatos.DefaultDrawColumnCell(Rect, DataCol, Column, State);
+end;
+
+procedure TfPromociones.RecolocarControles;
+const
+  Margen = 24;
+  Separacion = 12;
+var
+  YBotones, AnchoBoton, TotalBotones, X: Integer;
+begin
+  if Assigned(FHeaderPanel) then
+    FHeaderPanel.Width := ClientWidth;
+
+  rgFiltro.Left := Margen;
+  rgFiltro.Top := 104;
+  rgFiltro.Width := 500;
+  rgFiltro.Height := 72;
+
+  if Assigned(btnImportarXLSX) then
+  begin
+    btnImportarXLSX.Left := rgFiltro.Left + rgFiltro.Width + 18;
+    btnImportarXLSX.Top := 118;
+    btnImportarXLSX.Width := 190;
+    btnImportarXLSX.Height := 44;
+  end;
+
+  YBotones := ClientHeight - 58;
+  AnchoBoton := 170;
+  TotalBotones := (AnchoBoton * 5) + (Separacion * 4);
+  X := Max(Margen, (ClientWidth - TotalBotones) div 2);
+
+  btnCrear.SetBounds(X, YBotones, AnchoBoton, 42);
+  Inc(X, AnchoBoton + Separacion);
+  btnModificar.SetBounds(X, YBotones, AnchoBoton, 42);
+  Inc(X, AnchoBoton + Separacion);
+  btnBorrar.SetBounds(X, YBotones, AnchoBoton, 42);
+  Inc(X, AnchoBoton + Separacion);
+  btnActualizar.SetBounds(X, YBotones, AnchoBoton, 42);
+  Inc(X, AnchoBoton + Separacion);
+  btnCerrar.SetBounds(X, YBotones, AnchoBoton, 42);
+
+  if Assigned(FStatusLabel) then
+    FStatusLabel.SetBounds(Margen, YBotones - 28, ClientWidth - (Margen * 2), 20);
+
+  dbgDatos.SetBounds(Margen, 192, ClientWidth - (Margen * 2),
+    Max(180, YBotones - 228));
+
+  if Panel1.Visible then
+  begin
+    if not FPanelMovidoPorUsuario then
+    begin
+      Panel1.Left := Max(12, (ClientWidth - Panel1.Width) div 2);
+      Panel1.Top := Max(100, (ClientHeight - Panel1.Height) div 2);
+    end;
+    LimitarPanelAlAreaVisible;
+    Panel1.BringToFront;
+  end;
+end;
+
+procedure TfPromociones.LimitarPanelAlAreaVisible;
+var
+  MaxLeft, MaxTop: Integer;
+begin
+  if (not Assigned(Panel1)) or (not (Panel1.Parent is TWinControl)) then Exit;
+
+  MaxLeft := TWinControl(Panel1.Parent).ClientWidth - Panel1.Width;
+  MaxTop := TWinControl(Panel1.Parent).ClientHeight - Panel1.Height;
+  if MaxLeft < 0 then MaxLeft := 0;
+  if MaxTop < 0 then MaxTop := 0;
+
+  if Panel1.Left < 0 then Panel1.Left := 0;
+  if Panel1.Top < 88 then Panel1.Top := 88;
+  if Panel1.Left > MaxLeft then Panel1.Left := MaxLeft;
+  if Panel1.Top > MaxTop then Panel1.Top := MaxTop;
+end;
+
+procedure TfPromociones.CabeceraPanelMouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  P, OrigenPanel: TPoint;
+begin
+  if Button <> mbLeft then Exit;
+  if not (Sender is TControl) then Exit;
+
+  P := TControl(Sender).ClientToScreen(Point(X, Y));
+  OrigenPanel := Panel1.ClientToScreen(Point(0, 0));
+  FPanelDragOffset := Point(P.X - OrigenPanel.X, P.Y - OrigenPanel.Y);
+  FMoviendoPanel := True;
+  FPanelMovidoPorUsuario := True;
+end;
+
+procedure TfPromociones.CabeceraPanelMouseMove(Sender: TObject;
+  Shift: TShiftState; X, Y: Integer);
+var
+  P, OrigenPadre: TPoint;
+begin
+  if not FMoviendoPanel then Exit;
+  if not (ssLeft in Shift) then
+  begin
+    FMoviendoPanel := False;
+    Exit;
+  end;
+  if not (Sender is TControl) then Exit;
+
+  P := TControl(Sender).ClientToScreen(Point(X, Y));
+  OrigenPadre := TWinControl(Panel1.Parent).ClientToScreen(Point(0, 0));
+  Panel1.Left := P.X - FPanelDragOffset.X - OrigenPadre.X;
+  Panel1.Top := P.Y - FPanelDragOffset.Y - OrigenPadre.Y;
+  LimitarPanelAlAreaVisible;
+end;
+
+procedure TfPromociones.CabeceraPanelMouseUp(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  if Button <> mbLeft then Exit;
+  FMoviendoPanel := False;
+  LimitarPanelAlAreaVisible;
+end;
+
+procedure TfPromociones.FormResize(Sender: TObject);
+begin
+  RecolocarControles;
+end;
+
+procedure TfPromociones.FormShow(Sender: TObject);
+begin
+  AplicarContrasteSeleccionControles(Self);
+  RecolocarControles;
+end;
+
 procedure TfPromociones.FormCreate(Sender: TObject);
 begin
   //----------------- CONEXION -----------------
@@ -1467,11 +1954,7 @@ begin
 
   btnImportarXLSX := TBitBtn.Create(Self);
   btnImportarXLSX.Parent := Self;
-  btnImportarXLSX.Left := rgFiltro.Left + rgFiltro.Width + 16;
-  btnImportarXLSX.Top := rgFiltro.Top;
-  btnImportarXLSX.Width := 120;
-  btnImportarXLSX.Height := 30;
-  btnImportarXLSX.Caption := 'Importar XLSX';
+  btnImportarXLSX.Caption := 'Importar promociones XLSX';
   btnImportarXLSX.Hint := 'Importa un documento XLSX de proveedor y crea promociones línea por línea';
   btnImportarXLSX.ShowHint := True;
   btnImportarXLSX.OnClick := @btnImportarXLSXClick;
@@ -1498,6 +1981,41 @@ begin
   lblInfoSegundaUnd.Font.Style := [fsItalic];
   lblInfoSegundaUnd.Visible := False;
 
+  FSortField := 'P0';
+  FSortAsc := True;
+  FMoviendoPanel := False;
+  FPanelMovidoPorUsuario := False;
+
+  Edit3.DefaultToday := True;
+  Edit3.DateOrder := doNone;
+  Edit3.ButtonWidth := 30;
+  Edit7.DefaultToday := True;
+  Edit7.DateOrder := doNone;
+  Edit7.ButtonWidth := 30;
+
+  AplicarEstiloModerno;
+
+  chkSegundaUnd50.Left := 28;
+  chkSegundaUnd50.Top := 360;
+  chkSegundaUnd50.Width := 190;
+  lblInfoSegundaUnd.Left := 220;
+  lblInfoSegundaUnd.Top := 363;
+
+  chkSegundaUnd50.Font.Name := 'Sans';
+  chkSegundaUnd50.Font.Height := -14;
+  chkSegundaUnd50.Font.Color := RGBToColor(28, 46, 62);
+  chkSegundaUnd50.Color := Panel1.Color;
+  lblInfoSegundaUnd.Font.Name := 'Sans';
+  lblInfoSegundaUnd.Font.Height := -12;
+  lblInfoSegundaUnd.Font.Color := RGBToColor(65, 86, 104);
+  lblInfoSegundaUnd.ParentColor := True;
+
+  ConfigurarBoton(btnImportarXLSX, 'Importar promociones XLSX',
+    'Importa promociones desde un documento XLSX del proveedor',
+    RGBToColor(215, 226, 246));
+
+  MarcarColumnaOrdenada(dbgDatos.Columns[0]);
+  ActualizarEstado;
   EnsurePromoRulesTable;
 end;
 
@@ -1521,6 +2039,11 @@ begin
        2: dbPromo.SQL.Add('SELECT * FROM promo'+Tienda+' ORDER BY P0');
   end;
   dbPromo.Active:=True;
+  FSortField:='P0';
+  FSortAsc:=True;
+  if dbgDatos.Columns.Count>0 then
+    MarcarColumnaOrdenada(dbgDatos.Columns[0]);
+  ActualizarEstado;
 end;
 
 procedure TfPromociones.btnCerrarClick(Sender: TObject);
@@ -1604,6 +2127,7 @@ begin
     DeleteSegundaUnidadRule(Edit1.Text, IniDB, FinDB);
 
   dbgDatos.Refresh;
+  ActualizarEstado;
   Operacion:='A';
   FOldPromoArt := '';
   FOldPromoIni := '';
@@ -1627,6 +2151,7 @@ begin
     FinDB := PromoStrToDB(dbPromo.FieldByName('P6').AsString);
     DeleteSegundaUnidadRule(Art, IniDB, FinDB);
     dbPromo.Delete;
+    ActualizarEstado;
   end;
 end;
 

@@ -4,13 +4,16 @@ object FGenerarPed: TFGenerarPed
   Top = 55
   Width = 1016
   ActiveControl = Edit1
-  Caption = 'Generar pedidos'
+  Caption = 'FacturLinEx · Generación automática de pedidos'
   ClientHeight = 692
   ClientWidth = 1016
   KeyPreview = True
   OnClose = FormClose
   OnCreate = FormCreate
-  Position = poDesktopCenter
+  OnShow = FormShow
+  OnResize = FormResize
+  OnKeyDown = FormKeyDown
+  Position = poScreenCenter
   LCLVersion = '0.9.28.2'
   object Label1: TLabel
     Left = 32
@@ -20,7 +23,7 @@ object FGenerarPed: TFGenerarPed
     AutoSize = False
     Caption = 'Proveedor'
     Layout = tlCenter
-    ParentColor = False
+    ParentColor = True
   end
   object Label2: TLabel
     Left = 24
@@ -30,7 +33,7 @@ object FGenerarPed: TFGenerarPed
     AutoSize = False
     Caption = 'Desde familia'
     Layout = tlCenter
-    ParentColor = False
+    ParentColor = True
   end
   object Label3: TLabel
     Left = 24
@@ -40,7 +43,7 @@ object FGenerarPed: TFGenerarPed
     AutoSize = False
     Caption = 'Hasta familia'
     Layout = tlCenter
-    ParentColor = False
+    ParentColor = True
   end
   object BitBtn1: TBitBtn
     Left = 896
@@ -387,6 +390,8 @@ object FGenerarPed: TFGenerarPed
         FieldName = 'IMPOR'
       end>
     DataSource = Datasource1
+    OnTitleClick = DBGrid1TitleClick
+    OnDrawColumnCell = DBGrid1DrawColumnCell
     Options = [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
     TabOrder = 15
   end
@@ -433,7 +438,6 @@ object FGenerarPed: TFGenerarPed
     Width = 576
     ClientHeight = 43
     ClientWidth = 576
-    Enabled = False
     TabOrder = 12
     object Label5: TLabel
       Left = 304
@@ -443,7 +447,7 @@ object FGenerarPed: TFGenerarPed
       AutoSize = False
       Caption = 'Hasta fecha'
       Layout = tlCenter
-      ParentColor = False
+      ParentColor = True
     end
     object Label4: TLabel
       Left = 24
@@ -453,7 +457,7 @@ object FGenerarPed: TFGenerarPed
       AutoSize = False
       Caption = 'Desde fecha'
       Layout = tlCenter
-      ParentColor = False
+      ParentColor = True
     end
     object DateEdit1: TDateEdit
       Left = 136
@@ -662,7 +666,7 @@ object FGenerarPed: TFGenerarPed
       AutoSize = False
       Caption = 'N. Pedido'
       Layout = tlCenter
-      ParentColor = False
+      ParentColor = True
     end
     object Label27: TLabel
       Left = 202
@@ -672,7 +676,7 @@ object FGenerarPed: TFGenerarPed
       AutoSize = False
       Caption = 'Fecha Pedido'
       Layout = tlCenter
-      ParentColor = False
+      ParentColor = True
     end
     object Label28: TLabel
       Left = 10
@@ -682,7 +686,7 @@ object FGenerarPed: TFGenerarPed
       AutoSize = False
       Caption = 'Proveedor'
       Layout = tlCenter
-      ParentColor = False
+      ParentColor = True
     end
     object Label59: TLabel
       Left = 248
@@ -692,7 +696,7 @@ object FGenerarPed: TFGenerarPed
       AutoSize = False
       Caption = 'Numéro documento'
       Layout = tlCenter
-      ParentColor = False
+      ParentColor = True
     end
     object Label60: TLabel
       Left = 248
@@ -702,7 +706,7 @@ object FGenerarPed: TFGenerarPed
       AutoSize = False
       Caption = 'Fecha Not./Alb./Fact.'
       Layout = tlCenter
-      ParentColor = False
+      ParentColor = True
     end
     object Label61: TLabel
       Left = 202
@@ -712,7 +716,7 @@ object FGenerarPed: TFGenerarPed
       AutoSize = False
       Caption = 'DATOS DEL PROVEEDOR'
       Layout = tlCenter
-      ParentColor = False
+      ParentColor = True
     end
     object BitBtn21: TBitBtn
       Left = 324
@@ -916,6 +920,8 @@ object FGenerarPed: TFGenerarPed
           FieldName = 'SF7'
         end>
       DataSource = Datasource2
+      OnTitleClick = DBGrid3TitleClick
+      OnDrawColumnCell = DBGrid3DrawColumnCell
       Options = [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit]
       Scrollbars = ssVertical
       TabOrder = 0
@@ -1111,7 +1117,7 @@ object FGenerarPed: TFGenerarPed
       Top = 23
       Width = 131
       Caption = 'Procesando lineas...'
-      ParentColor = False
+      ParentColor = True
     end
     object ProgressBar1: TProgressBar
       Left = 13

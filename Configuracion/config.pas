@@ -21,13 +21,14 @@
 unit config;
 
 {$mode objfpc}{$H+}
+{$codepage utf8}
 
 interface
 
 uses
   Classes, SysUtils, LResources, Forms, Controls, Graphics, Dialogs, Inifiles,
   Process, ExtCtrls, Buttons, StdCtrls, ComCtrls, LCLType, ZConnection, ExtDlgs,
-  EditBtn, ZDataset, db;
+  EditBtn, ZDataset, db, uFLXRemoteBackup, uFLXTemaVisual;
 
 type
   { TFConfig }
@@ -489,6 +490,52 @@ type
     procedure cbCopia2Change(Sender: TObject);
     procedure cbCopia1Change(Sender: TObject);
   private
+    FHeaderTitle: TLabel;
+    FHeaderSubtitle: TLabel;
+    FBtnLogoVisual: TPanel;
+    FBtnColorFormularioVisual: TPanel;
+    FBtnColorBotonesVisual: TPanel;
+    FBtnTiendaVisual: TPanel;
+    FBtnPuestoVisual: TPanel;
+    FBtnVisorPDFVisual: TPanel;
+    FBtnRutaPDFVisual: TPanel;
+    FBtnRutaImagenesVisual: TPanel;
+    FBtnTestBBDDVisual: TPanel;
+    FBtnTestSICVisual: TPanel;
+    FCheckMonoVisual: TPanel;
+    FCheckSICVisual: TPanel;
+    FCheckVFVisual: TPanel;
+    FLabelSICVisual: TPanel;
+    FLabelVFVisual: TPanel;
+    FDisenoFinalAplicado: Boolean;
+    function CrearTarjetaVisual(AParent: TWinControl; ALeft, ATop,
+      AWidth, AHeight: Integer; AColor: TColor;
+      const ATitulo: string = ''): TShape;
+    procedure CrearBotonVisual(ABoton: TBitBtn; var APanel: TPanel;
+      const AHint: string);
+    procedure CrearBotonAccionVisual(ABoton: TBitBtn; var APanel: TPanel;
+      const ACaption, AHint: string; AColor: TColor);
+    procedure BotonAccionVisualClick(Sender: TObject);
+    procedure ActualizarBotonesConexionVisual;
+    procedure CrearCheckVisual(ACheck: TCheckBox; var APanel: TPanel;
+      const ACaption, AHint: string; AColorFondo, AColorTexto: TColor);
+    procedure CrearEtiquetaVisual(AOriginal: TLabel; var APanel: TPanel;
+      const ACaption: string; AColorFondo, AColorTexto: TColor);
+    procedure CheckVisualClick(Sender: TObject);
+    procedure SincronizarCheckVisual(APanel: TPanel; ACheck: TCheckBox);
+    procedure SincronizarChecksVisuales;
+    procedure SincronizarPosicionControlesVisuales;
+    procedure LimpiarTarjetasModernas;
+    procedure FormShowModerno(Sender: TObject);
+    procedure BotonVisualKeyPress(Sender: TObject; var Key: char);
+    procedure PrepararBotonPrincipal(ABoton: TBitBtn; AColor: TColor;
+      ATextoClaro: Boolean);
+    procedure AplicarEstiloModerno;
+    procedure CrearTarjetasModernas;
+    procedure EstilizarControlesModernos;
+    procedure RecolocarDisenoModerno;
+    procedure FormResizeModerno(Sender: TObject);
+  private
     lbClientesBuscarNIFCodigo: TLabel;
     lbClientesModoCodigoAltaNIF: TLabel;
     lbClientesCodigoSuperiorDesde: TLabel;
@@ -497,6 +544,76 @@ type
     edClientesCodigoSuperiorDesde: TEdit;
     procedure CrearControlesClientesCodigo;
     procedure ClientesCodigoConfigChange(Sender: TObject);
+
+  private
+    { Apariencia y accesibilidad. Se crea en ejecución para no desplazar ni
+      alterar las pestañas históricas del formulario. }
+    FAparienciaTab: TTabSheet;
+    FAparienciaHeader: TPanel;
+    FAparienciaBody: TPanel;
+    FAparienciaOptions: TPanel;
+    FAparienciaPreview: TPanel;
+    FAparienciaTitle: TLabel;
+    FAparienciaSubtitle: TLabel;
+    FAparienciaModeInfo: TLabel;
+    FAparienciaPreviewTitle: TLabel;
+    FContrasteVisual: TRadioGroup;
+    FPreviewBlue: TPanel;
+    FPreviewGreen: TPanel;
+    FPreviewPurple: TPanel;
+    procedure CrearControlesApariencia;
+    procedure ContrasteVisualChange(Sender: TObject);
+    procedure ActualizarVistaPreviaContraste;
+    function TemaContrasteSeleccionado: TFLXTemaVisual;
+
+  private
+    { Se abre una nueva sección de visibilidad porque FPC no permite declarar
+      campos después de métodos dentro de la misma sección. }
+    { Configuración de la copia física remota. Se crea en ejecución en una
+      pestaña propia, junto a Copias automáticas, para disponer de todo el
+      espacio necesario sin desplazar ni reducir los controles existentes. }
+    FRemoteBackupTab: TTabSheet;
+    FRemoteBackupPanel: TPanel;
+    FRemoteBackupHeader: TPanel;
+    FRemoteBackupTitle: TLabel;
+    FRemoteBackupInfo: TLabel;
+    FRemoteEnabled: TCheckBox;
+    FRemoteAutoOnExit: TCheckBox;
+    FRemoteFTPOnExit: TCheckBox;
+    FRemoteHostLabel: TLabel;
+    FRemotePortLabel: TLabel;
+    FRemoteUserLabel: TLabel;
+    FRemoteAuthLabel: TLabel;
+    FRemoteKeyLabel: TLabel;
+    FRemoteDestinationLabel: TLabel;
+    FRemoteCommandLabel: TLabel;
+    FRemoteKeepLabel: TLabel;
+    FRemoteHost: TEdit;
+    FRemotePort: TEdit;
+    FRemoteUser: TEdit;
+    FRemoteAuth: TComboBox;
+    FRemoteKey: TEdit;
+    FRemotePassword: TEdit;
+    FRemoteDestination: TEdit;
+    FRemoteCommand: TEdit;
+    FRemoteKeep: TEdit;
+    FRemoteKeyBrowse: TBitBtn;
+    FRemoteDestinationBrowse: TBitBtn;
+    FRemoteTest: TBitBtn;
+    FRemoteRunNow: TBitBtn;
+    procedure CrearControlesBackupRemoto;
+    procedure RecolocarControlesBackupRemoto;
+    procedure ActualizarEstadoBackupRemoto;
+    procedure BackupRemotoCambio(Sender: TObject);
+    procedure BackupRemotoBuscarClave(Sender: TObject);
+    procedure BackupRemotoBuscarDestino(Sender: TObject);
+    procedure BackupRemotoProbar(Sender: TObject);
+    procedure BackupRemotoEjecutar(Sender: TObject);
+    procedure GuardarConfiguracionBackupRemoto(AIni: TIniFile);
+    procedure GuardarConfiguracionBackupRemotoPersistente;
+    procedure CargarConfiguracionBackupRemotoPersistente;
+    procedure RecargarIniReaderDesdeDisco;
+    function ConfiguracionBackupRemotoActual: TFLXRemoteBackupConfig;
     { private declarations }
   public
     { public declarations }
@@ -521,6 +638,2271 @@ const
   VF_DEFAULT_URL_SOAP   = 'https://prewww10.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP';
   VF_DEFAULT_URL_LOCAL  = 'http://127.0.0.1:8080/verifactu/test';
   VF_DEFAULT_MODE       = 'PRODUCCION';
+
+procedure TFConfig.CrearControlesApariencia;
+
+  procedure PrepararPanel(APanel: TPanel; AParent: TWinControl;
+    AAlign: TAlign; AColor: TColor);
+  begin
+    APanel.Parent := AParent;
+    APanel.Align := AAlign;
+    APanel.Caption := '';
+    APanel.BevelOuter := bvNone;
+    APanel.BevelInner := bvNone;
+    APanel.ParentColor := False;
+    APanel.Color := AColor;
+  end;
+
+  procedure PrepararTarjeta(APanel: TPanel; AParent: TWinControl;
+    ATop: Integer; const ACaption: string; AColor: TColor);
+  begin
+    APanel.Parent := AParent;
+    APanel.SetBounds(38, ATop, 760, 82);
+    APanel.Anchors := [akLeft, akTop, akRight];
+    APanel.Caption := ACaption;
+    APanel.BevelOuter := bvLowered;
+    APanel.BevelInner := bvNone;
+    APanel.ParentColor := False;
+    APanel.Color := AColor;
+    APanel.ParentFont := False;
+    APanel.Font.Name := 'Sans';
+    APanel.Font.Height := -13;
+    APanel.Font.Style := [fsBold];
+    APanel.Font.Color := RGBToColor(30, 41, 59);
+  end;
+
+begin
+  if Assigned(FAparienciaTab) then Exit;
+
+  FAparienciaTab := TTabSheet.Create(Self);
+  FAparienciaTab.PageControl := PageControl1;
+  FAparienciaTab.Caption := '  Apariencia / Accesibilidad  ';
+  FAparienciaTab.ParentFont := False;
+  FAparienciaTab.Color := RGBToColor(241, 245, 247);
+
+  FAparienciaHeader := TPanel.Create(Self);
+  PrepararPanel(FAparienciaHeader, FAparienciaTab, alTop,
+    RGBToColor(18, 76, 91));
+  FAparienciaHeader.Height := 92;
+
+  FAparienciaTitle := TLabel.Create(Self);
+  FAparienciaTitle.Parent := FAparienciaHeader;
+  FAparienciaTitle.SetBounds(28, 16, 900, 30);
+  FAparienciaTitle.Caption := 'Apariencia y accesibilidad visual';
+  FAparienciaTitle.ParentFont := False;
+  FAparienciaTitle.Font.Name := 'Sans';
+  FAparienciaTitle.Font.Height := -20;
+  FAparienciaTitle.Font.Style := [fsBold];
+  FAparienciaTitle.Font.Color := clWhite;
+
+  FAparienciaSubtitle := TLabel.Create(Self);
+  FAparienciaSubtitle.Parent := FAparienciaHeader;
+  FAparienciaSubtitle.SetBounds(30, 52, 1200, 24);
+  FAparienciaSubtitle.Caption :=
+    'La preferencia se guarda solamente en este puesto de trabajo.';
+  FAparienciaSubtitle.ParentFont := False;
+  FAparienciaSubtitle.Font.Name := 'Sans';
+  FAparienciaSubtitle.Font.Height := -12;
+  FAparienciaSubtitle.Font.Color := RGBToColor(220, 235, 239);
+
+  FAparienciaBody := TPanel.Create(Self);
+  PrepararPanel(FAparienciaBody, FAparienciaTab, alClient,
+    RGBToColor(241, 245, 247));
+
+  FAparienciaOptions := TPanel.Create(Self);
+  PrepararPanel(FAparienciaOptions, FAparienciaBody, alLeft,
+    RGBToColor(226, 238, 242));
+  FAparienciaOptions.Width := 560;
+
+  FContrasteVisual := TRadioGroup.Create(Self);
+  FContrasteVisual.Parent := FAparienciaOptions;
+  FContrasteVisual.SetBounds(30, 34, 500, 172);
+  FContrasteVisual.Caption := '  Contraste de la interfaz  ';
+  FContrasteVisual.Items.Add('Normal');
+  FContrasteVisual.Items.Add('Reforzado');
+  FContrasteVisual.Items.Add('Alto contraste');
+  FContrasteVisual.ItemIndex := 0;
+  FContrasteVisual.ParentFont := False;
+  FContrasteVisual.Font.Name := 'Sans';
+  FContrasteVisual.Font.Height := -13;
+  FContrasteVisual.Font.Style := [fsBold];
+  FContrasteVisual.Font.Color := RGBToColor(30, 41, 59);
+  FContrasteVisual.ParentColor := False;
+  FContrasteVisual.Color := RGBToColor(226, 238, 242);
+
+  FAparienciaModeInfo := TLabel.Create(Self);
+  FAparienciaModeInfo.Parent := FAparienciaOptions;
+  FAparienciaModeInfo.SetBounds(34, 232, 490, 190);
+  FAparienciaModeInfo.AutoSize := False;
+  FAparienciaModeInfo.WordWrap := True;
+  FAparienciaModeInfo.ParentFont := False;
+  FAparienciaModeInfo.Font.Name := 'Sans';
+  FAparienciaModeInfo.Font.Height := -12;
+  FAparienciaModeInfo.Font.Color := RGBToColor(51, 65, 85);
+
+  FAparienciaPreview := TPanel.Create(Self);
+  PrepararPanel(FAparienciaPreview, FAparienciaBody, alClient,
+    RGBToColor(248, 250, 251));
+
+  FAparienciaPreviewTitle := TLabel.Create(Self);
+  FAparienciaPreviewTitle.Parent := FAparienciaPreview;
+  FAparienciaPreviewTitle.SetBounds(38, 30, 900, 32);
+  FAparienciaPreviewTitle.Caption := 'Vista previa de paneles interiores';
+  FAparienciaPreviewTitle.ParentFont := False;
+  FAparienciaPreviewTitle.Font.Name := 'Sans';
+  FAparienciaPreviewTitle.Font.Height := -17;
+  FAparienciaPreviewTitle.Font.Style := [fsBold];
+  FAparienciaPreviewTitle.Font.Color := RGBToColor(18, 76, 91);
+
+  FPreviewBlue := TPanel.Create(Self);
+  PrepararTarjeta(FPreviewBlue, FAparienciaPreview, 92,
+    'Datos generales · panel azul', RGBToColor(226, 238, 242));
+
+  FPreviewGreen := TPanel.Create(Self);
+  PrepararTarjeta(FPreviewGreen, FAparienciaPreview, 194,
+    'Opciones y condiciones · panel verde', RGBToColor(231, 243, 234));
+
+  FPreviewPurple := TPanel.Create(Self);
+  PrepararTarjeta(FPreviewPurple, FAparienciaPreview, 296,
+    'Observaciones · panel violeta', RGBToColor(239, 235, 247));
+
+  ActualizarVistaPreviaContraste;
+  FLXAplicarTemaVisual(FAparienciaTab, tvNormal);
+end;
+
+function TFConfig.TemaContrasteSeleccionado: TFLXTemaVisual;
+begin
+  Result := tvNormal;
+  if not Assigned(FContrasteVisual) then Exit;
+  case FContrasteVisual.ItemIndex of
+    1: Result := tvContrasteReforzado;
+    2: Result := tvAltoContraste;
+  end;
+end;
+
+procedure TFConfig.ActualizarVistaPreviaContraste;
+var
+  LTema: TFLXTemaVisual;
+begin
+  if not Assigned(FContrasteVisual) then Exit;
+  LTema := TemaContrasteSeleccionado;
+
+  if Assigned(FAparienciaTab) then
+    FAparienciaTab.Color := FLXColorTema(RGBToColor(241, 245, 247), LTema);
+  if Assigned(FAparienciaBody) then
+    FAparienciaBody.Color := FLXColorTema(RGBToColor(241, 245, 247), LTema);
+  if Assigned(FAparienciaOptions) then
+    FAparienciaOptions.Color := FLXColorTema(RGBToColor(226, 238, 242), LTema);
+  if Assigned(FContrasteVisual) then
+    FContrasteVisual.Color := FLXColorTema(RGBToColor(226, 238, 242), LTema);
+  if Assigned(FAparienciaPreview) then
+    FAparienciaPreview.Color := FLXColorTema(RGBToColor(248, 250, 251), LTema);
+  if Assigned(FPreviewBlue) then
+    FPreviewBlue.Color := FLXColorTema(RGBToColor(226, 238, 242), LTema);
+  if Assigned(FPreviewGreen) then
+    FPreviewGreen.Color := FLXColorTema(RGBToColor(231, 243, 234), LTema);
+  if Assigned(FPreviewPurple) then
+    FPreviewPurple.Color := FLXColorTema(RGBToColor(239, 235, 247), LTema);
+
+  if not Assigned(FAparienciaModeInfo) then Exit;
+  case LTema of
+    tvContrasteReforzado:
+      FAparienciaModeInfo.Caption :=
+        'REFORZADO'#10#10 +
+        'Aumenta la intensidad de los paneles pastel y hace más visibles ' +
+        'los bordes y separadores, manteniendo el estilo actual.'#10#10 +
+        'Recomendado para monitores con contraste limitado.';
+    tvAltoContraste:
+      FAparienciaModeInfo.Caption :=
+        'ALTO CONTRASTE'#10#10 +
+        'Ofrece la separación más clara entre fondo, paneles y tarjetas. ' +
+        'Los colores siguen siendo suaves, pero se distinguen con mayor ' +
+        'facilidad.'#10#10 +
+        'Pensado para pantallas especialmente apagadas.';
+  else
+    FAparienciaModeInfo.Caption :=
+      'NORMAL'#10#10 +
+      'Conserva exactamente los colores actuales de FacturLinEx. No se ' +
+      'modifica ningún formulario ni tono existente.';
+  end;
+end;
+
+procedure TFConfig.ContrasteVisualChange(Sender: TObject);
+begin
+  ActualizarVistaPreviaContraste;
+  if BitBtn1.Enabled then Exit;
+  BitBtn1.Enabled := True;
+  BitBtn2.Enabled := True;
+end;
+
+procedure TFConfig.CrearControlesBackupRemoto;
+
+  procedure CrearEtiqueta(var ALabel: TLabel; const ACaption: string);
+  begin
+    ALabel := TLabel.Create(Self);
+    ALabel.Parent := FRemoteBackupPanel;
+    ALabel.AutoSize := False;
+    ALabel.Caption := ACaption;
+    ALabel.Transparent := True;
+    ALabel.ParentFont := False;
+    ALabel.Font.Name := 'Sans';
+    ALabel.Font.Height := -11;
+    ALabel.Font.Style := [fsBold];
+    ALabel.Font.Color := RGBToColor(30, 41, 59);
+  end;
+
+  procedure CrearEditor(var AEdit: TEdit);
+  begin
+    AEdit := TEdit.Create(Self);
+    AEdit.Parent := FRemoteBackupPanel;
+    AEdit.ParentFont := False;
+    AEdit.Font.Name := 'Sans';
+    AEdit.Font.Height := -11;
+    AEdit.Color := clWhite;
+  end;
+
+  procedure PrepararBoton(ABtn: TBitBtn; const ACaption: string;
+    const AColor: TColor);
+  begin
+    ABtn.Parent := FRemoteBackupPanel;
+    ABtn.Caption := ACaption;
+    ABtn.ParentFont := False;
+    ABtn.Font.Name := 'Sans';
+    ABtn.Font.Height := -11;
+    ABtn.Font.Style := [fsBold];
+    ABtn.Color := AColor;
+    ABtn.Font.Color := clWhite;
+  end;
+
+begin
+  if Assigned(FRemoteBackupPanel) then Exit;
+
+  { La copia física remota dispone de una pestaña independiente. Se crea en
+    ejecución para mantener intacto el LFM y situarla justo después de la
+    pestaña de Copias automáticas. }
+  FRemoteBackupTab := TTabSheet.Create(Self);
+  FRemoteBackupTab.PageControl := pcAplicacionesExtra;
+  FRemoteBackupTab.Caption := 'Copias remotas';
+  FRemoteBackupTab.ParentFont := False;
+  FRemoteBackupTab.Color := RGBToColor(241, 245, 247);
+
+  FRemoteBackupPanel := TPanel.Create(Self);
+  FRemoteBackupPanel.Parent := FRemoteBackupTab;
+  FRemoteBackupPanel.Caption := '';
+  FRemoteBackupPanel.BevelOuter := bvNone;
+  FRemoteBackupPanel.ParentColor := False;
+  FRemoteBackupPanel.Color := RGBToColor(226, 238, 242);
+
+  FRemoteBackupHeader := TPanel.Create(Self);
+  FRemoteBackupHeader.Parent := FRemoteBackupPanel;
+  FRemoteBackupHeader.Caption := '';
+  FRemoteBackupHeader.BevelOuter := bvNone;
+  FRemoteBackupHeader.ParentColor := False;
+  FRemoteBackupHeader.Color := RGBToColor(23, 96, 116);
+
+  FRemoteBackupTitle := TLabel.Create(Self);
+  FRemoteBackupTitle.Parent := FRemoteBackupHeader;
+  FRemoteBackupTitle.AutoSize := False;
+  FRemoteBackupTitle.Caption := 'COPIA FÍSICA REMOTA DEL SERVIDOR MARIADB';
+  FRemoteBackupTitle.Transparent := True;
+  FRemoteBackupTitle.ParentFont := False;
+  FRemoteBackupTitle.Font.Name := 'Sans';
+  FRemoteBackupTitle.Font.Height := -12;
+  FRemoteBackupTitle.Font.Style := [fsBold];
+  FRemoteBackupTitle.Font.Color := clWhite;
+  FRemoteBackupTitle.Alignment := taCenter;
+  FRemoteBackupTitle.Layout := tlCenter;
+
+  FRemoteEnabled := TCheckBox.Create(Self);
+  FRemoteEnabled.Parent := FRemoteBackupPanel;
+  FRemoteEnabled.Caption := 'Habilitar copia física remota';
+  FRemoteEnabled.ParentColor := False;
+  FRemoteEnabled.Color := FRemoteBackupPanel.Color;
+  FRemoteEnabled.ParentFont := False;
+  FRemoteEnabled.Font.Name := 'Sans';
+  FRemoteEnabled.Font.Height := -11;
+  FRemoteEnabled.Font.Style := [fsBold];
+
+  FRemoteAutoOnExit := TCheckBox.Create(Self);
+  FRemoteAutoOnExit.Parent := FRemoteBackupPanel;
+  FRemoteAutoOnExit.Caption :=
+    'Ejecutar automáticamente al cerrar FacturLinEx';
+  FRemoteAutoOnExit.ParentColor := False;
+  FRemoteAutoOnExit.Color := FRemoteBackupPanel.Color;
+  FRemoteAutoOnExit.ParentFont := False;
+  FRemoteAutoOnExit.Font.Name := 'Sans';
+  FRemoteAutoOnExit.Font.Height := -11;
+  FRemoteAutoOnExit.Font.Style := [fsBold];
+
+  FRemoteFTPOnExit := TCheckBox.Create(Self);
+  FRemoteFTPOnExit.Parent := FRemoteBackupPanel;
+  FRemoteFTPOnExit.Caption :=
+    'Enviar también al FTP configurado cuando la copia se ejecute al cerrar';
+  FRemoteFTPOnExit.ParentColor := False;
+  FRemoteFTPOnExit.Color := FRemoteBackupPanel.Color;
+  FRemoteFTPOnExit.ParentFont := False;
+  FRemoteFTPOnExit.Font.Name := 'Sans';
+  FRemoteFTPOnExit.Font.Height := -11;
+  FRemoteFTPOnExit.Font.Style := [fsBold];
+
+  CrearEtiqueta(FRemoteHostLabel, 'Servidor / IP:');
+  CrearEtiqueta(FRemotePortLabel, 'Puerto SSH:');
+  CrearEtiqueta(FRemoteUserLabel, 'Usuario SSH:');
+  CrearEtiqueta(FRemoteAuthLabel, 'Autenticación:');
+  CrearEtiqueta(FRemoteKeyLabel, 'Clave privada:');
+  CrearEtiqueta(FRemoteDestinationLabel, 'Destino local:');
+  CrearEtiqueta(FRemoteCommandLabel, 'Script servidor:');
+  CrearEtiqueta(FRemoteKeepLabel, 'Copias servidor:');
+
+  CrearEditor(FRemoteHost);
+  CrearEditor(FRemotePort);
+  CrearEditor(FRemoteUser);
+
+  FRemoteAuth := TComboBox.Create(Self);
+  FRemoteAuth.Parent := FRemoteBackupPanel;
+  FRemoteAuth.ParentFont := False;
+  FRemoteAuth.Font.Name := 'Sans';
+  FRemoteAuth.Font.Height := -11;
+  FRemoteAuth.Style := csDropDownList;
+  FRemoteAuth.Items.Add('Clave privada');
+  FRemoteAuth.Items.Add('Contraseña');
+  FRemoteAuth.ItemIndex := 0;
+
+  CrearEditor(FRemoteKey);
+  CrearEditor(FRemotePassword);
+  FRemotePassword.PasswordChar := '*';
+  CrearEditor(FRemoteDestination);
+  CrearEditor(FRemoteCommand);
+  CrearEditor(FRemoteKeep);
+
+  FRemoteKeyBrowse := TBitBtn.Create(Self);
+  PrepararBoton(FRemoteKeyBrowse, '...', RGBToColor(55, 65, 81));
+  FRemoteKeyBrowse.OnClick := @BackupRemotoBuscarClave;
+
+  FRemoteDestinationBrowse := TBitBtn.Create(Self);
+  PrepararBoton(FRemoteDestinationBrowse, '...', RGBToColor(55, 65, 81));
+  FRemoteDestinationBrowse.OnClick := @BackupRemotoBuscarDestino;
+
+  FRemoteTest := TBitBtn.Create(Self);
+  PrepararBoton(FRemoteTest, 'Probar conexión', RGBToColor(23, 96, 116));
+  FRemoteTest.OnClick := @BackupRemotoProbar;
+
+  FRemoteRunNow := TBitBtn.Create(Self);
+  PrepararBoton(FRemoteRunNow, 'Ejecutar ahora', RGBToColor(22, 130, 84));
+  FRemoteRunNow.OnClick := @BackupRemotoEjecutar;
+
+  FRemoteBackupInfo := TLabel.Create(Self);
+  FRemoteBackupInfo.Parent := FRemoteBackupPanel;
+  FRemoteBackupInfo.AutoSize := False;
+  FRemoteBackupInfo.Transparent := True;
+  FRemoteBackupInfo.ParentFont := False;
+  FRemoteBackupInfo.Font.Name := 'Sans';
+  FRemoteBackupInfo.Font.Height := -10;
+  FRemoteBackupInfo.Font.Style := [fsBold];
+  FRemoteBackupInfo.Font.Color := RGBToColor(71, 85, 105);
+  FRemoteBackupInfo.WordWrap := True;
+
+  RecolocarControlesBackupRemoto;
+end;
+
+procedure TFConfig.RecolocarControlesBackupRemoto;
+var
+  W, Half, LeftEditX, LeftEditW, RightX, RightEditX, RightEditW: Integer;
+begin
+  if not Assigned(FRemoteBackupPanel) then Exit;
+
+  if not Assigned(FRemoteBackupTab) then Exit;
+
+  W := FRemoteBackupTab.ClientWidth - 36;
+  if W < 820 then W := 820;
+  FRemoteBackupPanel.SetBounds(18, 18, W, 318);
+  FRemoteBackupHeader.SetBounds(0, 0, W, 38);
+  FRemoteBackupTitle.SetBounds(12, 0, W - 24, 38);
+
+  Half := W div 2;
+  LeftEditX := 126;
+  LeftEditW := Half - LeftEditX - 24;
+  RightX := Half + 18;
+  RightEditX := RightX + 118;
+  RightEditW := W - RightEditX - 22;
+
+  FRemoteEnabled.SetBounds(20, 46, Half - 30, 28);
+  FRemoteAutoOnExit.SetBounds(Half + 12, 46, Half - 32, 28);
+  FRemoteFTPOnExit.SetBounds(20, 76, W - 40, 26);
+
+  FRemoteHostLabel.SetBounds(20, 110, 102, 28);
+  FRemoteHost.SetBounds(LeftEditX, 108, LeftEditW, 29);
+  FRemoteUserLabel.SetBounds(RightX, 110, 108, 28);
+  FRemoteUser.SetBounds(RightEditX, 108, RightEditW, 29);
+
+  FRemotePortLabel.SetBounds(20, 150, 102, 28);
+  FRemotePort.SetBounds(LeftEditX, 148, 90, 29);
+  FRemoteKeepLabel.SetBounds(RightX, 150, 108, 28);
+  FRemoteKeep.SetBounds(RightEditX, 148, 90, 29);
+
+  FRemoteAuthLabel.SetBounds(20, 190, 102, 28);
+  FRemoteAuth.SetBounds(LeftEditX, 188, LeftEditW, 29);
+
+  FRemoteDestinationLabel.SetBounds(RightX, 190, 108, 28);
+  FRemoteDestination.SetBounds(RightEditX, 188, RightEditW - 38, 29);
+  FRemoteDestinationBrowse.SetBounds(RightEditX + RightEditW - 34, 188, 34, 29);
+
+  FRemoteKeyLabel.SetBounds(20, 230, 102, 28);
+  FRemoteKey.SetBounds(LeftEditX, 228, LeftEditW - 38, 29);
+  FRemotePassword.SetBounds(LeftEditX, 228, LeftEditW, 29);
+  FRemoteKeyBrowse.SetBounds(LeftEditX + LeftEditW - 34, 228, 34, 29);
+
+  FRemoteCommandLabel.SetBounds(RightX, 230, 108, 28);
+  FRemoteCommand.SetBounds(RightEditX, 228, RightEditW, 29);
+
+  FRemoteTest.SetBounds(20, 275, 150, 35);
+  FRemoteRunNow.SetBounds(182, 275, 150, 35);
+  FRemoteBackupInfo.SetBounds(350, 274, W - 370, 38);
+  FRemoteBackupPanel.BringToFront;
+end;
+
+procedure TFConfig.ActualizarEstadoBackupRemoto;
+var
+  Activo, UsarPassword: Boolean;
+begin
+  if not Assigned(FRemoteEnabled) then Exit;
+  Activo := FRemoteEnabled.Checked;
+  UsarPassword := Assigned(FRemoteAuth) and (FRemoteAuth.ItemIndex = 1);
+  FRemoteAutoOnExit.Enabled := Activo;
+  FRemoteFTPOnExit.Enabled := Activo and FRemoteAutoOnExit.Checked;
+  FRemoteHost.Enabled := Activo;
+  FRemotePort.Enabled := Activo;
+  FRemoteUser.Enabled := Activo;
+  FRemoteAuth.Enabled := Activo;
+  FRemoteKey.Enabled := Activo and not UsarPassword;
+  FRemotePassword.Enabled := Activo and UsarPassword;
+  FRemoteKey.Visible := not UsarPassword;
+  FRemotePassword.Visible := UsarPassword;
+  FRemoteKeyBrowse.Visible := not UsarPassword;
+  FRemoteKeyBrowse.Enabled := Activo and not UsarPassword;
+  if UsarPassword then
+    FRemoteKeyLabel.Caption := 'Contraseña SSH:'
+  else
+    FRemoteKeyLabel.Caption := 'Clave privada:';
+  FRemoteDestination.Enabled := Activo;
+  FRemoteCommand.Enabled := Activo;
+  FRemoteKeep.Enabled := Activo;
+  FRemoteDestinationBrowse.Enabled := Activo;
+  FRemoteTest.Enabled := Activo;
+  FRemoteRunNow.Enabled := Activo;
+
+  if not Activo then
+  begin
+    FRemoteBackupInfo.Font.Color := RGBToColor(71, 85, 105);
+    FRemoteBackupInfo.Caption := 'La copia física remota está desactivada.';
+  end
+  else
+  begin
+    FRemoteBackupInfo.Font.Color := RGBToColor(22, 101, 52);
+    if FRemoteFTPOnExit.Checked then
+      FRemoteBackupInfo.Caption :=
+        'Copia física completa, SHA-256 y FTP al cerrar; independiente del modo mono-usuario.'
+    else
+      FRemoteBackupInfo.Caption :=
+        'Copia física completa por SSH y SHA-256; independiente del modo mono-usuario.';
+  end;
+end;
+
+procedure TFConfig.BackupRemotoCambio(Sender: TObject);
+begin
+  ActualizarEstadoBackupRemoto;
+  Edit1Change(Sender);
+
+  { Las opciones principales se guardan inmediatamente en el fichero real.
+    Se abre un TIniFile nuevo para no depender de una instancia que pueda
+    conservar valores anteriores en memoria. }
+  if Sender is TCheckBox then
+    GuardarConfiguracionBackupRemotoPersistente;
+end;
+
+procedure TFConfig.BackupRemotoBuscarClave(Sender: TObject);
+var
+  Dlg: TOpenDialog;
+begin
+  Dlg := TOpenDialog.Create(Self);
+  try
+    Dlg.Title := 'Seleccionar clave privada SSH';
+    Dlg.FileName := FRemoteKey.Text;
+    if Dlg.Execute then
+    begin
+      FRemoteKey.Text := Dlg.FileName;
+      BackupRemotoCambio(FRemoteKey);
+    end;
+  finally
+    Dlg.Free;
+  end;
+end;
+
+procedure TFConfig.BackupRemotoBuscarDestino(Sender: TObject);
+begin
+  SelectDirectoryDialog1.Title := 'Carpeta local para las copias remotas';
+  SelectDirectoryDialog1.FileName := FRemoteDestination.Text;
+  if SelectDirectoryDialog1.Execute then
+  begin
+    FRemoteDestination.Text := SelectDirectoryDialog1.FileName;
+    BackupRemotoCambio(FRemoteDestination);
+  end;
+end;
+
+procedure TFConfig.GuardarConfiguracionBackupRemoto(AIni: TIniFile);
+begin
+  if (not Assigned(AIni)) or (not Assigned(FRemoteEnabled)) then Exit;
+
+  { Se usa 1/0 como formato canónico y una lectura tolerante. Así se
+    aceptan también configuraciones anteriores que contengan True/False. }
+  FLXIniWriteBoolCompat(AIni, 'BackupRemoto', 'Activo',
+    FRemoteEnabled.Checked);
+  FLXIniWriteBoolCompat(AIni, 'BackupRemoto', 'AutomaticoAlSalir',
+    FRemoteAutoOnExit.Checked);
+  FLXIniWriteBoolCompat(AIni, 'BackupRemoto', 'EnviarFTPAlSalir',
+    FRemoteFTPOnExit.Checked);
+  AIni.WriteString('BackupRemoto','Host',Trim(FRemoteHost.Text));
+  AIni.WriteString('BackupRemoto','Puerto',Trim(FRemotePort.Text));
+  AIni.WriteString('BackupRemoto','UsuarioSSH',Trim(FRemoteUser.Text));
+  if Assigned(FRemoteAuth) and (FRemoteAuth.ItemIndex = 1) then
+    AIni.WriteString('BackupRemoto','AutenticacionSSH',FLX_SSH_AUTH_PASSWORD)
+  else
+    AIni.WriteString('BackupRemoto','AutenticacionSSH',FLX_SSH_AUTH_KEY);
+  AIni.WriteString('BackupRemoto','ClaveSSH',Trim(FRemoteKey.Text));
+  FLX_IniWritePassword(AIni, 'BackupRemoto', 'PasswordSSH',
+    FRemotePassword.Text);
+  AIni.WriteString('BackupRemoto','DestinoLocal',Trim(FRemoteDestination.Text));
+  AIni.WriteString('BackupRemoto','ComandoServidor',Trim(FRemoteCommand.Text));
+  AIni.WriteString('BackupRemoto','CopiasEnServidor',Trim(FRemoteKeep.Text));
+  AIni.WriteInteger('BackupRemoto','TiempoEsperaSegundos',14400);
+end;
+
+procedure TFConfig.RecargarIniReaderDesdeDisco;
+begin
+  FreeAndNil(IniReader);
+  IniReader := FLXOpenFacturConfIni;
+
+  if Assigned(Sections) then
+  begin
+    Sections.Clear;
+    IniReader.ReadSections(Sections);
+  end;
+end;
+
+procedure TFConfig.GuardarConfiguracionBackupRemotoPersistente;
+var
+  LIni: TIniFile;
+begin
+  if not Assigned(FRemoteEnabled) then Exit;
+
+  { Siempre se parte del contenido ACTUAL que hay en disco. De este modo se
+    conservan todas las secciones y claves que no pertenecen a BackupRemoto. }
+  FLXCreateFacturConfBackup;
+  LIni := FLXOpenFacturConfIni;
+  try
+    GuardarConfiguracionBackupRemoto(LIni);
+    LIni.UpdateFile;
+  finally
+    LIni.Free;
+  end;
+
+  { La instancia mantenida por el formulario no puede quedar desfasada. }
+  RecargarIniReaderDesdeDisco;
+end;
+
+procedure TFConfig.CargarConfiguracionBackupRemotoPersistente;
+var
+  LIni: TIniFile;
+begin
+  if not Assigned(FRemoteEnabled) then Exit;
+
+  LIni := FLXOpenFacturConfIni;
+  try
+    FRemoteEnabled.Checked :=
+      FLXIniReadBoolCompat(LIni, 'BackupRemoto', 'Activo', False);
+    FRemoteAutoOnExit.Checked :=
+      FLXIniReadBoolCompat(LIni, 'BackupRemoto',
+        'AutomaticoAlSalir', False);
+    FRemoteFTPOnExit.Checked :=
+      FLXIniReadBoolCompat(LIni, 'BackupRemoto',
+        'EnviarFTPAlSalir', False);
+    FRemoteHost.Text := LIni.ReadString('BackupRemoto','Host','');
+    FRemotePort.Text := LIni.ReadString('BackupRemoto','Puerto','22');
+    FRemoteUser.Text := LIni.ReadString('BackupRemoto','UsuarioSSH','');
+    if UpperCase(LIni.ReadString('BackupRemoto','AutenticacionSSH',
+      FLX_SSH_AUTH_KEY)) = FLX_SSH_AUTH_PASSWORD then
+      FRemoteAuth.ItemIndex := 1
+    else
+      FRemoteAuth.ItemIndex := 0;
+    FRemoteKey.Text := LIni.ReadString('BackupRemoto','ClaveSSH',
+      IncludeTrailingPathDelimiter(GetUserDir)+'.ssh'+PathDelim+'id_ed25519');
+    FRemotePassword.Text := FLX_IniReadPassword(LIni,
+      'BackupRemoto', 'PasswordSSH', '');
+    FRemoteDestination.Text := LIni.ReadString('BackupRemoto','DestinoLocal',
+      IncludeTrailingPathDelimiter(GetUserDir)+'CopiasFacturLinEx');
+    FRemoteCommand.Text := LIni.ReadString('BackupRemoto','ComandoServidor',
+      '/usr/local/sbin/flx_remote_backup_server');
+    FRemoteKeep.Text := LIni.ReadString('BackupRemoto','CopiasEnServidor','7');
+  finally
+    LIni.Free;
+  end;
+end;
+
+function TFConfig.ConfiguracionBackupRemotoActual: TFLXRemoteBackupConfig;
+begin
+  FLXRemoteBackupDefaults(Result);
+  Result.Enabled := FRemoteEnabled.Checked;
+  Result.AutoOnExit := FRemoteAutoOnExit.Checked;
+  Result.FTPOnExit := FRemoteFTPOnExit.Checked;
+  Result.Host := Trim(FRemoteHost.Text);
+  Result.Port := StrToIntDef(Trim(FRemotePort.Text), 0);
+  Result.UserName := Trim(FRemoteUser.Text);
+  if Assigned(FRemoteAuth) and (FRemoteAuth.ItemIndex = 1) then
+    Result.AuthMethod := FLX_SSH_AUTH_PASSWORD
+  else
+    Result.AuthMethod := FLX_SSH_AUTH_KEY;
+  Result.IdentityFile := Trim(FRemoteKey.Text);
+  Result.Password := FRemotePassword.Text;
+  Result.LocalDestination := Trim(FRemoteDestination.Text);
+  Result.RemoteCommand := Trim(FRemoteCommand.Text);
+  Result.KeepRemoteCopies := StrToIntDef(Trim(FRemoteKeep.Text), 0);
+  Result.TimeoutSeconds := 14400;
+  Result.DatabaseLabel := Trim(Edit14.Text);
+  if Result.DatabaseLabel = '' then Result.DatabaseLabel := 'facturlinex';
+end;
+
+procedure TFConfig.BackupRemotoProbar(Sender: TObject);
+var
+  Cfg: TFLXRemoteBackupConfig;
+  Msg: string;
+begin
+  GuardarConfiguracionBackupRemotoPersistente;
+  Cfg := ConfiguracionBackupRemotoActual;
+  Screen.Cursor := crHourGlass;
+  FRemoteTest.Enabled := False;
+  try
+    if FLXTestRemoteBackupConnection(Cfg, Msg) then
+      ShowMessage(Msg + LineEnding +
+        'La prueba confirma SSH, sudo, mariadb-backup y el fichero de credenciales del servidor.')
+    else
+      ShowMessage('ERROR DE CONEXIÓN:' + LineEnding + Msg);
+  finally
+    Screen.Cursor := crDefault;
+    ActualizarEstadoBackupRemoto;
+  end;
+end;
+
+procedure TFConfig.BackupRemotoEjecutar(Sender: TObject);
+var
+  Cfg: TFLXRemoteBackupConfig;
+  LocalFile, Msg: string;
+begin
+  GuardarConfiguracionBackupRemotoPersistente;
+  Cfg := ConfiguracionBackupRemotoActual;
+  Screen.Cursor := crHourGlass;
+  FRemoteRunNow.Enabled := False;
+  try
+    if FLXRunRemoteBackup(Cfg, LocalFile, Msg) then
+      ShowMessage(Msg)
+    else
+      ShowMessage('ERROR EN LA COPIA FÍSICA REMOTA:' + LineEnding + Msg);
+  finally
+    Screen.Cursor := crDefault;
+    ActualizarEstadoBackupRemoto;
+  end;
+end;
+
+//============================================================================
+//====================== CAPA VISUAL MODERNA =================================
+//============================================================================
+function TFConfig.CrearTarjetaVisual(AParent: TWinControl; ALeft, ATop,
+  AWidth, AHeight: Integer; AColor: TColor; const ATitulo: string): TShape;
+var
+  LTitulo: TLabel;
+begin
+  Result := TShape.Create(Self);
+  Result.Parent := AParent;
+  Result.Shape := stRectangle;
+  Result.SetBounds(ALeft, ATop, AWidth, AHeight);
+  Result.Brush.Color := AColor;
+  Result.Pen.Color := RGBToColor(207, 218, 224);
+  Result.Pen.Width := 1;
+  Result.Tag := 4202601;
+  Result.SendToBack;
+
+  if Trim(ATitulo) <> '' then
+  begin
+    LTitulo := TLabel.Create(Self);
+    LTitulo.Parent := AParent;
+    LTitulo.SetBounds(ALeft + 16, ATop + 4, AWidth - 32, 22);
+    LTitulo.AutoSize := False;
+    LTitulo.Caption := ATitulo;
+    LTitulo.Transparent := True;
+    LTitulo.ParentFont := False;
+    LTitulo.Font.Name := 'Sans';
+    LTitulo.Font.Height := -12;
+    LTitulo.Font.Style := [fsBold];
+    LTitulo.Font.Color := RGBToColor(18, 76, 91);
+    LTitulo.Tag := 4202601;
+    LTitulo.Layout := tlCenter;
+    LTitulo.BringToFront;
+  end;
+end;
+
+procedure TFConfig.CrearBotonVisual(ABoton: TBitBtn; var APanel: TPanel;
+  const AHint: string);
+var
+  LTexto: TLabel;
+  W, H: Integer;
+  Evento: TNotifyEvent;
+begin
+  if not Assigned(ABoton) then Exit;
+
+  W := ABoton.Width;
+  H := ABoton.Height;
+  if W < 36 then W := 36;
+  if H < 29 then H := 29;
+  Evento := ABoton.OnClick;
+
+  APanel := TPanel.Create(Self);
+  APanel.Parent := ABoton.Parent;
+  APanel.SetBounds(ABoton.Left, ABoton.Top, W, H);
+  APanel.Caption := '';
+  APanel.BevelOuter := bvRaised;
+  APanel.BevelInner := bvNone;
+  APanel.BorderWidth := 1;
+  APanel.ParentColor := False;
+  APanel.Color := RGBToColor(23, 96, 116);
+  APanel.Cursor := crHandPoint;
+  APanel.Hint := AHint;
+  APanel.ShowHint := True;
+  APanel.OnClick := Evento;
+  APanel.OnKeyPress := @BotonVisualKeyPress;
+  APanel.TabStop := True;
+  APanel.TabOrder := ABoton.TabOrder;
+  APanel.Enabled := ABoton.Enabled;
+  APanel.Visible := ABoton.Visible;
+
+  LTexto := TLabel.Create(Self);
+  LTexto.Parent := APanel;
+  LTexto.Align := alClient;
+  LTexto.Alignment := taCenter;
+  LTexto.Layout := tlCenter;
+  LTexto.AutoSize := False;
+  LTexto.Transparent := False;
+  LTexto.ParentColor := False;
+  LTexto.Color := APanel.Color;
+  LTexto.ParentFont := False;
+  LTexto.Font.Name := 'Sans';
+  LTexto.Font.Height := -12;
+  LTexto.Font.Style := [fsBold];
+  LTexto.Font.Color := clWhite;
+  LTexto.Cursor := crHandPoint;
+  LTexto.Caption := '...';
+  LTexto.Hint := AHint;
+  LTexto.ShowHint := True;
+  LTexto.OnClick := Evento;
+  LTexto.BringToFront;
+
+  ABoton.Visible := False;
+end;
+
+procedure TFConfig.CrearBotonAccionVisual(ABoton: TBitBtn;
+  var APanel: TPanel; const ACaption, AHint: string; AColor: TColor);
+var
+  LTexto: TLabel;
+  W, H: Integer;
+begin
+  if not Assigned(ABoton) then Exit;
+
+  W := ABoton.Width;
+  H := ABoton.Height;
+  if W < 150 then W := 150;
+  if H < 38 then H := 38;
+
+  APanel := TPanel.Create(Self);
+  APanel.Parent := ABoton.Parent;
+  APanel.SetBounds(ABoton.Left, ABoton.Top, W, H);
+  APanel.Caption := '';
+  APanel.BevelOuter := bvRaised;
+  APanel.BevelInner := bvLowered;
+  APanel.BorderWidth := 2;
+  APanel.ParentColor := False;
+  APanel.Color := AColor;
+  APanel.Cursor := crHandPoint;
+  APanel.Hint := AHint;
+  APanel.ShowHint := True;
+  APanel.OnClick := @BotonAccionVisualClick;
+  APanel.OnKeyPress := @BotonVisualKeyPress;
+  APanel.TabStop := True;
+  APanel.TabOrder := ABoton.TabOrder;
+  APanel.Enabled := ABoton.Enabled;
+  APanel.Visible := ABoton.Visible;
+
+  LTexto := TLabel.Create(Self);
+  LTexto.Parent := APanel;
+  LTexto.Align := alClient;
+  LTexto.Alignment := taCenter;
+  LTexto.Layout := tlCenter;
+  LTexto.AutoSize := False;
+  LTexto.Transparent := False;
+  LTexto.ParentColor := False;
+  LTexto.Color := APanel.Color;
+  LTexto.ParentFont := False;
+  LTexto.Font.Name := 'Sans';
+  LTexto.Font.Height := -12;
+  LTexto.Font.Style := [fsBold];
+  LTexto.Font.Color := clWhite;
+  LTexto.Cursor := crHandPoint;
+  LTexto.Caption := ACaption;
+  LTexto.Hint := AHint;
+  LTexto.ShowHint := True;
+  LTexto.OnClick := @BotonAccionVisualClick;
+  LTexto.BringToFront;
+
+  ABoton.Visible := False;
+end;
+
+procedure TFConfig.BotonAccionVisualClick(Sender: TObject);
+var
+  LPanel: TPanel;
+begin
+  LPanel := nil;
+  if Sender is TPanel then
+    LPanel := TPanel(Sender)
+  else if (Sender is TLabel) and (TLabel(Sender).Parent is TPanel) then
+    LPanel := TPanel(TLabel(Sender).Parent);
+
+  if LPanel = FBtnTestBBDDVisual then
+  begin
+    if BitBtn4.Enabled then BitBtn4Click(BitBtn4);
+  end
+  else if LPanel = FBtnTestSICVisual then
+  begin
+    if BitBtn5.Enabled then BitBtn5Click(BitBtn5);
+  end;
+end;
+
+procedure TFConfig.ActualizarBotonesConexionVisual;
+  procedure Actualiza(APanel: TPanel; AOriginal: TBitBtn);
+  var
+    LColor: TColor;
+  begin
+    if not Assigned(APanel) or not Assigned(AOriginal) then Exit;
+    APanel.Enabled := AOriginal.Enabled;
+    if AOriginal.Enabled then
+      LColor := RGBToColor(23, 96, 116)
+    else
+      LColor := RGBToColor(148, 163, 184);
+    APanel.Color := LColor;
+    if (APanel.ControlCount > 0) and (APanel.Controls[0] is TLabel) then
+    begin
+      TLabel(APanel.Controls[0]).Color := LColor;
+      TLabel(APanel.Controls[0]).Font.Color := clWhite;
+      TLabel(APanel.Controls[0]).Enabled := AOriginal.Enabled;
+    end;
+  end;
+begin
+  Actualiza(FBtnTestBBDDVisual, BitBtn4);
+  Actualiza(FBtnTestSICVisual, BitBtn5);
+end;
+
+
+procedure TFConfig.CrearCheckVisual(ACheck: TCheckBox; var APanel: TPanel;
+  const ACaption, AHint: string; AColorFondo, AColorTexto: TColor);
+var
+  LMarca: TPanel;
+  LTexto: TLabel;
+  H: Integer;
+begin
+  if not Assigned(ACheck) then Exit;
+  if Assigned(APanel) then Exit;
+
+  H := ACheck.Height;
+  if H < 34 then H := 34;
+
+  APanel := TPanel.Create(Self);
+  APanel.Parent := ACheck.Parent;
+  APanel.SetBounds(ACheck.Left, ACheck.Top, ACheck.Width, H);
+  APanel.Caption := '';
+  APanel.BevelOuter := bvNone;
+  APanel.BevelInner := bvNone;
+  APanel.ParentColor := False;
+  APanel.Color := AColorFondo;
+  APanel.Cursor := crHandPoint;
+  APanel.Hint := AHint;
+  APanel.ShowHint := True;
+  APanel.TabStop := True;
+  APanel.TabOrder := ACheck.TabOrder;
+  APanel.OnClick := @CheckVisualClick;
+  APanel.OnKeyPress := @BotonVisualKeyPress;
+
+  LMarca := TPanel.Create(Self);
+  LMarca.Parent := APanel;
+  LMarca.SetBounds(2, (H - 24) div 2, 24, 24);
+  LMarca.Caption := '';
+  LMarca.BevelOuter := bvLowered;
+  LMarca.BevelInner := bvNone;
+  LMarca.BorderWidth := 1;
+  LMarca.ParentColor := False;
+  LMarca.Color := clWhite;
+  LMarca.Font.Name := 'Sans';
+  LMarca.Font.Height := -14;
+  LMarca.Font.Style := [fsBold];
+  LMarca.Font.Color := RGBToColor(18, 76, 91);
+  LMarca.Cursor := crHandPoint;
+  LMarca.Tag := 1;
+  LMarca.OnClick := @CheckVisualClick;
+
+  LTexto := TLabel.Create(Self);
+  LTexto.Parent := APanel;
+  LTexto.SetBounds(36, 0, APanel.Width - 40, H);
+  LTexto.AutoSize := False;
+  LTexto.Alignment := taLeftJustify;
+  LTexto.Layout := tlCenter;
+  LTexto.WordWrap := False;
+  LTexto.Transparent := False;
+  LTexto.ParentColor := False;
+  LTexto.Color := AColorFondo;
+  LTexto.ParentFont := False;
+  LTexto.Font.Name := 'Sans';
+  LTexto.Font.Height := -13;
+  LTexto.Font.Style := [fsBold];
+  LTexto.Font.Color := AColorTexto;
+  LTexto.Caption := ACaption;
+  LTexto.Cursor := crHandPoint;
+  LTexto.Hint := AHint;
+  LTexto.ShowHint := True;
+  LTexto.Tag := 2;
+  LTexto.OnClick := @CheckVisualClick;
+
+  ACheck.Visible := False;
+  APanel.BringToFront;
+end;
+
+procedure TFConfig.CrearEtiquetaVisual(AOriginal: TLabel; var APanel: TPanel;
+  const ACaption: string; AColorFondo, AColorTexto: TColor);
+begin
+  if not Assigned(AOriginal) then Exit;
+  if Assigned(APanel) then Exit;
+
+  APanel := TPanel.Create(Self);
+  APanel.Parent := AOriginal.Parent;
+  APanel.SetBounds(AOriginal.Left, AOriginal.Top, AOriginal.Width,
+    AOriginal.Height);
+  APanel.Caption := ACaption;
+  APanel.BevelOuter := bvNone;
+  APanel.BevelInner := bvNone;
+  APanel.ParentColor := False;
+  APanel.Color := AColorFondo;
+  APanel.ParentFont := False;
+  APanel.Font.Name := 'Sans';
+  APanel.Font.Height := -13;
+  APanel.Font.Style := [fsBold];
+  APanel.Font.Color := AColorTexto;
+  APanel.Alignment := taLeftJustify;
+  AOriginal.Visible := False;
+  APanel.BringToFront;
+end;
+
+procedure TFConfig.CheckVisualClick(Sender: TObject);
+var
+  LPanel: TPanel;
+  LCheck: TCheckBox;
+  LEvento: TNotifyEvent;
+begin
+  LPanel := nil;
+  LCheck := nil;
+
+  if Sender is TPanel then
+  begin
+    if TPanel(Sender).Parent is TPanel then
+      LPanel := TPanel(TPanel(Sender).Parent)
+    else
+      LPanel := TPanel(Sender);
+  end
+  else if (Sender is TLabel) and (TLabel(Sender).Parent is TPanel) then
+    LPanel := TPanel(TLabel(Sender).Parent);
+
+  if LPanel = FCheckMonoVisual then
+    LCheck := bbdd_autocopy
+  else if LPanel = FCheckSICVisual then
+    LCheck := CheckBox1
+  else if LPanel = FCheckVFVisual then
+    LCheck := vfCheckTest;
+
+  if not Assigned(LCheck) or not LCheck.Enabled then Exit;
+
+  LEvento := LCheck.OnChange;
+  LCheck.OnChange := nil;
+  LCheck.Checked := not LCheck.Checked;
+  LCheck.OnChange := LEvento;
+  if Assigned(LEvento) then
+    LEvento(LCheck);
+
+  SincronizarChecksVisuales;
+end;
+
+procedure TFConfig.SincronizarCheckVisual(APanel: TPanel; ACheck: TCheckBox);
+var
+  I: Integer;
+  LMarca: TPanel;
+  LTexto: TLabel;
+  LColor: TColor;
+begin
+  if not Assigned(APanel) or not Assigned(ACheck) then Exit;
+
+  LMarca := nil;
+  LTexto := nil;
+  for I := 0 to APanel.ControlCount - 1 do
+  begin
+    if (APanel.Controls[I] is TPanel) and (APanel.Controls[I].Tag = 1) then
+      LMarca := TPanel(APanel.Controls[I])
+    else if (APanel.Controls[I] is TLabel) and
+      (APanel.Controls[I].Tag = 2) then
+      LTexto := TLabel(APanel.Controls[I]);
+  end;
+
+  if Assigned(LMarca) then
+    LMarca.SetBounds(2, (APanel.ClientHeight - 24) div 2, 24, 24);
+  if Assigned(LTexto) then
+    LTexto.SetBounds(36, 0, APanel.ClientWidth - 40, APanel.ClientHeight);
+
+  APanel.Enabled := ACheck.Enabled;
+  if ACheck.Enabled then
+    LColor := RGBToColor(18, 76, 91)
+  else
+    LColor := RGBToColor(148, 163, 184);
+
+  if Assigned(LMarca) then
+  begin
+    if ACheck.Checked then
+      LMarca.Caption := 'X'
+    else
+      LMarca.Caption := '';
+    LMarca.Font.Color := LColor;
+    LMarca.Enabled := ACheck.Enabled;
+  end;
+
+  if Assigned(LTexto) then
+  begin
+    LTexto.Enabled := ACheck.Enabled;
+    if ACheck.Enabled then
+      LTexto.Font.Color := ACheck.Font.Color
+    else
+      LTexto.Font.Color := RGBToColor(100, 116, 139);
+  end;
+end;
+
+procedure TFConfig.SincronizarChecksVisuales;
+begin
+  SincronizarCheckVisual(FCheckMonoVisual, bbdd_autocopy);
+  SincronizarCheckVisual(FCheckSICVisual, CheckBox1);
+  SincronizarCheckVisual(FCheckVFVisual, vfCheckTest);
+end;
+
+procedure TFConfig.SincronizarPosicionControlesVisuales;
+  procedure SyncPanel(APanel: TPanel; AControl: TControl;
+    AMinWidth, AMinHeight: Integer);
+  var
+    W, H: Integer;
+  begin
+    if not Assigned(APanel) or not Assigned(AControl) then Exit;
+    W := AControl.Width;
+    H := AControl.Height;
+    if W < AMinWidth then W := AMinWidth;
+    if H < AMinHeight then H := AMinHeight;
+    APanel.SetBounds(AControl.Left, AControl.Top, W, H);
+    APanel.BringToFront;
+  end;
+begin
+  SyncPanel(FBtnLogoVisual, BitBtn12, 36, 29);
+  SyncPanel(FBtnColorFormularioVisual, BitBtn7, 36, 29);
+  SyncPanel(FBtnColorBotonesVisual, BitBtn8, 36, 29);
+  SyncPanel(FBtnTiendaVisual, BitBtnCambiable1, 36, 29);
+  SyncPanel(FBtnPuestoVisual, BitBtnCambiable2, 36, 29);
+  SyncPanel(FBtnVisorPDFVisual, BitBtn13, 36, 29);
+  SyncPanel(FBtnRutaPDFVisual, BitBtn14, 36, 29);
+  SyncPanel(FBtnRutaImagenesVisual, BitBtn15, 36, 29);
+  SyncPanel(FBtnTestBBDDVisual, BitBtn4, 150, 38);
+  SyncPanel(FBtnTestSICVisual, BitBtn5, 150, 38);
+
+  SyncPanel(FCheckMonoVisual, bbdd_autocopy, 420, 34);
+  SyncPanel(FCheckSICVisual, CheckBox1, 360, 34);
+  SyncPanel(FCheckVFVisual, vfCheckTest, 390, 34);
+  SyncPanel(FLabelSICVisual, Label29, 360, 29);
+  SyncPanel(FLabelVFVisual, Label159, 390, 42);
+end;
+
+procedure TFConfig.LimpiarTarjetasModernas;
+var
+  I: Integer;
+begin
+  for I := ComponentCount - 1 downto 0 do
+    if (Components[I] is TControl) and
+      (TControl(Components[I]).Tag = 4202601) then
+      Components[I].Free;
+end;
+
+procedure TFConfig.FormShowModerno(Sender: TObject);
+begin
+  if FDisenoFinalAplicado then
+  begin
+    FLXAplicarTemaVisual(Self);
+    ActualizarVistaPreviaContraste;
+    Exit;
+  end;
+  FDisenoFinalAplicado := True;
+
+  LimpiarTarjetasModernas;
+  CrearTarjetasModernas;
+  SincronizarPosicionControlesVisuales;
+  SincronizarChecksVisuales;
+  ActualizarBotonesConexionVisual;
+
+  if Assigned(FHeaderTitle) then FHeaderTitle.BringToFront;
+  if Assigned(FHeaderSubtitle) then FHeaderSubtitle.BringToFront;
+  FLXAplicarTemaVisual(Self);
+  ActualizarVistaPreviaContraste;
+end;
+
+procedure TFConfig.BotonVisualKeyPress(Sender: TObject; var Key: char);
+begin
+  if (Key = #13) or (Key = #32) then
+  begin
+    if (Sender is TPanel) and Assigned(TPanel(Sender).OnClick) then
+      TPanel(Sender).OnClick(Sender);
+    Key := #0;
+  end;
+end;
+
+procedure TFConfig.PrepararBotonPrincipal(ABoton: TBitBtn; AColor: TColor;
+  ATextoClaro: Boolean);
+begin
+  if not Assigned(ABoton) then Exit;
+  ABoton.ParentFont := False;
+  ABoton.Font.Name := 'Sans';
+  ABoton.Font.Height := -12;
+  ABoton.Font.Style := [fsBold];
+  ABoton.Height := 54;
+  ABoton.Width := 130;
+  ABoton.Color := AColor;
+  if ATextoClaro then
+    ABoton.Font.Color := clWhite
+  else
+    ABoton.Font.Color := RGBToColor(30, 41, 59);
+end;
+
+procedure TFConfig.CrearTarjetasModernas;
+var
+  W, M, G, Avail, C1, C2, C3, X1, X2, X3: Integer;
+  MainW, SideW, SideX, EditX, EditW, RowY: Integer;
+  SICX, SICW, SICY, SMTPX, SMTPW, SMTPY, SMTPH: Integer;
+  FieldX, FieldW: Integer;
+
+  procedure Pos(C: TControl; ALeft, ATop, AWidth, AHeight: Integer);
+  begin
+    if C <> nil then
+      C.SetBounds(ALeft, ATop, AWidth, AHeight);
+  end;
+
+  procedure Lbl(C: TLabel; ALeft, ATop, AWidth, AHeight: Integer);
+  begin
+    if C = nil then Exit;
+    C.SetBounds(ALeft, ATop, AWidth, AHeight);
+    C.AutoSize := False;
+    C.WordWrap := False;
+    C.Layout := tlCenter;
+  end;
+
+  procedure WrapLbl(C: TLabel; ALeft, ATop, AWidth, AHeight: Integer);
+  begin
+    if C = nil then Exit;
+    C.SetBounds(ALeft, ATop, AWidth, AHeight);
+    C.AutoSize := False;
+    C.WordWrap := True;
+    C.Layout := tlTop;
+  end;
+
+  procedure EncabezadoTarjeta(AParent: TWinControl; ALeft, ATop,
+    AWidth, AHeight: Integer; const ATitulo: string; AColor: TColor);
+  var
+    P: TPanel;
+  begin
+    if not Assigned(AParent) then Exit;
+    P := TPanel.Create(Self);
+    P.Parent := AParent;
+    P.SetBounds(ALeft, ATop, AWidth, AHeight);
+    P.Caption := ATitulo;
+    P.BevelOuter := bvNone;
+    P.BevelInner := bvNone;
+    P.ParentColor := False;
+    P.Color := AColor;
+    P.ParentFont := False;
+    P.Font.Name := 'Sans';
+    P.Font.Height := -13;
+    P.Font.Style := [fsBold];
+    P.Font.Color := clWhite;
+    P.Alignment := taCenter;
+    P.Tag := 4202601;
+    P.BringToFront;
+  end;
+
+  procedure LayoutBackup(GB: TGroupBox; CB: TCheckBox;
+    LInicio, LHoras1, LMin1, LDestino, LFin, LHoras2, LMin2: TLabel;
+    EIniH, EIniM, EFinH, EFinM, EDestino: TEdit;
+    UIniH, UIniM, UFinH, UFinM: TUpDown; ATop, AWidth: Integer);
+  var
+    Mid: Integer;
+  begin
+    if GB = nil then Exit;
+    GB.SetBounds(90, ATop, AWidth, 146);
+    Mid := AWidth div 2;
+
+    Pos(CB, 24, 18, 190, 24);
+
+    Lbl(LInicio, 24, 53, 105, 24);
+    Pos(EIniH, 136, 49, 42, 29);
+    Pos(UIniH, 178, 49, 16, 29);
+    Lbl(LHoras1, 202, 53, 44, 24);
+    Pos(EIniM, 252, 49, 42, 29);
+    Pos(UIniM, 294, 49, 16, 29);
+    Lbl(LMin1, 318, 53, 58, 24);
+
+    Lbl(LFin, Mid, 53, 95, 24);
+    Pos(EFinH, Mid + 102, 49, 42, 29);
+    Pos(UFinH, Mid + 144, 49, 16, 29);
+    Lbl(LHoras2, Mid + 168, 53, 44, 24);
+    Pos(EFinM, Mid + 218, 49, 42, 29);
+    Pos(UFinM, Mid + 260, 49, 16, 29);
+    Lbl(LMin2, Mid + 284, 53, 58, 24);
+
+    Lbl(LDestino, 24, 98, 105, 24);
+    Pos(EDestino, 136, 94, AWidth - 168, 29);
+  end;
+
+begin
+  W := PageControl1.ClientWidth - 24;
+  if W <= 0 then
+    W := Screen.Width - 48;
+  if W < 1160 then W := 1160;
+  if W > 1900 then W := 1900;
+  M := 16;
+  G := 16;
+
+  Bevel1.Visible := False;
+  Bevel2.Visible := False;
+
+  { -----------------------------------------------------------------------
+    REGISTRO: datos de empresa a la izquierda y apariencia a la derecha.
+    ----------------------------------------------------------------------- }
+  SideW := W div 3;
+  if SideW < 450 then SideW := 450;
+  if SideW > 560 then SideW := 560;
+  MainW := W - (M * 2) - G - SideW;
+  SideX := M + MainW + G;
+
+  CrearTarjetaVisual(TabSheet1, M, 16, MainW, 530,
+    RGBToColor(226, 238, 242), 'DATOS DE LA EMPRESA');
+  CrearTarjetaVisual(TabSheet1, SideX, 16, SideW, 530,
+    RGBToColor(231, 243, 234), 'LOGOTIPO Y APARIENCIA');
+  CrearTarjetaVisual(TabSheet1, M, 562, W - (M * 2), 70,
+    RGBToColor(239, 242, 244), 'MODO DE TRABAJO');
+
+  EditX := M + 150;
+  EditW := MainW - 178;
+  Lbl(Label1, M + 24, 50, 118, 29);
+  Pos(Edit1, EditX, 50, EditW, 29);
+  Lbl(Label2, M + 24, 98, 118, 29);
+  Pos(Edit2, EditX, 98, EditW, 29);
+  Lbl(Label3, M + 24, 146, 118, 29);
+  Pos(Edit3, EditX, 146, EditW, 29);
+
+  C1 := (EditW * 35) div 100;
+  Lbl(Label5, M + 24, 194, 118, 29);
+  Pos(Edit4, EditX, 194, C1, 29);
+  Lbl(Label4, EditX + C1 + 10, 194, 78, 29);
+  Pos(Edit5, EditX + C1 + 92, 194, 78, 29);
+  Lbl(Label6, EditX + C1 + 180, 194, 82, 29);
+  Pos(Edit6, EditX + C1 + 266, 194, EditW - C1 - 266, 29);
+
+  C1 := (EditW - 170) div 3;
+  Lbl(Label7, M + 24, 242, 118, 29);
+  Pos(Edit7, EditX, 242, C1, 29);
+  Lbl(Label8, EditX + C1 + 10, 242, 72, 29);
+  Pos(Edit8, EditX + C1 + 86, 242, C1, 29);
+  Lbl(Label9, EditX + (C1 * 2) + 96, 242, 48, 29);
+  Pos(Edit9, EditX + (C1 * 2) + 148, 242, EditW - (C1 * 2) - 148, 29);
+
+  Lbl(Label10, M + 24, 290, 118, 29);
+  Pos(Edit10, EditX, 290, EditW, 29);
+  Lbl(Label18, M + 24, 338, 118, 29);
+  Pos(Edit16, EditX, 338, EditW, 29);
+
+  Pos(Image1, SideX + ((SideW - 240) div 2), 52, 240, 220);
+  Lbl(Label68, SideX + 24, 292, 110, 29);
+  Pos(Edit57, SideX + 136, 292, SideW - 196, 29);
+  Pos(BitBtn12, SideX + SideW - 52, 292, 34, 29);
+  Lbl(Label115, SideX + 24, 346, 170, 29);
+  Pos(Edit67, SideX + 210, 346, SideW - 270, 29);
+  Pos(BitBtn7, SideX + SideW - 52, 346, 34, 29);
+  Lbl(Label116, SideX + 24, 398, 170, 29);
+  Pos(Edit68, SideX + 210, 398, SideW - 270, 29);
+  Pos(BitBtn8, SideX + SideW - 52, 398, 34, 29);
+  Pos(bbdd_autocopy, M + 26, 586, W - 72, 28);
+
+  { -----------------------------------------------------------------------
+    CONFIGURACIÓN GENERAL 1: tres zonas completas, sin textos entre tarjetas.
+    ----------------------------------------------------------------------- }
+  Avail := W - (M * 2) - (G * 2);
+  C1 := (Avail * 30) div 100;
+  C2 := (Avail * 34) div 100;
+  C3 := Avail - C1 - C2;
+  X1 := M;
+  X2 := X1 + C1 + G;
+  X3 := X2 + C2 + G;
+
+  CrearTarjetaVisual(TabSheet10, X1, 16, C1, 610,
+    RGBToColor(226, 238, 242), 'ACCESO Y FUNCIONAMIENTO DE VENTAS');
+  CrearTarjetaVisual(TabSheet10, X2, 16, C2, 610,
+    RGBToColor(231, 243, 234), 'AVISOS, PRECISIÓN Y PARÁMETROS');
+  CrearTarjetaVisual(TabSheet10, X3, 16, C3, 610,
+    RGBToColor(239, 235, 247), 'CLIENTES Y CAJA');
+
+  RowY := 52;
+  Lbl(Label118, X1 + 22, RowY, C1 - 120, 29); Pos(ComboBox29, X1 + C1 - 82, RowY + 3, 56, 25);
+  Inc(RowY, 48);
+  Lbl(Label85, X1 + 22, RowY, C1 - 120, 29); Pos(ComboBox1, X1 + C1 - 82, RowY + 3, 56, 25);
+  Inc(RowY, 48);
+  Lbl(Label123, X1 + 22, RowY, C1 - 120, 29); Pos(ComboBox31, X1 + C1 - 82, RowY + 3, 56, 25);
+  Inc(RowY, 48);
+  Lbl(lbStock, X1 + 22, RowY, C1 - 120, 29); Pos(cbRupturaStock, X1 + C1 - 82, RowY + 3, 56, 25);
+  Inc(RowY, 48);
+  Lbl(Label87, X1 + 22, RowY, C1 - 120, 29); Pos(ComboBox3, X1 + C1 - 82, RowY + 3, 56, 25);
+  Inc(RowY, 48);
+  Lbl(LabelLOPD, X1 + 22, RowY, C1 - 120, 29); Pos(ComboBoxLOPD, X1 + C1 - 82, RowY + 3, 56, 25);
+  Inc(RowY, 48);
+  Lbl(Label93, X1 + 22, RowY, C1 - 120, 29); Pos(ComboBox9, X1 + C1 - 82, RowY + 3, 56, 25);
+  Inc(RowY, 48);
+  Lbl(Label94, X1 + 22, RowY, C1 - 120, 29); Pos(ComboBox10, X1 + C1 - 82, RowY + 3, 56, 25);
+  Inc(RowY, 48);
+  Lbl(Label95, X1 + 22, RowY, C1 - 120, 29); Pos(ComboBox11, X1 + C1 - 82, RowY + 3, 56, 25);
+
+  RowY := 52;
+  WrapLbl(Label84, X2 + 22, RowY, C2 - 250, 42); Pos(Edit66, X2 + C2 - 210, RowY + 6, 180, 29);
+  Inc(RowY, 54);
+  WrapLbl(Label111, X2 + 22, RowY, C2 - 300, 42);
+  Pos(ComboBox27, X2 + C2 - 270, RowY + 3, 56, 25);
+  Lbl(Label82, X2 + C2 - 205, RowY, 100, 29);
+  Pos(Edit64, X2 + C2 - 105, RowY, 42, 29);
+  Lbl(Label113, X2 + C2 - 58, RowY, 40, 29);
+  Inc(RowY, 54);
+  WrapLbl(Label112, X2 + 22, RowY, C2 - 300, 42);
+  Pos(ComboBox28, X2 + C2 - 270, RowY + 3, 56, 25);
+  Lbl(Label83, X2 + C2 - 205, RowY, 100, 29);
+  Pos(Edit65, X2 + C2 - 105, RowY, 42, 29);
+  Lbl(Label114, X2 + C2 - 58, RowY, 40, 29);
+  Inc(RowY, 54);
+  WrapLbl(Label124, X2 + 22, RowY, C2 - 250, 42); Pos(cbPrecision, X2 + C2 - 210, RowY + 6, 180, 25);
+  Inc(RowY, 54);
+  Lbl(lbMoneda, X2 + 22, RowY, C2 - 250, 29); Pos(edMoneda, X2 + C2 - 210, RowY, 180, 29);
+
+  RowY := 52;
+  Lbl(lbCliVario, X3 + 22, RowY, C3 - 250, 29); Pos(edCliVario, X3 + C3 - 210, RowY, 180, 29);
+  Inc(RowY, 54);
+  Lbl(lbCliVario1, X3 + 22, RowY, C3 - 250, 29); Pos(CgSCajon, X3 + C3 - 210, RowY, 180, 29);
+  Inc(RowY, 62);
+  if Assigned(lbClientesBuscarNIFCodigo) then
+  begin
+    WrapLbl(lbClientesBuscarNIFCodigo, X3 + 22, RowY, C3 - 250, 42);
+    Pos(cbClientesBuscarNIFCodigo, X3 + C3 - 210, RowY + 3, 90, 29);
+    Inc(RowY, 62);
+    WrapLbl(lbClientesModoCodigoAltaNIF, X3 + 22, RowY, C3 - 250, 42);
+    Pos(cbClientesModoCodigoAltaNIF, X3 + C3 - 210, RowY + 3, 180, 29);
+    Inc(RowY, 62);
+    WrapLbl(lbClientesCodigoSuperiorDesde, X3 + 22, RowY, C3 - 250, 42);
+    Pos(edClientesCodigoSuperiorDesde, X3 + C3 - 210, RowY + 3, 180, 29);
+  end;
+
+  { -----------------------------------------------------------------------
+    CONFIGURACIÓN GENERAL 2.
+    ----------------------------------------------------------------------- }
+  CrearTarjetaVisual(TabSheet9, X1, 16, C1, 610,
+    RGBToColor(226, 238, 242), 'REGLAS DE VENTA Y CRÉDITO');
+  CrearTarjetaVisual(TabSheet9, X2, 16, C2, 610,
+    RGBToColor(231, 243, 234), 'IMPRESIÓN AUTOMÁTICA');
+  CrearTarjetaVisual(TabSheet9, X3, 16, C3, 610,
+    RGBToColor(242, 238, 226), 'AVISOS Y DOCUMENTOS');
+
+  RowY := 52;
+  Lbl(Label86, X1 + 22, RowY, C1 - 120, 29); Pos(ComboBox2, X1 + C1 - 82, RowY + 3, 56, 25);
+  Inc(RowY, 54);
+  Lbl(Label88, X1 + 22, RowY, C1 - 120, 29); Pos(ComboBox4, X1 + C1 - 82, RowY + 3, 56, 25);
+  Inc(RowY, 48);
+  Lbl(Label89, X1 + 22, RowY, C1 - 120, 29); Pos(ComboBox5, X1 + C1 - 82, RowY + 3, 56, 25);
+  Inc(RowY, 54);
+  Lbl(Label90, X1 + 22, RowY, C1 - 120, 29); Pos(ComboBox6, X1 + C1 - 82, RowY + 3, 56, 25);
+  Inc(RowY, 54);
+  Lbl(Label91, X1 + 22, RowY, C1 - 120, 29); Pos(ComboBox7, X1 + C1 - 82, RowY + 3, 56, 25);
+  Inc(RowY, 48);
+  Lbl(Label92, X1 + 22, RowY, C1 - 120, 29); Pos(ComboBox8, X1 + C1 - 82, RowY + 3, 56, 25);
+
+  RowY := 52;
+  Lbl(Label98, X2 + 22, RowY, C2 - 210, 29); Pos(ComboBox14, X2 + C2 - 180, RowY + 3, 150, 25);
+  Inc(RowY, 48);
+  Lbl(Label99, X2 + 22, RowY, C2 - 210, 29); Pos(ComboBox15, X2 + C2 - 180, RowY + 3, 150, 25);
+  Inc(RowY, 48);
+  Lbl(Label100, X2 + 22, RowY, C2 - 210, 29); Pos(ComboBox16, X2 + C2 - 180, RowY + 3, 150, 25);
+  Inc(RowY, 48);
+  Lbl(Label101, X2 + 22, RowY, C2 - 210, 29); Pos(ComboBox17, X2 + C2 - 180, RowY + 3, 150, 25);
+  Inc(RowY, 48);
+  Lbl(Label102, X2 + 22, RowY, C2 - 210, 29); Pos(ComboBox18, X2 + C2 - 180, RowY + 3, 150, 25);
+  Inc(RowY, 48);
+  Lbl(Label103, X2 + 22, RowY, C2 - 210, 29); Pos(ComboBox19, X2 + C2 - 180, RowY + 3, 150, 25);
+  Inc(RowY, 48);
+  Lbl(Label104, X2 + 22, RowY, C2 - 210, 29); Pos(ComboBox20, X2 + C2 - 180, RowY + 3, 150, 25);
+
+  RowY := 52;
+  Lbl(Label110, X3 + 22, RowY, C3 - 210, 54);
+  Pos(ComboBox26, X3 + C3 - 180, RowY + 12, 150, 25);
+  Inc(RowY, 82);
+  Lbl(Label97, X3 + 22, RowY, C3 - 120, 34);
+  Pos(ComboBox13, X3 + C3 - 82, RowY + 4, 56, 25);
+  Inc(RowY, 62);
+  Lbl(Label105, X3 + 22, RowY, C3 - 120, 54);
+  Pos(ComboBox21, X3 + C3 - 82, RowY + 12, 56, 25);
+
+  { -----------------------------------------------------------------------
+    CONEXIONES.
+    ----------------------------------------------------------------------- }
+  X1 := M;
+  if W >= 1600 then
+  begin
+    C1 := 550;
+    C2 := 590;
+    C3 := W - (M * 2) - (G * 2) - C1 - C2;
+    X2 := X1 + C1 + G;
+    X3 := X2 + C2 + G;
+    SICX := X2;
+    SICW := C2;
+    SICY := 212;
+    SMTPX := X3;
+    SMTPW := C3;
+    SMTPY := 16;
+    SMTPH := 626;
+  end
+  else
+  begin
+    C1 := (W - (M * 2) - G) div 2;
+    C2 := W - (M * 2) - G - C1;
+    C3 := C2;
+    X2 := X1 + C1 + G;
+    X3 := X2;
+    SICX := X1;
+    SICW := C1;
+    SICY := 362;
+    SMTPX := X2;
+    SMTPW := C2;
+    SMTPY := 212;
+    SMTPH := 550;
+  end;
+
+  CrearTarjetaVisual(TabSheet2, X1, 16, C1, 330,
+    RGBToColor(226, 238, 242), 'BASE DE DATOS PRINCIPAL');
+  CrearTarjetaVisual(TabSheet2, X2, 16, C2, 180,
+    RGBToColor(231, 243, 234), 'TIENDA ACTIVA Y PUESTO');
+  CrearTarjetaVisual(TabSheet2, SICX, SICY, SICW, 400,
+    RGBToColor(239, 235, 247), 'SISTEMA DE INFORMACIÓN COMÚN');
+  CrearTarjetaVisual(TabSheet2, SMTPX, SMTPY, SMTPW, SMTPH,
+    RGBToColor(242, 238, 226), 'CORREO ELECTRÓNICO (SMTP)');
+
+  Lbl(Label11, X1 + 24, 52, 140, 29); Pos(Edit11, X1 + 174, 52, C1 - 204, 29);
+  Lbl(Label12, X1 + 24, 94, 140, 29); Pos(Edit12, X1 + 174, 94, C1 - 204, 29);
+  Lbl(Label13, X1 + 24, 136, 140, 29); Pos(Edit13, X1 + 174, 136, C1 - 204, 29);
+  Lbl(Label14, X1 + 24, 178, 140, 29); Pos(Edit14, X1 + 174, 178, C1 - 204, 29);
+  Lbl(Label15, X1 + 24, 220, 140, 29); Pos(Edit15, X1 + 174, 220, 92, 29);
+  Lbl(Label161, X1 + 284, 220, 145, 29); Pos(CBMbbdd, X1 + 430, 218, C1 - 454, 31);
+  Lbl(Label16, X1 + 24, 262, 140, 29); Pos(Combo1, X1 + 174, 262, C1 - 358, 31);
+  Pos(BitBtn4, X1 + C1 - 176, 263, 150, 34);
+
+  Pos(PanelCambiable1, X2 + 18, 52, C2 - 36, 50);
+  Pos(PanelCambiable2, X2 + 18, 112, C2 - 36, 50);
+  Lbl(LabelCambiable1, 10, 10, 128, 29);
+  Pos(EditCambiableCodigo1, 142, 10, 92, 29);
+  Pos(BitBtnCambiable1, 240, 10, 34, 29);
+  Pos(ComboCambiableNombre1, 282, 9, PanelCambiable1.Width - 296, 31);
+  Pos(StaticTextCambiableNombre1, 282, 10, PanelCambiable1.Width - 296, 29);
+  Lbl(LabelCambiable2, 10, 10, 128, 29);
+  Pos(EditCambiableCodigo2, 142, 10, 92, 29);
+  Pos(BitBtnCambiable2, 240, 10, 34, 29);
+  Pos(ComboCambiableNombre2, 282, 9, PanelCambiable2.Width - 296, 31);
+  Pos(StaticTextCambiableNombre2, 282, 10, PanelCambiable2.Width - 296, 29);
+
+  Lbl(Label29, SICX + 24, SICY + 34, SICW - 48, 29);
+  Pos(CheckBox1, SICX + 24, SICY + 70, SICW - 48, 26);
+  RowY := SICY + 110;
+  Lbl(Label23, SICX + 24, RowY, 128, 29); Pos(Edit21, SICX + 158, RowY, SICW - 184, 29); Inc(RowY, 38);
+  Lbl(Label24, SICX + 24, RowY, 128, 29); Pos(Edit22, SICX + 158, RowY, SICW - 184, 29); Inc(RowY, 38);
+  Lbl(Label25, SICX + 24, RowY, 128, 29); Pos(Edit23, SICX + 158, RowY, SICW - 184, 29); Inc(RowY, 38);
+  Lbl(Label26, SICX + 24, RowY, 128, 29); Pos(Edit24, SICX + 158, RowY, SICW - 184, 29); Inc(RowY, 38);
+  Lbl(Label27, SICX + 24, RowY, 128, 29); Pos(Edit25, SICX + 158, RowY, 92, 29); Inc(RowY, 38);
+  Lbl(Label28, SICX + 24, RowY, 128, 29); Pos(Combo2, SICX + 158, RowY, SICW - 184, 31);
+  Pos(BitBtn5, SICX + ((SICW - 220) div 2), SICY + 350, 220, 34);
+
+  Pos(GroupBox1, SMTPX + 12, SMTPY + 42, SMTPW - 24, SMTPH - 58);
+  Pos(edCuenta, 118, 24, GroupBox1.Width - 236, 29);
+  Lbl(Label17, 18, 24, 94, 29);
+  Pos(cbSSL, GroupBox1.Width - 94, 25, 64, 24);
+  Lbl(Label155, 18, 68, 94, 29);
+  Pos(edCuentaCopia, 118, 68, GroupBox1.Width - 236, 29);
+  Pos(cbTLS, GroupBox1.Width - 94, 69, 64, 24);
+  Lbl(Label30, 18, 112, 94, 29); Pos(edUsuario, 118, 112, GroupBox1.Width - 148, 29);
+  Lbl(Label150, 18, 156, 94, 29); Pos(edClave, 118, 156, GroupBox1.Width - 148, 29);
+  Lbl(Label152, 18, 200, 94, 29); Pos(edHost, 118, 200, GroupBox1.Width - 330, 29);
+  Lbl(Label151, GroupBox1.Width - 200, 200, 70, 29); Pos(edPuerto, GroupBox1.Width - 124, 200, 92, 29);
+  Lbl(Label153, 18, 252, 94, 29); Pos(edCabecera, 118, 252, GroupBox1.Width - 148, 29);
+  Lbl(Label154, 18, 296, 94, 29);
+  Pos(edMensaje1, 118, 296, GroupBox1.Width - 148, 29);
+  Pos(edMensaje2, 118, 330, GroupBox1.Width - 148, 29);
+  Pos(edMensaje3, 118, 364, GroupBox1.Width - 148, 29);
+  Pos(edmensaje4, 118, 398, GroupBox1.Width - 148, 29);
+
+  { -----------------------------------------------------------------------
+    ACTUALIZACIONES.
+    ----------------------------------------------------------------------- }
+  CrearTarjetaVisual(TabSheet3, M, 16, W - (M * 2), 280,
+    RGBToColor(226, 238, 242), 'SERVIDOR DE ACTUALIZACIONES');
+  Lbl(Label20, M + 28, 62, 230, 29); Pos(Edit18, M + 270, 62, W - 330, 29);
+  Lbl(Label21, M + 28, 116, 230, 29); Pos(Edit19, M + 270, 116, W - 330, 29);
+  Lbl(Label22, M + 28, 170, 230, 29); Pos(Edit20, M + 270, 170, W - 330, 29);
+
+  { -----------------------------------------------------------------------
+    TICKETS Y PERIFÉRICOS: tres zonas reales.
+    ----------------------------------------------------------------------- }
+  C1 := (W - (M * 2) - G) div 2;
+  C2 := W - (M * 2) - G - C1;
+  X1 := M;
+  X2 := X1 + C1 + G;
+  CrearTarjetaVisual(TabSheet5, X1, 16, C1, 190,
+    RGBToColor(226, 238, 242), 'IMPRESORAS DE TICKETS');
+  CrearTarjetaVisual(TabSheet5, X1, 222, C1, 436,
+    RGBToColor(231, 243, 234), 'CABECERAS, PIES Y VISOR');
+  CrearTarjetaVisual(TabSheet5, X2, 16, C2, 642,
+    RGBToColor(239, 235, 247), 'SECUENCIAS Y OPCIONES DE IMPRESIÓN');
+
+  Lbl(Label43, X1 + 22, 52, 150, 29); Pos(Edit32, X1 + 176, 52, C1 - 420, 29);
+  Lbl(Label44, X1 + C1 - 226, 52, 140, 29); Pos(Edit33, X1 + C1 - 82, 52, 50, 29);
+  Lbl(Label45, X1 + C1 - 226, 90, 140, 29); Pos(Edit34, X1 + C1 - 82, 90, 50, 29);
+  Lbl(Label46, X1 + 22, 90, 150, 29); Pos(Edit35, X1 + 176, 90, C1 - 420, 29);
+  Lbl(Label47, X1 + 22, 128, 150, 29); Pos(Edit36, X1 + 176, 128, C1 - 420, 29);
+  Lbl(Label48, X1 + C1 - 226, 128, 140, 29); Pos(Edit37, X1 + C1 - 82, 128, 50, 29);
+  Lbl(Label49, X1 + C1 - 226, 166, 140, 29); Pos(Edit38, X1 + C1 - 82, 166, 50, 29);
+  Lbl(Label50, X1 + 22, 166, 150, 29); Pos(Edit39, X1 + 176, 166, C1 - 420, 29);
+
+  RowY := 258;
+  Lbl(Label51, X1 + 22, RowY, 150, 29); Pos(Edit40, X1 + 176, RowY, C1 - 208, 29); Inc(RowY, 38);
+  Lbl(Label52, X1 + 22, RowY, 150, 29); Pos(Edit41, X1 + 176, RowY, C1 - 208, 29); Inc(RowY, 38);
+  Lbl(Label53, X1 + 22, RowY, 150, 29); Pos(Edit42, X1 + 176, RowY, C1 - 208, 29); Inc(RowY, 38);
+  Lbl(Label54, X1 + 22, RowY, 150, 29); Pos(Edit43, X1 + 176, RowY, C1 - 208, 29); Inc(RowY, 38);
+  Lbl(Label57, X1 + 22, RowY, 150, 29); Pos(Edit44, X1 + 176, RowY, C1 - 208, 29); Inc(RowY, 38);
+  Lbl(Label56, X1 + 22, RowY, 150, 29); Pos(Edit45, X1 + 176, RowY, C1 - 208, 29); Inc(RowY, 38);
+  Lbl(Label55, X1 + 22, RowY, 150, 29); Pos(Edit46, X1 + 176, RowY, C1 - 208, 29); Inc(RowY, 38);
+  Lbl(Label58, X1 + 22, RowY, 150, 29); Pos(Edit47, X1 + 176, RowY, C1 - 208, 29); Inc(RowY, 38);
+  Lbl(Label59, X1 + 22, RowY, 150, 29); Pos(Edit48, X1 + 176, RowY, C1 - 208, 29); Inc(RowY, 38);
+  Lbl(Label60, X1 + 22, RowY, 150, 29); Pos(Edit49, X1 + 176, RowY, C1 - 208, 29);
+
+  RowY := 52;
+  Lbl(Label61, X2 + 22, RowY, 210, 29); Pos(Edit50, X2 + 240, RowY, C2 - 270, 29); Inc(RowY, 40);
+  Lbl(Label62, X2 + 22, RowY, 210, 29); Pos(Edit51, X2 + 240, RowY, C2 - 270, 29); Inc(RowY, 40);
+  Lbl(Label63, X2 + 22, RowY, 210, 29); Pos(Edit52, X2 + 240, RowY, C2 - 270, 29); Inc(RowY, 40);
+  Lbl(Label64, X2 + 22, RowY, 210, 29); Pos(Edit53, X2 + 240, RowY, C2 - 270, 29); Inc(RowY, 40);
+  Lbl(Label65, X2 + 22, RowY, 210, 29); Pos(Edit54, X2 + 240, RowY, C2 - 270, 29); Inc(RowY, 40);
+  Lbl(Label66, X2 + 22, RowY, 210, 29); Pos(Edit55, X2 + 240, RowY, C2 - 270, 29); Inc(RowY, 40);
+  Lbl(Label67, X2 + 22, RowY, 210, 29); Pos(Edit56, X2 + 240, RowY, C2 - 270, 29); Inc(RowY, 48);
+  Lbl(Label106, X2 + 22, RowY, C2 - 130, 29); Pos(ComboBox22, X2 + C2 - 100, RowY + 3, 70, 25); Inc(RowY, 40);
+  Lbl(Label107, X2 + 22, RowY, C2 - 130, 29); Pos(ComboBox23, X2 + C2 - 100, RowY + 3, 70, 25); Inc(RowY, 40);
+  Lbl(Label108, X2 + 22, RowY, C2 - 130, 29); Pos(ComboBox24, X2 + C2 - 100, RowY + 3, 70, 25); Inc(RowY, 40);
+  Lbl(Label109, X2 + 22, RowY, C2 - 130, 29); Pos(ComboBox25, X2 + C2 - 100, RowY + 3, 70, 25); Inc(RowY, 40);
+  Lbl(Label122, X2 + 22, RowY, C2 - 130, 29); Pos(ComboBox30, X2 + C2 - 100, RowY + 3, 70, 25); Inc(RowY, 40);
+  Lbl(Label156, X2 + 22, RowY, 210, 29); Pos(Edit70, X2 + 240, RowY, C2 - 270, 29);
+
+  { -----------------------------------------------------------------------
+    IMPUESTOS.
+    ----------------------------------------------------------------------- }
+  C1 := 600;
+  if W < 1450 then C1 := 540;
+  C2 := W - (M * 2) - G - C1;
+  X1 := M;
+  X2 := X1 + C1 + G;
+  CrearTarjetaVisual(TabSheet4, X1, 16, C1, 320,
+    RGBToColor(226, 238, 242), 'TIPOS DE IVA Y RECARGO DE EQUIVALENCIA');
+  CrearTarjetaVisual(TabSheet4, X2, 16, C2, 320,
+    RGBToColor(242, 238, 226), 'COMPORTAMIENTO Y FICHEROS AFECTADOS');
+  CrearTarjetaVisual(TabSheet4, M, 352, W - (M * 2), 370,
+    RGBToColor(254, 242, 242), 'CAMBIO DE IVA · OPERACIÓN DELICADA');
+
+  RowY := 62;
+  Lbl(Label31, X1 + 24, RowY, 120, 29); Pos(Edit26, X1 + 150, RowY, 70, 29); Lbl(Label37, X1 + 224, RowY, 24, 29);
+  Lbl(Label36, X1 + 280, RowY, 120, 29); Pos(Edit29, X1 + 406, RowY, 70, 29); Lbl(Label40, X1 + 480, RowY, 24, 29);
+  Inc(RowY, 58);
+  Lbl(Label32, X1 + 24, RowY, 120, 29); Pos(Edit27, X1 + 150, RowY, 70, 29); Lbl(Label38, X1 + 224, RowY, 24, 29);
+  Lbl(Label35, X1 + 280, RowY, 120, 29); Pos(Edit30, X1 + 406, RowY, 70, 29); Lbl(Label41, X1 + 480, RowY, 24, 29);
+  Inc(RowY, 58);
+  Lbl(Label33, X1 + 24, RowY, 120, 29); Pos(Edit28, X1 + 150, RowY, 70, 29); Lbl(Label39, X1 + 224, RowY, 24, 29);
+  Lbl(Label34, X1 + 280, RowY, 120, 29); Pos(Edit31, X1 + 406, RowY, 70, 29); Lbl(Label42, X1 + 480, RowY, 24, 29);
+  Lbl(Label96, X1 + 24, 250, 200, 29); Pos(fechaiva, X1 + 230, 250, 190, 29);
+
+  Pos(CambioIVA, X2 + 18, 48, C2 - 36, 92);
+  Pos(ficherosiva, X2 + 18, 150, C2 - 36, 166);
+
+  WrapLbl(Label120, M + 42, 388, W - 100, 38);
+  WrapLbl(Label121, M + 42, 430, W - 100, 38);
+  WrapLbl(Label146, M + 42, 476, W - 100, 32);
+  WrapLbl(Label147, M + 42, 510, W - 100, 32);
+  WrapLbl(Label148, M + 42, 544, W - 100, 32);
+  WrapLbl(Label149, M + 42, 578, W - 100, 46);
+  Pos(Button1, M + ((W - (M * 2) - 520) div 2), 620, 520, 48);
+  Lbl(Label119, M + 42, 674, W - 100, 32);
+
+  { -----------------------------------------------------------------------
+    INFORMES: zonas fijas, sin anclajes heredados del LFM.
+    ----------------------------------------------------------------------- }
+  Avail := W - (M * 2) - G;
+  C1 := (Avail * 38) div 100;
+  if C1 < 500 then C1 := 500;
+  if C1 > 640 then C1 := 640;
+  C2 := Avail - C1;
+  X1 := M;
+  X2 := X1 + C1 + G;
+
+  { Los AnchorSide del LFM tenían prioridad sobre SetBounds y desplazaban
+    RadioGroup1 y gbTipoInstalacion hacia el borde izquierdo. Se eliminan
+    todas las relaciones de anclaje antes de fijar la geometría definitiva. }
+  RadioGroup1.Align := alNone;
+  RadioGroup1.Anchors := [akTop, akLeft];
+  RadioGroup1.AnchorSideLeft.Control := nil;
+  RadioGroup1.AnchorSideTop.Control := nil;
+  RadioGroup1.AnchorSideRight.Control := nil;
+  RadioGroup1.AnchorSideBottom.Control := nil;
+  RadioGroup1.BorderSpacing.Left := 0;
+  RadioGroup1.BorderSpacing.Right := 0;
+  RadioGroup1.BorderSpacing.Top := 0;
+  RadioGroup1.BorderSpacing.Bottom := 0;
+
+  GroupBox2.Align := alNone;
+  GroupBox2.Anchors := [akTop, akLeft];
+  GroupBox2.AnchorSideLeft.Control := nil;
+  GroupBox2.AnchorSideTop.Control := nil;
+  GroupBox2.AnchorSideRight.Control := nil;
+  GroupBox2.AnchorSideBottom.Control := nil;
+  GroupBox2.BorderSpacing.Left := 0;
+  GroupBox2.BorderSpacing.Right := 0;
+  GroupBox2.BorderSpacing.Top := 0;
+  GroupBox2.BorderSpacing.Bottom := 0;
+
+  gbTipoInstalacion.Align := alNone;
+  gbTipoInstalacion.Anchors := [akTop, akLeft];
+  gbTipoInstalacion.AnchorSideLeft.Control := nil;
+  gbTipoInstalacion.AnchorSideTop.Control := nil;
+  gbTipoInstalacion.AnchorSideRight.Control := nil;
+  gbTipoInstalacion.AnchorSideBottom.Control := nil;
+  gbTipoInstalacion.BorderSpacing.Left := 0;
+  gbTipoInstalacion.BorderSpacing.Right := 0;
+  gbTipoInstalacion.BorderSpacing.Top := 0;
+  gbTipoInstalacion.BorderSpacing.Bottom := 0;
+
+  CrearTarjetaVisual(TabSheet8, X1, 16, C1, 302,
+    RGBToColor(226, 238, 242), '');
+  CrearTarjetaVisual(TabSheet8, X2, 16, C2, 302,
+    RGBToColor(231, 243, 234), '');
+  CrearTarjetaVisual(TabSheet8, M, 334, W - (M * 2), 390,
+    RGBToColor(239, 242, 244), '');
+
+  EncabezadoTarjeta(TabSheet8, X1 + 1, 17, C1 - 2, 38,
+    'IMPRESIÓN DE INFORMES', RGBToColor(23, 96, 116));
+  EncabezadoTarjeta(TabSheet8, X2 + 1, 17, C2 - 2, 38,
+    'DATOS QR NO VERI*FACTU', RGBToColor(22, 130, 84));
+  EncabezadoTarjeta(TabSheet8, M + 1, 335, W - (M * 2) - 2, 38,
+    'ENTORNO DEL SISTEMA', RGBToColor(55, 65, 81));
+
+  Pos(CheckBox2, X1 + 24, 68, C1 - 48, 32);
+  CheckBox2.ParentColor := False;
+  CheckBox2.Color := RGBToColor(226, 238, 242);
+  CheckBox2.ParentFont := False;
+  CheckBox2.Font.Name := 'Sans';
+  CheckBox2.Font.Height := -12;
+  CheckBox2.Font.Style := [fsBold];
+  CheckBox2.Font.Color := RGBToColor(30, 41, 59);
+  CheckBox2.BringToFront;
+
+  Pos(RadioGroup1, X1 + 24, 108, C1 - 48, 184);
+  RadioGroup1.ParentColor := False;
+  RadioGroup1.Color := RGBToColor(226, 238, 242);
+  RadioGroup1.ParentFont := False;
+  RadioGroup1.Font.Name := 'Sans';
+  RadioGroup1.Font.Height := -12;
+  RadioGroup1.Font.Style := [fsBold];
+  RadioGroup1.BringToFront;
+
+  Pos(GroupBox2, X2 + 18, 68, C2 - 36, 224);
+  GroupBox2.Caption := '';
+  GroupBox2.ParentColor := False;
+  GroupBox2.Color := RGBToColor(231, 243, 234);
+  EditX := 192;
+  EditW := GroupBox2.ClientWidth - EditX - 20;
+  if EditW < 260 then EditW := 260;
+  Lbl(lbLeyendaSuperior, 20, 24, 160, 30);
+  Pos(edLeyendaSuperior, EditX, 24, EditW, 30);
+  Lbl(lbLeyendaInferior, 20, 82, 160, 30);
+  Pos(edLeyendaInferior, EditX, 82, EditW, 30);
+  Lbl(lbTxtQr, 20, 140, 160, 30);
+  Pos(edTextoQR, EditX, 140, EditW, 30);
+  lbLeyendaSuperior.Font.Style := [fsBold];
+  lbLeyendaInferior.Font.Style := [fsBold];
+  lbTxtQr.Font.Style := [fsBold];
+  GroupBox2.BringToFront;
+
+  Pos(gbTipoInstalacion, M + 24, 382, W - (M * 2) - 48, 324);
+  gbTipoInstalacion.Caption := '';
+  gbTipoInstalacion.ParentColor := False;
+  gbTipoInstalacion.Color := RGBToColor(239, 242, 244);
+
+  Lbl(lbSistema, 24, 16, gbTipoInstalacion.ClientWidth - 48, 64);
+  lbSistema.Alignment := taCenter;
+  lbSistema.Layout := tlCenter;
+  Lbl(lbIni, 24, 94, gbTipoInstalacion.ClientWidth - 48, 30);
+  Lbl(lbSql, 24, 132, gbTipoInstalacion.ClientWidth - 48, 30);
+  Lbl(lbReport, 24, 170, gbTipoInstalacion.ClientWidth - 48, 30);
+  Lbl(lbImagenes, 24, 208, gbTipoInstalacion.ClientWidth - 48, 30);
+  Lbl(lbBinario, 24, 246, gbTipoInstalacion.ClientWidth - 48, 30);
+  Lbl(lbModulos, 24, 284, gbTipoInstalacion.ClientWidth - 48, 30);
+
+  lbIni.Font.Color := RGBToColor(30, 41, 59);
+  lbSql.Font.Color := RGBToColor(30, 41, 59);
+  lbReport.Font.Color := RGBToColor(30, 41, 59);
+  lbImagenes.Font.Color := RGBToColor(30, 41, 59);
+  lbBinario.Font.Color := RGBToColor(30, 41, 59);
+  lbModulos.Font.Color := RGBToColor(30, 41, 59);
+  gbTipoInstalacion.BringToFront;
+
+  { -----------------------------------------------------------------------
+    APLICACIONES EXTRA.
+    ----------------------------------------------------------------------- }
+  CrearTarjetaVisual(tsGeneral, M, 16, W - (M * 2), 250,
+    RGBToColor(226, 238, 242), 'APLICACIONES, INFORMES E IMÁGENES');
+  Lbl(Label69, M + 24, 56, 260, 29);
+  Pos(Edit58, M + 294, 56, W - 380, 29);
+  Pos(BitBtn13, W - 66, 56, 34, 29);
+  Lbl(Label70, M + 24, 104, 260, 29);
+  Pos(Edit59, M + 294, 104, W - 380, 29);
+  Pos(BitBtn14, W - 66, 104, 34, 29);
+  Lbl(Label117, M + 24, 152, 260, 29);
+  Pos(Edit69, M + 294, 152, W - 380, 29);
+  Pos(BitBtn15, W - 66, 152, 34, 29);
+  Lbl(LabelAbrirArchivo, M + 24, 200, 260, 29);
+  Pos(EditAbrirArchivo, M + 294, 200, W - 326, 29);
+
+  LayoutBackup(gbCopia1, cbCopia1, Label125, Label126, Label127,
+    Label129, Label128, Label140, Label141,
+    Copia1InicioHora, Copia1InicioMinutos, Copia1FinHora,
+    Copia1FinMinutos, Copia1Destino,
+    Copia1InicioUD1, Copia1InicioUD2, Copia1FinUD1, Copia1FinUD2,
+    18, W - 180);
+  LayoutBackup(gbCopia2, cbCopia2, Label130, Label131, Label132,
+    Label134, Label133, Label142, Label143,
+    Copia2InicioHora, Copia2InicioMinutos, Copia2FinHora,
+    Copia2FinMinutos, Copia2Destino,
+    Copia2InicioUD1, Copia2InicioUD2, Copia2FinUD1, Copia2FinUD2,
+    180, W - 180);
+  LayoutBackup(gbCopia3, cbCopia3, Label135, Label136, Label137,
+    Label139, Label138, Label144, Label145,
+    Copia3InicioHora, Copia3InicioMinutos, Copia3FinHora,
+    Copia3FinMinutos, Copia3Destino,
+    Copia3InicioUD1, Copia3InicioUD2, Copia3FinUD1, Copia3FinUD2,
+    342, W - 180);
+  Pos(btnValidarCopiasAutomaticas, (W - 270) div 2, 510, 270, 48);
+  RecolocarControlesBackupRemoto;
+
+  { -----------------------------------------------------------------------
+    SISTEMA DE PUNTOS: editores centrados y texto a ambos lados.
+    ----------------------------------------------------------------------- }
+  C1 := 700;
+  if W < 1450 then C1 := 620;
+  C2 := W - (M * 2) - G - C1;
+  X1 := M;
+  X2 := X1 + C1 + G;
+  CrearTarjetaVisual(TabSheet7, X1, 16, C1, 430,
+    RGBToColor(231, 243, 234), 'CONFIGURACIÓN DEL SISTEMA DE PUNTOS');
+  CrearTarjetaVisual(TabSheet7, X2, 16, C2, 430,
+    RGBToColor(226, 238, 242), 'NIVELES Y FUNCIONAMIENTO');
+
+  FieldW := 104;
+  FieldX := X1 + (C1 div 2) - (FieldW div 2);
+
+  RowY := 58;
+  Lbl(Label19, X1 + 24, RowY, FieldX - X1 - 40, 29);
+  Pos(Edit17, FieldX, RowY, FieldW, 29);
+  Inc(RowY, 48);
+
+  Lbl(Label71, X1 + 24, RowY, FieldX - X1 - 40, 29);
+  Pos(Edit60, FieldX, RowY, FieldW, 29);
+  Inc(RowY, 48);
+
+  Lbl(Label72, X1 + 24, RowY, FieldX - X1 - 40, 29);
+  Pos(Edit61, FieldX, RowY, FieldW, 29);
+  Lbl(Label79, FieldX + FieldW + 8, RowY, 24, 29);
+  Inc(RowY, 54);
+
+  Lbl(Label73, X1 + 24, RowY, FieldX - X1 - 40, 42);
+  Pos(Edit62, FieldX, RowY + 6, FieldW, 29);
+  Lbl(Label80, FieldX + FieldW + 8, RowY + 6, 24, 29);
+  Lbl(Label74, FieldX + FieldW + 38, RowY + 4,
+    C1 - (FieldX - X1) - FieldW - 58, 36);
+  Inc(RowY, 66);
+
+  Lbl(Label75, X1 + 24, RowY, FieldX - X1 - 40, 42);
+  Pos(Edit63, FieldX, RowY + 6, FieldW, 29);
+  Lbl(Label76, FieldX + FieldW + 18, RowY + 2,
+    C1 - (FieldX - X1) - FieldW - 38, 40);
+
+  WrapLbl(Label81, X2 + 24, 58, C2 - 48, 44);
+  WrapLbl(Label78, X2 + 24, 114, C2 - 48, 44);
+  WrapLbl(Label77, X2 + 24, 176, C2 - 48, 194);
+
+  { -----------------------------------------------------------------------
+    VERI*FACTU.
+    ----------------------------------------------------------------------- }
+  CrearTarjetaVisual(TabSheet11, M, 16, W - (M * 2), 286,
+    RGBToColor(226, 238, 242), 'CONEXIONES DE VERI*FACTU');
+  CrearTarjetaVisual(TabSheet11, M, 318, W - (M * 2), 150,
+    RGBToColor(254, 242, 242), 'MODO DE FUNCIONAMIENTO');
+
+  Lbl(Label157, M + 28, 62, 300, 29); Pos(Edit71, M + 338, 62, W - 392, 29);
+  Lbl(Label158, M + 28, 124, 300, 29); Pos(Edit72, M + 338, 124, W - 392, 29);
+  Lbl(Label160, M + 28, 186, 300, 29); Pos(Edit73, M + 338, 186, W - 392, 29);
+  Lbl(Label159, M + 28, 360, 390, 42);
+  Pos(vfCheckTest, M + 430, 366, 390, 28);
+end;
+
+procedure TFConfig.EstilizarControlesModernos;
+var
+  I: Integer;
+  C: TComponent;
+begin
+  for I := 0 to ComponentCount - 1 do
+  begin
+    C := Components[I];
+
+    if C is TDateEdit then
+    begin
+      TDateEdit(C).ParentFont := False;
+      TDateEdit(C).Font.Name := 'Sans';
+      TDateEdit(C).Font.Height := -12;
+      TDateEdit(C).Height := 29;
+      TDateEdit(C).Color := clWhite;
+    end
+    else if C is TEdit then
+    begin
+      TEdit(C).ParentFont := False;
+      TEdit(C).Font.Name := 'Sans';
+      TEdit(C).Font.Height := -12;
+      TEdit(C).Height := 29;
+      TEdit(C).Color := clWhite;
+    end
+    else if C is TComboBox then
+    begin
+      TComboBox(C).ParentFont := False;
+      TComboBox(C).Font.Name := 'Sans';
+      TComboBox(C).Font.Height := -12;
+      TComboBox(C).Color := clWhite;
+    end
+    else if C is TCheckBox then
+    begin
+      TCheckBox(C).ParentFont := False;
+      TCheckBox(C).Font.Name := 'Sans';
+      TCheckBox(C).Font.Height := -12;
+      TCheckBox(C).Font.Color := RGBToColor(51, 65, 85);
+      TCheckBox(C).ParentColor := False;
+      TCheckBox(C).Color := clWhite;
+      TCheckBox(C).BringToFront;
+    end
+    else if C is TCheckGroup then
+    begin
+      TCheckGroup(C).ParentFont := False;
+      TCheckGroup(C).Font.Name := 'Sans';
+      TCheckGroup(C).Font.Height := -12;
+      TCheckGroup(C).Font.Color := RGBToColor(51, 65, 85);
+      TCheckGroup(C).ParentColor := False;
+      TCheckGroup(C).Color := RGBToColor(250, 251, 252);
+    end
+    else if C is TRadioGroup then
+    begin
+      TRadioGroup(C).ParentFont := False;
+      TRadioGroup(C).Font.Name := 'Sans';
+      TRadioGroup(C).Font.Height := -12;
+      TRadioGroup(C).Font.Color := RGBToColor(51, 65, 85);
+      TRadioGroup(C).ParentColor := False;
+      TRadioGroup(C).Color := RGBToColor(250, 251, 252);
+    end
+    else if C is TGroupBox then
+    begin
+      TGroupBox(C).ParentFont := False;
+      TGroupBox(C).Font.Name := 'Sans';
+      TGroupBox(C).Font.Height := -12;
+      TGroupBox(C).Font.Style := [fsBold];
+      TGroupBox(C).Font.Color := RGBToColor(18, 76, 91);
+      TGroupBox(C).ParentColor := False;
+      TGroupBox(C).Color := RGBToColor(248, 250, 251);
+    end
+    else if C is TStaticText then
+    begin
+      TStaticText(C).ParentFont := False;
+      TStaticText(C).Font.Name := 'Sans';
+      TStaticText(C).Font.Height := -12;
+      TStaticText(C).Font.Color := RGBToColor(51, 65, 85);
+      TStaticText(C).Color := RGBToColor(248, 250, 251);
+    end
+    else if C is TLabel then
+    begin
+      TLabel(C).ParentFont := False;
+      TLabel(C).Font.Name := 'Sans';
+      if TLabel(C).Font.Height > -12 then
+        TLabel(C).Font.Height := -12;
+      TLabel(C).Font.Color := RGBToColor(51, 65, 85);
+    end;
+  end;
+end;
+
+procedure TFConfig.RecolocarDisenoModerno;
+var
+  X, Gap: Integer;
+begin
+  if not Assigned(Panel1) then Exit;
+
+  Gap := 10;
+  X := Panel1.ClientWidth - 18 - BitBtn3.Width;
+  BitBtn3.Left := X;
+  BitBtn3.Top := 17;
+  Dec(X, Gap + BitBtn6.Width);
+  BitBtn6.Left := X;
+  BitBtn6.Top := 17;
+  Dec(X, Gap + BitBtn2.Width);
+  BitBtn2.Left := X;
+  BitBtn2.Top := 17;
+  Dec(X, Gap + BitBtn1.Width);
+  BitBtn1.Left := X;
+  BitBtn1.Top := 17;
+
+  if Assigned(FHeaderTitle) then
+    FHeaderTitle.Width := X - FHeaderTitle.Left - 20;
+  if Assigned(FHeaderSubtitle) then
+    FHeaderSubtitle.Width := X - FHeaderSubtitle.Left - 20;
+end;
+
+procedure TFConfig.FormResizeModerno(Sender: TObject);
+begin
+  RecolocarDisenoModerno;
+  if FDisenoFinalAplicado then
+  begin
+    LimpiarTarjetasModernas;
+    CrearTarjetasModernas;
+    SincronizarPosicionControlesVisuales;
+    SincronizarChecksVisuales;
+    ActualizarBotonesConexionVisual;
+  end;
+end;
+
+procedure TFConfig.AplicarEstiloModerno;
+begin
+  Caption := 'FacturLinEx · Configuración general del sistema';
+  Color := RGBToColor(241, 245, 247);
+  ParentFont := False;
+  Font.Name := 'Sans';
+  Font.Height := -12;
+  Constraints.MinWidth := 1180;
+  Constraints.MinHeight := 720;
+  WindowState := wsMaximized;
+
+  Panel1.Align := alTop;
+  Panel1.Height := 88;
+  Panel1.Caption := '';
+  Panel1.BevelOuter := bvNone;
+  Panel1.BevelInner := bvNone;
+  Panel1.ParentColor := False;
+  Panel1.Color := RGBToColor(18, 76, 91);
+
+  FHeaderTitle := TLabel.Create(Self);
+  FHeaderTitle.Parent := Panel1;
+  FHeaderTitle.SetBounds(22, 12, 720, 28);
+  FHeaderTitle.AutoSize := False;
+  FHeaderTitle.Caption := 'CONFIGURACIÓN GENERAL DE FACTURLINEX';
+  FHeaderTitle.Transparent := True;
+  FHeaderTitle.ParentFont := False;
+  FHeaderTitle.Font.Name := 'Sans';
+  FHeaderTitle.Font.Height := -20;
+  FHeaderTitle.Font.Style := [fsBold];
+  FHeaderTitle.Font.Color := clWhite;
+
+  FHeaderSubtitle := TLabel.Create(Self);
+  FHeaderSubtitle.Parent := Panel1;
+  FHeaderSubtitle.SetBounds(24, 47, 900, 20);
+  FHeaderSubtitle.AutoSize := False;
+  FHeaderSubtitle.Caption :=
+    'Empresa, BBDD, ventas, impresión, impuestos, copias, puntos y Veri*Factu';
+  FHeaderSubtitle.Transparent := True;
+  FHeaderSubtitle.ParentFont := False;
+  FHeaderSubtitle.Font.Name := 'Sans';
+  FHeaderSubtitle.Font.Height := -11;
+  FHeaderSubtitle.Font.Style := [fsBold];
+  FHeaderSubtitle.Font.Color := clWhite;
+
+  PrepararBotonPrincipal(BitBtn1, RGBToColor(22, 130, 84), True);
+  PrepararBotonPrincipal(BitBtn2, RGBToColor(219, 234, 239), False);
+  PrepararBotonPrincipal(BitBtn6, RGBToColor(23, 96, 116), True);
+  PrepararBotonPrincipal(BitBtn3, RGBToColor(55, 65, 81), True);
+  BitBtn1.Caption := 'Guardar';
+  BitBtn2.Caption := 'Recuperar';
+  BitBtn6.Caption := 'Aplicar';
+  BitBtn3.Caption := 'Cerrar';
+
+  PageControl1.Align := alClient;
+  PageControl1.ParentFont := False;
+  PageControl1.Font.Name := 'Sans';
+  PageControl1.Font.Height := -12;
+  PageControl1.Font.Style := [fsBold];
+  PageControl1.Color := RGBToColor(241, 245, 247);
+
+  TabSheet1.Caption := 'Registro';
+  TabSheet10.Caption := 'Configuración general 1';
+  TabSheet9.Caption := 'Configuración general 2';
+  TabSheet2.Caption := 'Conexiones';
+  TabSheet3.Caption := 'Actualizaciones';
+  TabSheet5.Caption := 'Tickets y periféricos';
+  TabSheet4.Caption := 'Impuestos';
+  TabSheet8.Caption := 'Informes';
+  TabSheet6.Caption := 'Aplicaciones extra';
+  TabSheet7.Caption := 'Sistema de puntos';
+  TabSheet11.Caption := 'VeriFactu';
+  tsGeneral.Caption := 'General';
+  tsCopiasAutomaticas.Caption := 'Copias automáticas';
+  if Assigned(FRemoteBackupTab) then
+    FRemoteBackupTab.Caption := 'Copias remotas';
+
+  TabSheet1.Color := RGBToColor(241, 245, 247);
+  TabSheet10.Color := RGBToColor(241, 245, 247);
+  TabSheet9.Color := RGBToColor(241, 245, 247);
+  TabSheet2.Color := RGBToColor(241, 245, 247);
+  TabSheet3.Color := RGBToColor(241, 245, 247);
+  TabSheet5.Color := RGBToColor(241, 245, 247);
+  TabSheet4.Color := RGBToColor(241, 245, 247);
+  TabSheet8.Color := RGBToColor(241, 245, 247);
+  TabSheet6.Color := RGBToColor(241, 245, 247);
+  TabSheet7.Color := RGBToColor(241, 245, 247);
+  TabSheet11.Color := RGBToColor(241, 245, 247);
+  tsGeneral.Color := RGBToColor(241, 245, 247);
+  tsCopiasAutomaticas.Color := RGBToColor(241, 245, 247);
+  if Assigned(FRemoteBackupTab) then
+    FRemoteBackupTab.Color := RGBToColor(241, 245, 247);
+  pcAplicacionesExtra.ParentFont := False;
+  pcAplicacionesExtra.Font.Name := 'Sans';
+  pcAplicacionesExtra.Font.Height := -12;
+  pcAplicacionesExtra.Font.Style := [fsBold];
+
+  EstilizarControlesModernos;
+  CrearTarjetasModernas;
+
+  { Paneles y grupos existentes. }
+  PanelCambiable1.BevelOuter := bvNone;
+  PanelCambiable1.ParentColor := False;
+  PanelCambiable1.Color := RGBToColor(231, 243, 234);
+  PanelCambiable2.BevelOuter := bvNone;
+  PanelCambiable2.ParentColor := False;
+  PanelCambiable2.Color := RGBToColor(231, 243, 234);
+  GroupBox1.Color := RGBToColor(226, 238, 242);
+  GroupBox1.Caption := '';
+  GroupBox2.Color := RGBToColor(226, 238, 242);
+  GroupBox2.Caption := '';
+  gbTipoInstalacion.Color := RGBToColor(239, 242, 244);
+  gbTipoInstalacion.Caption := '';
+  gbCopia1.Color := RGBToColor(226, 238, 242);
+  gbCopia2.Color := RGBToColor(231, 243, 234);
+  gbCopia3.Color := RGBToColor(242, 238, 226);
+
+  { Botones pequeños: solución sólida validada en Clientes. }
+  CrearBotonVisual(BitBtn12, FBtnLogoVisual,
+    'Seleccionar el logotipo de la empresa');
+  CrearBotonVisual(BitBtn7, FBtnColorFormularioVisual,
+    'Seleccionar el color del formulario');
+  CrearBotonVisual(BitBtn8, FBtnColorBotonesVisual,
+    'Seleccionar el color de los botones');
+  CrearBotonVisual(BitBtnCambiable1, FBtnTiendaVisual,
+    'Seleccionar la tienda activa');
+  CrearBotonVisual(BitBtnCambiable2, FBtnPuestoVisual,
+    'Seleccionar el puesto');
+  CrearBotonVisual(BitBtn13, FBtnVisorPDFVisual,
+    'Seleccionar la aplicación para abrir PDF');
+  CrearBotonVisual(BitBtn14, FBtnRutaPDFVisual,
+    'Seleccionar la carpeta de informes PDF');
+  CrearBotonVisual(BitBtn15, FBtnRutaImagenesVisual,
+    'Seleccionar la carpeta de imágenes de artículos');
+
+  { Botones de prueba de conexión: controles sólidos, visibles y con relieve. }
+  CrearBotonAccionVisual(BitBtn4, FBtnTestBBDDVisual,
+    'Test de conexión', 'Comprobar la conexión con la base de datos principal',
+    RGBToColor(23, 96, 116));
+  CrearBotonAccionVisual(BitBtn5, FBtnTestSICVisual,
+    'Test de conexión', 'Comprobar la conexión con el sistema de información común',
+    RGBToColor(23, 96, 116));
+  ActualizarBotonesConexionVisual;
+
+  { Checkboxes críticos: representación sólida independiente del tema GTK. }
+  CrearCheckVisual(bbdd_autocopy, FCheckMonoVisual,
+    'SISTEMA MONO-USUARIO (SE ACTIVAN LAS COPIAS DE SEGURIDAD AUTOMÁTICAS AL CERRAR EL PROGRAMA)',
+    'Activar o desactivar el modo monousuario y sus copias automáticas',
+    RGBToColor(239, 242, 244), RGBToColor(153, 27, 27));
+  CrearEtiquetaVisual(Label29, FLabelSICVisual,
+    'Servidor SIC (Sistema de Información Común)',
+    RGBToColor(239, 235, 247), RGBToColor(18, 76, 91));
+  CrearCheckVisual(CheckBox1, FCheckSICVisual,
+    'Activar sistema de información común',
+    'Activar o desactivar la conexión con el sistema de información común',
+    RGBToColor(239, 235, 247), RGBToColor(18, 76, 91));
+  CrearEtiquetaVisual(Label159, FLabelVFVisual,
+    'CheckBox ON = Pruebas / OFF = Producción',
+    RGBToColor(254, 242, 242), RGBToColor(153, 27, 27));
+  CrearCheckVisual(vfCheckTest, FCheckVFVisual,
+    'ON = PRUEBAS   //   OFF = PRODUCCIÓN',
+    'Seleccionar el modo de funcionamiento de VeriFactu',
+    RGBToColor(254, 242, 242), RGBToColor(153, 27, 27));
+  SincronizarChecksVisuales;
+
+  btnValidarCopiasAutomaticas.ParentFont := False;
+  btnValidarCopiasAutomaticas.Font.Name := 'Sans';
+  btnValidarCopiasAutomaticas.Font.Height := -12;
+  btnValidarCopiasAutomaticas.Font.Style := [fsBold];
+  btnValidarCopiasAutomaticas.Color := RGBToColor(22, 130, 84);
+  btnValidarCopiasAutomaticas.Font.Color := clWhite;
+  btnValidarCopiasAutomaticas.Width := 250;
+  btnValidarCopiasAutomaticas.Height := 48;
+
+  Button1.ParentFont := False;
+  Button1.Font.Name := 'Sans';
+  Button1.Font.Height := -13;
+  Button1.Font.Style := [fsBold];
+  Button1.Font.Color := clWhite;
+  Button1.Color := RGBToColor(185, 28, 28);
+  Button1.Caption := 'EJECUTAR CAMBIO DE IVA';
+
+  { Textos visibles corregidos sin cambiar identificadores ni datos. }
+  Label3.Caption := 'Dirección';
+  Label4.Caption := 'Cód. postal';
+  Label5.Caption := 'Población';
+  Label8.Caption := 'Teléfono';
+  Label115.Caption := 'Color del formulario';
+  Label116.Caption := 'Color de los botones';
+  CheckBox1.Caption := 'Activar sistema de información común';
+  Label29.Caption := 'Servidor SIC (Sistema de Información Común)';
+  Label20.Caption := 'Servidor de actualizaciones';
+  Label44.Caption := 'Líneas al final del ticket';
+  Label48.Caption := 'Líneas al final del ticket 1';
+  Label61.Caption := 'Secuencia para abrir cajón';
+  Label63.Caption := 'Secuencia de anulación';
+  Label156.Caption := 'Secuencia de impresión del logotipo';
+  Label69.Caption := 'Aplicación para visualizar informes PDF';
+  Label70.Caption := 'Carpeta para guardar informes PDF';
+  Label117.Caption := 'Carpeta para imágenes de artículos';
+  LabelAbrirArchivo.Caption := 'Orden para abrir archivos';
+  lbReport.Caption := StringReplace(lbReport.Caption, 'Pantillas',
+    'Plantillas', [rfReplaceAll]);
+
+  Image1.Proportional := True;
+  Image1.Stretch := True;
+  Image1.Center := True;
+
+  { Advertencias y estados recuperan colores semánticos. }
+  Label119.Font.Color := RGBToColor(153, 27, 27);
+  Label119.Font.Style := [fsBold];
+  Label146.Font.Color := RGBToColor(153, 27, 27);
+  Label146.Font.Style := [fsBold];
+  Label147.Font.Color := RGBToColor(153, 27, 27);
+  Label148.Font.Color := RGBToColor(153, 27, 27);
+  Label149.Font.Color := RGBToColor(153, 27, 27);
+
+  { Controles críticos: color explícito para evitar texto invisible en GTK. }
+  bbdd_autocopy.ParentColor := False;
+  bbdd_autocopy.Color := RGBToColor(239, 242, 244);
+  bbdd_autocopy.ParentFont := False;
+  bbdd_autocopy.Font.Name := 'Sans';
+  bbdd_autocopy.Font.Height := -13;
+  bbdd_autocopy.Font.Style := [fsBold];
+  bbdd_autocopy.Font.Color := RGBToColor(153, 27, 27);
+  bbdd_autocopy.BringToFront;
+
+  CheckBox1.ParentColor := False;
+  CheckBox1.Color := RGBToColor(239, 235, 247);
+  CheckBox1.ParentFont := False;
+  CheckBox1.Font.Name := 'Sans';
+  CheckBox1.Font.Height := -13;
+  CheckBox1.Font.Style := [fsBold];
+  CheckBox1.Font.Color := RGBToColor(18, 76, 91);
+  CheckBox1.BringToFront;
+  Label29.Transparent := False;
+  Label29.ParentColor := False;
+  Label29.Color := RGBToColor(239, 235, 247);
+  Label29.Font.Color := RGBToColor(18, 76, 91);
+  Label29.Font.Style := [fsBold];
+  Label29.BringToFront;
+
+  Label159.Transparent := False;
+  Label159.ParentColor := False;
+  Label159.Color := RGBToColor(254, 242, 242);
+  Label159.Font.Color := RGBToColor(153, 27, 27);
+  Label159.Font.Style := [fsBold];
+  Label159.BringToFront;
+  vfCheckTest.ParentColor := False;
+  vfCheckTest.Color := RGBToColor(254, 242, 242);
+  vfCheckTest.ParentFont := False;
+  vfCheckTest.Font.Name := 'Sans';
+  vfCheckTest.Font.Height := -13;
+  vfCheckTest.Font.Style := [fsBold];
+  vfCheckTest.Font.Color := RGBToColor(153, 27, 27);
+  vfCheckTest.BringToFront;
+
+  { Estado del entorno: indicador grande, centrado y semántico. }
+  lbSistema.Transparent := False;
+  lbSistema.ParentColor := False;
+  lbSistema.ParentFont := False;
+  lbSistema.Font.Name := 'Sans';
+  lbSistema.Font.Height := -24;
+  lbSistema.Font.Style := [fsBold];
+  lbSistema.Alignment := taCenter;
+  lbSistema.Layout := tlCenter;
+  if RutaBin = '/usr/bin/' then
+  begin
+    lbSistema.Color := RGBToColor(220, 252, 231);
+    lbSistema.Font.Color := RGBToColor(21, 128, 61);
+    lbSistema.Caption := 'Sistema en producción';
+  end
+  else
+  begin
+    lbSistema.Color := RGBToColor(254, 226, 226);
+    lbSistema.Font.Color := RGBToColor(153, 27, 27);
+    lbSistema.Caption := 'Sistema en desarrollo';
+  end;
+  lbSistema.BringToFront;
+
+  FHeaderTitle.Font.Color := clWhite;
+  FHeaderSubtitle.Font.Color := clWhite;
+  FHeaderTitle.BringToFront;
+  FHeaderSubtitle.BringToFront;
+
+  FDisenoFinalAplicado := False;
+  OnShow := @FormShowModerno;
+  OnResize := @FormResizeModerno;
+  RecolocarDisenoModerno;
+  SincronizarPosicionControlesVisuales;
+  SincronizarChecksVisuales;
+end;
 
 //--------------- Controles runtime para codigo de cliente desde NIF -----------
 procedure TFConfig.CrearControlesClientesCodigo;
@@ -627,6 +3009,10 @@ begin
     Registro:=Edit16.Text;
     ColorFondo:=Edit67.Text;
     ColorBotones:=Edit68.Text;
+    if Assigned(FContrasteVisual) then
+      ContrasteInterfaz := FLXTemaVisualATexto(TemaContrasteSeleccionado)
+    else
+      ContrasteInterfaz := 'NORMAL';
     //----------- Seccion BBDD -----------
     DBHost:=Edit11.Text;
     DBUsuario:=Edit12.Text;
@@ -879,6 +3265,7 @@ begin
     If vfCheckTest.Checked then vfMode:='PRUEBAS' else vfMode:='PRODUCCION';
 //    if vfMode:='PRUEBAS' then vfCheckTest.Checked:= True else vfCheckTest.Checked:= FALSE;
     MotorDB := CBMbbdd.Text;
+  FLXAplicarTemaEnFormulariosAbiertos;
 
 
 end;
@@ -902,6 +3289,11 @@ begin
     IniReader.WriteString('datos','registro',Edit16.Text);
     IniReader.WriteString('datos','ColorFondo',Edit67.Text);
     IniReader.WriteString('datos','ColorBotones',Edit68.Text);
+    if Assigned(FContrasteVisual) then
+      IniReader.WriteString('Apariencia','ContrasteInterfaz',
+        FLXTemaVisualATexto(TemaContrasteSeleccionado))
+    else
+      IniReader.WriteString('Apariencia','ContrasteInterfaz','NORMAL');
     //----------- Seccion BBDD -----------
     IniReader.WriteString('BBDD','host',Edit11.Text);
     IniReader.WriteString('BBDD','usuario',Edit12.Text);
@@ -1178,6 +3570,8 @@ begin
       //---------- Sistema de copia automática MONO-USUARIO
     IniReader.WriteString('bbdd_copy','MonoUsuario',BoolToStr(bbdd_autocopy.Checked));
 
+    GuardarConfiguracionBackupRemoto(IniReader);
+
     IniReader.WriteString('MotorBBDD','mbbdd',CBMbbdd.Text);
 
 end;
@@ -1198,13 +3592,15 @@ procedure TFConfig.FormCreate(Sender: TObject);
 begin
   //Conectate(dbConect);   // Utilizamos datamodule1.dbConexión para toda la aplicación.
 
-  IniReader := TIniFile.Create(RutaIni+'FacturConf.ini');
+  IniReader := FLXOpenFacturConfIni;
 
   Sections := TStringList.Create;
   IniReader.ReadSections( Sections );
 
   PageControl1.ActivePage := TabSheet1;
   CrearControlesClientesCodigo;
+  CrearControlesBackupRemoto;
+  CrearControlesApariencia;
   RestaurarIni;
 
   LabelCambiable1.Caption:='Tienda Activa';
@@ -1239,6 +3635,22 @@ begin
     cbClientesModoCodigoAltaNIF.OnChange := @ClientesCodigoConfigChange;
   if Assigned(edClientesCodigoSuperiorDesde) then
     edClientesCodigoSuperiorDesde.OnChange := @ClientesCodigoConfigChange;
+  if Assigned(FContrasteVisual) then
+    FContrasteVisual.OnClick := @ContrasteVisualChange;
+
+  FRemoteEnabled.OnChange := @BackupRemotoCambio;
+  FRemoteAutoOnExit.OnChange := @BackupRemotoCambio;
+  FRemoteFTPOnExit.OnChange := @BackupRemotoCambio;
+  FRemoteHost.OnChange := @BackupRemotoCambio;
+  FRemotePort.OnChange := @BackupRemotoCambio;
+  FRemoteUser.OnChange := @BackupRemotoCambio;
+  FRemoteAuth.OnChange := @BackupRemotoCambio;
+  FRemoteKey.OnChange := @BackupRemotoCambio;
+  FRemotePassword.OnChange := @BackupRemotoCambio;
+  FRemoteDestination.OnChange := @BackupRemotoCambio;
+  FRemoteCommand.OnChange := @BackupRemotoCambio;
+  FRemoteKeep.OnChange := @BackupRemotoCambio;
+  ActualizarEstadoBackupRemoto;
 
   // Estado inicial limpio: no hay cambios pendientes al abrir configuración.
   BitBtn1.Enabled := False;
@@ -1255,6 +3667,10 @@ begin
         lbSistema.Font.Color:=clMaroon;
         lbSistema.Caption:=' Sistema en desarrollo ';
        end;
+
+  AplicarEstiloModerno;
+  FLXAplicarTemaVisual(Self);
+  ActualizarVistaPreviaContraste;
 end;
 
 procedure TFConfig.pcAplicacionesExtraEnter(Sender: TObject);
@@ -1272,6 +3688,12 @@ end;
 
 procedure TFConfig.FormClose(Sender: TObject; var CloseAction: TCloseAction);
 begin
+  if Assigned(FRemoteEnabled) then
+    GuardarConfiguracionBackupRemotoPersistente;
+
+  FreeAndNil(IniReader);
+  FreeAndNil(Sections);
+
   showmessage('Se recomienda reiniciar la aplicación para evitar errores');
   CloseAction:=CaFree;
   //-- COMENTADO PORQUE HACÍA QUE EL FICHERO .INI FUESE REESCRITO CON DATOS ANTERIORES
@@ -1285,6 +3707,8 @@ procedure TFConfig.RestaurarIni();
 var
   tmpBoolean: string;
 begin
+  { Recuperar siempre desde la versión actual del fichero. }
+  RecargarIniReaderDesdeDisco;
 
   //---------- Sección Empresa ---------
   Edit1.Text := IniReader.ReadString('datos','nombre','');
@@ -1302,6 +3726,12 @@ begin
   Edit16.Text := IniReader.ReadString('datos','registro','');
   Edit67.Text := IniReader.ReadString('datos','ColorFondo','');
   Edit68.Text := IniReader.ReadString('datos','ColorBotones','');
+  if Assigned(FContrasteVisual) then
+  begin
+    FContrasteVisual.ItemIndex := Ord(FLXTemaVisualDesdeTexto(
+      IniReader.ReadString('Apariencia','ContrasteInterfaz','NORMAL')));
+    ActualizarVistaPreviaContraste;
+  end;
   //----------- Seccion BBDD -----------
   Edit11.Text := IniReader.ReadString('BBDD','host','');
   Edit12.Text := IniReader.ReadString('BBDD','usuario','');
@@ -1598,21 +4028,38 @@ begin
         tmpBoolean:=         IniReader.ReadString('bbdd_copy','MonoUsuario','');
         if tmpBoolean='' then bbdd_autocopy.Checked:=True else bbdd_autocopy.Checked:=StrToBool(IniReader.ReadString('bbdd_copy','MonoUsuario',''));
 
+        CargarConfiguracionBackupRemotoPersistente;
+
      CBMbbdd.Text := IniReader.ReadString('MotorBBDD','mbbdd','');
 
 end;
 
 //Procedure para guardar los valores del fichero INI
 procedure TFConfig.GuardarIni();
+var
+  LIni: TIniFile;
 begin
-  CargaValoresEnIniReader(IniReader);
+  { No se escribe nunca sobre el IniReader que lleva abierto desde que se
+    mostró el formulario. Se abre una copia nueva del fichero existente,
+    se actualizan únicamente las claves conocidas y se conservan todas las
+    demás secciones y claves. }
+  FLXCreateFacturConfBackup;
+  LIni := FLXOpenFacturConfIni;
+  try
+    CargaValoresEnIniReader(LIni);
+    LIni.UpdateFile;
+  finally
+    LIni.Free;
+  end;
 
-  //---- Guardar IniFile
-  IniReader.UpdateFile;
+  { Sincronizar el lector del formulario con lo que realmente quedó en disco. }
+  RecargarIniReaderDesdeDisco;
+
   //---- Desactivamos botones ---
   BitBtn1.Enabled := False;
   BitBtn2.Enabled := False;
   CargaValoresIniReaderEnVariables(IniReader);
+  FLXAplicarTemaEnFormulariosAbiertos;
 end;
 
 //============== LOGO DE LA EMPRESA ==================
@@ -1695,6 +4142,7 @@ end;
 
 procedure TFConfig.bbdd_autocopyChange(Sender: TObject);
 begin
+ ActualizarEstadoBackupRemoto;
  if BitBtn1.Enabled=True then exit;
  BitBtn1.Enabled := True;
  BitBtn2.Enabled := True;
@@ -2402,6 +4850,7 @@ begin
      Edit24.Enabled:=False; Edit25.Enabled:=False; Combo2.Enabled:=False;
      BitBtn5.Enabled:=False;
     end;
+  ActualizarBotonesConexionVisual;
 end;
 
 procedure TFConfig.ComboCambiableNombre1Click(Sender: TObject);

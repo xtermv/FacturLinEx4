@@ -3,10 +3,11 @@ object FEntrada: TFEntrada
   Height = 692
   Top = 281
   Width = 1012
-  ActiveControl = Panel10
-  Caption = 'Entrada de pedidos  - FacturLinEx'
+  ActiveControl = DBGrid1
+  Caption = 'Entrada de pedidos - FacturLinEx'
   ClientHeight = 692
   ClientWidth = 1012
+  KeyPreview = True
   OnClose = FormClose
   OnCreate = FormCreate
   Position = poDesktopCenter
@@ -185,7 +186,7 @@ object FEntrada: TFEntrada
       Height = 15
       Top = 38
       Width = 55
-      Caption = 'Telefono'
+      Caption = 'Teléfono'
       Layout = tlCenter
       ParentColor = False
     end
@@ -390,10 +391,10 @@ object FEntrada: TFEntrada
   end
   object Panel11: TPanel
     Left = 8
-    Height = 592
+    Height = 640
     Top = 32
     Width = 592
-    ClientHeight = 592
+    ClientHeight = 640
     ClientWidth = 592
     Font.Height = -13
     Font.Name = 'Sans'
@@ -402,7 +403,7 @@ object FEntrada: TFEntrada
     Visible = False
     object Bevel5: TBevel
       Left = 5
-      Height = 242
+      Height = 270
       Top = 256
       Width = 283
       Style = bsRaised
@@ -415,7 +416,7 @@ object FEntrada: TFEntrada
     end
     object Bevel4: TBevel
       Left = 294
-      Height = 242
+      Height = 270
       Top = 256
       Width = 290
       Style = bsRaised
@@ -566,7 +567,7 @@ object FEntrada: TFEntrada
       Top = 205
       Width = 128
       AutoSize = False
-      Caption = 'Num. Documento'
+      Caption = 'N.º documento'
       Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
@@ -579,7 +580,7 @@ object FEntrada: TFEntrada
       Top = 205
       Width = 106
       AutoSize = False
-      Caption = 'Fecha Alb./Fact.'
+      Caption = 'Fecha alb./fact.'
       Font.Height = -13
       Font.Name = 'Sans'
       Layout = tlCenter
@@ -770,14 +771,14 @@ object FEntrada: TFEntrada
     object Bevel6: TBevel
       Left = 5
       Height = 40
-      Top = 504
+      Top = 522
       Width = 579
       Style = bsRaised
     end
     object Label84: TLabel
       Left = 14
       Height = 24
-      Top = 510
+      Top = 528
       Width = 216
       AutoSize = False
       Caption = 'TRANSP. / OTROS GASTOS'
@@ -790,7 +791,7 @@ object FEntrada: TFEntrada
     object Label86: TLabel
       Left = 300
       Height = 15
-      Top = 514
+      Top = 532
       Width = 8
       Caption = '€'
       ParentColor = False
@@ -798,7 +799,7 @@ object FEntrada: TFEntrada
     object BitBtn29: TBitBtn
       Left = 456
       Height = 33
-      Top = 552
+      Top = 570
       Width = 128
       Caption = 'Cerrar'
       Font.Height = -13
@@ -914,7 +915,7 @@ object FEntrada: TFEntrada
     object BitBtn30: TBitBtn
       Left = 9
       Height = 33
-      Top = 552
+      Top = 570
       Width = 127
       Caption = 'Aceptar'
       Font.Height = -13
@@ -1214,7 +1215,7 @@ object FEntrada: TFEntrada
       Height = 22
       Top = 158
       Width = 78
-      Caption = 'Albaran.'
+      Caption = 'Albarán'
       Font.Height = -14
       Font.Name = 'Sans'
       ParentFont = False
@@ -1419,7 +1420,7 @@ object FEntrada: TFEntrada
     object EditOtrosGastos: TEdit
       Left = 208
       Height = 25
-      Top = 510
+      Top = 528
       Width = 88
       Font.Height = -13
       Font.Name = 'Sans'
@@ -1456,7 +1457,7 @@ object FEntrada: TFEntrada
     object CheckBox1: TCheckBox
       Left = 350
       Height = 22
-      Top = 513
+      Top = 531
       Width = 223
       Caption = 'Incluir gastos en vencimientos'
       OnChange = CheckBox1Change
@@ -1465,7 +1466,7 @@ object FEntrada: TFEntrada
     object BitBtn31: TBitBtn
       Left = 234
       Height = 33
-      Top = 552
+      Top = 570
       Width = 133
       Caption = 'Adjuntar Doc.'
       Font.Height = -13
@@ -1602,7 +1603,7 @@ object FEntrada: TFEntrada
         0000000000000000000000000000000000000000000000000000000000000000
         0000000000000000000000000000000000000000000000000000
       }
-      OnClick = BitBtn30Click
+      OnClick = BitBtn31Click
       ParentFont = False
       TabOrder = 28
     end
@@ -1635,7 +1636,7 @@ object FEntrada: TFEntrada
       Width = 421
       Alignment = taCenter
       AutoSize = False
-      Caption = 'ENTRADA DE LINEAS'
+      Caption = 'ENTRADA DE LÍNEAS'
       Color = clSkyBlue
       Layout = tlCenter
       ParentColor = False
@@ -1648,7 +1649,7 @@ object FEntrada: TFEntrada
       Width = 89
       Alignment = taCenter
       AutoSize = False
-      Caption = 'CODIGO'
+      Caption = 'CÓDIGO'
       Layout = tlCenter
       ParentColor = False
     end
@@ -1659,7 +1660,7 @@ object FEntrada: TFEntrada
       Width = 123
       Alignment = taCenter
       AutoSize = False
-      Caption = 'DESCRIPCION'
+      Caption = 'DESCRIPCIÓN'
       Layout = tlCenter
       ParentColor = False
     end

@@ -29,7 +29,8 @@ interface
 uses
   Classes, SysUtils, LResources, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   Buttons, ZConnection, ZDataset, DBGrids, db, StdCtrls, DbCtrls, LR_Class,
-  LR_DBSet, LCLType, CheckLst, EditBtn, lr_e_pdf, Process, Grids, Menus;
+  LR_DBSet, LCLType, LCLIntf, CheckLst, EditBtn, lr_e_pdf, Process, Grids,
+  Menus, Types;
 
 type
 
@@ -260,6 +261,12 @@ type
     procedure Edit30Exit(Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCreate(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure DBGrid3DrawColumnCell(Sender: TObject; const Rect: TRect;
+      DataCol: Integer; Column: TColumn; State: TGridDrawState);
+    procedure DBGrid1TitleClick(Column: TColumn);
+    procedure DBGrid2TitleClick(Column: TColumn);
+    procedure DBGrid3TitleClick(Column: TColumn);
     procedure frReport1EnterRect(Memo: TStringList; View: TfrView);
     procedure MenuItem1Click(Sender: TObject);
     procedure MenuItem2Click(Sender: TObject);
@@ -288,7 +295,59 @@ type
     procedure ActuHistodd();
 
   private
-    { private declarations }
+    FPanelCabecera: TPanel;
+    FPanelFiltros: TPanel;
+    FLabelCabTitulo: TLabel;
+    FLabelCabSubtitulo: TLabel;
+    FOrdenCampo1: String;
+    FOrdenCampo2: String;
+    FOrdenCampo3: String;
+    FOrdenAsc1: Boolean;
+    FOrdenAsc2: Boolean;
+    FOrdenAsc3: Boolean;
+    FPanelArrastre: TPanel;
+    FArrastrando: Boolean;
+    FInicioArrastre: TPoint;
+    FBtnGuardarPDF: TBitBtn;
+    FBtnPrevisualizarPDF: TBitBtn;
+    FBtnImprimirPDF: TBitBtn;
+    FBtnExportarCSV: TBitBtn;
+    procedure AplicarDisenoModerno;
+    procedure ConfigurarBoton(ABoton: TBitBtn; const ACaption, AHint: String;
+      AColor: TColor);
+    procedure ConfigurarGrid(AGrid: TDBGrid);
+    procedure ConfigurarControlesRecursivo(AParent: TWinControl);
+    procedure AplicarContrasteSeleccion(AControl: TWinControl);
+    procedure AplicarContrasteSeleccionControles(AParent: TWinControl);
+    procedure RecolocarControles;
+    procedure RecolocarBarraAcciones;
+    procedure RecolocarPanelesAuxiliares;
+    procedure AjustarPanelEnParent(APanel: TPanel);
+    procedure PrepararPanelAuxiliar(APanel: TPanel; const ATitulo: String;
+      AColor: TColor; AMinWidth, AMinHeight: Integer);
+    procedure PanelCabMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure PanelCabMouseMove(Sender: TObject; Shift: TShiftState;
+      X, Y: Integer);
+    procedure PanelCabMouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure OrdenarConsulta(AQuery: TZQuery; AGrid: TDBGrid;
+      AColumn: TColumn; var ACampo: String; var AAscendente: Boolean);
+    procedure ActualizarFlechaOrdenacion(AGrid: TDBGrid; AColumn: TColumn;
+      AAscendente: Boolean);
+    procedure GridDrawColumnCell(Sender: TObject; const Rect: TRect;
+      DataCol: Integer; Column: TColumn; State: TGridDrawState);
+    function GridExportacionActual: TDBGrid;
+    function TituloExportacionActual: String;
+    procedure PrepararCabeceraExportacion(ACabecera: TStrings);
+    function GenerarPDFTemporal(out AFileName: String): Boolean;
+    procedure GuardarPDFClick(Sender: TObject);
+    procedure PrevisualizarPDFClick(Sender: TObject);
+    procedure ImprimirPDFClick(Sender: TObject);
+    procedure ExportarCSVClick(Sender: TObject);
+    procedure FormularioKeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure FormularioResize(Sender: TObject);
   public
     { public declarations }
   end;
@@ -308,7 +367,8 @@ implementation
 { TFHistofaprov }
 
 uses
-  Global, Funciones, Busquedas;
+  Global, Funciones, Busquedas, uFLXExportGrid
+  {$IFDEF LCLGTK2}, gtk2, gdk2, glib2{$ENDIF};
 
 //=============== CREAR EL FORMULARIO ================
 procedure ShowFormHistoFaProv;
@@ -320,18 +380,26 @@ begin
 end;
 procedure TFHistofaprov.FormCreate(Sender: TObject);
 begin
-  //--------- Conectar con la bbdd
-  //Conectate(dbConnect);   // Utilizamos datamodule1.dbConexión para toda la aplicación.
-  //--------- Pedidos
-  dbPedic.SQL.Text:='SELECT * FROM hipedifacc'+Tienda+
-                    ' ORDER BY HPC0 ASC, HPC1 DESC, HPC2 ASC, HPC3 ASC, HPC4 DESC';
-  dbPedic.Active:=True;
-  Panel4.SendToBack; Panel4.Visible:=False;
-  DBGrid2.SendToBack; DBGrid2.Visible:=False;
-  //------------- Chequear ivas
-  if IVA1=0 then showmessage('DEBE DEFINIR LOS TIPOS DE IVA EN LA CONFIGURACION');
-  TIPOPEDIDO:=''; NOMBREPEDIDO:='FACTURAS'; LETRAPEDIDO:='LAS';
-  Panel4.Align:=AlClient;
+  dbPedic.SQL.Text := 'SELECT * FROM hipedifacc' + Tienda +
+    ' ORDER BY HPC0 ASC, HPC1 DESC, HPC2 ASC, HPC3 ASC, HPC4 DESC';
+  dbPedic.Active := True;
+  Panel4.SendToBack;
+  Panel4.Visible := False;
+  DBGrid2.SendToBack;
+  DBGrid2.Visible := False;
+
+  if IVA1 = 0 then
+    ShowMessage('DEBE DEFINIR LOS TIPOS DE IVA EN LA CONFIGURACIÓN');
+
+  TIPOPEDIDO := '';
+  NOMBREPEDIDO := 'FACTURAS';
+  LETRAPEDIDO := 'LAS';
+  Panel4.Align := alClient;
+
+  AplicarDisenoModerno;
+  // La impresión original solo corresponde a la vista de líneas.
+  // Se fuerza el estado inicial para evitar que aparezca en la pantalla principal.
+  OcultarBotonesdd;
 end;
 
 //==================== CERRAR PEDIDOS =====================
@@ -446,15 +514,11 @@ begin
   Panel10.Visible:=True;
 end;
 //------------ Pintar Linea en azul si es pedido de clientes ----
-procedure TFHistofaprov.DBGrid1DrawColumnCell(Sender: TObject; const Rect: TRect;
-  DataCol: Integer; Column: TColumn; State: TGridDrawState);
+procedure TFHistofaprov.DBGrid1DrawColumnCell(Sender: TObject;
+  const Rect: TRect; DataCol: Integer; Column: TColumn;
+  State: TGridDrawState);
 begin
-  if dbPedic.FieldByName('HPC15').AsString<>'' then
-   begin
-     DBGrid1.Canvas.Font.Color := clBlue;
-     //DBGrid2.Canvas.Brush.Color := $00CDDAF1;
-     DBGrid1.DefaultDrawColumnCell(Rect, DataCol, Column, State);
-   end;
+  GridDrawColumnCell(Sender, Rect, DataCol, Column, State);
 end;
 
 
@@ -672,15 +736,11 @@ begin
 end;
 
 //---------------- PINTAR LINEAS RECIBIDAS EN ROJO ----------------
-procedure TFHistofaprov.DBGrid2DrawColumnCell(Sender: TObject; const Rect: TRect;
-  DataCol: Integer; Column: TColumn; State: TGridDrawState);
+procedure TFHistofaprov.DBGrid2DrawColumnCell(Sender: TObject;
+  const Rect: TRect; DataCol: Integer; Column: TColumn;
+  State: TGridDrawState);
 begin
-  if dbPedid.FieldByName('HPD23').AsString='N' then
-    begin
-      DBGrid2.Canvas.Font.Color := clRed;
-      //DBGrid2.Canvas.Brush.Color := $00CDDAF1;
-      DBGrid2.DefaultDrawColumnCell(Rect, DataCol, Column, State);
-    end;
+  GridDrawColumnCell(Sender, Rect, DataCol, Column, State);
 end;
 
 //===================== MARCAR DESMARCAR LINEAS ============================
@@ -999,6 +1059,7 @@ var
  TxtQ: String;
 begin
   Panel7.Visible:=False;
+  Panel13.Visible:=False;
   Panel4.SendToBack; Panel4.Visible:=False;
   DBGrid2.SendToBack; DBGrid2.Visible:=False;
   OcultarBotonesdd();
@@ -1052,23 +1113,31 @@ end;
 //====================== MOSTRAR BOTONES DD ====================
 procedure TFHistofaprov.MostrarBotonesdd();
 begin
-  BitBtn5.Visible:=True; BitBtn15.Visible:=True;
-  //-------------- cc
-  BitBtn1.Visible:=False; BitBtn9.Visible:=False;
-  BitBtn10.Visible:=False; BitBtn16.Visible:=False;
-  BitBtn2.Visible:=False; BitBtn23.Visible:=False;
-  BitBtn26.Visible:=False;
+  BitBtn5.Visible := True;
+  BitBtn15.Visible := True;
+  BitBtn1.Visible := False;
+  BitBtn9.Visible := False;
+  BitBtn10.Visible := False;
+  BitBtn16.Visible := False;
+  BitBtn2.Visible := False;
+  BitBtn23.Visible := False;
+  BitBtn26.Visible := False;
+  RecolocarBarraAcciones;
 end;
 
 //====================== OCULTAR BOTONES DD ====================
 procedure TFHistofaprov.OcultarBotonesdd();
 begin
-  BitBtn5.Visible:=False; BitBtn15.Visible:=False;
-  //-------------- cc
-  BitBtn1.Visible:=True; BitBtn9.Visible:=True;
-  BitBtn10.Visible:=True; BitBtn16.Visible:=True;
-  BitBtn2.Visible:=True; BitBtn23.Visible:=True;
-  BitBtn26.Visible:=True;
+  BitBtn5.Visible := False;
+  BitBtn15.Visible := False;
+  BitBtn1.Visible := True;
+  BitBtn9.Visible := True;
+  BitBtn10.Visible := True;
+  BitBtn16.Visible := True;
+  BitBtn2.Visible := True;
+  BitBtn23.Visible := True;
+  BitBtn26.Visible := True;
+  RecolocarBarraAcciones;
 end;
 
 //==================== PINTAR DATOS DE CLIENTES ======================
@@ -1108,8 +1177,32 @@ end;
 
 //======================= IMPRIMIR PEDIDO ==========================
 procedure TFHistofaprov.BitBtn15Click(Sender: TObject);
+var
+  AreaTop, AreaHeight: Integer;
 begin
-  Panel13.Visible:=True;
+  // Panel13 era hijo de Panel4 y por ello quedaba recortado dentro de la
+  // vista de líneas. Al hacerlo hijo del formulario puede mostrarse completo
+  // y desplazarse por toda la ventana.
+  if Panel13.Parent <> Self then
+    Panel13.Parent := Self;
+  Panel13.Align := alNone;
+  Panel13.Anchors := [];
+  Panel13.Tag := 0;
+
+  AreaTop := 0;
+  if Assigned(FPanelCabecera) then
+    AreaTop := FPanelCabecera.Height;
+  AreaHeight := ClientHeight - AreaTop - Panel1.Height;
+  if AreaHeight < Panel13.Height then
+    AreaHeight := ClientHeight;
+
+  Panel13.Left := (ClientWidth - Panel13.Width) div 2;
+  Panel13.Top := AreaTop + (AreaHeight - Panel13.Height) div 2;
+  if Panel13.Left < 0 then Panel13.Left := 0;
+  if Panel13.Top < 0 then Panel13.Top := 0;
+
+  Panel13.Visible := True;
+  Panel13.BringToFront;
 end;
 //----------------- ACEPTAR IMPRIMIR LISTADO --------------------
 procedure TFHistofaprov.BitBtn32Click(Sender: TObject);
@@ -1132,6 +1225,7 @@ end;
 procedure TFHistofaprov.ImprimirPedido();
 var
   TxtQ: String;
+  ArchivoPdfTemporal: String;
 begin
   //---- Consulta para el listado
   TxtQ:='SELECT * FROM hipedifadd'+Tienda+' WHERE HPD0='+dbPedic.FieldByName('HPC0').AsString+
@@ -1231,9 +1325,14 @@ begin
     else
       if frReport1.PrepareReport then
         begin
-         frReport1.ExportTo(TFrTNPDFExportFilter, RutaPdf+'/Pedido.pdf');
+         // La previsualización debe usar una ruta temporal escribible.
+         // Si RutaPdf está vacía, concatenarla generaba '/Pedido.pdf' y
+         // Linux rechazaba la creación por falta de permisos.
+         ArchivoPdfTemporal := IncludeTrailingPathDelimiter(GetTempDir(False)) +
+           'FacturLinEx_Pedido.pdf';
+         frReport1.ExportTo(TFrTNPDFExportFilter, ArchivoPdfTemporal);
          AProcess := TProcess.Create(nil);
-         AProcess.CommandLine := VisorPdf+' '+RutaPdf+'/Pedido.pdf';
+         AProcess.CommandLine := VisorPdf+' '+ArchivoPdfTemporal;
          AProcess.Execute;
         end;
   {$ELSE}
@@ -1422,6 +1521,1123 @@ begin
   dbTrabajo.ExecSQL;
 end;
 
+
+
+
+procedure TFHistofaprov.FormShow(Sender: TObject);
+begin
+  AplicarContrasteSeleccionControles(Self);
+  RecolocarControles;
+end;
+
+procedure TFHistofaprov.ConfigurarBoton(ABoton: TBitBtn;
+  const ACaption, AHint: String; AColor: TColor);
+begin
+  if not Assigned(ABoton) then Exit;
+  ABoton.Caption := ACaption;
+  ABoton.Hint := AHint;
+  ABoton.ShowHint := True;
+  ABoton.Color := AColor;
+  ABoton.Font.Name := 'Sans';
+  ABoton.Font.Height := -13;
+  ABoton.Font.Color := RGBToColor(24, 36, 48);
+  ABoton.Font.Style := [fsBold];
+  ABoton.Glyph.Clear;
+  ABoton.Layout := blGlyphLeft;
+  ABoton.Margin := 8;
+  ABoton.Spacing := 8;
+  ABoton.Visible := True;
+  ABoton.BringToFront;
+end;
+
+procedure TFHistofaprov.ConfigurarGrid(AGrid: TDBGrid);
+begin
+  if not Assigned(AGrid) then Exit;
+  AGrid.Color := clWhite;
+  AGrid.FixedColor := RGBToColor(224, 235, 244);
+  AGrid.Font.Name := 'Sans';
+  AGrid.Font.Height := -13;
+  AGrid.Font.Color := RGBToColor(20, 30, 40);
+  AGrid.TitleFont.Name := 'Sans';
+  AGrid.TitleFont.Height := -13;
+  AGrid.TitleFont.Color := RGBToColor(24, 52, 78);
+  AGrid.TitleFont.Style := [fsBold];
+  AGrid.Options := AGrid.Options + [dgTitles, dgIndicator, dgColumnResize,
+    dgColumnMove, dgColLines, dgRowLines, dgRowSelect,
+    dgAlwaysShowSelection];
+  AGrid.OnDrawColumnCell := @GridDrawColumnCell;
+end;
+
+procedure TFHistofaprov.ConfigurarControlesRecursivo(AParent: TWinControl);
+var
+  I: Integer;
+  C: TControl;
+begin
+  if not Assigned(AParent) then Exit;
+  for I := 0 to AParent.ControlCount - 1 do
+  begin
+    C := AParent.Controls[I];
+    if Pos('FLX', C.Name) = 1 then
+    begin
+      { Los controles dinámicos conservan su estilo específico. }
+    end
+    else if C is TLabel then
+    begin
+      TLabel(C).ParentColor := True;
+      TLabel(C).Transparent := True;
+      TLabel(C).Font.Name := 'Sans';
+      TLabel(C).Font.Height := -13;
+      TLabel(C).Font.Color := RGBToColor(24, 36, 48);
+    end
+    else if C is TRadioButton then
+    begin
+      TRadioButton(C).ParentColor := True;
+      TRadioButton(C).Font.Name := 'Sans';
+      TRadioButton(C).Font.Height := -13;
+      TRadioButton(C).Font.Color := RGBToColor(24, 36, 48);
+    end
+    else if C is TCheckBox then
+    begin
+      TCheckBox(C).ParentColor := True;
+      TCheckBox(C).Font.Name := 'Sans';
+      TCheckBox(C).Font.Height := -13;
+      TCheckBox(C).Font.Color := RGBToColor(24, 36, 48);
+    end
+    else if C is TCustomEdit then
+    begin
+      TCustomEdit(C).Color := clWhite;
+      TCustomEdit(C).Font.Name := 'Sans';
+      TCustomEdit(C).Font.Height := -13;
+      TCustomEdit(C).Font.Color := RGBToColor(16, 24, 32);
+    end
+    else if C is TMemo then
+    begin
+      TMemo(C).Color := clWhite;
+      TMemo(C).Font.Name := 'Sans';
+      TMemo(C).Font.Height := -13;
+      TMemo(C).Font.Color := RGBToColor(16, 24, 32);
+    end
+    else if C is TCheckListBox then
+    begin
+      TCheckListBox(C).Color := clWhite;
+      TCheckListBox(C).Font.Name := 'Sans';
+      TCheckListBox(C).Font.Height := -13;
+      TCheckListBox(C).Font.Color := RGBToColor(16, 24, 32);
+    end
+    else if C is TStaticText then
+    begin
+      TStaticText(C).Color := clWhite;
+      TStaticText(C).Font.Name := 'Sans';
+      TStaticText(C).Font.Height := -13;
+      TStaticText(C).Font.Color := RGBToColor(16, 24, 32);
+    end
+    else if C is TBitBtn then
+    begin
+      TBitBtn(C).Font.Name := 'Sans';
+      TBitBtn(C).Font.Height := -13;
+      TBitBtn(C).Font.Color := RGBToColor(24, 36, 48);
+      TBitBtn(C).Font.Style := [fsBold];
+      TBitBtn(C).Color := RGBToColor(205, 225, 242);
+    end
+    else if C is TPanel then
+    begin
+      TPanel(C).Caption := '';
+      TPanel(C).BevelOuter := bvNone;
+    end;
+    if C is TWinControl then
+      ConfigurarControlesRecursivo(TWinControl(C));
+  end;
+end;
+
+procedure TFHistofaprov.AplicarContrasteSeleccion(AControl: TWinControl);
+{$IFDEF LCLGTK2}
+var
+  FondoNormal, TextoNormal, FondoSeleccion, TextoSeleccion: TGdkColor;
+  Widget: PGtkWidget;
+{$ENDIF}
+begin
+  if not Assigned(AControl) then Exit;
+  AControl.HandleNeeded;
+  {$IFDEF LCLGTK2}
+  Widget := PGtkWidget(AControl.Handle);
+  if Assigned(Widget) then
+  begin
+    gdk_color_parse(PChar('#FFFFFF'), @FondoNormal);
+    gdk_color_parse(PChar('#101820'), @TextoNormal);
+    gtk_widget_modify_base(Widget, GTK_STATE_NORMAL, @FondoNormal);
+    gtk_widget_modify_text(Widget, GTK_STATE_NORMAL, @TextoNormal);
+    gdk_color_parse(PChar('#2A5684'), @FondoSeleccion);
+    gdk_color_parse(PChar('#FFFFFF'), @TextoSeleccion);
+    gtk_widget_modify_base(Widget, GTK_STATE_SELECTED, @FondoSeleccion);
+    gtk_widget_modify_text(Widget, GTK_STATE_SELECTED, @TextoSeleccion);
+  end;
+  {$ENDIF}
+end;
+
+procedure TFHistofaprov.AplicarContrasteSeleccionControles(
+  AParent: TWinControl);
+var
+  I: Integer;
+  C: TControl;
+begin
+  if not Assigned(AParent) then Exit;
+  for I := 0 to AParent.ControlCount - 1 do
+  begin
+    C := AParent.Controls[I];
+    if (C is TCustomEdit) or (C is TMemo) or
+       (C is TCheckListBox) then
+      AplicarContrasteSeleccion(TWinControl(C));
+    if C is TWinControl then
+      AplicarContrasteSeleccionControles(TWinControl(C));
+  end;
+end;
+
+procedure TFHistofaprov.PrepararPanelAuxiliar(APanel: TPanel;
+  const ATitulo: String; AColor: TColor; AMinWidth, AMinHeight: Integer);
+var
+  I, AlturaOriginal: Integer;
+  Cabecera: TPanel;
+begin
+  if not Assigned(APanel) then Exit;
+  APanel.Caption := '';
+  APanel.BevelOuter := bvNone;
+  APanel.Color := AColor;
+  APanel.Tag := 0;
+
+  AlturaOriginal := APanel.Height;
+  if APanel.Width < AMinWidth then APanel.Width := AMinWidth;
+  if APanel.Height < AMinHeight then APanel.Height := AMinHeight;
+  if APanel.Height < AlturaOriginal + 38 then
+    APanel.Height := AlturaOriginal + 38;
+
+  for I := 0 to APanel.ControlCount - 1 do
+    APanel.Controls[I].Top := APanel.Controls[I].Top + 38;
+
+  Cabecera := TPanel.Create(APanel);
+  Cabecera.Name := 'FLXCab_' + APanel.Name;
+  Cabecera.Parent := APanel;
+  Cabecera.Align := alTop;
+  Cabecera.Height := 38;
+  Cabecera.Caption := ATitulo;
+  Cabecera.BevelOuter := bvNone;
+  Cabecera.Color := RGBToColor(49, 91, 130);
+  Cabecera.Font.Name := 'Sans';
+  Cabecera.Font.Height := -14;
+  Cabecera.Font.Color := clWhite;
+  Cabecera.Font.Style := [fsBold];
+  Cabecera.Cursor := crSizeAll;
+  Cabecera.OnMouseDown := @PanelCabMouseDown;
+  Cabecera.OnMouseMove := @PanelCabMouseMove;
+  Cabecera.OnMouseUp := @PanelCabMouseUp;
+  Cabecera.BringToFront;
+end;
+
+procedure TFHistofaprov.PanelCabMouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  if (Button <> mbLeft) or not (Sender is TControl) then Exit;
+  if not (TControl(Sender).Parent is TPanel) then Exit;
+  FPanelArrastre := TPanel(TControl(Sender).Parent);
+  FInicioArrastre := Point(X, Y);
+  FArrastrando := True;
+  SetCapture(TWinControl(Sender).Handle);
+end;
+
+procedure TFHistofaprov.PanelCabMouseMove(Sender: TObject;
+  Shift: TShiftState; X, Y: Integer);
+var
+  P: TPoint;
+  NuevoLeft, NuevoTop: Integer;
+begin
+  if not FArrastrando or not Assigned(FPanelArrastre) then Exit;
+  GetCursorPos(P);
+  P := FPanelArrastre.Parent.ScreenToClient(P);
+  NuevoLeft := P.X - FInicioArrastre.X;
+  NuevoTop := P.Y - FInicioArrastre.Y;
+  if NuevoLeft < 0 then NuevoLeft := 0;
+  if NuevoTop < 0 then NuevoTop := 0;
+  if NuevoLeft + FPanelArrastre.Width > FPanelArrastre.Parent.ClientWidth then
+    NuevoLeft := FPanelArrastre.Parent.ClientWidth - FPanelArrastre.Width;
+  if NuevoTop + FPanelArrastre.Height > FPanelArrastre.Parent.ClientHeight then
+    NuevoTop := FPanelArrastre.Parent.ClientHeight - FPanelArrastre.Height;
+  if NuevoLeft < 0 then NuevoLeft := 0;
+  if NuevoTop < 0 then NuevoTop := 0;
+  FPanelArrastre.SetBounds(NuevoLeft, NuevoTop,
+    FPanelArrastre.Width, FPanelArrastre.Height);
+  FPanelArrastre.Tag := 1;
+end;
+
+procedure TFHistofaprov.PanelCabMouseUp(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  if Button <> mbLeft then Exit;
+  FArrastrando := False;
+  FPanelArrastre := nil;
+  ReleaseCapture;
+end;
+
+procedure TFHistofaprov.AjustarPanelEnParent(APanel: TPanel);
+var
+  L, T: Integer;
+begin
+  if not Assigned(APanel) or not Assigned(APanel.Parent) then Exit;
+  if APanel.Tag = 0 then
+  begin
+    L := (APanel.Parent.ClientWidth - APanel.Width) div 2;
+    T := (APanel.Parent.ClientHeight - APanel.Height) div 2;
+  end
+  else
+  begin
+    L := APanel.Left;
+    T := APanel.Top;
+  end;
+  if L < 0 then L := 0;
+  if T < 0 then T := 0;
+  if L + APanel.Width > APanel.Parent.ClientWidth then
+    L := APanel.Parent.ClientWidth - APanel.Width;
+  if T + APanel.Height > APanel.Parent.ClientHeight then
+    T := APanel.Parent.ClientHeight - APanel.Height;
+  if L < 0 then L := 0;
+  if T < 0 then T := 0;
+  APanel.Left := L;
+  APanel.Top := T;
+end;
+
+procedure TFHistofaprov.RecolocarPanelesAuxiliares;
+begin
+  AjustarPanelEnParent(Panel7);
+  AjustarPanelEnParent(Panel8);
+  AjustarPanelEnParent(Panel9);
+  AjustarPanelEnParent(Panel11);
+  AjustarPanelEnParent(Panel13);
+  AjustarPanelEnParent(Panel15);
+  AjustarPanelEnParent(Panel16);
+end;
+
+procedure TFHistofaprov.RecolocarBarraAcciones;
+var
+  Botones: array[0..12] of TBitBtn;
+  Visibles: array[0..12] of TBitBtn;
+  I, N, Separacion, BotonW, TotalW, X: Integer;
+begin
+  if not Assigned(Panel1) then Exit;
+  Botones[0] := BitBtn1;
+  Botones[1] := BitBtn9;
+  Botones[2] := BitBtn10;
+  Botones[3] := BitBtn23;
+  Botones[4] := BitBtn16;
+  Botones[5] := BitBtn26;
+  Botones[6] := FBtnGuardarPDF;
+  Botones[7] := FBtnPrevisualizarPDF;
+  Botones[8] := FBtnImprimirPDF;
+  Botones[9] := FBtnExportarCSV;
+  Botones[10] := BitBtn2;
+  Botones[11] := BitBtn15;
+  Botones[12] := BitBtn5;
+
+  N := 0;
+  for I := Low(Botones) to High(Botones) do
+    if Assigned(Botones[I]) and Botones[I].Visible then
+    begin
+      Visibles[N] := Botones[I];
+      Inc(N);
+    end;
+  if N = 0 then Exit;
+
+  if N > 8 then Separacion := 6 else Separacion := 10;
+  BotonW := (Panel1.ClientWidth - 24 - ((N - 1) * Separacion)) div N;
+  if N > 8 then
+  begin
+    if BotonW > 112 then BotonW := 112;
+    if BotonW < 82 then BotonW := 82;
+  end
+  else
+  begin
+    if BotonW > 155 then BotonW := 155;
+    if BotonW < 105 then BotonW := 105;
+  end;
+  TotalW := (N * BotonW) + ((N - 1) * Separacion);
+  X := (Panel1.ClientWidth - TotalW) div 2;
+  if X < 6 then X := 6;
+
+  for I := 0 to N - 1 do
+  begin
+    Visibles[I].SetBounds(X + I * (BotonW + Separacion), 12,
+      BotonW, 50);
+    if BotonW < 94 then
+      Visibles[I].Font.Height := -10
+    else if BotonW < 116 then
+      Visibles[I].Font.Height := -11
+    else
+      Visibles[I].Font.Height := -13;
+    Visibles[I].BringToFront;
+  end;
+end;
+
+procedure TFHistofaprov.RecolocarControles;
+var
+  W, H, FiltroW, BtnX: Integer;
+begin
+  if not Assigned(FPanelCabecera) or not Assigned(FPanelFiltros) then Exit;
+
+  W := ClientWidth;
+  H := ClientHeight;
+  FPanelCabecera.Height := 82;
+  FLabelCabTitulo.SetBounds(24, 14, W - 48, 32);
+  FLabelCabSubtitulo.SetBounds(26, 49, W - 52, 23);
+  Panel1.Height := 76;
+
+  FPanelFiltros.Height := 132;
+  RadioButton1.SetBounds(20, 14, 220, 26);
+  RadioButton2.SetBounds(20, 51, 210, 26);
+  RadioButton3.SetBounds(20, 88, 190, 26);
+  StaticText5.SetBounds(255, 10, FPanelFiltros.ClientWidth - 275, 28);
+
+  FiltroW := FPanelFiltros.ClientWidth - 270;
+  if FiltroW < 620 then FiltroW := 620;
+
+  Panel2.SetBounds(248, 42, FiltroW, 78);
+  Label1.SetBounds(12, 12, 105, 22);
+  Edit1.SetBounds(120, 8, 105, 32);
+  Edit2.SetBounds(235, 8, Panel2.ClientWidth - 410, 32);
+  BitBtn7.SetBounds(Panel2.ClientWidth - 165, 8, 42, 32);
+  BitBtn3.SetBounds(Panel2.ClientWidth - 115, 8, 105, 32);
+
+  Panel3.SetBounds(248, 76, FiltroW, 46);
+  Label2.SetBounds(12, 12, 85, 22);
+  DateEdit1.SetBounds(98, 7, 150, 32);
+  Label3.SetBounds(265, 12, 85, 22);
+  DateEdit2.SetBounds(350, 7, 150, 32);
+  BtnX := Panel3.ClientWidth - 120;
+  if BtnX < 515 then BtnX := 515;
+  BitBtn4.SetBounds(BtnX, 7, 110, 32);
+
+  DBGrid1.Align := alNone;
+  DBGrid1.SetBounds(16, 146, Panel5.ClientWidth - 32,
+    Panel5.ClientHeight - 162);
+
+  Bevel1.SetBounds(16, 16, 445, 132);
+  Label4.SetBounds(28, 27, 420, 20);
+  Label5.SetBounds(28, 51, 420, 20);
+  Label6.SetBounds(28, 75, 70, 20);
+  Label7.SetBounds(105, 75, 340, 20);
+  Label8.SetBounds(28, 99, 420, 20);
+  Label9.SetBounds(28, 123, 185, 20);
+  Label10.SetBounds(235, 123, 210, 20);
+
+  LabelTotal.SetBounds(Panel4.ClientWidth - 250, 19, 220, 54);
+  Label29.SetBounds(Panel4.ClientWidth - 555, 91, 95, 22);
+  Label48.SetBounds(Panel4.ClientWidth - 455, 91, 45, 22);
+  Label31.SetBounds(Panel4.ClientWidth - 405, 91, 100, 22);
+  Label32.SetBounds(Panel4.ClientWidth - 555, 123, 95, 22);
+  Label33.SetBounds(Panel4.ClientWidth - 455, 123, 160, 22);
+
+  DBGrid2.Align := alNone;
+  DBGrid2.SetBounds(16, 164, Panel4.ClientWidth - 32,
+    Panel4.ClientHeight - 180);
+  Edit20.Visible := False;
+
+  Panel7.SetBounds(Panel7.Left, Panel7.Top, 760, 230);
+  Memo1.SetBounds(16, 56, Panel7.ClientWidth - 32, 108);
+  BitBtn18.SetBounds(16, Panel7.ClientHeight - 50, 120, 36);
+  BitBtn17.SetBounds(Panel7.ClientWidth - 136,
+    Panel7.ClientHeight - 50, 120, 36);
+
+  Panel9.SetBounds(Panel9.Left, Panel9.Top, 700, 300);
+  Label21.SetBounds(18, 59, 120, 22);
+  Edit14.SetBounds(145, 54, 105, 32);
+  Edit15.SetBounds(260, 54, Panel9.ClientWidth - 278, 32);
+  Label22.SetBounds(18, 101, 120, 22);
+  Edit16.SetBounds(145, 96, 105, 32);
+  Edit17.SetBounds(260, 96, Panel9.ClientWidth - 278, 32);
+  Label23.SetBounds(18, 151, 100, 22);
+  DateEdit7.SetBounds(145, 146, 150, 32);
+  Label24.SetBounds(330, 151, 100, 22);
+  DateEdit8.SetBounds(435, 146, 150, 32);
+  BitBtn21.SetBounds(18, Panel9.ClientHeight - 50, 140, 36);
+  BitBtn22.SetBounds(Panel9.ClientWidth - 158,
+    Panel9.ClientHeight - 50, 140, 36);
+
+  Panel11.SetBounds(Panel11.Left, Panel11.Top, 410, 365);
+  Label36.SetBounds(70, 58, 60, 22);
+  Label37.SetBounds(270, 58, 70, 22);
+  Label38.SetBounds(18, 92, 25, 22);
+  Label39.SetBounds(18, 132, 25, 22);
+  Label40.SetBounds(18, 172, 25, 22);
+  Label41.SetBounds(18, 212, 25, 22);
+  DateEdit3.SetBounds(50, 86, 150, 32);
+  DateEdit4.SetBounds(50, 126, 150, 32);
+  DateEdit5.SetBounds(50, 166, 150, 32);
+  DateEdit6.SetBounds(50, 206, 150, 32);
+  Edit24.SetBounds(235, 86, 145, 32);
+  Edit26.SetBounds(235, 126, 145, 32);
+  Edit28.SetBounds(235, 166, 145, 32);
+  Edit30.SetBounds(235, 206, 145, 32);
+  Label44.SetBounds(190, 249, 55, 22);
+  Label46.SetBounds(260, 249, 120, 22);
+  Label45.SetBounds(190, 278, 55, 22);
+  Label47.SetBounds(260, 278, 120, 22);
+  BitBtn30.SetBounds(18, Panel11.ClientHeight - 50, 120, 36);
+  BitBtn29.SetBounds(Panel11.ClientWidth - 138,
+    Panel11.ClientHeight - 50, 120, 36);
+
+  Panel8.SetBounds(Panel8.Left, Panel8.Top, 720, 520);
+  DBGrid3.SetBounds(16, 54, Panel8.ClientWidth - 32, 165);
+  Label26.SetBounds(20, 237, 80, 22);
+  Edit21.SetBounds(105, 232, 105, 32);
+  Label27.SetBounds(245, 237, 105, 22);
+  DateEdit9.SetBounds(355, 232, 150, 32);
+  Label28.SetBounds(20, 279, 80, 22);
+  Edit23.SetBounds(105, 274, 105, 32);
+  Edit25.SetBounds(220, 274, Panel8.ClientWidth - 285, 32);
+  BitBtn40.SetBounds(Panel8.ClientWidth - 55, 274, 42, 32);
+  Label61.SetBounds(300, 320, 200, 24);
+  RadioButton35.SetBounds(35, 330, 120, 27);
+  RadioButton32.SetBounds(35, 362, 140, 27);
+  RadioButton15.SetBounds(35, 394, 120, 27);
+  RadioButton16.SetBounds(35, 426, 120, 27);
+  Label59.SetBounds(300, 358, 155, 22);
+  Edit34.SetBounds(465, 353, 180, 32);
+  Label60.SetBounds(300, 403, 155, 22);
+  DateEdit10.SetBounds(465, 398, 180, 32);
+  BitBtn19.SetBounds(16, Panel8.ClientHeight - 50, 130, 36);
+  BitBtn20.SetBounds(Panel8.ClientWidth - 146,
+    Panel8.ClientHeight - 50, 130, 36);
+
+  Panel13.SetBounds(Panel13.Left, Panel13.Top, 560, 400);
+  RadioButton6.SetBounds(20, 58, 230, 27);
+  RadioButton7.SetBounds(20, 96, 250, 27);
+  RadioButton8.SetBounds(20, 134, 240, 27);
+  RadioButton20.SetBounds(20, 172, 225, 27);
+  RadioButton19.SetBounds(300, 58, 230, 27);
+  Panel17.SetBounds(300, 100, 235, 130);
+  RadioGroup2.SetBounds(20, 235, Panel13.ClientWidth - 40, 64);
+  BitBtn32.SetBounds(18, Panel13.ClientHeight - 50, 145, 36);
+  BitBtn36.SetBounds((Panel13.ClientWidth - 145) div 2,
+    Panel13.ClientHeight - 50, 145, 36);
+  BitBtn33.SetBounds(Panel13.ClientWidth - 163,
+    Panel13.ClientHeight - 50, 145, 36);
+
+  Panel15.SetBounds(Panel15.Left, Panel15.Top, 560, 250);
+  Label63.SetBounds(25, 70, 130, 24);
+  StaticText1.SetBounds(175, 67, 70, 30);
+  Label64.SetBounds(25, 112, 140, 24);
+  StaticText2.SetBounds(175, 109, 60, 30);
+  StaticText4.SetBounds(245, 109, 150, 30);
+  Label65.SetBounds(25, 154, 140, 24);
+  StaticText3.SetBounds(175, 151, Panel15.ClientWidth - 200, 30);
+  Button1.SetBounds(Panel15.ClientWidth - 48, 47, 34, 30);
+
+  Panel16.SetBounds(Panel16.Left, Panel16.Top, 500, 280);
+  Label66.SetBounds(30, 78, 155, 22);
+  Edit35.SetBounds(210, 73, 240, 32);
+  Label68.SetBounds(30, 126, 180, 22);
+  DateEdit11.SetBounds(210, 121, 180, 32);
+  BitBtn39.SetBounds(18, Panel16.ClientHeight - 50, 130, 36);
+  BitBtn38.SetBounds(Panel16.ClientWidth - 148,
+    Panel16.ClientHeight - 50, 130, 36);
+
+  RecolocarBarraAcciones;
+  RecolocarPanelesAuxiliares;
+  FPanelCabecera.BringToFront;
+  Panel1.BringToFront;
+end;
+
+procedure TFHistofaprov.AplicarDisenoModerno;
+begin
+  Caption := 'Histórico de facturas y documentos de proveedor';
+  Color := RGBToColor(239, 244, 248);
+  WindowState := wsMaximized;
+  Constraints.MinWidth := 1120;
+  Constraints.MinHeight := 720;
+  KeyPreview := True;
+  OnKeyDown := @FormularioKeyDown;
+  OnResize := @FormularioResize;
+  OnShow := @FormShow;
+
+  FPanelCabecera := TPanel.Create(Self);
+  FPanelCabecera.Name := 'FLXPanelCabecera';
+  FPanelCabecera.Parent := Self;
+  FPanelCabecera.Align := alTop;
+  FPanelCabecera.Height := 82;
+  FPanelCabecera.Caption := '';
+  FPanelCabecera.BevelOuter := bvNone;
+  FPanelCabecera.Color := RGBToColor(41, 78, 113);
+
+  FLabelCabTitulo := TLabel.Create(FPanelCabecera);
+  FLabelCabTitulo.Name := 'FLXLabelCabTitulo';
+  FLabelCabTitulo.Parent := FPanelCabecera;
+  FLabelCabTitulo.Caption := 'HISTÓRICO DE DOCUMENTOS DE PROVEEDOR';
+  FLabelCabTitulo.Transparent := True;
+  FLabelCabTitulo.Font.Name := 'Sans';
+  FLabelCabTitulo.Font.Height := -22;
+  FLabelCabTitulo.Font.Style := [fsBold];
+  FLabelCabTitulo.Font.Color := clWhite;
+
+  FLabelCabSubtitulo := TLabel.Create(FPanelCabecera);
+  FLabelCabSubtitulo.Name := 'FLXLabelCabSubtitulo';
+  FLabelCabSubtitulo.Parent := FPanelCabecera;
+  FLabelCabSubtitulo.Caption :=
+    'Consulta, revisa y exporta documentos históricos sin perder los informes originales.';
+  FLabelCabSubtitulo.Transparent := True;
+  FLabelCabSubtitulo.Font.Name := 'Sans';
+  FLabelCabSubtitulo.Font.Height := -13;
+  FLabelCabSubtitulo.Font.Color := RGBToColor(218, 232, 244);
+
+  Panel5.Color := RGBToColor(239, 244, 248);
+  Panel5.Caption := '';
+  Panel5.BevelOuter := bvNone;
+
+  FPanelFiltros := TPanel.Create(Panel5);
+  FPanelFiltros.Name := 'FLXPanelFiltros';
+  FPanelFiltros.Parent := Panel5;
+  FPanelFiltros.Align := alTop;
+  FPanelFiltros.Height := 132;
+  FPanelFiltros.Caption := '';
+  FPanelFiltros.BevelOuter := bvNone;
+  FPanelFiltros.Color := RGBToColor(225, 237, 246);
+
+  RadioButton1.Parent := FPanelFiltros;
+  RadioButton2.Parent := FPanelFiltros;
+  RadioButton3.Parent := FPanelFiltros;
+  Panel2.Parent := FPanelFiltros;
+  Panel3.Parent := FPanelFiltros;
+  StaticText5.Parent := FPanelFiltros;
+
+  StaticText5.Alignment := taCenter;
+  StaticText5.BorderStyle := sbsSingle;
+  StaticText5.Color := RGBToColor(245, 249, 252);
+  StaticText5.Font.Name := 'Sans';
+  StaticText5.Font.Height := -13;
+  StaticText5.Font.Style := [fsBold];
+  StaticText5.Font.Color := RGBToColor(37, 73, 108);
+
+  Panel2.Caption := '';
+  Panel2.BevelOuter := bvNone;
+  Panel2.Color := RGBToColor(238, 246, 251);
+  Panel3.Caption := '';
+  Panel3.BevelOuter := bvNone;
+  Panel3.Color := RGBToColor(238, 246, 251);
+
+  Panel1.Caption := '';
+  Panel1.BevelOuter := bvNone;
+  Panel1.Color := RGBToColor(222, 233, 242);
+  Panel1.Height := 76;
+
+  Panel4.Caption := '';
+  Panel4.BevelOuter := bvNone;
+  Panel4.Color := RGBToColor(239, 244, 248);
+
+  ConfigurarControlesRecursivo(Self);
+
+  ConfigurarBoton(BitBtn1, 'Ver líneas',
+    'Abrir las líneas del documento seleccionado',
+    RGBToColor(180, 215, 240));
+  ConfigurarBoton(BitBtn9, 'Recuperar',
+    'Recuperar el documento como un pedido nuevo',
+    RGBToColor(190, 224, 196));
+  ConfigurarBoton(BitBtn10, 'Eliminar',
+    'Eliminar el documento histórico seleccionado',
+    RGBToColor(238, 190, 190));
+  ConfigurarBoton(BitBtn23, 'Informe orig.',
+    'Abrir el informe original por proveedor y fechas',
+    RGBToColor(204, 220, 242));
+  ConfigurarBoton(BitBtn16, 'Observaciones',
+    'Consultar o modificar las observaciones',
+    RGBToColor(233, 218, 180));
+  ConfigurarBoton(BitBtn26, 'Vencimientos',
+    'Consultar o modificar los vencimientos',
+    RGBToColor(218, 224, 244));
+  ConfigurarBoton(BitBtn2, 'Cerrar',
+    'Cerrar el histórico de proveedores',
+    RGBToColor(238, 190, 190));
+  ConfigurarBoton(BitBtn5, 'Volver',
+    'Volver a la lista de documentos',
+    RGBToColor(238, 205, 170));
+  ConfigurarBoton(BitBtn15, 'Impresión original',
+    'Abrir las opciones originales de impresión del documento',
+    RGBToColor(184, 218, 244));
+
+  FBtnGuardarPDF := TBitBtn.Create(Panel1);
+  FBtnGuardarPDF.Name := 'FLXBtnGuardarPDF';
+  FBtnGuardarPDF.Parent := Panel1;
+  FBtnGuardarPDF.OnClick := @GuardarPDFClick;
+  ConfigurarBoton(FBtnGuardarPDF, 'Guardar PDF',
+    'Guardar el grid visible en un nuevo documento PDF',
+    RGBToColor(190, 224, 196));
+
+  FBtnPrevisualizarPDF := TBitBtn.Create(Panel1);
+  FBtnPrevisualizarPDF.Name := 'FLXBtnPrevisualizarPDF';
+  FBtnPrevisualizarPDF.Parent := Panel1;
+  FBtnPrevisualizarPDF.OnClick := @PrevisualizarPDFClick;
+  ConfigurarBoton(FBtnPrevisualizarPDF, 'Vista PDF',
+    'Generar un PDF temporal y abrirlo en el visor predeterminado',
+    RGBToColor(205, 225, 242));
+
+  FBtnImprimirPDF := TBitBtn.Create(Panel1);
+  FBtnImprimirPDF.Name := 'FLXBtnImprimirPDF';
+  FBtnImprimirPDF.Parent := Panel1;
+  FBtnImprimirPDF.OnClick := @ImprimirPDFClick;
+  ConfigurarBoton(FBtnImprimirPDF, 'Imprimir PDF',
+    'Generar el nuevo PDF y enviarlo a la impresora predeterminada',
+    RGBToColor(205, 225, 242));
+
+  FBtnExportarCSV := TBitBtn.Create(Panel1);
+  FBtnExportarCSV.Name := 'FLXBtnExportarCSV';
+  FBtnExportarCSV.Parent := Panel1;
+  FBtnExportarCSV.OnClick := @ExportarCSVClick;
+  ConfigurarBoton(FBtnExportarCSV, 'Exportar CSV',
+    'Exportar todas las filas y columnas visibles a CSV UTF-8',
+    RGBToColor(233, 218, 180));
+
+  ConfigurarBoton(BitBtn3, 'Aplicar',
+    'Aplicar el filtro por proveedor',
+    RGBToColor(174, 216, 184));
+  ConfigurarBoton(BitBtn4, 'Aplicar',
+    'Aplicar el filtro entre fechas',
+    RGBToColor(174, 216, 184));
+  ConfigurarBoton(BitBtn7, '...',
+    'Buscar proveedor por nombre',
+    RGBToColor(184, 218, 244));
+  ConfigurarBoton(BitBtn40, '...',
+    'Buscar proveedor por nombre',
+    RGBToColor(184, 218, 244));
+
+  ConfigurarBoton(BitBtn17, 'Cerrar', 'Cerrar las observaciones',
+    RGBToColor(238, 190, 190));
+  ConfigurarBoton(BitBtn18, 'Guardar', 'Guardar las observaciones',
+    RGBToColor(174, 216, 184));
+  ConfigurarBoton(BitBtn21, 'Generar informe', 'Abrir el informe original',
+    RGBToColor(174, 216, 184));
+  ConfigurarBoton(BitBtn22, 'Cancelar', 'Cerrar sin generar el informe',
+    RGBToColor(238, 190, 190));
+  ConfigurarBoton(BitBtn29, 'Cerrar', 'Cerrar los vencimientos',
+    RGBToColor(238, 190, 190));
+  ConfigurarBoton(BitBtn30, 'Guardar', 'Guardar los vencimientos',
+    RGBToColor(174, 216, 184));
+  ConfigurarBoton(BitBtn19, 'Recuperar pedido', 'Crear el nuevo pedido',
+    RGBToColor(174, 216, 184));
+  ConfigurarBoton(BitBtn20, 'Cancelar', 'Cancelar la recuperación',
+    RGBToColor(238, 190, 190));
+  ConfigurarBoton(BitBtn32, 'Informe original',
+    'Abrir el informe original seleccionado',
+    RGBToColor(184, 218, 244));
+  ConfigurarBoton(BitBtn36, 'Previsualizar PDF',
+    'Generar y abrir el PDF con el visor configurado',
+    RGBToColor(205, 225, 242));
+  ConfigurarBoton(BitBtn33, 'Cerrar', 'Cerrar las opciones de impresión',
+    RGBToColor(238, 190, 190));
+  ConfigurarBoton(BitBtn38, 'Cerrar', 'Cerrar los datos del documento',
+    RGBToColor(238, 190, 190));
+  ConfigurarBoton(BitBtn39, 'Guardar', 'Guardar los datos del documento',
+    RGBToColor(174, 216, 184));
+
+  ConfigurarGrid(DBGrid1);
+  ConfigurarGrid(DBGrid2);
+  ConfigurarGrid(DBGrid3);
+  DBGrid1.OnTitleClick := @DBGrid1TitleClick;
+  DBGrid2.OnTitleClick := @DBGrid2TitleClick;
+  DBGrid3.OnTitleClick := @DBGrid3TitleClick;
+
+  LabelTotal.Font.Name := 'Sans';
+  LabelTotal.Font.Height := -27;
+  LabelTotal.Font.Style := [fsBold];
+  LabelTotal.Font.Color := RGBToColor(34, 99, 67);
+  LabelTotal.Alignment := taRightJustify;
+
+  PrepararPanelAuxiliar(Panel7, 'OBSERVACIONES',
+    RGBToColor(245, 240, 221), 760, 230);
+  PrepararPanelAuxiliar(Panel8, 'RECUPERAR COMO PEDIDO NUEVO',
+    RGBToColor(229, 240, 248), 720, 520);
+  PrepararPanelAuxiliar(Panel9, 'LISTADO DE DOCUMENTOS',
+    RGBToColor(229, 240, 248), 700, 300);
+  PrepararPanelAuxiliar(Panel11, 'VENCIMIENTOS',
+    RGBToColor(242, 237, 222), 410, 365);
+  PrepararPanelAuxiliar(Panel13, 'OPCIONES DE IMPRESIÓN',
+    RGBToColor(229, 240, 248), 560, 400);
+  // Debe flotar sobre el formulario completo, no quedar limitado por Panel4.
+  Panel13.Parent := Self;
+  Panel13.Align := alNone;
+  Panel13.Anchors := [];
+  Panel13.Visible := False;
+  PrepararPanelAuxiliar(Panel15, 'DESTINO DE LA TRANSMISIÓN',
+    RGBToColor(235, 240, 246), 560, 250);
+  PrepararPanelAuxiliar(Panel16, 'DATOS DEL DOCUMENTO DEL PROVEEDOR',
+    RGBToColor(239, 236, 221), 500, 280);
+
+  Label20.Visible := False;
+  Label25.Visible := False;
+  Label35.Visible := False;
+  Label57.Visible := False;
+  Label62.Visible := False;
+  Label67.Visible := False;
+
+  FOrdenCampo1 := '';
+  FOrdenCampo2 := '';
+  FOrdenCampo3 := '';
+  FOrdenAsc1 := True;
+  FOrdenAsc2 := True;
+  FOrdenAsc3 := True;
+  FArrastrando := False;
+  FPanelArrastre := nil;
+
+  RecolocarControles;
+  FPanelCabecera.BringToFront;
+  Panel1.BringToFront;
+end;
+
+procedure TFHistofaprov.OrdenarConsulta(AQuery: TZQuery; AGrid: TDBGrid;
+  AColumn: TColumn; var ACampo: String; var AAscendente: Boolean);
+var
+  Campo, SQLBase, Direccion: String;
+  P: Integer;
+begin
+  if not Assigned(AQuery) or not Assigned(AGrid) or
+     not Assigned(AColumn) then Exit;
+  Campo := AColumn.FieldName;
+  if Campo = '' then Exit;
+
+  if SameText(ACampo, Campo) then
+    AAscendente := not AAscendente
+  else
+  begin
+    ACampo := Campo;
+    AAscendente := True;
+  end;
+
+  SQLBase := Trim(AQuery.SQL.Text);
+  P := Pos('ORDER BY', UpperCase(SQLBase));
+  if P > 0 then SQLBase := Trim(Copy(SQLBase, 1, P - 1));
+  if AAscendente then Direccion := ' ASC' else Direccion := ' DESC';
+
+  AQuery.DisableControls;
+  try
+    AQuery.Close;
+    AQuery.SQL.Text := SQLBase + ' ORDER BY ' + Campo + Direccion;
+    AQuery.Open;
+  finally
+    AQuery.EnableControls;
+  end;
+  ActualizarFlechaOrdenacion(AGrid, AColumn, AAscendente);
+end;
+
+procedure TFHistofaprov.ActualizarFlechaOrdenacion(AGrid: TDBGrid;
+  AColumn: TColumn; AAscendente: Boolean);
+var
+  I: Integer;
+  Texto: String;
+begin
+  if not Assigned(AGrid) or not Assigned(AColumn) then Exit;
+  for I := 0 to AGrid.Columns.Count - 1 do
+  begin
+    Texto := AGrid.Columns[I].Title.Caption;
+    Texto := StringReplace(Texto, ' ▲', '', [rfReplaceAll]);
+    Texto := StringReplace(Texto, ' ▼', '', [rfReplaceAll]);
+    AGrid.Columns[I].Title.Caption := Texto;
+  end;
+  if AAscendente then
+    AColumn.Title.Caption := AColumn.Title.Caption + ' ▲'
+  else
+    AColumn.Title.Caption := AColumn.Title.Caption + ' ▼';
+end;
+
+procedure TFHistofaprov.DBGrid1TitleClick(Column: TColumn);
+begin
+  OrdenarConsulta(dbPedic, DBGrid1, Column, FOrdenCampo1, FOrdenAsc1);
+end;
+
+procedure TFHistofaprov.DBGrid2TitleClick(Column: TColumn);
+begin
+  OrdenarConsulta(dbPedid, DBGrid2, Column, FOrdenCampo2, FOrdenAsc2);
+end;
+
+procedure TFHistofaprov.DBGrid3TitleClick(Column: TColumn);
+begin
+  OrdenarConsulta(dbSeries, DBGrid3, Column, FOrdenCampo3, FOrdenAsc3);
+end;
+
+procedure TFHistofaprov.DBGrid3DrawColumnCell(Sender: TObject;
+  const Rect: TRect; DataCol: Integer; Column: TColumn;
+  State: TGridDrawState);
+begin
+  GridDrawColumnCell(Sender, Rect, DataCol, Column, State);
+end;
+
+procedure TFHistofaprov.GridDrawColumnCell(Sender: TObject;
+  const Rect: TRect; DataCol: Integer; Column: TColumn;
+  State: TGridDrawState);
+var
+  Grid: TDBGrid;
+begin
+  if not (Sender is TDBGrid) then Exit;
+  Grid := TDBGrid(Sender);
+  if gdSelected in State then
+  begin
+    Grid.Canvas.Brush.Color := RGBToColor(42, 86, 132);
+    Grid.Canvas.Font.Color := clWhite;
+  end
+  else
+  begin
+    Grid.Canvas.Brush.Color := clWhite;
+    Grid.Canvas.Font.Color := RGBToColor(20, 30, 40);
+    if (Grid = DBGrid1) and dbPedic.Active and
+       (not dbPedic.IsEmpty) and
+       (dbPedic.FieldByName('HPC15').AsString <> '') then
+      Grid.Canvas.Font.Color := RGBToColor(35, 92, 155)
+    else if (Grid = DBGrid2) and dbPedid.Active and
+            (not dbPedid.IsEmpty) and
+            (dbPedid.FieldByName('HPD23').AsString = 'N') then
+      Grid.Canvas.Font.Color := RGBToColor(180, 38, 38);
+  end;
+  Grid.Canvas.FillRect(Rect);
+  Grid.DefaultDrawColumnCell(Rect, DataCol, Column, State);
+end;
+
+function TFHistofaprov.GridExportacionActual: TDBGrid;
+begin
+  Result := nil;
+  if Panel4.Visible and DBGrid2.Visible then
+    Result := DBGrid2
+  else if DBGrid1.Visible then
+    Result := DBGrid1;
+end;
+
+function TFHistofaprov.TituloExportacionActual: String;
+begin
+  if Panel4.Visible and DBGrid2.Visible then
+    Result := 'LÍNEAS DEL DOCUMENTO DE PROVEEDOR'
+  else
+    Result := 'HISTÓRICO DE DOCUMENTOS DE PROVEEDOR';
+end;
+
+procedure TFHistofaprov.PrepararCabeceraExportacion(ACabecera: TStrings);
+var
+  Grid: TDBGrid;
+  TipoFiltro, SerieNumero: String;
+begin
+  if not Assigned(ACabecera) then Exit;
+  ACabecera.Clear;
+  if Empresa <> '' then
+    ACabecera.Add('Empresa: ' + Empresa);
+
+  Grid := GridExportacionActual;
+  if Grid = DBGrid2 then
+  begin
+    if dbPedic.Active and (not dbPedic.IsEmpty) then
+    begin
+      SerieNumero := Trim(dbPedic.FieldByName('HPC3').AsString + ' ' +
+        dbPedic.FieldByName('HPC4').AsString);
+      ACabecera.Add('Proveedor: ' + dbPedic.FieldByName('HPC2').AsString +
+        ' - ' + dbPedic.FieldByName('HPC13').AsString);
+      ACabecera.Add('Documento: ' + SerieNumero + '; fecha: ' +
+        FormatDateTime('dd/mm/yyyy', dbPedic.FieldByName('HPC1').AsDateTime));
+      ACabecera.Add('Total: ' +
+        FormatFloat('###,###,##0.00', dbPedic.FieldByName('HPC8').AsFloat));
+    end;
+  end
+  else
+  begin
+    if RadioButton2.Checked then
+      TipoFiltro := 'Proveedor: ' + Edit1.Text + ' - ' + Edit2.Text
+    else if RadioButton3.Checked then
+      TipoFiltro := 'Fechas: ' + DateEdit1.Text + ' a ' + DateEdit2.Text
+    else
+      TipoFiltro := 'Todos los documentos ordenados por fecha';
+    ACabecera.Add('Filtro: ' + TipoFiltro);
+  end;
+
+  if Assigned(Grid) and Assigned(Grid.DataSource) and
+     Assigned(Grid.DataSource.DataSet) and Grid.DataSource.DataSet.Active then
+    ACabecera.Add('Registros: ' + IntToStr(Grid.DataSource.DataSet.RecordCount));
+  ACabecera.Add('Generado: ' + FormatDateTime('dd/mm/yyyy hh:nn', Now));
+end;
+
+function TFHistofaprov.GenerarPDFTemporal(out AFileName: String): Boolean;
+var
+  Grid: TDBGrid;
+  Cabecera: TStringList;
+begin
+  Result := False;
+  AFileName := '';
+  Grid := GridExportacionActual;
+  if not Assigned(Grid) then
+  begin
+    ShowMessage('No hay ningún grid visible para generar el PDF.');
+    Exit;
+  end;
+  if (Grid.DataSource = nil) or (Grid.DataSource.DataSet = nil) or
+     (not Grid.DataSource.DataSet.Active) then
+  begin
+    ShowMessage('El listado visible no tiene datos abiertos.');
+    Exit;
+  end;
+
+  AFileName := IncludeTrailingPathDelimiter(GetTempDir(False)) +
+    'facturlinex_historico_proveedor_' +
+    FormatDateTime('yyyymmdd_hhnnss_zzz', Now) + '.pdf';
+  Cabecera := TStringList.Create;
+  try
+    PrepararCabeceraExportacion(Cabecera);
+    try
+      ExportarGridAPDF(Grid, AFileName, TituloExportacionActual, Cabecera);
+      Result := True;
+    except
+      on E: Exception do
+        ShowMessage('No se pudo generar el PDF: ' + E.Message);
+    end;
+  finally
+    Cabecera.Free;
+  end;
+end;
+
+procedure TFHistofaprov.GuardarPDFClick(Sender: TObject);
+var
+  Dialogo: TSaveDialog;
+  Grid: TDBGrid;
+  Cabecera: TStringList;
+  NombreBase: String;
+begin
+  Grid := GridExportacionActual;
+  if not Assigned(Grid) then
+  begin
+    ShowMessage('No hay ningún grid visible para guardar.');
+    Exit;
+  end;
+  if (Grid.DataSource = nil) or (Grid.DataSource.DataSet = nil) or
+     (not Grid.DataSource.DataSet.Active) then
+  begin
+    ShowMessage('El listado visible no tiene datos abiertos.');
+    Exit;
+  end;
+
+  if Grid = DBGrid2 then
+    NombreBase := 'Lineas_documento_proveedor_'
+  else
+    NombreBase := 'Historico_documentos_proveedor_';
+
+  Dialogo := TSaveDialog.Create(Self);
+  Cabecera := TStringList.Create;
+  try
+    Dialogo.Title := 'Guardar histórico de proveedor en PDF';
+    Dialogo.Filter := 'Documento PDF (*.pdf)|*.pdf';
+    Dialogo.DefaultExt := 'pdf';
+    Dialogo.FileName := NombreBase + FormatDateTime('yyyymmdd', Date) + '.pdf';
+    Dialogo.Options := Dialogo.Options + [ofOverwritePrompt];
+    if not Dialogo.Execute then Exit;
+    PrepararCabeceraExportacion(Cabecera);
+    try
+      ExportarGridAPDF(Grid, Dialogo.FileName, TituloExportacionActual,
+        Cabecera);
+      ShowMessage('PDF guardado correctamente en:' + LineEnding +
+        Dialogo.FileName);
+    except
+      on E: Exception do
+        ShowMessage('No se pudo guardar el PDF: ' + E.Message);
+    end;
+  finally
+    Cabecera.Free;
+    Dialogo.Free;
+  end;
+end;
+
+procedure TFHistofaprov.PrevisualizarPDFClick(Sender: TObject);
+var
+  Archivo, Mensaje: String;
+begin
+  if not GenerarPDFTemporal(Archivo) then Exit;
+  if not PrevisualizarPDFPredeterminado(Archivo, Mensaje) then
+    ShowMessage(Mensaje);
+end;
+
+procedure TFHistofaprov.ImprimirPDFClick(Sender: TObject);
+var
+  Archivo, Mensaje: String;
+begin
+  if not GenerarPDFTemporal(Archivo) then Exit;
+  ImprimirPDFPredeterminado(Archivo, Mensaje);
+  ShowMessage(Mensaje);
+end;
+
+procedure TFHistofaprov.ExportarCSVClick(Sender: TObject);
+var
+  Dialogo: TSaveDialog;
+  Grid: TDBGrid;
+  NombreBase: String;
+begin
+  Grid := GridExportacionActual;
+  if not Assigned(Grid) then
+  begin
+    ShowMessage('No hay ningún grid visible para exportar.');
+    Exit;
+  end;
+  if (Grid.DataSource = nil) or (Grid.DataSource.DataSet = nil) or
+     (not Grid.DataSource.DataSet.Active) then
+  begin
+    ShowMessage('El listado visible no tiene datos abiertos.');
+    Exit;
+  end;
+
+  if Grid = DBGrid2 then
+    NombreBase := 'Lineas_documento_proveedor_'
+  else
+    NombreBase := 'Historico_documentos_proveedor_';
+
+  Dialogo := TSaveDialog.Create(Self);
+  try
+    Dialogo.Title := 'Exportar histórico de proveedor a CSV';
+    Dialogo.Filter := 'Archivo CSV (*.csv)|*.csv';
+    Dialogo.DefaultExt := 'csv';
+    Dialogo.FileName := NombreBase + FormatDateTime('yyyymmdd', Date) + '.csv';
+    Dialogo.Options := Dialogo.Options + [ofOverwritePrompt];
+    if not Dialogo.Execute then Exit;
+    try
+      ExportarGridACSV(Grid, Dialogo.FileName);
+      ShowMessage('CSV guardado correctamente en:' + LineEnding +
+        Dialogo.FileName);
+    except
+      on E: Exception do
+        ShowMessage('No se pudo exportar el CSV: ' + E.Message);
+    end;
+  finally
+    Dialogo.Free;
+  end;
+end;
+
+procedure TFHistofaprov.FormularioKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key <> VK_ESCAPE then Exit;
+  Key := 0;
+
+  if Panel7.Visible then
+    BitBtn17Click(BitBtn17)
+  else if Panel8.Visible then
+    BitBtn20Click(BitBtn20)
+  else if Panel9.Visible then
+    BitBtn22Click(BitBtn22)
+  else if Panel11.Visible then
+    BitBtn29Click(BitBtn29)
+  else if Panel13.Visible then
+    BitBtn33Click(BitBtn33)
+  else if Panel15.Visible then
+    Panel15Click(Panel15)
+  else if Panel16.Visible then
+    BitBtn38Click(BitBtn38)
+  else if Panel2.Visible or Panel3.Visible then
+  begin
+    RadioButton1.Checked := True;
+    RadioButton1Click(RadioButton1);
+  end
+  else if Panel4.Visible then
+    BitBtn5Click(BitBtn5)
+  else
+    BitBtn2Click(BitBtn2);
+end;
+
+procedure TFHistofaprov.FormularioResize(Sender: TObject);
+begin
+  RecolocarControles;
+end;
 
 initialization
   {$I histofaprov.lrs}

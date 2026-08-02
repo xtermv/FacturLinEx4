@@ -1,19 +1,24 @@
 object FLIvaEmi: TFLIvaEmi
-  Left = 264
-  Height = 634
-  Top = 281
-  Width = 928
-  ActiveControl = PanelTituloGrid
+  Left = 0
+  Height = 768
+  Top = 0
+  Width = 1366
   Caption = 'Listados de IVA Emitido'
-  ClientHeight = 634
-  ClientWidth = 928
+  ClientHeight = 768
+  ClientWidth = 1366
   DesignTimePPI = 88
   KeyPreview = True
   OnClose = Formclose
   OnCreate = Formcreate
-  Position = poDesktopCenter
+  Position = poScreenCenter
   ShowHint = True
   LCLVersion = '2.0.6.0'
+  WindowState = wsMaximized
+  DoubleBuffered = True
+  Color = 16775416
+  OnKeyDown = FormKeyDown
+  OnResize = FormResize
+  OnShow = FormShow
   object Label5: TLabel
     Left = 717
     Height = 15
@@ -31,11 +36,11 @@ object FLIvaEmi: TFLIvaEmi
   end
   object Panel1: TPanel
     Left = 0
-    Height = 86
+    Height = 68
     Top = 548
     Width = 928
     Align = alBottom
-    ClientHeight = 86
+    ClientHeight = 68
     ClientWidth = 928
     ParentFont = False
     TabOrder = 6
@@ -893,6 +898,7 @@ object FLIvaEmi: TFLIvaEmi
     TabOrder = 5
     Visible = False
     OnTitleClick = DBGrid1TitleClick
+    OnDrawColumnCell = DBGridDrawColumnCell
   end
   object PanelTituloGrid: TPanel
     Left = 0
@@ -1100,12 +1106,13 @@ object FLIvaEmi: TFLIvaEmi
     TabOrder = 11
     Visible = False
     OnTitleClick = DBGridIVATitleClick
+    OnDrawColumnCell = DBGridDrawColumnCell
   end
   object ChkBoxGroup1: TCheckBox
-    Left = 630
-    Height = 22
-    Top = 417
-    Width = 163
+    Left = 700
+    Height = 30
+    Top = 326
+    Width = 360
     Caption = 'Resultados Agrupados'
     Checked = True
     ParentFont = False
@@ -1160,6 +1167,7 @@ object FLIvaEmi: TFLIvaEmi
     TabOrder = 13
     Visible = False
     OnTitleClick = DBGridIVATitleClick
+    OnDrawColumnCell = DBGridDrawColumnCell
   end
   object Datasource1: TDataSource
     DataSet = dbQuery

@@ -4,7 +4,7 @@ object FPedido: TFPedido
   Top = 0
   Width = 1920
   ActiveControl = Panel5
-  Caption = 'Gestion de pedidos'
+  Caption = 'Gestión de pedidos'
   ClientHeight = 1022
   ClientWidth = 1920
   KeyPreview = True
@@ -15,6 +15,8 @@ object FPedido: TFPedido
   OnClose = FormClose
   OnCreate = FormCreate
   OnKeyDown = FormKeyDown
+  OnResize = FormResize
+  OnShow = FormShow
   object Panel5: TPanel
     Left = 0
     Height = 960
@@ -181,6 +183,7 @@ object FPedido: TFPedido
       TabOrder = 0
       OnDrawColumnCell = DBGrid1DrawColumnCell
       OnDblClick = BitBtn1Click
+      OnTitleClick = DBGrid1TitleClick
     end
     object RadioButton1: TRadioButton
       Left = 176
@@ -478,29 +481,29 @@ object FPedido: TFPedido
       TabOrder = 14
     end
     object Panel2: TPanel
-      Left = 391
-      Height = 96
-      Top = 8
-      Width = 623
-      ClientHeight = 96
-      ClientWidth = 623
+      Left = 355
+      Height = 40
+      Top = 42
+      Width = 650
+      ClientHeight = 40
+      ClientWidth = 650
       ParentFont = False
       TabOrder = 4
       Visible = False
       object Label1: TLabel
         Left = 8
         Height = 19
-        Top = 16
+        Top = 10
         Width = 97
-        Caption = 'Cgo. Proveedor'
+        Caption = 'Cód. proveedor'
         ParentColor = False
         ParentFont = False
       end
       object Edit1: TEdit
         Left = 111
         Height = 29
-        Top = 13
-        Width = 81
+        Top = 5
+        Width = 94
         MaxLength = 11
         ParentFont = False
         TabOrder = 0
@@ -508,11 +511,11 @@ object FPedido: TFPedido
         OnExit = Edit1Exit
       end
       object Edit2: TEdit
-        Left = 199
+        Left = 213
         Height = 29
         Hint = 'Teclea las iniciales a buscar y pulsar Enter.'
-        Top = 13
-        Width = 392
+        Top = 5
+        Width = 268
         CharCase = ecUppercase
         ParentFont = False
         TabStop = False
@@ -520,10 +523,10 @@ object FPedido: TFPedido
         OnKeyPress = Edit2KeyPress
       end
       object BitBtn3: TBitBtn
-        Left = 495
+        Left = 517
         Height = 32
-        Top = 56
-        Width = 120
+        Top = 4
+        Width = 125
         Caption = 'Aplicar Filtro'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -595,11 +598,11 @@ object FPedido: TFPedido
         OnClick = BitBtn3Click
       end
       object BitBtn7: TBitBtn
-        Left = 591
-        Height = 24
+        Left = 485
+        Height = 28
         Hint = 'Buscar clientes por sus iniciales.'
-        Top = 13
-        Width = 24
+        Top = 6
+        Width = 28
         Caption = '...'
         Layout = blGlyphTop
         ParentFont = False
@@ -661,7 +664,7 @@ object FPedido: TFPedido
         Height = 19
         Top = 38
         Width = 54
-        Caption = 'Telefono'
+        Caption = 'Teléfono'
         Layout = tlCenter
         ParentColor = False
         ParentFont = False
@@ -690,45 +693,45 @@ object FPedido: TFPedido
         Height = 19
         Top = 38
         Width = 28
-        Caption = 'Cgo.'
+        Caption = 'Cód.'
         Layout = tlCenter
         ParentColor = False
         ParentFont = False
       end
     end
     object Panel3: TPanel
-      Left = 622
-      Height = 94
-      Top = 8
-      Width = 392
-      ClientHeight = 94
-      ClientWidth = 392
+      Left = 330
+      Height = 40
+      Top = 74
+      Width = 642
+      ClientHeight = 40
+      ClientWidth = 642
       ParentFont = False
       TabOrder = 5
       Visible = False
       object Label2: TLabel
-        Left = 16
+        Left = 8
         Height = 19
-        Top = 16
+        Top = 10
         Width = 80
         Caption = 'Desde Fecha'
         ParentColor = False
         ParentFont = False
       end
       object Label3: TLabel
-        Left = 17
+        Left = 251
         Height = 19
-        Top = 59
+        Top = 10
         Width = 77
         Caption = 'Hasta Fecha'
         ParentColor = False
         ParentFont = False
       end
       object BitBtn4: TBitBtn
-        Left = 263
+        Left = 493
         Height = 32
-        Top = 31
-        Width = 123
+        Top = 4
+        Width = 140
         Caption = 'Aplicar filtro'
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
@@ -800,10 +803,10 @@ object FPedido: TFPedido
         OnClick = BitBtn4Click
       end
       object DateEdit1: TDateEdit
-        Left = 106
+        Left = 92
         Height = 29
-        Top = 14
-        Width = 96
+        Top = 5
+        Width = 145
         CalendarDisplaySettings = [dsShowHeadings, dsShowDayNames]
         DateOrder = doNone
         ButtonWidth = 23
@@ -849,10 +852,10 @@ object FPedido: TFPedido
         TabOrder = 1
       end
       object DateEdit2: TDateEdit
-        Left = 106
+        Left = 334
         Height = 29
-        Top = 57
-        Width = 96
+        Top = 5
+        Width = 145
         CalendarDisplaySettings = [dsShowHeadings, dsShowDayNames]
         DateOrder = doNone
         ButtonWidth = 23
@@ -1267,7 +1270,7 @@ object FPedido: TFPedido
         Top = 3
         Width = 176
         AutoSize = False
-        Caption = 'DESTINO DE LA TRASMISION'
+        Caption = 'DESTINO DE LA TRANSMISIÓN'
         Layout = tlCenter
         ParentColor = False
         ParentFont = False
@@ -1278,7 +1281,7 @@ object FPedido: TFPedido
         Top = 49
         Width = 113
         AutoSize = False
-        Caption = 'TRASMITIDO'
+        Caption = 'TRANSMITIDO'
         Layout = tlCenter
         ParentColor = False
         ParentFont = False
@@ -1289,7 +1292,7 @@ object FPedido: TFPedido
         Top = 88
         Width = 98
         AutoSize = False
-        Caption = 'TIPO DE TRASM.'
+        Caption = 'TIPO DE TRANSM.'
         Layout = tlCenter
         ParentColor = False
         ParentFont = False
@@ -1300,7 +1303,7 @@ object FPedido: TFPedido
         Top = 128
         Width = 103
         AutoSize = False
-        Caption = 'DESTINO TRASM.'
+        Caption = 'DESTINO TRANSM.'
         Layout = tlCenter
         ParentColor = False
         ParentFont = False
@@ -1881,7 +1884,7 @@ object FPedido: TFPedido
         Top = 61
         Width = 125
         AutoSize = False
-        Caption = 'Num. Documento'
+        Caption = 'Núm. documento'
         Layout = tlCenter
         ParentColor = False
         ParentFont = False
@@ -1913,7 +1916,7 @@ object FPedido: TFPedido
         Height = 23
         Top = 84
         Width = 77
-        Caption = 'Albaran.'
+        Caption = 'Albarán'
         ParentFont = False
         TabOrder = 0
       end
@@ -2189,7 +2192,7 @@ object FPedido: TFPedido
         Top = 130
         Width = 77
         AutoSize = False
-        Caption = 'N. Pedido'
+        Caption = 'N.º pedido'
         Layout = tlCenter
         ParentColor = False
         ParentFont = False
@@ -2200,7 +2203,7 @@ object FPedido: TFPedido
         Top = 130
         Width = 106
         AutoSize = False
-        Caption = 'Fecha Pedido'
+        Caption = 'Fecha pedido'
         Layout = tlCenter
         ParentColor = False
         ParentFont = False
@@ -2222,7 +2225,7 @@ object FPedido: TFPedido
         Top = 241
         Width = 128
         AutoSize = False
-        Caption = 'Numéro documento'
+        Caption = 'Número documento'
         Layout = tlCenter
         ParentColor = False
         ParentFont = False
@@ -2447,7 +2450,7 @@ object FPedido: TFPedido
           item
             MinSize = 10
             MaxSize = 200
-            Title.Caption = 'DESCRIPCION'
+            Title.Caption = 'DESCRIPCIÓN'
             Width = 310
             FieldName = 'SF1'
           end        
@@ -2456,7 +2459,7 @@ object FPedido: TFPedido
             MinSize = 10
             MaxSize = 200
             Title.Alignment = taRightJustify
-            Title.Caption = 'N. PEDIDO'
+            Title.Caption = 'N.º PEDIDO'
             Width = 84
             FieldName = 'SF7'
           end>
@@ -2465,6 +2468,8 @@ object FPedido: TFPedido
         ParentFont = False
         Scrollbars = ssVertical
         TabOrder = 0
+        OnDrawColumnCell = DBGridAuxDrawColumnCell
+        OnTitleClick = DBGrid3TitleClick
       end
       object DateEdit9: TDateEdit
         Left = 313
@@ -2580,7 +2585,7 @@ object FPedido: TFPedido
         Height = 23
         Top = 266
         Width = 77
-        Caption = 'Albaran.'
+        Caption = 'Albarán'
         ParentFont = False
         TabOrder = 7
       end
@@ -2749,7 +2754,7 @@ object FPedido: TFPedido
       Top = 104
       Width = 79
       AutoSize = False
-      Caption = 'N. PEDIDO'
+      Caption = 'N.º PEDIDO'
       Font.Height = -14
       Font.Name = 'Sans'
       Layout = tlCenter
@@ -2774,7 +2779,7 @@ object FPedido: TFPedido
       Top = 136
       Width = 87
       AutoSize = False
-      Caption = 'FECHA PED.'
+      Caption = 'FECHA PEDIDO'
       Font.Height = -14
       Font.Name = 'Sans'
       Layout = tlCenter
@@ -2827,7 +2832,7 @@ object FPedido: TFPedido
         item
           MinSize = 10
           MaxSize = 200
-          Title.Caption = 'DESCRIPCION'
+          Title.Caption = 'DESCRIPCIÓN'
           Width = 98
           FieldName = 'PD7'
         end      
@@ -2854,7 +2859,7 @@ object FPedido: TFPedido
           MinSize = 10
           MaxSize = 200
           Title.Alignment = taRightJustify
-          Title.Caption = 'COSTO'
+          Title.Caption = 'COSTE'
           Width = 57
           FieldName = 'PD10'
           DisplayFormat = '###,###,##0.000'
@@ -3122,7 +3127,7 @@ object FPedido: TFPedido
         Height = 23
         Top = 136
         Width = 302
-        Caption = 'Actualizar ficha de articulos con estos precios'
+        Caption = 'Actualizar ficha de artículos con estos precios'
         ParentFont = False
         TabOrder = 2
       end
@@ -3131,7 +3136,7 @@ object FPedido: TFPedido
         Height = 23
         Top = 184
         Width = 328
-        Caption = 'Iniciar el stock de los articulos con estas unidades'
+        Caption = 'Iniciar el stock de los artículos con estas unidades'
         ParentFont = False
         TabOrder = 3
       end
@@ -3215,7 +3220,7 @@ object FPedido: TFPedido
         Height = 18
         Top = 50
         Width = 117
-        Caption = 'CODIGO PRINCIPAL'
+        Caption = 'CÓDIGO PRINCIPAL'
         Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
@@ -3226,7 +3231,7 @@ object FPedido: TFPedido
         Height = 18
         Top = 93
         Width = 83
-        Caption = 'DESCRIPCION'
+        Caption = 'DESCRIPCIÓN'
         Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
@@ -3248,7 +3253,7 @@ object FPedido: TFPedido
         Height = 18
         Top = 132
         Width = 42
-        Caption = 'COSTO'
+        Caption = 'COSTE'
         Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
@@ -3259,7 +3264,7 @@ object FPedido: TFPedido
         Height = 18
         Top = 197
         Width = 74
-        Caption = 'COSTO+IMP.'
+        Caption = 'COSTE + IMP.'
         Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
@@ -3303,7 +3308,7 @@ object FPedido: TFPedido
         Height = 18
         Top = 197
         Width = 77
-        Caption = 'TOTAL LINEA'
+        Caption = 'TOTAL LÍNEA'
         Font.Height = -13
         Font.Name = 'Sans'
         ParentColor = False
@@ -3405,7 +3410,7 @@ object FPedido: TFPedido
         Align = alTop
         Alignment = taCenter
         AutoSize = False
-        Caption = 'ENTRADA DE LINEAS DE PEDIDO '
+        Caption = 'ENTRADA DE LÍNEAS DE PEDIDO'
         Color = clMedGray
         Font.Height = -16
         Font.Name = 'Sans'
@@ -3982,7 +3987,7 @@ object FPedido: TFPedido
         Height = 22
         Top = 88
         Width = 193
-        Caption = 'Listado con precios de costo'
+        Caption = 'Listado con precios de coste'
         Font.Height = -13
         Font.Name = 'Sans'
         ParentFont = False
@@ -4249,7 +4254,7 @@ object FPedido: TFPedido
           Top = 6
           Width = 131
           AutoSize = False
-          Caption = 'Todas las lineas'
+          Caption = 'Todas las líneas'
           Checked = True
           Font.Height = -13
           Font.Name = 'Sans'
@@ -4263,7 +4268,7 @@ object FPedido: TFPedido
           Top = 6
           Width = 143
           AutoSize = False
-          Caption = 'Lineas sin marcar'
+          Caption = 'Líneas sin marcar'
           Font.Height = -13
           Font.Name = 'Sans'
           ParentFont = False
@@ -4275,7 +4280,7 @@ object FPedido: TFPedido
           Top = 6
           Width = 139
           AutoSize = False
-          Caption = 'Lineas marcadas'
+          Caption = 'Líneas marcadas'
           Font.Height = -13
           Font.Name = 'Sans'
           ParentFont = False
@@ -4298,7 +4303,7 @@ object FPedido: TFPedido
           Height = 22
           Top = 16
           Width = 152
-          Caption = '1 Etiqueta por codigo'
+          Caption = '1 etiqueta por código'
           Checked = True
           Font.Height = -13
           Font.Name = 'Sans'
@@ -4347,7 +4352,7 @@ object FPedido: TFPedido
         Height = 22
         Top = 40
         Width = 189
-        Caption = 'Etiquetas codigos de barras'
+        Caption = 'Etiquetas de códigos de barras'
         Font.Height = -13
         Font.Name = 'Sans'
         ParentFont = False
@@ -4368,7 +4373,7 @@ object FPedido: TFPedido
         Height = 19
         Top = 260
         Width = 134
-        Caption = 'Crear Archivo PDF en '
+        Caption = 'Crear archivo PDF en'
         ParentColor = False
         ParentFont = False
       end
@@ -5704,7 +5709,7 @@ object FPedido: TFPedido
       Width = 524
       Alignment = taCenter
       AutoSize = False
-      Caption = 'TRANSMISION DE PEDIDOS'
+      Caption = 'TRANSMISIÓN DE PEDIDOS'
       Color = clMedGray
       Font.Height = -13
       Font.Name = 'Sans'
@@ -5717,7 +5722,7 @@ object FPedido: TFPedido
       Height = 175
       Top = 73
       Width = 519
-      Caption = 'Panel18'
+      Caption = ''
       ClientHeight = 175
       ClientWidth = 519
       ParentBackground = False
@@ -5741,7 +5746,7 @@ object FPedido: TFPedido
           item
             MinSize = 10
             MaxSize = 200
-            Title.Caption = 'DESCRIPCION'
+            Title.Caption = 'DESCRIPCIÓN'
             Width = 200
             FieldName = 'P1'
           end        
@@ -5766,6 +5771,8 @@ object FPedido: TFPedido
         ParentFont = False
         Scrollbars = ssVertical
         TabOrder = 1
+        OnDrawColumnCell = DBGridAuxDrawColumnCell
+        OnTitleClick = DBGrid5TitleClick
       end
       object DBGrid4: TDBGrid
         Left = 1
@@ -5785,7 +5792,7 @@ object FPedido: TFPedido
           item
             MinSize = 10
             MaxSize = 200
-            Title.Caption = 'DESCRIPCION'
+            Title.Caption = 'DESCRIPCIÓN'
             Width = 300
             FieldName = 'T1'
           end        
@@ -5802,6 +5809,8 @@ object FPedido: TFPedido
         ParentFont = False
         Scrollbars = ssVertical
         TabOrder = 0
+        OnDrawColumnCell = DBGridAuxDrawColumnCell
+        OnTitleClick = DBGrid4TitleClick
       end
     end
     object BitBtn31: TBitBtn
@@ -5885,7 +5894,7 @@ object FPedido: TFPedido
       Hint = 'Factura rectificativa de...'
       Top = 256
       Width = 96
-      Caption = 'Transm.'
+      Caption = 'Transmitir'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
         2000000000009007000064000000640000000000000000000000D8E0E7FFE0F0
@@ -5994,7 +6003,7 @@ object FPedido: TFPedido
         Top = 80
         Width = 168
         AutoSize = False
-        Caption = 'FORMA DE TRASMITIR'
+        Caption = 'FORMA DE TRANSMISIÓN'
         Font.Height = -13
         Font.Name = 'Sans'
         Layout = tlCenter
@@ -6007,7 +6016,7 @@ object FPedido: TFPedido
         Top = 80
         Width = 192
         AutoSize = False
-        Caption = 'LISTADO PARA TRASMITIR'
+        Caption = 'LISTADO PARA TRANSMITIR'
         Font.Height = -13
         Font.Name = 'Sans'
         Layout = tlCenter
@@ -6053,7 +6062,7 @@ object FPedido: TFPedido
           Hint = 'Hay que instalar y configurar efax o alguno parecido'
           Top = 35
           Width = 234
-          Caption = 'Trasnmitir por fax'
+          Caption = 'Transmitir por fax'
           Enabled = False
           Font.Height = -13
           Font.Name = 'Sans'
@@ -6067,7 +6076,7 @@ object FPedido: TFPedido
           Hint = 'Creo que solo hay que hacer un enlace a evolution a algun cliente de correo, por que con la orden mail del shell no se pueden adjuntar archivos.'
           Top = 64
           Width = 234
-          Caption = 'Trasnmitir por correo electrónico'
+          Caption = 'Transmitir por correo electrónico'
           Enabled = False
           Font.Height = -13
           Font.Name = 'Sans'
@@ -6115,7 +6124,7 @@ object FPedido: TFPedido
           Height = 29
           Top = 35
           Width = 225
-          Caption = 'Listado con precios de costo'
+          Caption = 'Listado con precios de coste'
           Font.Height = -13
           Font.Name = 'Sans'
           ParentFont = False
@@ -6139,7 +6148,7 @@ object FPedido: TFPedido
         Hint = 'Factura rectificativa de...'
         Top = 216
         Width = 96
-        Caption = 'Transm.'
+        Caption = 'Transmitir'
         Font.Height = -13
         Font.Name = 'Sans'
         Glyph.Data = {
@@ -6439,7 +6448,7 @@ object FPedido: TFPedido
     Left = 24
     Top = 136
     object MenuItem1: TMenuItem
-      Caption = 'Ver Destino de la trasmision'
+      Caption = 'Ver destino de la transmisión'
       OnClick = MenuItem1Click
     end
     object MenuItem2: TMenuItem

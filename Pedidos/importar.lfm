@@ -4,7 +4,7 @@ object fImportar: TfImportar
   Top = 240
   Width = 728
   ActiveControl = Panel1
-  Caption = 'Importar Pedidos'
+  Caption = 'Importar pedidos'
   ClientHeight = 705
   ClientWidth = 728
   Color = clSkyBlue
@@ -33,7 +33,7 @@ object fImportar: TfImportar
       Height = 80
       Top = 8
       Width = 75
-      Caption = 'Salir'
+      Caption = 'CERRAR'
       Glyph.Data = {
         36240000424D3624000000000000360000002800000030000000300000000100
         2000000000000024000064000000640000000000000000000000000000005A5E
@@ -326,7 +326,10 @@ object fImportar: TfImportar
         000000000000FFFFFF02D7D8D702FFFFFF010000000000000000000000000000
         0000000000000000000000000000000000000000000000000000
       }
-      Layout = blGlyphTop
+      Layout = blGlyphLeft
+      Hint = 'Cierra la importación sin añadir nuevas líneas al pedido.'
+      ShowHint = True
+      Spacing = 8
       OnClick = btnSalirClick
       TabOrder = 0
     end
@@ -335,7 +338,7 @@ object fImportar: TfImportar
       Height = 80
       Top = 8
       Width = 75
-      Caption = 'Seleccionar'
+      Caption = '1. ELEGIR ARCHIVO'
       Glyph.Data = {
         36240000424D3624000000000000360000002800000030000000300000000100
         2000000000000024000064000000640000000000000000000000FFFFFFFFFFFF
@@ -628,7 +631,10 @@ object fImportar: TfImportar
         FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
         FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
       }
-      Layout = blGlyphTop
+      Layout = blGlyphLeft
+      Hint = 'Seleccione el fichero TXT, CSV o XLSX recibido del proveedor.'
+      ShowHint = True
+      Spacing = 8
       OnClick = btnSeleccionarClick
       TabOrder = 1
     end
@@ -637,7 +643,7 @@ object fImportar: TfImportar
       Height = 80
       Top = 8
       Width = 75
-      Caption = 'Generar'
+      Caption = '2. ANALIZAR DATOS'
       Glyph.Data = {
         36240000424D3624000000000000360000002800000030000000300000000100
         2000000000000024000064000000640000000000000000000000FFFFFFFFFFFF
@@ -930,7 +936,10 @@ object fImportar: TfImportar
         FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
         FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
       }
-      Layout = blGlyphTop
+      Layout = blGlyphLeft
+      Hint = 'Lee el fichero con la plantilla elegida y clasifica las líneas.'
+      ShowHint = True
+      Spacing = 8
       OnClick = btnGenerarClick
       TabOrder = 2
     end
@@ -939,7 +948,7 @@ object fImportar: TfImportar
       Height = 80
       Top = 8
       Width = 75
-      Caption = 'Enviar a pedido'
+      Caption = '3. CREAR PEDIDO'
       Glyph.Data = {
         36240000424D3624000000000000360000002800000030000000300000000100
         2000000000000024000064000000640000000000000000000000FFFFFFFFFFFF
@@ -1232,7 +1241,10 @@ object fImportar: TfImportar
         FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
         FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
       }
-      Layout = blGlyphTop
+      Layout = blGlyphLeft
+      Hint = 'Incorpora al pedido las líneas procesadas y revisadas.'
+      ShowHint = True
+      Spacing = 8
       OnClick = btnAPedidoClick
       TabOrder = 3
     end
@@ -1256,17 +1268,19 @@ object fImportar: TfImportar
         Height = 15
         Top = 150
         Width = 54
-        Caption = 'Posición'
+        Caption = 'Columna actual del cursor:'
         ParentColor = False
+        Hint = 'Número de carácter donde está situado el cursor en la vista previa.'
+        ShowHint = True
       end
       object sbSave1: TSpeedButton
         Left = 623
         Height = 36
-        Hint = 'Almacena los parámetros de recuperación.'
+        Hint = 'Guarda las posiciones actuales para reutilizarlas.'
         Top = 57
         Width = 36
-        AutoSize = True
-        Flat = True
+        AutoSize = False
+        Flat = False
         Glyph.Data = {
           36100000424D3610000000000000360000002800000020000000200000000100
           2000000000000010000064000000640000000000000000000000000000000000
@@ -1399,16 +1413,20 @@ object fImportar: TfImportar
           0000000000000000000000000000000000000000000000000000000000000000
           0000000000000000000000000000000000000000000000000000
         }
+        Caption = 'Guardar plantilla'
+        ShowHint = True
+        Layout = blGlyphLeft
+        Spacing = 6
         OnClick = sbSave1Click
       end
       object sbLoad1: TSpeedButton
         Left = 623
         Height = 36
-        Hint = 'Recupera los valores para la importación.'
+        Hint = 'Recupera una plantilla de posiciones guardada.'
         Top = 97
         Width = 36
-        AutoSize = True
-        Flat = True
+        AutoSize = False
+        Flat = False
         Glyph.Data = {
           36100000424D3610000000000000360000002800000020000000200000000100
           2000000000000010000064000000640000000000000000000000000000000000
@@ -1541,16 +1559,20 @@ object fImportar: TfImportar
           0000000000000000000000000000000000000000000000000000000000000000
           0000000000000000000000000000000000000000000000000000
         }
+        Caption = 'Cargar plantilla'
+        ShowHint = True
+        Layout = blGlyphLeft
+        Spacing = 6
         OnClick = sbLoad1Click
       end
       object sbLimpiar1: TSpeedButton
         Left = 623
         Height = 26
-        Hint = 'Limpia los valores de las posiciones'
+        Hint = 'Borra todas las posiciones DESDE/HASTA de esta plantilla.'
         Top = 18
         Width = 26
-        AutoSize = True
-        Flat = True
+        AutoSize = False
+        Flat = False
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
           20000000000090070000640000006400000000000000000000000000000F0000
@@ -1616,6 +1638,9 @@ object fImportar: TfImportar
           000000000000000000000000000000000000666B69D6666B6999000000000000
           00000000000000000000
         }
+        Caption = 'Limpiar campos'
+        Layout = blGlyphLeft
+        Spacing = 6
         OnClick = sbLimpiar1Click
         ShowHint = True
         ParentShowHint = False
@@ -1634,7 +1659,7 @@ object fImportar: TfImportar
           Height = 15
           Top = 52
           Width = 53
-          Caption = 'CODIGO'
+          Caption = 'CÓDIGO'
           ParentColor = False
         end
         object Label2: TLabel
@@ -2442,11 +2467,16 @@ object fImportar: TfImportar
         Height = 25
         Top = 167
         Width = 46
+        ReadOnly = True
+        TabStop = False
+        Alignment = taCenter
+        Hint = 'Use este número para completar DESDE y HASTA.'
+        ShowHint = True
         TabOrder = 2
       end
     end
     object tsDelimitado: TTabSheet
-      Caption = 'Delimitado por Caracter'
+      Caption = 'Delimitado por carácter'
       ClientHeight = 201
       ClientWidth = 709
       object Label27: TLabel
@@ -2454,17 +2484,17 @@ object fImportar: TfImportar
         Height = 19
         Top = 20
         Width = 174
-        Caption = 'CARACTER DELIMITADOR'
+        Caption = 'CARÁCTER DELIMITADOR'
         ParentColor = False
       end
       object sbSave2: TSpeedButton
         Left = 606
         Height = 36
-        Hint = 'Almacena los parámetros de recuperación.'
+        Hint = 'Guarda el delimitador y el orden actual.'
         Top = 96
         Width = 72
-        AutoSize = True
-        Flat = True
+        AutoSize = False
+        Flat = False
         Glyph.Data = {
           36100000424D3610000000000000360000002800000020000000200000000100
           2000000000000010000064000000640000000000000000000000000000000000
@@ -2597,16 +2627,20 @@ object fImportar: TfImportar
           0000000000000000000000000000000000000000000000000000000000000000
           0000000000000000000000000000000000000000000000000000
         }
+        Caption = 'Guardar plantilla'
+        ShowHint = True
+        Layout = blGlyphLeft
+        Spacing = 6
         OnClick = sbSave2Click
       end
       object sbLoad2: TSpeedButton
         Left = 606
         Height = 34
-        Hint = 'Recupera los valores para la importación.'
+        Hint = 'Recupera una plantilla delimitada guardada.'
         Top = 142
         Width = 72
-        AutoSize = True
-        Flat = True
+        AutoSize = False
+        Flat = False
         Glyph.Data = {
           36100000424D3610000000000000360000002800000020000000200000000100
           2000000000000010000064000000640000000000000000000000000000000000
@@ -2739,16 +2773,20 @@ object fImportar: TfImportar
           0000000000000000000000000000000000000000000000000000000000000000
           0000000000000000000000000000000000000000000000000000
         }
+        Caption = 'Cargar plantilla'
+        ShowHint = True
+        Layout = blGlyphLeft
+        Spacing = 6
         OnClick = sbLoad2Click
       end
       object sbLimpiar2: TSpeedButton
         Left = 606
         Height = 37
-        Hint = 'Limpia los valores de las posiciones'
+        Hint = 'Borra el delimitador y el orden de columnas.'
         Top = 42
         Width = 72
-        AutoSize = True
-        Flat = True
+        AutoSize = False
+        Flat = False
         Glyph.Data = {
           C6070000424DC607000000000000360000002800000016000000160000000100
           20000000000090070000640000006400000000000000000000000000000F0000
@@ -2814,6 +2852,9 @@ object fImportar: TfImportar
           000000000000000000000000000000000000666B69D6666B6999000000000000
           00000000000000000000
         }
+        Caption = 'Limpiar campos'
+        Layout = blGlyphLeft
+        Spacing = 6
         OnClick = sbLimpiar2Click
         ShowHint = True
         ParentShowHint = False
@@ -2895,7 +2936,7 @@ object fImportar: TfImportar
           Height = 19
           Top = 63
           Width = 58
-          Caption = 'CODIGO'
+          Caption = 'CÓDIGO'
           ParentColor = False
         end
         object Label24: TLabel
@@ -3022,7 +3063,7 @@ object fImportar: TfImportar
           end        
           item
             Title.Alignment = taCenter
-            Title.Caption = 'CODIGO'
+            Title.Caption = 'CÓDIGO'
           end        
           item
             Title.Alignment = taCenter
@@ -3045,7 +3086,7 @@ object fImportar: TfImportar
             Title.Caption = 'PVP'
           end        
           item
-            Title.Caption = 'Posicion'
+            Title.Caption = 'Posición'
             Width = 0
           end>
         FixedCols = 0
@@ -3074,7 +3115,7 @@ object fImportar: TfImportar
           end        
           item
             Title.Alignment = taCenter
-            Title.Caption = 'CODIGO'
+            Title.Caption = 'CÓDIGO'
           end        
           item
             Title.Alignment = taCenter
@@ -3097,7 +3138,7 @@ object fImportar: TfImportar
             Title.Caption = 'PVP'
           end        
           item
-            Title.Caption = 'Posicion'
+            Title.Caption = 'Posición'
           end>
         FixedCols = 0
         Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goColSizing, goSmoothScroll]
@@ -3123,7 +3164,7 @@ object fImportar: TfImportar
       Height = 15
       Top = 6
       Width = 164
-      Caption = 'Registros a procesar . . .  '
+      Caption = 'Registros preparados para procesar'
       ParentColor = False
     end
     object Label29: TLabel
@@ -3167,7 +3208,7 @@ object fImportar: TfImportar
         item
           ButtonStyle = cbsButton
           Title.Alignment = taCenter
-          Title.Caption = 'CODIGO'
+          Title.Caption = 'CÓDIGO'
         end      
         item
           Title.Alignment = taCenter
@@ -3190,7 +3231,7 @@ object fImportar: TfImportar
           Title.Caption = 'PVP'
         end      
         item
-          Title.Caption = 'Posicion'
+          Title.Caption = 'Posición'
           Width = 0
         end>
       FixedCols = 0
@@ -3228,7 +3269,7 @@ object fImportar: TfImportar
       Height = 15
       Top = 48
       Width = 124
-      Caption = 'CODIGO PRINCIPAL'
+      Caption = 'CÓDIGO PRINCIPAL'
       Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
@@ -3239,7 +3280,7 @@ object fImportar: TfImportar
       Height = 15
       Top = 120
       Width = 89
-      Caption = 'DESCRIPCION'
+      Caption = 'DESCRIPCIÓN'
       Font.Height = -13
       Font.Name = 'Sans'
       ParentColor = False
@@ -3398,7 +3439,7 @@ object fImportar: TfImportar
       Height = 33
       Top = 216
       Width = 290
-      Caption = 'Aceptar la linea con los datos de la BD'
+      Caption = 'Usar artículo existente'
       Font.Height = -12
       Font.Name = 'Sans'
       Glyph.Data = {
@@ -3466,6 +3507,8 @@ object fImportar: TfImportar
         FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
         FFFFFFFFFFFFFFFFFFFF
       }
+      Hint = 'Resuelve la línea utilizando el artículo existente en la base de datos.'
+      ShowHint = True
       OnClick = BitBtnAceptarDatosBDClick
       ParentFont = False
       TabOrder = 6
@@ -3475,7 +3518,7 @@ object fImportar: TfImportar
       Height = 33
       Top = 216
       Width = 144
-      Caption = 'Nuevo Artículo'
+      Caption = 'Crear artículo nuevo'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
         2000000000009007000064000000640000000000000000000000FFFFFFFFFFFF
@@ -3541,6 +3584,8 @@ object fImportar: TfImportar
         FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
         FFFFFFFFFFFFFFFFFFFF
       }
+      Hint = 'Da de alta un artículo nuevo con los datos de la línea pendiente.'
+      ShowHint = True
       OnClick = BitBtnDAltaCodClick
       TabOrder = 7
     end
@@ -3549,7 +3594,7 @@ object fImportar: TfImportar
       Height = 33
       Top = 216
       Width = 152
-      Caption = 'Nuevo EAN'
+      Caption = 'Crear EAN / auxiliar'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
         2000000000009007000064000000640000000000000000000000FFFFFFFFFFFF
@@ -3615,6 +3660,8 @@ object fImportar: TfImportar
         FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
         FFFFFFFFFFFFFFFFFFFF
       }
+      Hint = 'Asocia el EAN o código auxiliar de la línea al artículo seleccionado.'
+      ShowHint = True
       OnClick = BitBtnAltaEanClick
       TabOrder = 8
     end
@@ -3623,7 +3670,7 @@ object fImportar: TfImportar
       Height = 33
       Top = 304
       Width = 103
-      Caption = 'Salir'
+      Caption = 'Cerrar edición'
       Glyph.Data = {
         C6070000424DC607000000000000360000002800000016000000160000000100
         2000000000009007000064000000640000000000000000000000FFFFFFFFFEFE
@@ -3689,6 +3736,8 @@ object fImportar: TfImportar
         FFFFFFFFFFFFFFFFFFFFF7F7F7FFE1E1E1FFCDCDCDFFCBCBCBFFD5D5D5FFF1F1
         F1FFFDFDFDFFFFFFFFFF
       }
+      Hint = 'Cierra este panel sin realizar otra acción.'
+      ShowHint = True
       OnClick = BitBtn6Click
       TabOrder = 9
     end

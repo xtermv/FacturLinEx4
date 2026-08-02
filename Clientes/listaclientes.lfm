@@ -3,14 +3,13 @@ object FLClientes: TFLClientes
   Height = 692
   Top = 1144
   Width = 1016
-  ActiveControl = PanelTituloGrid
-  Caption = 'Listado de Clientes'
+  Caption = 'Listados y análisis de clientes'
   ClientHeight = 692
   ClientWidth = 1016
   KeyPreview = True
   OnClose = Formclose
   OnCreate = Formcreate
-  Position = poDesktopCenter
+  Position = poScreenCenter
   ShowHint = True
   LCLVersion = '1.8.0.6'
   object Label5: TLabel

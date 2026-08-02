@@ -8,6 +8,7 @@ object FEtiLineal: TFEtiLineal
   ClientWidth = 1016
   Font.Height = -11
   KeyPreview = True
+  OnKeyDown = FormKeyDown
   OnClose = FormClose
   OnCreate = FormCreate
   Position = poDesktopCenter

@@ -19,6 +19,7 @@ uses
   puestos, zcomponent, listatiendas, lazreport, TAChartLazarusPkg, Series,
   Envases, config, uFLX_CryptoIni, Global, Familias, Departamentos, FormaPago,
   Rutas, Fabricantes, listausuarios, Usuarios, historicoop, gestionar,
+  uFLXTemaVisual,
   actualizaeans, ivaEmi, ivaReci, listaproveedores, Proveedores, Funciones,
   acaja, pagos, listafamilias, listapuestos, calculadora, teclado, Imprimir,
   entrada, CambiPrecio, importar, facturaped, Tiendas, listadepartamentos,
@@ -27,7 +28,7 @@ uses
   about, roles, Produccion, Presupuestos, Albaran, histoAlba, histofaprov,
   Ventas, uVeriFactu, Clientes, FAStock, etilineales, envioarti, envioclientes,
   actualizaarti, calculos, Mensajes, uFLX_Log, uFacturaE_Signer, Modelo347,
-  uVeriSIFForm;
+  uVeriSIFForm, uFLXPermisos, uFLXManualViewer;
 
 {$R *.res}
 

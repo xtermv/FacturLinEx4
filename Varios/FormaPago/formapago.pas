@@ -29,7 +29,10 @@ Interface
 Uses
   Classes, Sysutils, Lresources, Forms, Controls, Graphics, Dialogs, ComCtrls,
   Buttons, ZConnection, ZDataset, StdCtrls, ExtCtrls, LCLType, DBGrids,
-  TAGraph, TASeries, db, DbCtrls;
+  TAGraph, TASeries, db, DbCtrls, Grids
+  {$IFDEF LCLGTK2}
+  , gtk2, gdk2
+  {$ENDIF};
 
 
 Type
@@ -53,9 +56,18 @@ Type
     Bitbtn4: Tbitbtn;
     Bitbtn1: Tbitbtn;
     Panel2: TPanel;
+    PanelCabecera: TPanel;
+    LabelTitulo: TLabel;
+    LabelSubtitulo: TLabel;
     procedure BitBtn7Click(Sender: TObject);
     procedure BitBtn8Click(Sender: TObject);
-    Procedure Formcreate(Sender: Tobject);
+        procedure DBGrid1DrawColumnCell(Sender: TObject; const Rect: TRect;
+      DataCol: Integer; Column: TColumn; State: TGridDrawState);
+    procedure DBGrid1TitleClick(Column: TColumn);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure FormResize(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+Procedure Formcreate(Sender: Tobject);
     Procedure Edit1enter(Sender: Tobject);
     Procedure Edit1exit(Sender: Tobject);
     Procedure LimpiaForm();
@@ -66,10 +78,17 @@ Type
     Procedure Bitbtn4click(Sender: Tobject);
     Procedure Bitbtn2click(Sender: Tobject);
     Procedure Bitbtn3click(Sender: Tobject);
-
-  Private
-    { Private Declarations }
-  Public
+  private
+    FOrdenCampo: String;
+    FOrdenAscendente: Boolean;
+    procedure AplicarEstiloModerno;
+    procedure CentrarPanelEdicion;
+    procedure AplicarContrasteSeleccion(AControl: TWinControl);
+    procedure AplicarContrasteSeleccionControles(AParent: TWinControl);
+    procedure OrdenarGrid(const ACampo: String; AAscendente: Boolean);
+    procedure ActualizarFlechaOrden;
+    function QuitarFlechaOrden(const ATexto: String): String;
+  public
     { Public Declarations }
   End;
 
@@ -105,6 +124,11 @@ Begin
   BitBtn4.Enabled:=CheckRoles(dbRoles, CgRol, 'Formapag', 2);//------------------ Boton Modificar
   BitBtn3.Enabled:=CheckRoles(dbRoles, CgRol, 'Formapag', 3);//------------------ Boton Borrar
 
+  FOrdenCampo:='';
+  FOrdenAscendente:=True;
+  AplicarEstiloModerno;
+  CentrarPanelEdicion;
+
 end;
 
 
@@ -123,6 +147,7 @@ End;
 Procedure TFFormaPago.Bitbtn2click(Sender: Tobject);
 Begin
   Panel2.Visible:=True;
+  Panel2.BringToFront;
   DBGrid1.Enabled:=False; Panel1.Enabled:=False;
   Edit1.Text:=''; LimpiaForm();
   Edit1.Enabled:=True; Edit1.SetFocus;
@@ -146,6 +171,7 @@ End;
 Procedure TFFormaPago.Bitbtn4click(Sender: Tobject);
 Begin
   Panel2.Visible:=True;
+  Panel2.BringToFront;
   DBGrid1.Enabled:=False; Panel1.Enabled:=False;
   LimpiaForm(); Relleno();
   Edit1.Enabled:=False; Edit2.SetFocus;
@@ -194,6 +220,7 @@ procedure TFFormaPago.BitBtn8Click(Sender: TObject);
 begin
   Panel2.Visible:=False; Edit1.Enabled:=True;
   DBGrid1.Enabled:=True; Panel1.Enabled:=True;
+  if DBGrid1.CanFocus then DBGrid1.SetFocus;
 end;
 
 //===================== LIMPIAR DATOS =======================
@@ -216,6 +243,230 @@ Begin
   dbFormaPa.FieldByName('FPA0').AsString:=Edit1.Text;//------------- Codigo
   dbFormaPa.FieldByName('FPA1').AsString:=Edit2.Text;//------------- Nombre
 End;
+
+
+procedure TFFormaPago.FormShow(Sender: TObject);
+begin
+  AplicarEstiloModerno;
+  AplicarContrasteSeleccionControles(Self);
+  CentrarPanelEdicion;
+end;
+
+procedure TFFormaPago.FormResize(Sender: TObject);
+begin
+  CentrarPanelEdicion;
+end;
+
+procedure TFFormaPago.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key<>VK_ESCAPE then Exit;
+  Key:=0;
+  if Panel2.Visible then
+    BitBtn8Click(BitBtn8)
+  else
+    BitBtn1Click(BitBtn1);
+end;
+
+procedure TFFormaPago.AplicarEstiloModerno;
+var
+  I: Integer;
+  Botones: array[0..5] of TBitBtn;
+begin
+  Color:=RGBToColor(244,247,251);
+  Font.Name:='Sans';
+  Font.Height:=-13;
+
+  PanelCabecera.Caption:='';
+  PanelCabecera.Color:=RGBToColor(31,78,121);
+  Panel1.Caption:='';
+  Panel1.Color:=RGBToColor(232,239,247);
+  Panel2.Caption:='';
+  Panel2.Color:=RGBToColor(247,250,253);
+
+  LabelTitulo.Font.Color:=clWhite;
+  LabelSubtitulo.Font.Color:=RGBToColor(221,235,248);
+  Label1.Font.Color:=RGBToColor(24,36,48);
+  Label2.Font.Color:=RGBToColor(24,36,48);
+
+  DBGrid1.Color:=clWhite;
+  DBGrid1.FixedColor:=RGBToColor(218,230,242);
+  DBGrid1.Font.Color:=RGBToColor(24,36,48);
+  DBGrid1.TitleFont.Color:=RGBToColor(24,36,48);
+  DBGrid1.TitleFont.Style:=[fsBold];
+
+  Edit1.Color:=clWhite;
+  Edit2.Color:=clWhite;
+  Edit1.Font.Color:=RGBToColor(24,36,48);
+  Edit2.Font.Color:=RGBToColor(24,36,48);
+
+  Botones[0]:=BitBtn2;
+  Botones[1]:=BitBtn3;
+  Botones[2]:=BitBtn4;
+  Botones[3]:=BitBtn1;
+  Botones[4]:=BitBtn7;
+  Botones[5]:=BitBtn8;
+  for I:=Low(Botones) to High(Botones) do
+  begin
+    Botones[I].Font.Name:='Sans';
+    Botones[I].Font.Height:=-13;
+    Botones[I].Font.Style:=[fsBold];
+    Botones[I].Font.Color:=RGBToColor(24,36,48);
+    Botones[I].Visible:=True;
+    Botones[I].BringToFront;
+  end;
+
+  BitBtn2.Color:=RGBToColor(215,236,224);
+  BitBtn3.Color:=RGBToColor(249,221,221);
+  BitBtn4.Color:=RGBToColor(219,234,248);
+  BitBtn1.Color:=RGBToColor(229,233,238);
+  BitBtn7.Color:=RGBToColor(207,235,218);
+  BitBtn8.Color:=RGBToColor(229,233,238);
+end;
+
+procedure TFFormaPago.CentrarPanelEdicion;
+var
+  ZonaSuperior, ZonaInferior: Integer;
+begin
+  if not Assigned(Panel2) then Exit;
+  ZonaSuperior:=PanelCabecera.Height;
+  ZonaInferior:=Panel1.Height;
+  Panel2.Left:=(ClientWidth-Panel2.Width) div 2;
+  if Panel2.Left<16 then Panel2.Left:=16;
+  Panel2.Top:=ZonaSuperior+
+    (ClientHeight-ZonaSuperior-ZonaInferior-Panel2.Height) div 2;
+  if Panel2.Top<ZonaSuperior+16 then Panel2.Top:=ZonaSuperior+16;
+end;
+
+procedure TFFormaPago.AplicarContrasteSeleccion(AControl: TWinControl);
+{$IFDEF LCLGTK2}
+var
+  FondoNormal, TextoNormal, FondoSeleccion, TextoSeleccion: TGdkColor;
+  Widget: PGtkWidget;
+{$ENDIF}
+begin
+  if not Assigned(AControl) then Exit;
+  AControl.HandleNeeded;
+  {$IFDEF LCLGTK2}
+  Widget:=PGtkWidget(AControl.Handle);
+  if Assigned(Widget) then
+  begin
+    gdk_color_parse(PChar('#FFFFFF'),@FondoNormal);
+    gdk_color_parse(PChar('#182430'),@TextoNormal);
+    gtk_widget_modify_base(Widget,GTK_STATE_NORMAL,@FondoNormal);
+    gtk_widget_modify_text(Widget,GTK_STATE_NORMAL,@TextoNormal);
+    gdk_color_parse(PChar('#2A5684'),@FondoSeleccion);
+    gdk_color_parse(PChar('#FFFFFF'),@TextoSeleccion);
+    gtk_widget_modify_base(Widget,GTK_STATE_SELECTED,@FondoSeleccion);
+    gtk_widget_modify_text(Widget,GTK_STATE_SELECTED,@TextoSeleccion);
+  end;
+  {$ENDIF}
+end;
+
+procedure TFFormaPago.AplicarContrasteSeleccionControles(AParent: TWinControl);
+var
+  I: Integer;
+  C: TControl;
+begin
+  if not Assigned(AParent) then Exit;
+  for I:=0 to AParent.ControlCount-1 do
+  begin
+    C:=AParent.Controls[I];
+    if C is TCustomEdit then
+      AplicarContrasteSeleccion(TWinControl(C));
+    if C is TWinControl then
+      AplicarContrasteSeleccionControles(TWinControl(C));
+  end;
+end;
+
+procedure TFFormaPago.DBGrid1DrawColumnCell(Sender: TObject;
+  const Rect: TRect; DataCol: Integer; Column: TColumn;
+  State: TGridDrawState);
+var
+  Grid: TDBGrid;
+begin
+  Grid:=TDBGrid(Sender);
+  if gdSelected in State then
+  begin
+    Grid.Canvas.Brush.Color:=RGBToColor(42,86,132);
+    Grid.Canvas.Font.Color:=clWhite;
+  end
+  else
+  begin
+    Grid.Canvas.Brush.Color:=clWhite;
+    Grid.Canvas.Font.Color:=RGBToColor(24,36,48);
+  end;
+  Grid.Canvas.FillRect(Rect);
+  Grid.DefaultDrawColumnCell(Rect,DataCol,Column,State);
+end;
+
+function TFFormaPago.QuitarFlechaOrden(const ATexto: String): String;
+var
+  P: SizeInt;
+begin
+  Result:=ATexto;
+  P:=Pos(' ▲',Result);
+  if P>0 then Delete(Result,P,Length(Result)-P+1);
+  P:=Pos(' ▼',Result);
+  if P>0 then Delete(Result,P,Length(Result)-P+1);
+end;
+
+procedure TFFormaPago.ActualizarFlechaOrden;
+var
+  I: Integer;
+  Base: String;
+begin
+  for I:=0 to DBGrid1.Columns.Count-1 do
+  begin
+    Base:=QuitarFlechaOrden(DBGrid1.Columns[I].Title.Caption);
+    if SameText(DBGrid1.Columns[I].FieldName,FOrdenCampo) then
+    begin
+      if FOrdenAscendente then
+        DBGrid1.Columns[I].Title.Caption:=Base+' ▲'
+      else
+        DBGrid1.Columns[I].Title.Caption:=Base+' ▼';
+    end
+    else
+      DBGrid1.Columns[I].Title.Caption:=Base;
+  end;
+end;
+
+procedure TFFormaPago.OrdenarGrid(const ACampo: String;
+  AAscendente: Boolean);
+var
+  SQLBase, Direccion: String;
+  P: SizeInt;
+begin
+  if (ACampo='') or (not dbFormaPa.Active) then Exit;
+  SQLBase:=Trim(dbFormaPa.SQL.Text);
+  P:=Pos(' ORDER BY ',UpperCase(SQLBase));
+  if P>0 then SQLBase:=Trim(Copy(SQLBase,1,P-1));
+  if AAscendente then Direccion:=' ASC' else Direccion:=' DESC';
+
+  dbFormaPa.DisableControls;
+  try
+    dbFormaPa.Close;
+    dbFormaPa.SQL.Text:=SQLBase+' ORDER BY '+ACampo+Direccion;
+    dbFormaPa.Open;
+  finally
+    dbFormaPa.EnableControls;
+  end;
+end;
+
+procedure TFFormaPago.DBGrid1TitleClick(Column: TColumn);
+begin
+  if (Column=nil) or (Column.FieldName='') or (not dbFormaPa.Active) then Exit;
+  if SameText(FOrdenCampo,Column.FieldName) then
+    FOrdenAscendente:=not FOrdenAscendente
+  else
+  begin
+    FOrdenCampo:=Column.FieldName;
+    FOrdenAscendente:=True;
+  end;
+  OrdenarGrid(FOrdenCampo,FOrdenAscendente);
+  ActualizarFlechaOrden;
+end;
+
 
 Initialization
   {$I formapago.lrs}

@@ -483,6 +483,9 @@ object FFacturar: TFFacturar
       Width = 291
       Caption = 'Todos los albaranes, marcados y sin marcar'
       Checked = True
+      Color = clWhite
+      Font.Color = clBlack
+      ParentColor = False
       ParentFont = False
       TabOrder = 0
       TabStop = True
@@ -493,6 +496,9 @@ object FFacturar: TFFacturar
       Top = 96
       Width = 199
       Caption = 'Solo los albaranes marcados'
+      Color = clWhite
+      Font.Color = clBlack
+      ParentColor = False
       ParentFont = False
       TabOrder = 1
     end
@@ -502,6 +508,9 @@ object FFacturar: TFFacturar
       Top = 136
       Width = 203
       Caption = 'Solo los albaranes sin marcar'
+      Color = clWhite
+      Font.Color = clBlack
+      ParentColor = False
       ParentFont = False
       TabOrder = 2
     end
@@ -1311,6 +1320,9 @@ object FFacturar: TFFacturar
       Top = 195
       Width = 179
       Caption = 'Mostrar TODAS las series'
+      Color = clWhite
+      Font.Color = clBlack
+      ParentColor = False
       ParentFont = False
       TabOrder = 7
       OnClick = CheckBox1Click
@@ -1357,6 +1369,9 @@ object FFacturar: TFFacturar
     Width = 235
     Caption = 'Imprimir facturas sin previsualizar.'
     Checked = True
+    Color = clWhite
+    Font.Color = clBlack
+    ParentColor = False
     ParentFont = False
     State = cbChecked
     TabOrder = 22

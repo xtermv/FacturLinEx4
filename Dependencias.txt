@@ -9,3 +9,5 @@ rsync y mysql/mariadb-client, igual que ahora
 lftp para FTP/FTPS
 
 p7zip-full
+
+mariadb-backup

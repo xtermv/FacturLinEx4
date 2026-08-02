@@ -3,14 +3,13 @@ object FLUsuario: TFLUsuario
   Height = 692
   Top = 281
   Width = 1016
-  ActiveControl = PanelTituloGrid
-  Caption = 'Listado de Usuarios'
+  Caption = 'Listados y estadísticas de usuarios'
   ClientHeight = 692
   ClientWidth = 1016
   KeyPreview = True
   OnClose = Formclose
   OnCreate = Formcreate
-  Position = poDesktopCenter
+  Position = poScreenCenter
   ShowHint = True
   LCLVersion = '1.6.4.0'
   object Bevel1: TBevel

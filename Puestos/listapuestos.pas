@@ -30,7 +30,10 @@ Interface
 Uses
   Classes, Sysutils, Lresources, Forms, Controls, Graphics, Dialogs,
   LCLType, ExtCtrls, Process, Buttons, ZConnection, ZDataset, DBGrids,
-  StdCtrls, db, LR_DBSet, LR_Class;
+  StdCtrls, db, LR_DBSet, LR_Class, Grids
+  {$IFDEF LCLGTK2}
+  , gtk2, gdk2
+  {$ENDIF};
 
 Type
 
@@ -112,6 +115,13 @@ Type
     PanelDesdeHasta: TPanel;
     PanelTituloGrid: TPanel;
     RadioButton1: TRadioButton;
+    PanelCabecera: TPanel;
+    PanelFiltros: TPanel;
+    PanelResultados: TPanel;
+    LabelTitulo: TLabel;
+    LabelSubtitulo: TLabel;
+    LabelFiltrosTitulo: TLabel;
+    LabelAyudaFiltros: TLabel;
     procedure BitBtn1Click(Sender: TObject);
     procedure BitBtn2Click(Sender: TObject);
     procedure BitBtn3Click(Sender: TObject);
@@ -129,6 +139,11 @@ Type
     procedure RadioButton2Change(Sender: TObject);
     //procedure RellenaListBoxAnos(TxtQuery: String);
     procedure DBGrid1TitleClick(Column: TColumn);
+    procedure DBGrid1DrawColumnCell(Sender: TObject; const Rect: TRect;
+      DataCol: Integer; Column: TColumn; State: TGridDrawState);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure FormResize(Sender: TObject);
+    procedure FormShow(Sender: TObject);
     //procedure BlancoGrid(Grid: TDBGrid);
     procedure frReport1GetValue(const ParName: String; var ParValue: Variant);
     procedure RadioButton3Change(Sender: TObject);
@@ -136,6 +151,13 @@ Type
     procedure DimensionarColocarBDGrid();
 
   Private
+    procedure AplicarEstiloModerno;
+    procedure AplicarContrasteSeleccion(AControl: TWinControl);
+    procedure AplicarContrasteSeleccionControles(AParent: TWinControl);
+    procedure ActualizarFlechasOrden;
+    function QuitarFlechaOrden(const ATexto: String): String;
+    procedure ConfigurarBoton(ABoton: TBitBtn; const ACaption, AHint: String;
+      AColor: TColor);
     { Private Declarations }
   Public
     { Public Declarations }
@@ -174,8 +196,13 @@ Begin
   BitBtn2.Enabled:=False; BitBtn3.Enabled:=False;
 
    //Dimensionamos, colocamos y cocultamos todos los DBGrid
+   AntColun:='0';
+   TituloColumn:='';
+   Orden:='ASC';
+   Ordenado:=False;
    DimensionarColocarBDGrid();
    OcultarBDGrid();
+   AplicarEstiloModerno;
 End;
 
 //==================== CERRAR ======================
@@ -213,6 +240,9 @@ begin
      //WriteLn(TxtQuery);
      dbQuery.Active:=False; dbQuery.Sql.Text:=TxtQuery; dbQuery.Active:=True;
      DBGrid1.BringToFront; DBGrid1.Visible:=True;
+     LabelTituloDBGrid1.Caption:=
+       Format('%d puesto(s) encontrado(s). Pulse una cabecera para ordenar.',
+         [dbQuery.RecordCount]);
     end;
  //--------------------------- COMPRAS POR DEPARTAMENTOS
   //if RadioButton2.Checked=True then
@@ -277,6 +307,9 @@ begin
   BitBtn2.Enabled:=False; BitBtn3.Enabled:=False;
   Ordenado:=False;
   OcultarBDGrid();
+  LabelTituloDBGrid1.Caption:=
+    'Defina los límites de la consulta y pulse Consultar puestos.';
+  if Edit1.CanFocus then Edit1.SetFocus;
 end;
 
 //==================== IMPRIMIR ===================
@@ -384,7 +417,7 @@ procedure TFLPuestos.DimensionarColocarBDGrid();
 //======================= OCULTA TODOS LOS DBGird
 procedure TFLPuestos.OcultarBDGrid();
   begin
-    LabelTituloDBGrid.Caption:='';
+    LabelTituloDBGrid.Caption:='RESULTADO DE LA CONSULTA';
     DBGrid1.Visible:=False; //DBGrid2.Visible:=False;
     //DBGrid3.Visible:=False; //DBGrid4.Visible:=False;
   end;
@@ -394,6 +427,7 @@ procedure TFLPuestos.OcultarBDGrid();
 procedure TFLPuestos.DBGrid1TitleClick(Column: TColumn);
 begin
   Colorea(Column,DBGrid1,dbQuery, AntColun, Orden, TituloColumn, Ordenado);
+  ActualizarFlechasOrden;
 end;
 //procedure TFLPuestos.DBGrid2TitleClick(Column: TColumn);
 //begin
@@ -408,6 +442,201 @@ begin
   Colorea(Column,DBGrid4,dbQuery);
 end;}
 
+
+
+procedure TFLPuestos.ConfigurarBoton(ABoton: TBitBtn;
+  const ACaption, AHint: String; AColor: TColor);
+begin
+  if not Assigned(ABoton) then Exit;
+  ABoton.Caption:=ACaption;
+  ABoton.Hint:=AHint;
+  ABoton.ShowHint:=True;
+  ABoton.Color:=AColor;
+  ABoton.Font.Color:=RGBToColor(24,36,48);
+  ABoton.Font.Height:=-13;
+  ABoton.Font.Style:=[fsBold];
+  ABoton.Visible:=True;
+  ABoton.BringToFront;
+end;
+
+procedure TFLPuestos.AplicarEstiloModerno;
+begin
+  Caption:='FacturLinEx - Listado de puestos';
+  Color:=clWhite;
+  WindowState:=wsMaximized;
+  Position:=poDesktopCenter;
+  KeyPreview:=True;
+
+  LabelTitulo.Caption:='LISTADO DE PUESTOS';
+  LabelSubtitulo.Caption:=
+    'Consulta, ordenación y selección de los puestos configurados para la tienda activa.';
+  LabelFiltrosTitulo.Caption:='CRITERIOS DE CONSULTA';
+  LabelAyudaFiltros.Caption:=
+    'Los campos vacíos no limitan la consulta. Puede indicar solo el inicio, solo el final o ambos.';
+  Label5.Caption:='Tipo de listado';
+  RadioButton1.Caption:='Datos principales del puesto';
+  RadioButton1.Font.Color:=RGBToColor(24,36,48);
+  RadioButton1.Color:=PanelFiltros.Color;
+
+  Label2.Caption:='Primer código';
+  Label1.Caption:='Último código';
+  Label3.Caption:='Primer nombre';
+  Label4.Caption:='Último nombre';
+  Label9.Caption:='Tienda activa';
+
+  ConfigurarBoton(BitBtn1,'Consultar puestos',
+    'Ejecutar la consulta con los límites indicados',RGBToColor(207,232,246));
+  ConfigurarBoton(BitBtn2,'Imprimir informe',
+    'Imprimir el resultado de la consulta',RGBToColor(214,240,222));
+  ConfigurarBoton(BitBtn3,'Nueva consulta',
+    'Volver a los criterios para preparar otra consulta',RGBToColor(244,232,204));
+  ConfigurarBoton(BitBtn4,'Cerrar',
+    'Cerrar el listado de puestos',RGBToColor(232,232,232));
+
+  DBGrid1.Color:=clWhite;
+  DBGrid1.Font.Color:=RGBToColor(24,36,48);
+  DBGrid1.Font.Height:=-13;
+  DBGrid1.TitleFont.Color:=RGBToColor(24,36,48);
+  DBGrid1.TitleFont.Style:=[fsBold];
+  DBGrid1.Options:=DBGrid1.Options+[dgTitles,dgIndicator,dgColumnResize,
+    dgColumnMove,dgColLines,dgRowLines,dgRowSelect,dgAlwaysShowSelection];
+
+  if DBGrid1.Columns.Count>=7 then
+  begin
+    DBGrid1.Columns[0].Title.Caption:='CÓDIGO';
+    DBGrid1.Columns[0].Width:=90;
+    DBGrid1.Columns[1].Title.Caption:='NOMBRE / DESCRIPCIÓN';
+    DBGrid1.Columns[1].Width:=340;
+    DBGrid1.Columns[2].Title.Caption:='TELÉFONO';
+    DBGrid1.Columns[2].Width:=150;
+    DBGrid1.Columns[3].Title.Caption:='DIRECCIÓN IP';
+    DBGrid1.Columns[3].Width:=170;
+    DBGrid1.Columns[4].Title.Caption:='PUERTO';
+    DBGrid1.Columns[4].Width:=100;
+    DBGrid1.Columns[5].Title.Caption:='USUARIO';
+    DBGrid1.Columns[5].Width:=170;
+    DBGrid1.Columns[6].Title.Caption:='CLAVE';
+    DBGrid1.Columns[6].Width:=170;
+  end;
+
+  LabelTituloDBGrid.Caption:='RESULTADO DE LA CONSULTA';
+  LabelTituloDBGrid1.Caption:=
+    'Defina los límites de la consulta y pulse Consultar puestos.';
+end;
+
+procedure TFLPuestos.FormShow(Sender: TObject);
+begin
+  AplicarContrasteSeleccionControles(Self);
+  if Edit1.CanFocus then Edit1.SetFocus;
+end;
+
+procedure TFLPuestos.FormResize(Sender: TObject);
+begin
+  DimensionarColocarBDGrid;
+end;
+
+procedure TFLPuestos.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key=VK_ESCAPE then
+  begin
+    Key:=0;
+    BitBtn4Click(BitBtn4);
+  end;
+end;
+
+procedure TFLPuestos.DBGrid1DrawColumnCell(Sender: TObject; const Rect: TRect;
+  DataCol: Integer; Column: TColumn; State: TGridDrawState);
+var
+  Grid: TDBGrid;
+begin
+  Grid:=TDBGrid(Sender);
+  if gdSelected in State then
+  begin
+    Grid.Canvas.Brush.Color:=RGBToColor(42,86,132);
+    Grid.Canvas.Font.Color:=clWhite;
+  end
+  else
+  begin
+    Grid.Canvas.Brush.Color:=clWhite;
+    Grid.Canvas.Font.Color:=RGBToColor(24,36,48);
+  end;
+  Grid.Canvas.FillRect(Rect);
+  Grid.DefaultDrawColumnCell(Rect,DataCol,Column,State);
+end;
+
+procedure TFLPuestos.AplicarContrasteSeleccion(AControl: TWinControl);
+{$IFDEF LCLGTK2}
+var
+  FondoNormal, TextoNormal, FondoSeleccion, TextoSeleccion: TGdkColor;
+  Widget: PGtkWidget;
+{$ENDIF}
+begin
+  if not Assigned(AControl) then Exit;
+  AControl.HandleNeeded;
+
+  {$IFDEF LCLGTK2}
+  Widget:=PGtkWidget(AControl.Handle);
+  if Assigned(Widget) then
+  begin
+    gdk_color_parse(PChar('#FFFFFF'),@FondoNormal);
+    gdk_color_parse(PChar('#182430'),@TextoNormal);
+    gtk_widget_modify_base(Widget,GTK_STATE_NORMAL,@FondoNormal);
+    gtk_widget_modify_text(Widget,GTK_STATE_NORMAL,@TextoNormal);
+
+    gdk_color_parse(PChar('#2A5684'),@FondoSeleccion);
+    gdk_color_parse(PChar('#FFFFFF'),@TextoSeleccion);
+    gtk_widget_modify_base(Widget,GTK_STATE_SELECTED,@FondoSeleccion);
+    gtk_widget_modify_text(Widget,GTK_STATE_SELECTED,@TextoSeleccion);
+  end;
+  {$ENDIF}
+end;
+
+procedure TFLPuestos.AplicarContrasteSeleccionControles(AParent: TWinControl);
+var
+  I: Integer;
+  C: TControl;
+begin
+  if not Assigned(AParent) then Exit;
+  for I:=0 to AParent.ControlCount-1 do
+  begin
+    C:=AParent.Controls[I];
+    if C is TCustomEdit then
+      AplicarContrasteSeleccion(TWinControl(C));
+    if C is TWinControl then
+      AplicarContrasteSeleccionControles(TWinControl(C));
+  end;
+end;
+
+function TFLPuestos.QuitarFlechaOrden(const ATexto: String): String;
+var
+  P: SizeInt;
+begin
+  Result:=ATexto;
+  P:=Pos(' ▲',Result);
+  if P>0 then Delete(Result,P,Length(Result)-P+1);
+  P:=Pos(' ▼',Result);
+  if P>0 then Delete(Result,P,Length(Result)-P+1);
+end;
+
+procedure TFLPuestos.ActualizarFlechasOrden;
+var
+  I: Integer;
+  Base: String;
+begin
+  for I:=0 to DBGrid1.Columns.Count-1 do
+  begin
+    Base:=QuitarFlechaOrden(DBGrid1.Columns[I].Title.Caption);
+    DBGrid1.Columns[I].Title.Caption:=Base;
+    if SameText(DBGrid1.Columns[I].FieldName,TituloColumn) then
+    begin
+      if SameText(Orden,'DESC') then
+        DBGrid1.Columns[I].Title.Caption:=Base+' ▼'
+      else
+        DBGrid1.Columns[I].Title.Caption:=Base+' ▲';
+    end;
+  end;
+end;
 
 Procedure TFLPuestos.Formclose(Sender: Tobject; Var Closeaction: Tcloseaction);
 Begin

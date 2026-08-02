@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Manual de uso y configuración de FacturLinEx" name="description"/>
+<meta content="#155eef" name="theme-color"/>
+<title>11. Copias de seguridad y mantenimiento | Manual FacturLinEx</title>
+<link href="../assets/img/favicon.svg" rel="icon" type="image/svg+xml"/>
+<link href="../assets/css/styles.css" rel="stylesheet"/>
+<script defer="" src="../assets/js/search-index.js"></script>
+<script defer="" src="../assets/js/app.js"></script>
+</head>
+<body>
+<a class="skip-link" href="#contenido">Saltar al contenido</a>
+<header class="topbar">
+<button aria-expanded="false" aria-label="Abrir menú" class="icon-button menu-button" data-menu-button="" type="button">☰</button>
+<a aria-label="Inicio del manual FacturLinEx" class="brand" href="../index.html">
+<span class="brand-mark">FLX</span><span><strong>FacturLinEx</strong><small>Manual de uso y configuración</small></span>
+</a>
+<div class="top-actions">
+<button aria-label="Buscar en el manual" class="search-button" data-search-open="" type="button"><span aria-hidden="true">⌕</span><span>Buscar</span><kbd>Ctrl K</kbd></button>
+<button aria-label="Cambiar modo de color" class="icon-button" data-theme-toggle="" type="button">◐</button>
+</div>
+</header>
+<div class="menu-overlay" data-menu-overlay=""></div>
+<div class="app-shell">
+<aside class="sidebar" data-sidebar="">
+<div class="sidebar-inner">
+<a class="sidebar-home" href="../index.html">⌂ Página principal</a>
+<nav aria-label="Capítulos del manual"><a href="../capitulos/control-del-documento.html"><span class="nav-number">i</span><span>Control del documento</span></a>
+<a href="../capitulos/01-primeros-pasos-y-navegacion.html"><span class="nav-number">1</span><span>Primeros pasos y navegación</span></a>
+<a href="../capitulos/02-configuracion-inicial.html"><span class="nav-number">2</span><span>Configuración inicial</span></a>
+<a href="../capitulos/03-clientes.html"><span class="nav-number">3</span><span>Clientes</span></a>
+<a href="../capitulos/04-articulos-familias-y-tarifas.html"><span class="nav-number">4</span><span>Artículos, familias y tarifas</span></a>
+<a href="../capitulos/05-ventas-y-tpv.html"><span class="nav-number">5</span><span>Ventas y TPV</span></a>
+<a href="../capitulos/06-caja-cobros-y-creditos.html"><span class="nav-number">6</span><span>Caja, cobros y créditos</span></a>
+<a href="../capitulos/07-compras-pedidos-y-existencias.html"><span class="nav-number">7</span><span>Compras, pedidos y existencias</span></a>
+<a href="../capitulos/08-facturacion-impresion-pdf-y-correo.html"><span class="nav-number">8</span><span>Facturación, impresión, PDF y correo</span></a>
+<a href="../capitulos/09-verifactu-y-documentos-rectificativos.html"><span class="nav-number">9</span><span>VeriFactu y documentos rectificativos</span></a>
+<a href="../capitulos/10-dashboard-consultas-y-estadisticas.html"><span class="nav-number">10</span><span>Dashboard, consultas y estadísticas</span></a>
+<a aria-current="page" class="active" href="../capitulos/11-copias-de-seguridad-y-mantenimiento.html"><span class="nav-number">11</span><span>Copias de seguridad y mantenimiento</span></a>
+<a href="../capitulos/12-solucion-de-problemas.html"><span class="nav-number">12</span><span>Solución de problemas</span></a>
+<a href="../capitulos/13-anexos-y-referencia-rapida.html"><span class="nav-number">13</span><span>Anexos y referencia rápida</span></a>
+<a href="../capitulos/14-plan-de-ampliacion-del-manual.html"><span class="nav-number">14</span><span>Plan de ampliación del manual</span></a></nav>
+<div class="sidebar-downloads"><strong>Descargas</strong>
+<a href="../descargas/Manual_FacturLinEx_v1.2_Mantenimiento_Solucion_Problemas_Ilustrado.pdf">Manual PDF</a>
+<a href="../descargas/Manual_FacturLinEx_v1.2_Mantenimiento_Solucion_Problemas_Ilustrado.docx">Manual DOCX</a>
+</div>
+</div>
+</aside>
+<main class="main-content" id="contenido">
+<article class="manual-page">
+<header class="chapter-header"><span class="eyebrow">Capítulo 11</span><h1>Copias de seguridad y mantenimiento</h1><p class="chapter-version">Edición v1.2 · Mantenimiento y solución de problemas ilustrado</p></header>
+<nav aria-label="En esta página" class="page-toc"><strong>En esta página</strong>
+<a href="#11-1-politica">11.1 Política de copias</a><a href="#11-2-crear">11.2 Crear y verificar</a>
+<a href="#11-3-restaurar">11.3 Restauración</a><a href="#11-4-centro">11.4 Centro de Mantenimiento</a>
+<a href="#11-5-motor">11.5 Conversión MyISAM</a><a href="#11-6-actualizar">11.6 Actualización estable</a>
+<a href="#11-7-lista">11.7 Lista final</a></nav>
+<div class="chapter-content">
+<aside class="callout callout-success"><span class="callout-icon">✓</span><div><strong>ESTADO ACTUAL</strong><p>El capítulo se basa en los formularios modernizados de Backup/Restore y en el Centro de Mantenimiento aceptado <code>uCentroMantenimientoFacturLinEx(4).pas</code>. Las figuras son reconstrucciones documentales y no reproducen datos sensibles de producción.</p></div></aside>
+<h2 id="11-1-politica">11.1 Política mínima de copias <a class="heading-link" href="#11-1-politica">#</a></h2>
+<p>La copia debe proteger los datos y todos los elementos necesarios para volver a ejecutar la misma revisión. Una BBDD aislada puede ser insuficiente si faltan configuración, informes, recursos o la clave usada para descifrar contraseñas.</p>
+<div class="table-scroll"><table><thead><tr><th>Momento</th><th>Contenido recomendado</th><th>Conservación</th></tr></thead><tbody><tr><td>Diaria</td><td>BBDD, configuración y registro de resultado.</td><td>Varias copias recientes.</td></tr><tr><td>Semanal</td><td>Copia completa del entorno.</td><td>Varias semanas.</td></tr><tr><td>Antes de actualizar</td><td>BBDD, programa, unidades, informes, iconos y configuración.</td><td>Hasta validar.</td></tr><tr><td>Antes de reparar o convertir</td><td>BBDD completa y estado de tablas/motores.</td><td>Hasta comprobar funcionamiento.</td></tr><tr><td>Antes de restaurar</td><td>Copia del estado actual, aunque sea defectuoso.</td><td>Hasta confirmar la restauración.</td></tr></tbody></table></div>
+<figure class="manual-figure figure-wide"><a href="../assets/img/mantenimiento/01_copia_seguridad_reconstruccion_anotado.png" target="_blank"><img alt="Copia de seguridad con cuatro zonas numeradas" loading="lazy" src="../assets/img/mantenimiento/01_copia_seguridad_reconstruccion_anotado.png"/></a><figcaption>Figura 11.1. Contenido, destino, verificación e historial de una copia segura.<span>Pulse para ampliar.</span></figcaption></figure>
+<div class="table-scroll"><table><thead><tr><th>N.º</th><th>Zona</th><th>Comprobación</th></tr></thead><tbody><tr><td>1</td><td>Contenido</td><td>BBDD, FacturConf.ini, secret.key, informes, recursos y revisión ejecutable.</td></tr><tr><td>2</td><td>Destino</td><td>Nombre fechado y ubicación que no sustituya la única copia válida.</td></tr><tr><td>3</td><td>Verificación</td><td>Tamaño, log, integridad y prueba de apertura/restauración.</td></tr><tr><td>4</td><td>Historial</td><td>Fecha, equipo, tipo, destino y resultado.</td></tr></tbody></table></div>
+<aside class="callout callout-warning"><span class="callout-icon">!</span><div><strong>CLAVE DE CONFIGURACIÓN</strong><p>Copiar FacturConf.ini sin <code>~/.config/facturlinex/secret.key</code> puede impedir descifrar contraseñas protegidas. Los certificados y claves privadas deben guardarse únicamente en destinos seguros.</p></div></aside>
+<h2 id="11-2-crear">11.2 Creación y verificación de una copia <a class="heading-link" href="#11-2-crear">#</a></h2>
+<ol><li>Confirme tienda, puesto, versión estable y destino.</li><li>Evite cambios de estructura mientras se genera.</li><li>Incluya todos los elementos necesarios para reconstruir el entorno.</li><li>Revise log y tamaño del archivo.</li><li>Mantenga una copia en otra ubicación.</li><li>Pruebe periódicamente la restauración en un entorno controlado.</li></ol>
+<aside class="callout callout-danger"><span class="callout-icon">!</span><div><strong>COPIA NO VERIFICADA</strong><p>La existencia de un ZIP o volcado no demuestra que sea utilizable.</p></div></aside>
+<h2 id="11-3-restaurar">11.3 Restauración controlada <a class="heading-link" href="#11-3-restaurar">#</a></h2>
+<p>Debe realizarse con FacturLinEx cerrado en todos los puestos, sin usuarios conectados y después de copiar el estado actual.</p>
+<figure class="manual-figure figure-wide"><a href="../assets/img/mantenimiento/02_restauracion_controlada_reconstruccion_anotado.png" target="_blank"><img alt="Restauración controlada con cuatro zonas numeradas" loading="lazy" src="../assets/img/mantenimiento/02_restauracion_controlada_reconstruccion_anotado.png"/></a><figcaption>Figura 11.2. Selección, preparación, alcance y validación de una restauración.<span>Pulse para ampliar.</span></figcaption></figure>
+<div class="table-scroll"><table><thead><tr><th>N.º</th><th>Zona</th><th>Uso</th></tr></thead><tbody><tr><td>1</td><td>Copia</td><td>Fecha, versión, tienda, motor, contenido e integridad.</td></tr><tr><td>2</td><td>Preparación</td><td>Cerrar puestos, detener procesos y copiar el estado actual.</td></tr><tr><td>3</td><td>Alcance</td><td>BBDD, configuración, secret.key, recursos o ejecutable.</td></tr><tr><td>4</td><td>Validación</td><td>Clientes, artículos, ventas, numeraciones, VeriFactu, caja y créditos.</td></tr></tbody></table></div>
+<aside class="callout callout-warning"><span class="callout-icon">!</span><div><strong>PRODUCCIÓN</strong><p>No abra todos los puestos hasta verificar numeraciones y documentos recientes desde un único equipo.</p></div></aside>
+<h2 id="11-4-centro">11.4 Centro de Mantenimiento <a class="heading-link" href="#11-4-centro">#</a></h2>
+<p>Las acciones que alteran tablas deben reservarse a personal autorizado, tras identificar la causa y conservar una copia completa.</p>
+<figure class="manual-figure figure-wide"><a href="../assets/img/mantenimiento/03_centro_mantenimiento_reconstruccion_anotado.png" target="_blank"><img alt="Centro de Mantenimiento con tres zonas numeradas" loading="lazy" src="../assets/img/mantenimiento/03_centro_mantenimiento_reconstruccion_anotado.png"/></a><figcaption>Figura 11.3. Herramientas, estado de tablas y registro de operaciones.<span>Pulse para ampliar.</span></figcaption></figure>
+<div class="table-scroll"><table><thead><tr><th>Herramienta</th><th>Uso</th><th>Precaución</th></tr></thead><tbody><tr><td>Info BBDD</td><td>Servidor, versión, tablas y motores.</td><td>Solo lectura.</td></tr><tr><td>Check tablas</td><td>Comprobar tablas compatibles.</td><td>Identificar tabla.</td></tr><tr><td>Reparar tablas</td><td>Reparación con error confirmado.</td><td>Copia y usuarios desconectados.</td></tr><tr><td>Convertir motor</td><td>Cambiar tablas seleccionadas.</td><td>No ejecutar indiscriminadamente.</td></tr></tbody></table></div>
+<h2 id="11-5-motor">11.5 Conversión segura a MyISAM <a class="heading-link" href="#11-5-motor">#</a></h2>
+<p>En el entorno actual se prefiere MyISAM. La conversión requiere puestos cerrados, copia verificada y listado previo de tablas con motor distinto.</p>
+<figure class="manual-figure figure-wide"><a href="../assets/img/mantenimiento/04_conversion_motor_segura_reconstruccion_anotado.png" target="_blank"><img alt="Conversión de motor con dos zonas numeradas" loading="lazy" src="../assets/img/mantenimiento/04_conversion_motor_segura_reconstruccion_anotado.png"/></a><figcaption>Figura 11.4. Consulta previa, condiciones de conversión y verificación posterior.<span>Pulse para ampliar.</span></figcaption></figure>
+<aside class="callout callout-danger"><span class="callout-icon">!</span><div><strong>BLOQUEOS</strong><p>Un ALTER TABLE puede esperar bloqueos de metadatos. Ante una espera anormal o error, detenga el proceso y diagnostique antes de repetir.</p></div></aside>
+<h2 id="11-6-actualizar">11.6 Actualización del programa y versión estable <a class="heading-link" href="#11-6-actualizar">#</a></h2>
+<figure class="manual-figure figure-wide"><a href="../assets/img/mantenimiento/05_actualizacion_estable_reconstruccion_anotado.png" target="_blank"><img alt="Actualización estable con dos zonas numeradas" loading="lazy" src="../assets/img/mantenimiento/05_actualizacion_estable_reconstruccion_anotado.png"/></a><figcaption>Figura 11.5. Compilación completa, pruebas, paquete y validación.<span>Pulse para ampliar.</span></figcaption></figure>
+<p>Parta de una base estable, realice cambios pequeños, compile con <code>lazbuild -B</code>, pruebe el módulo y funciones relacionadas, y registre el ZIP validado.</p>
+<aside class="callout callout-info"><span class="callout-icon">i</span><div><strong>NO ROMPER NADA</strong><p>Una corrección no se considera estable solo porque compile.</p></div></aside>
+<h2 id="11-7-lista">11.7 Lista final de mantenimiento <a class="heading-link" href="#11-7-lista">#</a></h2>
+<ul class="checklist"><li><span class="checkbox"></span><span>Copia diaria y log correctos.</span></li><li><span class="checkbox"></span><span>Copia completa en otra ubicación.</span></li><li><span class="checkbox"></span><span>FacturConf.ini y secret.key incluidos.</span></li><li><span class="checkbox"></span><span>Prueba de restauración realizada.</span></li><li><span class="checkbox"></span><span>Puestos cerrados antes de restaurar, reparar o convertir.</span></li><li><span class="checkbox"></span><span>Motor y CHECK verificados.</span></li><li><span class="checkbox"></span><span>Compilación completa con lazbuild -B.</span></li><li><span class="checkbox"></span><span>Versión estable anterior conservada.</span></li><li><span class="checkbox"></span><span>Cuadros, números y leyendas coinciden.</span></li></ul>
+<aside class="callout callout-success"><span class="callout-icon">✓</span><div><strong>CIERRE CORRECTO</strong><p>Las copias pueden verificarse, la restauración conserva trazabilidad y cada actualización mantiene una versión recuperable.</p></div></aside>
+</div>
+<nav aria-label="Capítulos anterior y siguiente" class="chapter-navigation"><a class="chapter-nav-card previous" href="10-dashboard-consultas-y-estadisticas.html"><small>Anterior</small><strong>← 10. Dashboard, consultas y estadísticas</strong></a><a class="chapter-nav-card next" href="12-solucion-de-problemas.html"><small>Siguiente</small><strong>12. Solución de problemas →</strong></a></nav>
+</article>
+<footer class="site-footer">
+<p><strong>Manual FacturLinEx v1.2</strong> · Mantenimiento y solución de problemas ilustrado · 25 de julio de 2026</p>
+<p>Documento vivo: los procedimientos se actualizarán cuando cambie una función validada.</p>
+<a href="../descargas/Manual_FacturLinEx_v1.2_Mantenimiento_Solucion_Problemas_Ilustrado.pdf">Descargar PDF</a>
+</footer>
+</main>
+</div>
+<dialog aria-label="Buscar en el manual" class="search-dialog" data-search-dialog="">
+<form class="search-panel" method="dialog">
+<div class="search-input-row">
+<span aria-hidden="true">⌕</span>
+<input aria-label="Texto de búsqueda" autocomplete="off" data-search-input="" placeholder="Buscar clientes, ventas, VeriFactu..." type="search"/>
+<button aria-label="Cerrar búsqueda" class="dialog-close" type="submit">Esc</button>
+</div>
+<div class="search-hint" data-search-hint="">Escribe al menos dos caracteres.</div>
+<div aria-live="polite" class="search-results" data-search-results=""></div>
+</form>
+</dialog>
+</body>
+</html>

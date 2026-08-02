@@ -33,6 +33,7 @@
 Unit Menu;
 
 {$mode Objfpc}{$H+}
+{$codepage utf8}
 
 Interface
 
@@ -101,6 +102,7 @@ Type
     BitBtnMonitor: TBitBtn;
     btnEnviarAhora: TBitBtn;
     BitBtnAbout: TBitBtn;
+    BitBtnManual: TBitBtn;
     BitBtnActuArti: TBitBtn;
     BitBtnActuEans: TBitBtn;
     BitBtnActuPedi: TBitBtn;
@@ -240,9 +242,14 @@ Type
     procedure InitBackupPopupMenu;
     procedure MenuBackupManualClick(Sender: TObject);
     procedure MenuBackupFLXClick(Sender: TObject);
+    procedure MenuBackupRemotoClick(Sender: TObject);
+    procedure MenuBackupRemotoFTPClick(Sender: TObject);
+    procedure MenuBackupBaseRemotaClick(Sender: TObject);
+    procedure MenuBackupBaseRemotaFTPClick(Sender: TObject);
     procedure MenuBackupFLXFTPClick(Sender: TObject);
     procedure MenuBackupFTPConfigClick(Sender: TObject);
     procedure MenuDescomprimirBackupClick(Sender: TObject);
+    procedure MenuRestoreRemotoClick(Sender: TObject);
     procedure MenuRestoreCopiaClick(Sender: TObject);
     procedure BitBtn44Click(Sender: TObject);
     procedure BitBtn45Click(Sender: TObject);
@@ -280,6 +287,7 @@ Type
     procedure BitBtnActuEansClick(Sender: TObject);
     procedure BitBtnComunClick(Sender: TObject);
     procedure BitBtnAboutClick(Sender: TObject);
+    procedure BitBtnManualClick(Sender: TObject);
     procedure BitBtnMonitorClick(Sender: TObject);
     procedure PedidoProvVentasClick(Sender: TObject);
     procedure AddPedidoProvVentasButton;
@@ -349,6 +357,71 @@ Type
   Private
     { Private Declarations }
     FPopupBackup: TPopupMenu;
+    FBackupRemotoSalidaEjecutado: Boolean;
+    FBackupRemotoSustituyeLocal: Boolean;
+    procedure EjecutarBackupRemotoAlSalir;
+    function SubirBackupRemotoFTP(const ALocalFile: string;
+      out AMessage: string): Boolean;
+
+  private
+    { Se abre una nueva sección de visibilidad porque FPC no permite declarar
+      campos después de métodos dentro de la misma sección. }
+    { Capa visual moderna del menú. }
+    FHeaderPanel: TPanel;
+    FHeaderTitle: TLabel;
+    FHeaderSubtitle: TLabel;
+    FHeaderContext: TLabel;
+    FHeroPanel: TPanel;
+    FHeroTopPanel: TPanel;
+    FHeroTitle: TLabel;
+    FHeroSubtitle: TLabel;
+    FQuickPanel: TPanel;
+    FQuickTitle: TLabel;
+    FLogoFrame: TShape;
+    FModernMenuApplied: Boolean;
+    FMenuFinalReady: Boolean;
+    FOrdenOriginalCapturado: Boolean;
+    FOrdenOriginalPestanas: string;
+    FOrdenOriginalBotones: TStringList;
+    procedure AplicarEstiloModernoMenu;
+    procedure RecolocarMenuModerno;
+    procedure PosicionarPanelOtrosArchivos;
+    procedure AddPersonalizarMenuButton;
+    procedure PersonalizarMenuClick(Sender: TObject);
+    procedure CapturarOrdenOriginalMenu;
+    procedure CargarOrdenMenuPersonalizado;
+    procedure GuardarOrdenMenuPersonalizado;
+    procedure RestaurarOrdenOriginalMenu;
+    procedure AplicarOrdenPestanas(const AOrden: string);
+    procedure AplicarOrdenBotones(ASheet: TTabSheet; const AOrden: string);
+    function ListaPestanasActual: string;
+    function ListaBotonesActual(ASheet: TTabSheet): string;
+    function RutaPerfilMenu: string;
+    function SeccionPerfilMenu: string;
+    procedure RecolocarBotonesPestana(ASheet: TTabSheet);
+    procedure EstilizarPanelesAuxiliares;
+    procedure PrepararBotonMenu(ABtn: TBitBtn; AColor: TColor);
+    procedure FormResizeModerno(Sender: TObject);
+    procedure TarjetaMenuClick(Sender: TObject);
+    procedure TarjetaMenuKeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure TarjetaMenuMouseEnter(Sender: TObject);
+    procedure TarjetaMenuMouseLeave(Sender: TObject);
+    procedure CrearTarjetaMenu(ABtn: TBitBtn; ASheet: TTabSheet;
+      AAccent: TColor; AOrden: Integer);
+    procedure PrepararCabeceraPestana(ASheet: TTabSheet);
+    procedure ActualizarPestanaActivaVisual;
+    procedure PageControl1ChangeModerno(Sender: TObject);
+    function BuscarTarjetaMenu(ABtn: TBitBtn): TPanel;
+    function PanelTarjetaDesdeSender(Sender: TObject): TPanel;
+    function TituloBasePestana(ASheet: TTabSheet): string;
+    function DescripcionPestana(ASheet: TTabSheet): string;
+    function FilasBotonesPestana(ASheet: TTabSheet; AClientWidth: Integer): Integer;
+    function ColorFuertePestana(ASheet: TTabSheet): TColor;
+    function ColorSuavePestana(ASheet: TTabSheet): TColor;
+    function ColorTextoParaFondo(AColor: TColor): TColor;
+    procedure AplicarPermisosAccesoMenu;
+
     //-------------------------------------------------
     //-- Barra de Estado Información SERVER Veri*Factu
     //-------------------------------------------------
@@ -399,7 +472,482 @@ uses
    uVF_Integration, uVeriChain, uVeriChainCheck, uVF_QueueResult, uvfqueuemonitor,
    uVF_Stub, uVFSenderAEAT, uVeriSIFForm, uFLX_Log, uFLX_Backup, uFLX_CryptoIni,
    uBackupFTPConfig, uRestoreBackup, uBackupUnpackHelper, uFLXRestoreRemote,
-   uFLX_PedidoProveedorVentasPDF, uPedidoProveedorAuto, uPedidoTemporadaAuto, uDashboardProductividad, uDoctorFacturLinEx, uAlertasFacturLinEx, uAsistenteFacturLinEx, uHistoricoPreciosFacturLinEx, uRentabilidadFacturLinEx, uComparadorProveedoresFacturLinEx, uAsesorComprasFacturLinEx, uCentroInteligenciaFacturLinEx, uCentroMantenimientoFacturLinEx, uTendenciasFacturLinEx, uPrediccionesFacturLinEx, uAccionesRecomendadasFacturLinEx, uFLXUpdater, uFLXUpdateConfig, Types, BaseUnix;
+   uFLX_PedidoProveedorVentasPDF, uPedidoProveedorAuto, uPedidoTemporadaAuto, uDashboardProductividad, uDoctorFacturLinEx, uAlertasFacturLinEx, uAsistenteFacturLinEx, uHistoricoPreciosFacturLinEx, uRentabilidadFacturLinEx, uComparadorProveedoresFacturLinEx, uAsesorComprasFacturLinEx, uCentroInteligenciaFacturLinEx, uCentroMantenimientoFacturLinEx, uTendenciasFacturLinEx, uPrediccionesFacturLinEx, uAccionesRecomendadasFacturLinEx, uFLXUpdater, uFLXUpdateConfig, Types, BaseUnix,
+  uFLXInformacionVentas, uFLXPermisos, uFLXManualViewer,
+  uFLXRemoteBackup, uFLXTemaVisual;
+
+type
+  { Ventana creada completamente en ejecución. No necesita LFM adicional. }
+  TFLXMenuPersonalizarForm = class(TForm)
+  private
+    FMenu: TFMenu;
+    FListaPestanas: TListBox;
+    FListaBotones: TListBox;
+    FLabelAccesos: TLabel;
+    FBackupPestanas: string;
+    FBackupBotones: TStringList;
+    procedure ConstruirInterfaz;
+    procedure CargarPestanas;
+    procedure CargarBotones;
+    procedure PestanaSeleccionada(Sender: TObject; User: Boolean);
+    procedure SubirPestana(Sender: TObject);
+    procedure BajarPestana(Sender: TObject);
+    procedure SubirBoton(Sender: TObject);
+    procedure BajarBoton(Sender: TObject);
+    procedure RestaurarOriginal(Sender: TObject);
+    procedure FormKeyDownPersonalizar(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure AplicarOrdenPestanasLista;
+    procedure AplicarOrdenBotonesLista;
+    function HojaSeleccionada: TTabSheet;
+    procedure CapturarRespaldo;
+    procedure RestaurarRespaldo;
+  public
+    constructor CreatePersonalizar(AMenu: TFMenu);
+    destructor Destroy; override;
+    function Ejecutar: Boolean;
+  end;
+
+constructor TFLXMenuPersonalizarForm.CreatePersonalizar(AMenu: TFMenu);
+begin
+  inherited CreateNew(AMenu, 1);
+  FMenu := AMenu;
+  FBackupBotones := TStringList.Create;
+  Caption := 'FacturLinEx · Personalizar menú';
+  Position := poScreenCenter;
+  BorderStyle := bsSizeable;
+  Width := 980;
+  Height := 650;
+  Constraints.MinWidth := 820;
+  Constraints.MinHeight := 560;
+  Color := RGBToColor(238, 243, 246);
+  ParentFont := False;
+  Font.Name := 'Sans';
+  Font.Height := -11;
+  KeyPreview := True;
+  OnKeyDown := @FormKeyDownPersonalizar;
+  ConstruirInterfaz;
+  CapturarRespaldo;
+  CargarPestanas;
+end;
+
+destructor TFLXMenuPersonalizarForm.Destroy;
+begin
+  FreeAndNil(FBackupBotones);
+  inherited Destroy;
+end;
+
+procedure TFLXMenuPersonalizarForm.ConstruirInterfaz;
+var
+  Cabecera, Pie, PieDerecha, PanelPestanas, PanelAccesos, BarraPestanas,
+  BarraAccesos: TPanel;
+  Titulo, Subtitulo, LPestanas: TLabel;
+  BtnSubirPestana, BtnBajarPestana, BtnSubirBoton, BtnBajarBoton,
+  BtnRestaurar, BtnGuardar, BtnCancelar: TBitBtn;
+
+  procedure EstiloBoton(B: TBitBtn; AColor: TColor; ATextoBlanco: Boolean);
+  begin
+    B.ParentFont := False;
+    B.Font.Name := 'Sans';
+    B.Font.Height := -11;
+    B.Font.Style := [fsBold];
+    B.Color := AColor;
+    if ATextoBlanco then B.Font.Color := clWhite
+    else B.Font.Color := RGBToColor(30, 41, 59);
+    B.Height := 38;
+  end;
+
+begin
+  Cabecera := TPanel.Create(Self);
+  Cabecera.Parent := Self;
+  Cabecera.Align := alTop;
+  Cabecera.Height := 86;
+  Cabecera.BevelOuter := bvNone;
+  Cabecera.ParentColor := False;
+  Cabecera.Color := RGBToColor(18, 76, 91);
+
+  Titulo := TLabel.Create(Self);
+  Titulo.Parent := Cabecera;
+  Titulo.SetBounds(24, 12, 700, 31);
+  Titulo.AutoSize := False;
+  Titulo.Transparent := True;
+  Titulo.ParentFont := False;
+  Titulo.Font.Name := 'Sans';
+  Titulo.Font.Height := -20;
+  Titulo.Font.Style := [fsBold];
+  Titulo.Font.Color := clWhite;
+  Titulo.Caption := 'PERSONALIZAR EL CENTRO DE TRABAJO';
+
+  Subtitulo := TLabel.Create(Self);
+  Subtitulo.Parent := Cabecera;
+  Subtitulo.SetBounds(26, 48, 900, 24);
+  Subtitulo.AutoSize := False;
+  Subtitulo.Transparent := True;
+  Subtitulo.ParentFont := False;
+  Subtitulo.Font.Name := 'Sans';
+  Subtitulo.Font.Height := -10;
+  Subtitulo.Font.Color := RGBToColor(220, 235, 239);
+  Subtitulo.Caption :=
+    'Ordena las pestañas y los accesos con Subir/Bajar. La distribución se guardará para este usuario, tienda y puesto.';
+
+  Pie := TPanel.Create(Self);
+  Pie.Parent := Self;
+  Pie.Align := alBottom;
+  Pie.Height := 72;
+  Pie.BevelOuter := bvNone;
+  Pie.ParentColor := False;
+  Pie.Color := RGBToColor(230, 236, 240);
+
+  BtnRestaurar := TBitBtn.Create(Self);
+  BtnRestaurar.Parent := Pie;
+  BtnRestaurar.SetBounds(18, 17, 190, 38);
+  BtnRestaurar.Caption := 'Restaurar orden original';
+  BtnRestaurar.OnClick := @RestaurarOriginal;
+  EstiloBoton(BtnRestaurar, RGBToColor(226, 232, 240), False);
+
+  PieDerecha := TPanel.Create(Self);
+  PieDerecha.Parent := Pie;
+  PieDerecha.Align := alRight;
+  PieDerecha.Width := 320;
+  PieDerecha.BevelOuter := bvNone;
+  PieDerecha.ParentColor := True;
+
+  BtnCancelar := TBitBtn.Create(Self);
+  BtnCancelar.Parent := PieDerecha;
+  BtnCancelar.SetBounds(10, 17, 130, 38);
+  BtnCancelar.Caption := 'Cancelar';
+  BtnCancelar.ModalResult := mrCancel;
+  EstiloBoton(BtnCancelar, RGBToColor(71, 85, 105), True);
+
+  BtnGuardar := TBitBtn.Create(Self);
+  BtnGuardar.Parent := PieDerecha;
+  BtnGuardar.SetBounds(150, 17, 156, 38);
+  BtnGuardar.Caption := 'Guardar y aplicar';
+  BtnGuardar.ModalResult := mrOk;
+  EstiloBoton(BtnGuardar, RGBToColor(22, 130, 84), True);
+
+  PanelPestanas := TPanel.Create(Self);
+  PanelPestanas.Parent := Self;
+  PanelPestanas.Align := alLeft;
+  PanelPestanas.Width := 350;
+  PanelPestanas.BorderSpacing.Left := 16;
+  PanelPestanas.BorderSpacing.Top := 16;
+  PanelPestanas.BorderSpacing.Right := 16;
+  PanelPestanas.BorderSpacing.Bottom := 16;
+  PanelPestanas.BevelOuter := bvNone;
+  PanelPestanas.ParentColor := False;
+  PanelPestanas.Color := clWhite;
+
+  LPestanas := TLabel.Create(Self);
+  LPestanas.Parent := PanelPestanas;
+  LPestanas.Align := alTop;
+  LPestanas.Height := 48;
+  LPestanas.BorderSpacing.Left := 18;
+  LPestanas.BorderSpacing.Top := 10;
+  LPestanas.AutoSize := False;
+  LPestanas.Transparent := True;
+  LPestanas.ParentFont := False;
+  LPestanas.Font.Name := 'Sans';
+  LPestanas.Font.Height := -14;
+  LPestanas.Font.Style := [fsBold];
+  LPestanas.Font.Color := RGBToColor(18, 76, 91);
+  LPestanas.Layout := tlCenter;
+  LPestanas.Caption := 'PESTAÑAS';
+
+  BarraPestanas := TPanel.Create(Self);
+  BarraPestanas.Parent := PanelPestanas;
+  BarraPestanas.Align := alBottom;
+  BarraPestanas.Height := 58;
+  BarraPestanas.BevelOuter := bvNone;
+  BarraPestanas.ParentColor := False;
+  BarraPestanas.Color := RGBToColor(247, 249, 250);
+
+  BtnSubirPestana := TBitBtn.Create(Self);
+  BtnSubirPestana.Parent := BarraPestanas;
+  BtnSubirPestana.SetBounds(14, 10, 150, 38);
+  BtnSubirPestana.Caption := 'Subir pestaña';
+  BtnSubirPestana.OnClick := @SubirPestana;
+  EstiloBoton(BtnSubirPestana, RGBToColor(23, 96, 116), True);
+
+  BtnBajarPestana := TBitBtn.Create(Self);
+  BtnBajarPestana.Parent := BarraPestanas;
+  BtnBajarPestana.SetBounds(178, 10, 150, 38);
+  BtnBajarPestana.Caption := 'Bajar pestaña';
+  BtnBajarPestana.OnClick := @BajarPestana;
+  EstiloBoton(BtnBajarPestana, RGBToColor(23, 96, 116), True);
+
+  FListaPestanas := TListBox.Create(Self);
+  FListaPestanas.Parent := PanelPestanas;
+  FListaPestanas.Align := alClient;
+  FListaPestanas.BorderSpacing.Left := 14;
+  FListaPestanas.BorderSpacing.Right := 14;
+  FListaPestanas.BorderSpacing.Bottom := 10;
+  FListaPestanas.ParentFont := False;
+  FListaPestanas.Font.Name := 'Sans';
+  FListaPestanas.Font.Height := -12;
+  FListaPestanas.OnSelectionChange := @PestanaSeleccionada;
+
+  PanelAccesos := TPanel.Create(Self);
+  PanelAccesos.Parent := Self;
+  PanelAccesos.Align := alClient;
+  PanelAccesos.BorderSpacing.Top := 16;
+  PanelAccesos.BorderSpacing.Right := 16;
+  PanelAccesos.BorderSpacing.Bottom := 16;
+  PanelAccesos.BevelOuter := bvNone;
+  PanelAccesos.ParentColor := False;
+  PanelAccesos.Color := clWhite;
+
+  FLabelAccesos := TLabel.Create(Self);
+  FLabelAccesos.Parent := PanelAccesos;
+  FLabelAccesos.Align := alTop;
+  FLabelAccesos.Height := 48;
+  FLabelAccesos.BorderSpacing.Left := 18;
+  FLabelAccesos.BorderSpacing.Top := 10;
+  FLabelAccesos.AutoSize := False;
+  FLabelAccesos.Transparent := True;
+  FLabelAccesos.ParentFont := False;
+  FLabelAccesos.Font.Name := 'Sans';
+  FLabelAccesos.Font.Height := -14;
+  FLabelAccesos.Font.Style := [fsBold];
+  FLabelAccesos.Font.Color := RGBToColor(18, 76, 91);
+  FLabelAccesos.Layout := tlCenter;
+  FLabelAccesos.Caption := 'ACCESOS DE LA PESTAÑA';
+
+  BarraAccesos := TPanel.Create(Self);
+  BarraAccesos.Parent := PanelAccesos;
+  BarraAccesos.Align := alBottom;
+  BarraAccesos.Height := 58;
+  BarraAccesos.BevelOuter := bvNone;
+  BarraAccesos.ParentColor := False;
+  BarraAccesos.Color := RGBToColor(247, 249, 250);
+
+  BtnSubirBoton := TBitBtn.Create(Self);
+  BtnSubirBoton.Parent := BarraAccesos;
+  BtnSubirBoton.SetBounds(14, 10, 160, 38);
+  BtnSubirBoton.Caption := 'Subir acceso';
+  BtnSubirBoton.OnClick := @SubirBoton;
+  EstiloBoton(BtnSubirBoton, RGBToColor(91, 75, 138), True);
+
+  BtnBajarBoton := TBitBtn.Create(Self);
+  BtnBajarBoton.Parent := BarraAccesos;
+  BtnBajarBoton.SetBounds(188, 10, 160, 38);
+  BtnBajarBoton.Caption := 'Bajar acceso';
+  BtnBajarBoton.OnClick := @BajarBoton;
+  EstiloBoton(BtnBajarBoton, RGBToColor(91, 75, 138), True);
+
+  FListaBotones := TListBox.Create(Self);
+  FListaBotones.Parent := PanelAccesos;
+  FListaBotones.Align := alClient;
+  FListaBotones.BorderSpacing.Left := 14;
+  FListaBotones.BorderSpacing.Right := 14;
+  FListaBotones.BorderSpacing.Bottom := 10;
+  FListaBotones.ParentFont := False;
+  FListaBotones.Font.Name := 'Sans';
+  FListaBotones.Font.Height := -12;
+end;
+
+procedure TFLXMenuPersonalizarForm.CapturarRespaldo;
+var
+  I: Integer;
+  TS: TTabSheet;
+begin
+  FBackupPestanas := FMenu.ListaPestanasActual;
+  FBackupBotones.Clear;
+  for I := 0 to FMenu.PageControl1.PageCount - 1 do
+  begin
+    TS := FMenu.PageControl1.Pages[I];
+    FBackupBotones.Values[TS.Name] := FMenu.ListaBotonesActual(TS);
+  end;
+end;
+
+procedure TFLXMenuPersonalizarForm.RestaurarRespaldo;
+var
+  I: Integer;
+  TS: TTabSheet;
+begin
+  FMenu.AplicarOrdenPestanas(FBackupPestanas);
+  for I := 0 to FMenu.PageControl1.PageCount - 1 do
+  begin
+    TS := FMenu.PageControl1.Pages[I];
+    FMenu.AplicarOrdenBotones(TS, FBackupBotones.Values[TS.Name]);
+  end;
+  FMenu.RecolocarMenuModerno;
+  FMenu.ActualizarPestanaActivaVisual;
+end;
+
+procedure TFLXMenuPersonalizarForm.CargarPestanas;
+var
+  I: Integer;
+  TS: TTabSheet;
+begin
+  FListaPestanas.Items.BeginUpdate;
+  try
+    FListaPestanas.Clear;
+    for I := 0 to FMenu.PageControl1.PageCount - 1 do
+    begin
+      TS := FMenu.PageControl1.Pages[I];
+      FListaPestanas.Items.AddObject(FMenu.TituloBasePestana(TS), TS);
+    end;
+  finally
+    FListaPestanas.Items.EndUpdate;
+  end;
+  if FListaPestanas.Count > 0 then
+    FListaPestanas.ItemIndex := 0;
+  CargarBotones;
+end;
+
+function TFLXMenuPersonalizarForm.HojaSeleccionada: TTabSheet;
+begin
+  Result := nil;
+  if (FListaPestanas.ItemIndex >= 0) and
+     (FListaPestanas.ItemIndex < FListaPestanas.Count) and
+     (FListaPestanas.Items.Objects[FListaPestanas.ItemIndex] is TTabSheet) then
+    Result := TTabSheet(FListaPestanas.Items.Objects[FListaPestanas.ItemIndex]);
+end;
+
+procedure TFLXMenuPersonalizarForm.CargarBotones;
+var
+  TS: TTabSheet;
+  Orden, Nombre: string;
+  SL: TStringList;
+  I: Integer;
+  C: TComponent;
+  B: TBitBtn;
+begin
+  TS := HojaSeleccionada;
+  FListaBotones.Items.BeginUpdate;
+  try
+    FListaBotones.Clear;
+    if TS = nil then Exit;
+    FLabelAccesos.Caption := 'ACCESOS · ' + UpperCase(FMenu.TituloBasePestana(TS));
+    Orden := FMenu.ListaBotonesActual(TS);
+    SL := TStringList.Create;
+    try
+      ExtractStrings(['|'], [], PChar(Orden), SL);
+      for I := 0 to SL.Count - 1 do
+      begin
+        Nombre := SL[I];
+        C := FMenu.FindComponent(Nombre);
+        if C is TBitBtn then
+        begin
+          B := TBitBtn(C);
+          FListaBotones.Items.AddObject(B.Caption, B);
+        end;
+      end;
+    finally
+      SL.Free;
+    end;
+  finally
+    FListaBotones.Items.EndUpdate;
+  end;
+  if FListaBotones.Count > 0 then FListaBotones.ItemIndex := 0;
+end;
+
+procedure TFLXMenuPersonalizarForm.PestanaSeleccionada(Sender: TObject; User: Boolean);
+begin
+  CargarBotones;
+end;
+
+procedure TFLXMenuPersonalizarForm.AplicarOrdenPestanasLista;
+var
+  I: Integer;
+  S: string;
+begin
+  S := '';
+  for I := 0 to FListaPestanas.Count - 1 do
+  begin
+    if S <> '' then S := S + '|';
+    S := S + TTabSheet(FListaPestanas.Items.Objects[I]).Name;
+  end;
+  FMenu.AplicarOrdenPestanas(S);
+  FMenu.RecolocarMenuModerno;
+  FMenu.ActualizarPestanaActivaVisual;
+end;
+
+procedure TFLXMenuPersonalizarForm.AplicarOrdenBotonesLista;
+var
+  I: Integer;
+  S: string;
+  TS: TTabSheet;
+begin
+  TS := HojaSeleccionada;
+  if TS = nil then Exit;
+  S := '';
+  for I := 0 to FListaBotones.Count - 1 do
+  begin
+    if S <> '' then S := S + '|';
+    S := S + TBitBtn(FListaBotones.Items.Objects[I]).Name;
+  end;
+  FMenu.AplicarOrdenBotones(TS, S);
+  FMenu.RecolocarBotonesPestana(TS);
+end;
+
+procedure TFLXMenuPersonalizarForm.SubirPestana(Sender: TObject);
+var I: Integer;
+begin
+  I := FListaPestanas.ItemIndex;
+  if I <= 0 then Exit;
+  FListaPestanas.Items.Exchange(I, I - 1);
+  FListaPestanas.ItemIndex := I - 1;
+  AplicarOrdenPestanasLista;
+end;
+
+procedure TFLXMenuPersonalizarForm.BajarPestana(Sender: TObject);
+var I: Integer;
+begin
+  I := FListaPestanas.ItemIndex;
+  if (I < 0) or (I >= FListaPestanas.Count - 1) then Exit;
+  FListaPestanas.Items.Exchange(I, I + 1);
+  FListaPestanas.ItemIndex := I + 1;
+  AplicarOrdenPestanasLista;
+end;
+
+procedure TFLXMenuPersonalizarForm.SubirBoton(Sender: TObject);
+var I: Integer;
+begin
+  I := FListaBotones.ItemIndex;
+  if I <= 0 then Exit;
+  FListaBotones.Items.Exchange(I, I - 1);
+  FListaBotones.ItemIndex := I - 1;
+  AplicarOrdenBotonesLista;
+end;
+
+procedure TFLXMenuPersonalizarForm.BajarBoton(Sender: TObject);
+var I: Integer;
+begin
+  I := FListaBotones.ItemIndex;
+  if (I < 0) or (I >= FListaBotones.Count - 1) then Exit;
+  FListaBotones.Items.Exchange(I, I + 1);
+  FListaBotones.ItemIndex := I + 1;
+  AplicarOrdenBotonesLista;
+end;
+
+procedure TFLXMenuPersonalizarForm.RestaurarOriginal(Sender: TObject);
+begin
+  if MessageDlg('¿Restaurar el orden original de todas las pestañas y accesos?',
+    mtConfirmation, [mbYes, mbNo], 0) <> mrYes then Exit;
+  FMenu.RestaurarOrdenOriginalMenu;
+  CargarPestanas;
+end;
+
+procedure TFLXMenuPersonalizarForm.FormKeyDownPersonalizar(Sender: TObject;
+  var Key: Word; Shift: TShiftState);
+begin
+  if Key = VK_ESCAPE then
+  begin
+    ModalResult := mrCancel;
+    Key := 0;
+  end;
+end;
+
+function TFLXMenuPersonalizarForm.Ejecutar: Boolean;
+begin
+  Result := ShowModal = mrOk;
+  if Result then
+    FMenu.GuardarOrdenMenuPersonalizado
+  else
+    RestaurarRespaldo;
+end;
 
 //====================================================================
 // ==== CONSTANTE PARA TRABAJAR EN LA BARRA DE ESTADO VERI*FACTU =====
@@ -534,6 +1082,7 @@ end;
 procedure TFMenu.VF_SetMode(const NewMode: string);
 var
   oldTimerVF: Boolean;
+  LIni: TIniFile;
 begin
   // 1) Pausar el timer para que no dispare envíos durante el cambio
   oldTimerVF := TimerVF.Enabled;
@@ -562,21 +1111,26 @@ begin
       // vfEndpointActive := vfUrlTP;
     end;
 
-    // 4) Persistir en INI (opcional pero recomendable)
-    if Assigned(IniReader) then
-    begin
-      IniReader.WriteString('VeriFactu', 'vfMode', vfMode);
+    // 4) Persistir en una instancia NUEVA del INI. El IniReader del menú se
+    // mantiene abierto desde el arranque y no debe utilizarse para escribir,
+    // porque podría borrar secciones añadidas posteriormente por Configuración.
+    FLXCreateFacturConfBackup;
+    LIni := FLXOpenFacturConfIni;
+    try
+      LIni.WriteString('VeriFactu', 'vfMode', vfMode);
       if vfMode = 'PRODUCCION' then
         begin
-             IniReader.WriteString('VeriFactu', 'vfUrlTP', vfUrlTP);
+             LIni.WriteString('VeriFactu', 'vfUrlTP', vfUrlTP);
              VF_ApplyMode(1);
         end
       else
         begin
-             IniReader.WriteString('VeriFactu', 'vfUrlTLocal', vfUrlTLocal);
+             LIni.WriteString('VeriFactu', 'vfUrlTLocal', vfUrlTLocal);
              VF_ApplyMode(0);
         end;
-      IniReader.UpdateFile;
+      LIni.UpdateFile;
+    finally
+      LIni.Free;
     end;
 
     // 5) Refrescar UI (barra de estado)
@@ -742,6 +1296,1425 @@ end;
 
 { TFMenu }
 
+//====================================================================
+//================ CAPA VISUAL MODERNA DEL MENÚ ======================
+//====================================================================
+function TFMenu.RutaPerfilMenu: string;
+begin
+  Result := IncludeTrailingPathDelimiter(RutaIni) + 'MenuPersonalizado.ini';
+end;
+
+function TFMenu.SeccionPerfilMenu: string;
+var
+  S, U: string;
+  I: Integer;
+begin
+  U := Trim(UsuarioActivo);
+  if U = '' then U := 'SIN_USUARIO';
+  S := Trim(Tienda) + '_' + Trim(Puesto) + '_' + U;
+  for I := 1 to Length(S) do
+    if not (S[I] in ['A'..'Z', 'a'..'z', '0'..'9', '_', '-']) then
+      S[I] := '_';
+  Result := 'Perfil_' + S;
+end;
+
+function TFMenu.ListaPestanasActual: string;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 0 to PageControl1.PageCount - 1 do
+  begin
+    if Result <> '' then Result := Result + '|';
+    Result := Result + PageControl1.Pages[I].Name;
+  end;
+end;
+
+function TFMenu.ListaBotonesActual(ASheet: TTabSheet): string;
+var
+  L: TList;
+  I, J: Integer;
+  P1, P2, P: TPanel;
+  NombreBoton: string;
+begin
+  Result := '';
+  if ASheet = nil then Exit;
+  L := TList.Create;
+  try
+    for I := 0 to ASheet.ControlCount - 1 do
+      if (ASheet.Controls[I] is TPanel) and
+         (Pos('FLXTile_', ASheet.Controls[I].Name) = 1) then
+        L.Add(ASheet.Controls[I]);
+
+    for I := 0 to L.Count - 2 do
+      for J := I + 1 to L.Count - 1 do
+      begin
+        P1 := TPanel(L[I]);
+        P2 := TPanel(L[J]);
+        if P2.TabOrder < P1.TabOrder then L.Exchange(I, J);
+      end;
+
+    for I := 0 to L.Count - 1 do
+    begin
+      P := TPanel(L[I]);
+      NombreBoton := Copy(P.Name, Length('FLXTile_') + 1, MaxInt);
+      if FindComponent(NombreBoton) is TBitBtn then
+      begin
+        if Result <> '' then Result := Result + '|';
+        Result := Result + NombreBoton;
+      end;
+    end;
+  finally
+    L.Free;
+  end;
+end;
+
+procedure TFMenu.AplicarOrdenPestanas(const AOrden: string);
+var
+  Nombres: TStringList;
+  Final: TList;
+  I: Integer;
+  C: TComponent;
+  TS: TTabSheet;
+begin
+  if Trim(AOrden) = '' then Exit;
+  Nombres := TStringList.Create;
+  Final := TList.Create;
+  try
+    ExtractStrings(['|'], [], PChar(AOrden), Nombres);
+    for I := 0 to Nombres.Count - 1 do
+    begin
+      C := FindComponent(Nombres[I]);
+      if (C is TTabSheet) and (TTabSheet(C).PageControl = PageControl1) and
+         (Final.IndexOf(C) < 0) then
+        Final.Add(C);
+    end;
+
+    for I := 0 to PageControl1.PageCount - 1 do
+      if Final.IndexOf(PageControl1.Pages[I]) < 0 then
+        Final.Add(PageControl1.Pages[I]);
+
+    for I := 0 to Final.Count - 1 do
+      TTabSheet(Final[I]).PageIndex := I;
+  finally
+    Final.Free;
+    Nombres.Free;
+  end;
+end;
+
+procedure TFMenu.AplicarOrdenBotones(ASheet: TTabSheet; const AOrden: string);
+var
+  Nombres: TStringList;
+  Final, Actuales: TList;
+  I, J: Integer;
+  C: TComponent;
+  P, P1, P2: TPanel;
+begin
+  if ASheet = nil then Exit;
+  Nombres := TStringList.Create;
+  Final := TList.Create;
+  Actuales := TList.Create;
+  try
+    ExtractStrings(['|'], [], PChar(AOrden), Nombres);
+    for I := 0 to Nombres.Count - 1 do
+    begin
+      C := FindComponent(Nombres[I]);
+      if (C is TBitBtn) and (TBitBtn(C).Parent = ASheet) then
+      begin
+        P := BuscarTarjetaMenu(TBitBtn(C));
+        if (P <> nil) and (Final.IndexOf(P) < 0) then Final.Add(P);
+      end;
+    end;
+
+    for I := 0 to ASheet.ControlCount - 1 do
+      if (ASheet.Controls[I] is TPanel) and
+         (Pos('FLXTile_', ASheet.Controls[I].Name) = 1) then
+        Actuales.Add(ASheet.Controls[I]);
+
+    for I := 0 to Actuales.Count - 2 do
+      for J := I + 1 to Actuales.Count - 1 do
+      begin
+        P1 := TPanel(Actuales[I]);
+        P2 := TPanel(Actuales[J]);
+        if P2.TabOrder < P1.TabOrder then Actuales.Exchange(I, J);
+      end;
+
+    for I := 0 to Actuales.Count - 1 do
+      if Final.IndexOf(Actuales[I]) < 0 then Final.Add(Actuales[I]);
+
+    for I := 0 to Final.Count - 1 do
+      TPanel(Final[I]).TabOrder := I;
+  finally
+    Actuales.Free;
+    Final.Free;
+    Nombres.Free;
+  end;
+end;
+
+procedure TFMenu.CapturarOrdenOriginalMenu;
+var
+  I: Integer;
+  TS: TTabSheet;
+begin
+  if FOrdenOriginalCapturado then Exit;
+  FOrdenOriginalPestanas := ListaPestanasActual;
+  if FOrdenOriginalBotones = nil then
+    FOrdenOriginalBotones := TStringList.Create;
+  FOrdenOriginalBotones.Clear;
+  for I := 0 to PageControl1.PageCount - 1 do
+  begin
+    TS := PageControl1.Pages[I];
+    FOrdenOriginalBotones.Values[TS.Name] := ListaBotonesActual(TS);
+  end;
+  FOrdenOriginalCapturado := True;
+end;
+
+procedure TFMenu.CargarOrdenMenuPersonalizado;
+var
+  Ini: TIniFile;
+  Seccion, Orden: string;
+  I: Integer;
+  TS: TTabSheet;
+begin
+  CapturarOrdenOriginalMenu;
+
+  { Siempre partimos del orden base antes de aplicar el perfil actual.
+    Esto evita que un usuario herede accidentalmente la distribución
+    visual del usuario que trabajó anteriormente en el mismo puesto. }
+  AplicarOrdenPestanas(FOrdenOriginalPestanas);
+  for I := 0 to PageControl1.PageCount - 1 do
+  begin
+    TS := PageControl1.Pages[I];
+    AplicarOrdenBotones(TS, FOrdenOriginalBotones.Values[TS.Name]);
+  end;
+
+  if not FileExists(RutaPerfilMenu) then
+  begin
+    RecolocarMenuModerno;
+    ActualizarPestanaActivaVisual;
+    Exit;
+  end;
+  Ini := TIniFile.Create(RutaPerfilMenu);
+  try
+    Seccion := SeccionPerfilMenu;
+    Orden := Ini.ReadString(Seccion, 'Pestanas', '');
+    if Orden <> '' then AplicarOrdenPestanas(Orden);
+    for I := 0 to PageControl1.PageCount - 1 do
+    begin
+      TS := PageControl1.Pages[I];
+      Orden := Ini.ReadString(Seccion, 'Botones_' + TS.Name, '');
+      if Orden <> '' then AplicarOrdenBotones(TS, Orden);
+    end;
+  finally
+    Ini.Free;
+  end;
+  RecolocarMenuModerno;
+  ActualizarPestanaActivaVisual;
+end;
+
+procedure TFMenu.GuardarOrdenMenuPersonalizado;
+var
+  Ini: TIniFile;
+  Seccion: string;
+  I: Integer;
+  TS: TTabSheet;
+begin
+  if not DirectoryExists(RutaIni) then ForceDirectories(RutaIni);
+  Ini := TIniFile.Create(RutaPerfilMenu);
+  try
+    Seccion := SeccionPerfilMenu;
+    Ini.WriteString(Seccion, 'Pestanas', ListaPestanasActual);
+    for I := 0 to PageControl1.PageCount - 1 do
+    begin
+      TS := PageControl1.Pages[I];
+      Ini.WriteString(Seccion, 'Botones_' + TS.Name, ListaBotonesActual(TS));
+    end;
+    Ini.UpdateFile;
+  finally
+    Ini.Free;
+  end;
+  RecolocarMenuModerno;
+  ActualizarPestanaActivaVisual;
+end;
+
+procedure TFMenu.RestaurarOrdenOriginalMenu;
+var
+  I: Integer;
+  TS: TTabSheet;
+begin
+  CapturarOrdenOriginalMenu;
+  AplicarOrdenPestanas(FOrdenOriginalPestanas);
+  for I := 0 to PageControl1.PageCount - 1 do
+  begin
+    TS := PageControl1.Pages[I];
+    AplicarOrdenBotones(TS, FOrdenOriginalBotones.Values[TS.Name]);
+  end;
+  RecolocarMenuModerno;
+  ActualizarPestanaActivaVisual;
+end;
+
+procedure TFMenu.PersonalizarMenuClick(Sender: TObject);
+var
+  F: TFLXMenuPersonalizarForm;
+begin
+  F := TFLXMenuPersonalizarForm.CreatePersonalizar(Self);
+  try
+    F.Ejecutar;
+  finally
+    F.Free;
+  end;
+end;
+
+procedure TFMenu.AddPersonalizarMenuButton;
+var
+  B: TBitBtn;
+begin
+  if FindComponent('BitBtnPersonalizarMenuFLX') <> nil then Exit;
+  B := TBitBtn.Create(Self);
+  B.Name := 'BitBtnPersonalizarMenuFLX';
+  B.Parent := TabSheet9;
+  B.Left := 24;
+  B.Top := 260;
+  B.Width := 160;
+  B.Height := 78;
+  B.Caption := 'Personalizar menú';
+  B.Hint := 'Ordenar pestañas y accesos del menú para este usuario';
+  B.ShowHint := True;
+  B.Layout := blGlyphTop;
+  B.OnClick := @PersonalizarMenuClick;
+  if (BitBtn13.Glyph <> nil) and (not BitBtn13.Glyph.Empty) then
+    B.Glyph.Assign(BitBtn13.Glyph);
+end;
+
+function TFMenu.ColorTextoParaFondo(AColor: TColor): TColor;
+var
+  C: LongInt;
+  R, G, B: Integer;
+begin
+  C := ColorToRGB(AColor);
+  R := C and $FF;
+  G := (C shr 8) and $FF;
+  B := (C shr 16) and $FF;
+  if ((R * 299) + (G * 587) + (B * 114)) > 155000 then
+    Result := RGBToColor(30, 41, 59)
+  else
+    Result := clWhite;
+end;
+
+function TFMenu.ColorFuertePestana(ASheet: TTabSheet): TColor;
+begin
+  if ASheet = TabSheet1 then Result := RGBToColor(22, 130, 84)
+  else if ASheet = TabSheet2 then Result := RGBToColor(23, 96, 116)
+  else if ASheet = TabSheet3 then Result := RGBToColor(71, 85, 105)
+  else if ASheet = TabSheet4 then Result := RGBToColor(180, 120, 40)
+  else if ASheet = TabSheet5 then Result := RGBToColor(71, 85, 105)
+  else if ASheet = TabSheet6 then Result := RGBToColor(22, 130, 84)
+  else if ASheet = TabSheet7 then Result := RGBToColor(14, 116, 144)
+  else if ASheet = TabSheet9 then Result := RGBToColor(55, 65, 81)
+  else if ASheet = TabSheet11 then Result := RGBToColor(21, 128, 61)
+  else if ASheet = TabSheet8 then Result := RGBToColor(37, 99, 145)
+  else if ASheet = TabSheet10 then Result := RGBToColor(153, 27, 27)
+  else if ASheet = tsModulos1 then Result := RGBToColor(91, 75, 138)
+  else if SameText(ASheet.Name, 'TabSheetInteligenciaFLX') then
+    Result := RGBToColor(91, 75, 138)
+  else
+    Result := RGBToColor(23, 96, 116);
+end;
+
+function TFMenu.ColorSuavePestana(ASheet: TTabSheet): TColor;
+begin
+  { Base neutra para un aspecto más refinado. El color de cada área se
+    mantiene únicamente como acento, no como relleno completo. }
+  Result := RGBToColor(247, 249, 250);
+end;
+
+function TFMenu.TituloBasePestana(ASheet: TTabSheet): string;
+begin
+  if ASheet = TabSheet1 then Result := 'Ventas'
+  else if ASheet = TabSheet2 then Result := 'Archivos'
+  else if ASheet = TabSheet3 then Result := 'Listados'
+  else if ASheet = TabSheet4 then Result := 'Pedidos'
+  else if ASheet = TabSheet5 then Result := 'Históricos'
+  else if ASheet = TabSheet6 then Result := 'Etiquetas'
+  else if ASheet = TabSheet7 then Result := 'Comunicaciones'
+  else if ASheet = TabSheet9 then Result := 'Utilidades'
+  else if ASheet = tsModulos1 then Result := 'Módulos extra'
+  else if ASheet = TabSheet11 then Result := 'Veri*Factu'
+  else if ASheet = TabSheet8 then Result := 'Ayuda'
+  else if ASheet = TabSheet10 then Result := 'Finalizar'
+  else if SameText(ASheet.Name, 'TabSheetInteligenciaFLX') then
+    Result := 'Inteligencia'
+  else
+    Result := ASheet.Caption;
+end;
+
+procedure TFMenu.ActualizarPestanaActivaVisual;
+var
+  I: Integer;
+  TS, TSActiva: TTabSheet;
+  TituloActivo: string;
+begin
+  if PageControl1 = nil then Exit;
+
+  TSActiva := PageControl1.ActivePage;
+  for I := 0 to PageControl1.PageCount - 1 do
+  begin
+    TS := PageControl1.Pages[I];
+    TS.Caption := TituloBasePestana(TS);
+    TS.Color := ColorSuavePestana(TS);
+  end;
+
+  if Assigned(TSActiva) then
+  begin
+    TituloActivo := TituloBasePestana(TSActiva);
+    TSActiva.Caption := '◆ ' + TituloActivo + ' ◆';
+    TSActiva.Color := RGBToColor(219, 234, 239);
+
+    if Assigned(FHeroTitle) then
+      FHeroTitle.Caption := 'PÁGINA ACTUAL · ' + UpperCase(TituloActivo);
+    if Assigned(FHeroSubtitle) then
+      FHeroSubtitle.Caption := DescripcionPestana(TSActiva);
+  end
+  else
+  begin
+    if Assigned(FHeroTitle) then
+      FHeroTitle.Caption := 'CENTRO DE TRABAJO';
+    if Assigned(FHeroSubtitle) then
+      FHeroSubtitle.Caption :=
+        'El fondo y el logotipo originales de FacturLinEx se mantienen como identidad del sistema.';
+  end;
+end;
+
+procedure TFMenu.PageControl1ChangeModerno(Sender: TObject);
+begin
+  ActualizarPestanaActivaVisual;
+end;
+
+function TFMenu.DescripcionPestana(ASheet: TTabSheet): string;
+begin
+  if ASheet = TabSheet1 then
+    Result := 'Operaciones diarias, caja, ventas y productividad'
+  else if ASheet = TabSheet2 then
+    Result := 'Maestros, clientes, artículos y estructura comercial'
+  else if ASheet = TabSheet3 then
+    Result := 'Consultas, informes fiscales y análisis de actividad'
+  else if ASheet = TabSheet4 then
+    Result := 'Compras, entradas, generación y gestión de pedidos'
+  else if ASheet = TabSheet5 then
+    Result := 'Trazabilidad e históricos de operaciones y documentos'
+  else if ASheet = TabSheet6 then
+    Result := 'Etiquetado, códigos de barras y lineales'
+  else if ASheet = TabSheet7 then
+    Result := 'Intercambio de información y comunicaciones'
+  else if ASheet = TabSheet9 then
+    Result := 'Configuración, mantenimiento y herramientas del sistema'
+  else if ASheet = TabSheet11 then
+    Result := 'Estado, envío, revisión y control de Veri*Factu'
+  else if ASheet = TabSheet8 then
+    Result := 'Información del programa, documentación y soporte'
+  else if ASheet = TabSheet10 then
+    Result := 'Cierre seguro de la aplicación'
+  else if ASheet = tsModulos1 then
+    Result := 'Extensiones y aplicaciones conectadas a FacturLinEx'
+  else if SameText(ASheet.Name, 'TabSheetInteligenciaFLX') then
+    Result := 'Predicciones, alertas, rentabilidad y ayuda a la decisión'
+  else
+    Result := 'Accesos disponibles en esta sección';
+end;
+
+procedure TFMenu.PrepararBotonMenu(ABtn: TBitBtn; AColor: TColor);
+begin
+  { Los TBitBtn originales se conservan como fuente real de eventos,
+    permisos, iconos y estado. La interfaz visible usa tarjetas. }
+  if ABtn = nil then Exit;
+  ABtn.TabStop := False;
+  ABtn.ShowHint := True;
+end;
+
+function TFMenu.PanelTarjetaDesdeSender(Sender: TObject): TPanel;
+var
+  C: TControl;
+begin
+  Result := nil;
+  if not (Sender is TControl) then Exit;
+  C := TControl(Sender);
+  while C <> nil do
+  begin
+    if (C is TPanel) and (Pos('FLXTile_', C.Name) = 1) then
+    begin
+      Result := TPanel(C);
+      Exit;
+    end;
+    C := C.Parent;
+  end;
+end;
+
+procedure TFMenu.TarjetaMenuClick(Sender: TObject);
+var
+  P: TPanel;
+  Idx: Integer;
+  B: TBitBtn;
+begin
+  P := PanelTarjetaDesdeSender(Sender);
+  if P = nil then Exit;
+  Idx := P.Tag;
+  if (Idx < 0) or (Idx >= ComponentCount) then Exit;
+  if not (Components[Idx] is TBitBtn) then Exit;
+  B := TBitBtn(Components[Idx]);
+  if B.Enabled then B.Click;
+end;
+
+procedure TFMenu.TarjetaMenuKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key in [VK_RETURN, VK_SPACE] then
+  begin
+    TarjetaMenuClick(Sender);
+    Key := 0;
+  end;
+end;
+
+procedure TFMenu.TarjetaMenuMouseEnter(Sender: TObject);
+var
+  P: TPanel;
+begin
+  P := PanelTarjetaDesdeSender(Sender);
+  if (P <> nil) and P.Enabled then
+    P.Color := RGBToColor(241, 247, 249);
+end;
+
+procedure TFMenu.TarjetaMenuMouseLeave(Sender: TObject);
+var
+  P: TPanel;
+begin
+  P := PanelTarjetaDesdeSender(Sender);
+  if P <> nil then
+    if P.Enabled then P.Color := clWhite
+    else P.Color := RGBToColor(241, 243, 244);
+end;
+
+function TFMenu.BuscarTarjetaMenu(ABtn: TBitBtn): TPanel;
+var
+  C: TComponent;
+begin
+  Result := nil;
+  if ABtn = nil then Exit;
+  C := FindComponent('FLXTile_' + ABtn.Name);
+  if C is TPanel then Result := TPanel(C);
+end;
+
+procedure TFMenu.CrearTarjetaMenu(ABtn: TBitBtn; ASheet: TTabSheet;
+  AAccent: TColor; AOrden: Integer);
+var
+  P: TPanel;
+  Accent: TShape;
+  Img: TImage;
+  LTitle, LDesc: TLabel;
+  N: string;
+begin
+  if (ABtn = nil) or (ASheet = nil) then Exit;
+  N := ABtn.Name;
+  P := BuscarTarjetaMenu(ABtn);
+
+  if P = nil then
+  begin
+    P := TPanel.Create(Self);
+    P.Name := 'FLXTile_' + N;
+    P.Parent := ASheet;
+    P.ParentColor := False;
+    P.Color := clWhite;
+    P.BevelOuter := bvNone;
+    P.BevelInner := bvNone;
+    P.Caption := '';
+    P.TabStop := True;
+    P.Cursor := crHandPoint;
+    P.OnClick := @TarjetaMenuClick;
+    P.OnKeyDown := @TarjetaMenuKeyDown;
+    P.OnMouseEnter := @TarjetaMenuMouseEnter;
+    P.OnMouseLeave := @TarjetaMenuMouseLeave;
+
+    Accent := TShape.Create(Self);
+    Accent.Name := 'FLXTileAccent_' + N;
+    Accent.Parent := P;
+    Accent.Shape := stRectangle;
+    Accent.Pen.Style := psClear;
+    Accent.Brush.Color := AAccent;
+    Accent.Cursor := crHandPoint;
+    Accent.OnClick := @TarjetaMenuClick;
+    Accent.OnMouseEnter := @TarjetaMenuMouseEnter;
+    Accent.OnMouseLeave := @TarjetaMenuMouseLeave;
+
+    Img := TImage.Create(Self);
+    Img.Name := 'FLXTileIcon_' + N;
+    Img.Parent := P;
+    Img.Stretch := True;
+    Img.Proportional := True;
+    Img.Center := True;
+    Img.Transparent := True;
+    Img.Cursor := crHandPoint;
+    Img.OnClick := @TarjetaMenuClick;
+    Img.OnMouseEnter := @TarjetaMenuMouseEnter;
+    Img.OnMouseLeave := @TarjetaMenuMouseLeave;
+
+    LTitle := TLabel.Create(Self);
+    LTitle.Name := 'FLXTileTitle_' + N;
+    LTitle.Parent := P;
+    LTitle.AutoSize := False;
+    LTitle.Transparent := True;
+    LTitle.ParentFont := False;
+    LTitle.Font.Name := 'Sans';
+    LTitle.Font.Height := -12;
+    LTitle.Font.Style := [fsBold];
+    LTitle.Font.Color := RGBToColor(30, 41, 59);
+    LTitle.Layout := tlCenter;
+    LTitle.Cursor := crHandPoint;
+    LTitle.OnClick := @TarjetaMenuClick;
+    LTitle.OnMouseEnter := @TarjetaMenuMouseEnter;
+    LTitle.OnMouseLeave := @TarjetaMenuMouseLeave;
+
+    LDesc := TLabel.Create(Self);
+    LDesc.Name := 'FLXTileDesc_' + N;
+    LDesc.Parent := P;
+    LDesc.AutoSize := False;
+    LDesc.Transparent := True;
+    LDesc.ParentFont := False;
+    LDesc.Font.Name := 'Sans';
+    LDesc.Font.Height := -9;
+    LDesc.Font.Color := RGBToColor(100, 116, 139);
+    LDesc.Layout := tlCenter;
+    LDesc.Cursor := crHandPoint;
+    LDesc.OnClick := @TarjetaMenuClick;
+    LDesc.OnMouseEnter := @TarjetaMenuMouseEnter;
+    LDesc.OnMouseLeave := @TarjetaMenuMouseLeave;
+  end
+  else
+  begin
+    Accent := TShape(FindComponent('FLXTileAccent_' + N));
+    Img := TImage(FindComponent('FLXTileIcon_' + N));
+    LTitle := TLabel(FindComponent('FLXTileTitle_' + N));
+    LDesc := TLabel(FindComponent('FLXTileDesc_' + N));
+  end;
+
+  P.Tag := ABtn.ComponentIndex;
+  P.TabOrder := AOrden;
+  P.Visible := ABtn.Visible;
+  P.Enabled := ABtn.Enabled;
+  if P.Enabled then P.Color := clWhite
+  else P.Color := RGBToColor(241, 243, 244);
+  P.Hint := ABtn.Hint;
+  P.ShowHint := True;
+
+  if Accent <> nil then
+  begin
+    Accent.Tag := P.Tag;
+    Accent.Brush.Color := AAccent;
+  end;
+  if Img <> nil then
+  begin
+    Img.Tag := P.Tag;
+    Img.Picture.Clear;
+    if (ABtn.Glyph <> nil) and (not ABtn.Glyph.Empty) then
+      Img.Picture.Bitmap.Assign(ABtn.Glyph);
+  end;
+  if LTitle <> nil then
+  begin
+    LTitle.Tag := P.Tag;
+    LTitle.Caption := ABtn.Caption;
+    if P.Enabled then LTitle.Font.Color := RGBToColor(30, 41, 59)
+    else LTitle.Font.Color := RGBToColor(148, 163, 184);
+  end;
+  if LDesc <> nil then
+  begin
+    LDesc.Tag := P.Tag;
+    if Trim(ABtn.Hint) <> '' then LDesc.Caption := ABtn.Hint
+    else LDesc.Caption := 'Abrir ' + ABtn.Caption;
+    if P.Enabled then LDesc.Font.Color := RGBToColor(100, 116, 139)
+    else LDesc.Font.Color := RGBToColor(148, 163, 184);
+  end;
+
+  ABtn.TabStop := False;
+  ABtn.SetBounds(-4000, -4000, 1, 1);
+end;
+
+procedure TFMenu.PrepararCabeceraPestana(ASheet: TTabSheet);
+var
+  Title, Desc: TLabel;
+  Rule: TShape;
+  C: TComponent;
+  N: string;
+begin
+  if ASheet = nil then Exit;
+  N := ASheet.Name;
+
+  C := FindComponent('FLXPageTitle_' + N);
+  if C is TLabel then Title := TLabel(C)
+  else
+  begin
+    Title := TLabel.Create(Self);
+    Title.Name := 'FLXPageTitle_' + N;
+    Title.Parent := ASheet;
+    Title.AutoSize := False;
+    Title.Transparent := True;
+    Title.ParentFont := False;
+    Title.Font.Name := 'Sans';
+    Title.Font.Height := -19;
+    Title.Font.Style := [fsBold];
+    Title.Font.Color := RGBToColor(30, 41, 59);
+  end;
+
+  C := FindComponent('FLXPageDesc_' + N);
+  if C is TLabel then Desc := TLabel(C)
+  else
+  begin
+    Desc := TLabel.Create(Self);
+    Desc.Name := 'FLXPageDesc_' + N;
+    Desc.Parent := ASheet;
+    Desc.AutoSize := False;
+    Desc.Transparent := True;
+    Desc.ParentFont := False;
+    Desc.Font.Name := 'Sans';
+    Desc.Font.Height := -10;
+    Desc.Font.Color := RGBToColor(100, 116, 139);
+  end;
+
+  C := FindComponent('FLXPageRule_' + N);
+  if C is TShape then Rule := TShape(C)
+  else
+  begin
+    Rule := TShape.Create(Self);
+    Rule.Name := 'FLXPageRule_' + N;
+    Rule.Parent := ASheet;
+    Rule.Shape := stRectangle;
+    Rule.Pen.Style := psClear;
+  end;
+
+  Title.Caption := UpperCase(TituloBasePestana(ASheet));
+  Desc.Caption := DescripcionPestana(ASheet);
+  Rule.Brush.Color := ColorFuertePestana(ASheet);
+  Title.SetBounds(24, 14, ASheet.ClientWidth - 230, 28);
+  Desc.SetBounds(25, 44, ASheet.ClientWidth - 230, 20);
+  Rule.SetBounds(24, 69, 70, 4);
+  Title.BringToFront;
+  Desc.BringToFront;
+  Rule.BringToFront;
+end;
+
+function TFMenu.FilasBotonesPestana(ASheet: TTabSheet;
+  AClientWidth: Integer): Integer;
+var
+  I, N, Cols: Integer;
+begin
+  Result := 1;
+  if ASheet = nil then Exit;
+  N := 0;
+  for I := 0 to ASheet.ControlCount - 1 do
+    if (ASheet.Controls[I] is TBitBtn) and ASheet.Controls[I].Visible then
+      Inc(N);
+  if N = 0 then Exit;
+  if AClientWidth >= 1180 then Cols := 3
+  else if AClientWidth >= 720 then Cols := 2
+  else Cols := 1;
+  Result := (N + Cols - 1) div Cols;
+end;
+
+procedure TFMenu.RecolocarBotonesPestana(ASheet: TTabSheet);
+const
+  GAP_X = 14;
+  GAP_Y = 14;
+  START_X = 22;
+  START_Y = 88;
+  CARD_H = 78;
+var
+  Botones, Tarjetas: TList;
+  I, J, N, Cols, CardW, X, Y, MaxOrder, Orden: Integer;
+  B1, B2, B: TBitBtn;
+  P1, P2, P, Existing: TPanel;
+  Accent: TShape;
+  Img: TImage;
+  LTitle, LDesc: TLabel;
+  PageImg: TImage;
+  FirstBuild: Boolean;
+begin
+  if ASheet = nil then Exit;
+  ASheet.Color := ColorSuavePestana(ASheet);
+  PrepararCabeceraPestana(ASheet);
+
+  PageImg := nil;
+  for I := 0 to ASheet.ControlCount - 1 do
+    if ASheet.Controls[I] is TImage then
+    begin
+      PageImg := TImage(ASheet.Controls[I]);
+      Break;
+    end;
+  if PageImg <> nil then
+  begin
+    PageImg.Align := alNone;
+    PageImg.AnchorSideLeft.Control := nil;
+    PageImg.AnchorSideTop.Control := nil;
+    PageImg.AnchorSideRight.Control := nil;
+    PageImg.AnchorSideBottom.Control := nil;
+    PageImg.Anchors := [akTop, akRight];
+    PageImg.SetBounds(ASheet.ClientWidth - 188, 12, 160, 54);
+    PageImg.Proportional := True;
+    PageImg.Stretch := True;
+    PageImg.Center := True;
+    PageImg.Transparent := True;
+    PageImg.BringToFront;
+  end;
+
+  Botones := TList.Create;
+  Tarjetas := TList.Create;
+  try
+    FirstBuild := True;
+    MaxOrder := -1;
+    for I := 0 to ASheet.ControlCount - 1 do
+      if (ASheet.Controls[I] is TPanel) and
+         (Pos('FLXTile_', ASheet.Controls[I].Name) = 1) then
+      begin
+        FirstBuild := False;
+        P := TPanel(ASheet.Controls[I]);
+        if P.TabOrder > MaxOrder then MaxOrder := P.TabOrder;
+      end;
+
+    { Recogemos primero todos los botones reales. Así no alteramos la lista
+      de controles mientras se crean las tarjetas visuales. }
+    for I := 0 to ASheet.ControlCount - 1 do
+      if ASheet.Controls[I] is TBitBtn then
+      begin
+        B := TBitBtn(ASheet.Controls[I]);
+        if (B.Name = 'BitBtn51') and (not Assigned(B.OnClick)) then Continue;
+        Botones.Add(B);
+      end;
+
+    if FirstBuild then
+      for I := 0 to Botones.Count - 2 do
+        for J := I + 1 to Botones.Count - 1 do
+        begin
+          B1 := TBitBtn(Botones[I]);
+          B2 := TBitBtn(Botones[J]);
+          if (B2.Top < B1.Top) or
+             ((Abs(B2.Top - B1.Top) <= 4) and (B2.Left < B1.Left)) then
+            Botones.Exchange(I, J);
+        end;
+
+    for I := 0 to Botones.Count - 1 do
+    begin
+      B := TBitBtn(Botones[I]);
+      Existing := BuscarTarjetaMenu(B);
+      if Existing <> nil then Orden := Existing.TabOrder
+      else if FirstBuild then Orden := I
+      else
+      begin
+        Inc(MaxOrder);
+        Orden := MaxOrder;
+      end;
+      CrearTarjetaMenu(B, ASheet, ColorFuertePestana(ASheet), Orden);
+    end;
+
+    for I := 0 to ASheet.ControlCount - 1 do
+      if (ASheet.Controls[I] is TPanel) and
+         (Pos('FLXTile_', ASheet.Controls[I].Name) = 1) and
+         TPanel(ASheet.Controls[I]).Visible then
+        Tarjetas.Add(ASheet.Controls[I]);
+
+    for I := 0 to Tarjetas.Count - 2 do
+      for J := I + 1 to Tarjetas.Count - 1 do
+      begin
+        P1 := TPanel(Tarjetas[I]);
+        P2 := TPanel(Tarjetas[J]);
+        if P2.TabOrder < P1.TabOrder then Tarjetas.Exchange(I, J);
+      end;
+
+    N := Tarjetas.Count;
+    if N = 0 then Exit;
+    if ASheet.ClientWidth >= 1120 then Cols := 3
+    else if ASheet.ClientWidth >= 700 then Cols := 2
+    else Cols := 1;
+    if Cols > N then Cols := N;
+    CardW := (ASheet.ClientWidth - (START_X * 2) - ((Cols - 1) * GAP_X)) div Cols;
+    if CardW < 250 then CardW := 250;
+
+    for I := 0 to N - 1 do
+    begin
+      P := TPanel(Tarjetas[I]);
+      X := START_X + (I mod Cols) * (CardW + GAP_X);
+      Y := START_Y + (I div Cols) * (CARD_H + GAP_Y);
+      P.SetBounds(X, Y, CardW, CARD_H);
+
+      Accent := TShape(FindComponent(StringReplace(P.Name,
+        'FLXTile_', 'FLXTileAccent_', [])));
+      Img := TImage(FindComponent(StringReplace(P.Name,
+        'FLXTile_', 'FLXTileIcon_', [])));
+      LTitle := TLabel(FindComponent(StringReplace(P.Name,
+        'FLXTile_', 'FLXTileTitle_', [])));
+      LDesc := TLabel(FindComponent(StringReplace(P.Name,
+        'FLXTile_', 'FLXTileDesc_', [])));
+      if Accent <> nil then Accent.SetBounds(0, 0, 5, CARD_H);
+      if Img <> nil then Img.SetBounds(17, 17, 42, 42);
+      if LTitle <> nil then LTitle.SetBounds(72, 11, CardW - 88, 28);
+      if LDesc <> nil then LDesc.SetBounds(72, 39, CardW - 88, 25);
+      P.BringToFront;
+    end;
+  finally
+    Tarjetas.Free;
+    Botones.Free;
+  end;
+end;
+
+procedure TFMenu.EstilizarPanelesAuxiliares;
+  procedure LimpiarAnclajes(C: TControl);
+  begin
+    if C = nil then Exit;
+    C.Align := alNone;
+    C.AnchorSideLeft.Control := nil;
+    C.AnchorSideTop.Control := nil;
+    C.AnchorSideRight.Control := nil;
+    C.AnchorSideBottom.Control := nil;
+    C.Anchors := [];
+  end;
+
+  procedure EstiloAccion(B: TBitBtn; AColor: TColor; ATextoBlanco: Boolean);
+  begin
+    if B = nil then Exit;
+    B.Color := AColor;
+    B.ParentFont := False;
+    B.Font.Name := 'Sans';
+    B.Font.Height := -11;
+    B.Font.Style := [fsBold];
+    if ATextoBlanco then B.Font.Color := clWhite
+    else B.Font.Color := RGBToColor(30, 41, 59);
+  end;
+
+  procedure EstiloTitulo(L: TLabel; AColor: TColor);
+  begin
+    if L = nil then Exit;
+    L.AutoSize := False;
+    L.Transparent := False;
+    L.ParentColor := False;
+    L.Color := AColor;
+    L.ParentFont := False;
+    L.Font.Name := 'Sans';
+    L.Font.Height := -13;
+    L.Font.Style := [fsBold];
+    L.Font.Color := clWhite;
+    L.Alignment := taCenter;
+    L.Layout := tlCenter;
+  end;
+begin
+  LimpiarAnclajes(Panel1);
+  Panel1.BevelOuter := bvNone;
+  Panel1.BevelInner := bvNone;
+  Panel1.ParentColor := False;
+  Panel1.Color := RGBToColor(248, 250, 251);
+  EstiloTitulo(Label29, RGBToColor(18, 76, 91));
+  Label29.Caption := 'CONFIGURACIÓN INICIAL DE LA BASE DE DATOS';
+  EstiloAccion(BitBtn19, RGBToColor(22, 130, 84), True);
+  EstiloAccion(BitBtn18, RGBToColor(55, 65, 81), True);
+
+  LimpiarAnclajes(Panel6);
+  Panel6.BevelOuter := bvNone;
+  Panel6.BevelInner := bvNone;
+  Panel6.ParentColor := False;
+  Panel6.Color := RGBToColor(248, 250, 251);
+  EstiloTitulo(Label4, RGBToColor(18, 76, 91));
+  Label4.Caption := 'CONTROL DE ACCESO AL SISTEMA';
+  EstiloAccion(BitBtn55, RGBToColor(22, 130, 84), True);
+  EstiloAccion(BitBtn56, RGBToColor(55, 65, 81), True);
+
+  LimpiarAnclajes(Panel2);
+  Panel2.BevelOuter := bvNone;
+  Panel2.ParentColor := False;
+  Panel2.Color := RGBToColor(248, 250, 251);
+  EstiloAccion(BitBtn20, RGBToColor(55, 65, 81), True);
+  EstiloAccion(BitBtn21, RGBToColor(23, 96, 116), True);
+  EstiloAccion(BitBtn22, RGBToColor(23, 96, 116), True);
+  EstiloAccion(BitBtn23, RGBToColor(23, 96, 116), True);
+  EstiloAccion(BitBtn24, RGBToColor(23, 96, 116), True);
+  EstiloAccion(BitBtn42, RGBToColor(23, 96, 116), True);
+  EstiloAccion(BitBtn35, RGBToColor(23, 96, 116), True);
+  EstiloAccion(BitBtn58, RGBToColor(23, 96, 116), True);
+
+  LimpiarAnclajes(Panel3);
+  Panel3.BevelOuter := bvNone;
+  Panel3.ParentColor := False;
+  Panel3.Color := RGBToColor(248, 250, 251);
+  LimpiarAnclajes(Panel4);
+  Panel4.BevelOuter := bvNone;
+  Panel4.ParentColor := False;
+  Panel4.Color := RGBToColor(248, 250, 251);
+
+  StaticText1.ParentColor := False;
+  StaticText1.Color := RGBToColor(18, 76, 91);
+  StaticText1.ParentFont := False;
+  StaticText1.Font.Name := 'Sans';
+  StaticText1.Font.Height := -11;
+  StaticText1.Font.Style := [fsBold];
+  StaticText1.Font.Color := clWhite;
+  StaticText1.Alignment := taCenter;
+  StaticText2.ParentColor := False;
+  StaticText2.Color := RGBToColor(22, 130, 84);
+  StaticText2.ParentFont := False;
+  StaticText2.Font.Name := 'Sans';
+  StaticText2.Font.Height := -11;
+  StaticText2.Font.Style := [fsBold];
+  StaticText2.Font.Color := clWhite;
+  StaticText2.Alignment := taCenter;
+
+  Panel5.BevelOuter := bvNone;
+  Panel5.ParentColor := False;
+  Panel5.Color := RGBToColor(248, 250, 251);
+  LabelLlamada.ParentColor := False;
+  LabelLlamada.Color := RGBToColor(18, 76, 91);
+  LabelLlamada.ParentFont := False;
+  LabelLlamada.Font.Name := 'Sans';
+  LabelLlamada.Font.Height := -11;
+  LabelLlamada.Font.Style := [fsBold];
+  LabelLlamada.Font.Color := clWhite;
+  EstiloAccion(BitBtn48, RGBToColor(22, 130, 84), True);
+  EstiloAccion(BitBtn49, RGBToColor(55, 65, 81), True);
+end;
+
+procedure TFMenu.PosicionarPanelOtrosArchivos;
+var
+  Tarjeta: TPanel;
+  P: TPoint;
+  X, Y, Margen, LimiteInferior: Integer;
+begin
+  Margen := 18;
+  Tarjeta := BuscarTarjetaMenu(BitBtn17);
+
+  if Assigned(Tarjeta) and Tarjeta.Visible then
+  begin
+    P := Tarjeta.ClientToScreen(
+      Types.Point(0, Tarjeta.ClientHeight + 8)
+    );
+    P := Self.ScreenToClient(P);
+    X := P.X;
+    Y := P.Y;
+  end
+  else
+  begin
+    X := (ClientWidth - 300) div 2;
+    Y := 106;
+  end;
+
+  if X < Margen then
+    X := Margen;
+  if X + 300 > ClientWidth - Margen then
+    X := ClientWidth - Margen - 300;
+
+  LimiteInferior := ClientHeight - StatusBar1.Height - Margen;
+  if Y + 440 > LimiteInferior then
+    Y := LimiteInferior - 440;
+
+  if Assigned(FHeaderPanel) and (Y < FHeaderPanel.Height + 8) then
+    Y := FHeaderPanel.Height + 8;
+
+  Panel2.SetBounds(X, Y, 300, 440);
+end;
+
+procedure TFMenu.RecolocarMenuModerno;
+var
+  I, HeaderH, ContentTop, ContentH, HeroW, WorkW, Gap, Margin: Integer;
+  LogoW, LogoH, QuickH: Integer;
+begin
+  if not FModernMenuApplied then Exit;
+  if ClientWidth < 760 then Exit;
+
+  HeaderH := 82;
+  Margin := 18;
+  Gap := 18;
+  FHeaderPanel.SetBounds(0, 0, ClientWidth, HeaderH);
+  FHeaderTitle.SetBounds(24, 10, ClientWidth div 2, 30);
+  FHeaderSubtitle.SetBounds(26, 46, ClientWidth div 2, 20);
+  FHeaderContext.SetBounds(ClientWidth div 2, 15,
+    ClientWidth - (ClientWidth div 2) - 24, 48);
+
+  if Trim(Empresa) <> '' then
+    FHeaderSubtitle.Caption := Empresa + ' · Gestión comercial y facturación'
+  else
+    FHeaderSubtitle.Caption := 'Gestión comercial, facturación, análisis y Veri*Factu';
+  FHeaderContext.Caption := 'Tienda: ' + Tienda + '  ·  Puesto: ' + Puesto;
+  if Trim(UsuarioActivo) <> '' then
+    FHeaderContext.Caption := FHeaderContext.Caption + '  ·  Usuario: ' + UsuarioActivo;
+
+  ContentTop := HeaderH + Margin;
+  ContentH := ClientHeight - ContentTop - StatusBar1.Height - Margin;
+  if ContentH < 400 then ContentH := 400;
+
+  FHeroPanel.Visible := FMenuFinalReady;
+  if not FMenuFinalReady then
+  begin
+    PageControl1.SetBounds(Margin, ContentTop, ClientWidth - (Margin * 2), 160);
+    Image1.Parent := Self;
+    Image1.SetBounds(Margin, ContentTop + 178,
+      ClientWidth - (Margin * 2), ContentH - 178);
+    Image1.SendToBack;
+  end
+  else
+  begin
+    HeroW := (ClientWidth * 34) div 100;
+    if HeroW < 430 then HeroW := 430;
+    if HeroW > 650 then HeroW := 650;
+    WorkW := ClientWidth - (Margin * 2) - Gap - HeroW;
+    if WorkW < 720 then
+    begin
+      WorkW := 720;
+      HeroW := ClientWidth - (Margin * 2) - Gap - WorkW;
+    end;
+
+    PageControl1.SetBounds(Margin, ContentTop, WorkW, ContentH);
+    for I := 0 to PageControl1.PageCount - 1 do
+      RecolocarBotonesPestana(PageControl1.Pages[I]);
+
+    FHeroPanel.SetBounds(Margin + WorkW + Gap, ContentTop, HeroW, ContentH);
+    Image1.Parent := FHeroPanel;
+    Image1.SetBounds(0, 0, HeroW, ContentH);
+    Image1.SendToBack;
+
+    FHeroTopPanel.SetBounds(0, 0, HeroW, 100);
+    FHeroTitle.SetBounds(20, 16, HeroW - 40, 30);
+    FHeroSubtitle.SetBounds(20, 50, HeroW - 40, 36);
+
+    QuickH := 126;
+    FQuickPanel.SetBounds(18, ContentH - QuickH - 18, HeroW - 36, QuickH);
+    FQuickTitle.SetBounds(12, 8, FQuickPanel.Width - 24, 22);
+    SpeedButton1.SetBounds(18, 34, (FQuickPanel.Width - 54) div 2, 76);
+    SpeedButton2.SetBounds(SpeedButton1.Left + SpeedButton1.Width + 18,
+      34, SpeedButton1.Width, 76);
+
+    LogoW := HeroW - 72;
+    if LogoW > 330 then LogoW := 330;
+    LogoH := 178;
+    FLogoFrame.SetBounds((HeroW - LogoW) div 2,
+      ContentH - QuickH - LogoH - 46, LogoW, LogoH);
+    ImagenLogo.Parent := FHeroPanel;
+    ImagenLogo.SetBounds(FLogoFrame.Left + 10, FLogoFrame.Top + 10,
+      FLogoFrame.Width - 20, FLogoFrame.Height - 20);
+
+    FHeroPanel.BringToFront;
+    Image1.SendToBack;
+    FHeroTopPanel.BringToFront;
+    FLogoFrame.BringToFront;
+    ImagenLogo.BringToFront;
+    FQuickPanel.BringToFront;
+  end;
+
+  Panel1.SetBounds((ClientWidth - 540) div 2,
+    ContentTop + ((ContentH - 400) div 2), 540, 400);
+  Label29.SetBounds(14, 12, 512, 40);
+  Label23.SetBounds(28, 72, 140, 28); Edit21.SetBounds(180, 72, 326, 29);
+  Label24.SetBounds(28, 116, 140, 28); Edit22.SetBounds(180, 116, 326, 29);
+  Label25.SetBounds(28, 160, 140, 28); Edit23.SetBounds(180, 160, 326, 29);
+  Label26.SetBounds(28, 204, 140, 28); Edit24.SetBounds(180, 204, 326, 29);
+  Label27.SetBounds(28, 248, 140, 28); Edit25.SetBounds(180, 248, 100, 29);
+  Label28.SetBounds(28, 292, 140, 28); ComboServidoresBD.SetBounds(180, 292, 326, 31);
+  BitBtn19.SetBounds(28, 344, 154, 42);
+  BitBtn18.SetBounds(358, 344, 154, 42);
+
+  Panel6.SetBounds((ClientWidth - 440) div 2,
+    ContentTop + ((ContentH - 258) div 2), 440, 258);
+  Label4.SetBounds(12, 12, 416, 40);
+  Label30.SetBounds(34, 76, 112, 29); Edit26.SetBounds(156, 76, 248, 29);
+  Label31.SetBounds(34, 124, 112, 29); Edit27.SetBounds(156, 124, 248, 29);
+  BitBtn55.SetBounds(28, 192, 144, 42);
+  BitBtn56.SetBounds(268, 192, 144, 42);
+
+  if Panel2.Visible then
+    PosicionarPanelOtrosArchivos
+  else
+    Panel2.SetBounds((ClientWidth - 300) div 2, ContentTop + 24, 300, 440);
+  BitBtn20.SetBounds(1, 1, 298, 40);
+  BitBtn21.SetBounds(18, 54, 264, 42);
+  BitBtn22.SetBounds(18, 102, 264, 42);
+  BitBtn23.SetBounds(18, 150, 264, 42);
+  BitBtn24.SetBounds(18, 198, 264, 42);
+  BitBtn42.SetBounds(18, 246, 264, 42);
+  BitBtn35.SetBounds(18, 294, 264, 42);
+  BitBtn58.SetBounds(18, 342, 264, 42);
+
+  Panel3.SetBounds(28, ContentTop + 24, 520, 226);
+  StaticText1.SetBounds(8, 6, 504, 25);
+  DBGrid1.SetBounds(8, 36, 504, 181);
+  Panel5.SetBounds(30, 32, 460, 182);
+  LabelLlamada.SetBounds(8, 8, 444, 25);
+  Label1.SetBounds(18, 48, 70, 29); Edit1.SetBounds(92, 48, 100, 29);
+  Label2.SetBounds(218, 48, 60, 29); Edit2.SetBounds(282, 48, 100, 29);
+  Label3.SetBounds(18, 88, 70, 29); Edit3.SetBounds(92, 88, 350, 29);
+  BitBtn48.SetBounds(18, 132, 110, 36);
+  BitBtn49.SetBounds(332, 132, 110, 36);
+
+  Panel4.SetBounds(ClientWidth - 548, ContentTop + 24, 520, 226);
+  StaticText2.SetBounds(8, 6, 504, 25);
+  DBGrid2.SetBounds(8, 36, 504, 181);
+
+  if Panel1.Visible then Panel1.BringToFront;
+  if Panel2.Visible then Panel2.BringToFront;
+  if Panel3.Visible then Panel3.BringToFront;
+  if Panel4.Visible then Panel4.BringToFront;
+  if Panel6.Visible then Panel6.BringToFront;
+end;
+
+procedure TFMenu.FormResizeModerno(Sender: TObject);
+begin
+  RecolocarMenuModerno;
+end;
+
+procedure TFMenu.AplicarEstiloModernoMenu;
+var
+  I: Integer;
+  TS: TTabSheet;
+begin
+  Caption := 'FacturLinEx · Menú principal';
+  WindowState := wsMaximized;
+  ParentFont := False;
+  Font.Name := 'Sans';
+  Font.Height := -11;
+  Color := RGBToColor(232, 237, 240);
+
+  if FHeaderPanel = nil then
+  begin
+    FHeaderPanel := TPanel.Create(Self);
+    FHeaderPanel.Parent := Self;
+    FHeaderPanel.BevelOuter := bvNone;
+    FHeaderPanel.BevelInner := bvNone;
+    FHeaderPanel.ParentBackground := False;
+    FHeaderPanel.ParentColor := False;
+    FHeaderPanel.Color := RGBToColor(18, 76, 91);
+
+    FHeaderTitle := TLabel.Create(Self);
+    FHeaderTitle.Parent := FHeaderPanel;
+    FHeaderTitle.AutoSize := False;
+    FHeaderTitle.Transparent := True;
+    FHeaderTitle.ParentFont := False;
+    FHeaderTitle.Font.Name := 'Sans';
+    FHeaderTitle.Font.Height := -21;
+    FHeaderTitle.Font.Style := [fsBold];
+    FHeaderTitle.Font.Color := clWhite;
+    FHeaderTitle.Caption := 'FACTURLINEX · GESTIÓN Y FACTURACIÓN';
+
+    FHeaderSubtitle := TLabel.Create(Self);
+    FHeaderSubtitle.Parent := FHeaderPanel;
+    FHeaderSubtitle.AutoSize := False;
+    FHeaderSubtitle.Transparent := True;
+    FHeaderSubtitle.ParentFont := False;
+    FHeaderSubtitle.Font.Name := 'Sans';
+    FHeaderSubtitle.Font.Height := -11;
+    FHeaderSubtitle.Font.Style := [fsBold];
+    FHeaderSubtitle.Font.Color := RGBToColor(220, 235, 239);
+
+    FHeaderContext := TLabel.Create(Self);
+    FHeaderContext.Parent := FHeaderPanel;
+    FHeaderContext.AutoSize := False;
+    FHeaderContext.Transparent := True;
+    FHeaderContext.ParentFont := False;
+    FHeaderContext.Font.Name := 'Sans';
+    FHeaderContext.Font.Height := -12;
+    FHeaderContext.Font.Style := [fsBold];
+    FHeaderContext.Font.Color := clWhite;
+    FHeaderContext.Alignment := taRightJustify;
+    FHeaderContext.Layout := tlCenter;
+
+    FHeroPanel := TPanel.Create(Self);
+    FHeroPanel.Parent := Self;
+    FHeroPanel.ParentColor := False;
+    FHeroPanel.Color := RGBToColor(30, 41, 47);
+    FHeroPanel.BevelOuter := bvNone;
+    FHeroPanel.BevelInner := bvNone;
+    FHeroPanel.Caption := '';
+
+    FHeroTopPanel := TPanel.Create(Self);
+    FHeroTopPanel.Parent := FHeroPanel;
+    FHeroTopPanel.ParentColor := False;
+    FHeroTopPanel.Color := RGBToColor(18, 76, 91);
+    FHeroTopPanel.BevelOuter := bvNone;
+    FHeroTopPanel.BevelInner := bvNone;
+    FHeroTopPanel.Caption := '';
+
+    FHeroTitle := TLabel.Create(Self);
+    FHeroTitle.Parent := FHeroTopPanel;
+    FHeroTitle.AutoSize := False;
+    FHeroTitle.Transparent := True;
+    FHeroTitle.ParentFont := False;
+    FHeroTitle.Font.Name := 'Sans';
+    FHeroTitle.Font.Height := -17;
+    FHeroTitle.Font.Style := [fsBold];
+    FHeroTitle.Font.Color := clWhite;
+    FHeroTitle.Caption := 'CENTRO DE TRABAJO';
+
+    FHeroSubtitle := TLabel.Create(Self);
+    FHeroSubtitle.Parent := FHeroTopPanel;
+    FHeroSubtitle.AutoSize := False;
+    FHeroSubtitle.WordWrap := True;
+    FHeroSubtitle.Transparent := True;
+    FHeroSubtitle.ParentFont := False;
+    FHeroSubtitle.Font.Name := 'Sans';
+    FHeroSubtitle.Font.Height := -10;
+    FHeroSubtitle.Font.Color := RGBToColor(220, 235, 239);
+    FHeroSubtitle.Caption :=
+      'El fondo y el logotipo originales de FacturLinEx se mantienen como identidad del sistema.';
+
+    FQuickPanel := TPanel.Create(Self);
+    FQuickPanel.Parent := FHeroPanel;
+    FQuickPanel.BevelOuter := bvNone;
+    FQuickPanel.BevelInner := bvNone;
+    FQuickPanel.ParentBackground := False;
+    FQuickPanel.ParentColor := False;
+    FQuickPanel.Color := RGBToColor(248, 250, 251);
+
+    FQuickTitle := TLabel.Create(Self);
+    FQuickTitle.Parent := FQuickPanel;
+    FQuickTitle.AutoSize := False;
+    FQuickTitle.Transparent := True;
+    FQuickTitle.ParentFont := False;
+    FQuickTitle.Font.Name := 'Sans';
+    FQuickTitle.Font.Height := -10;
+    FQuickTitle.Font.Style := [fsBold];
+    FQuickTitle.Font.Color := RGBToColor(18, 76, 91);
+    FQuickTitle.Alignment := taCenter;
+    FQuickTitle.Caption := 'AVISOS Y ACCESOS RÁPIDOS';
+
+    FLogoFrame := TShape.Create(Self);
+    FLogoFrame.Parent := FHeroPanel;
+    FLogoFrame.Shape := stRoundRect;
+    FLogoFrame.Brush.Color := RGBToColor(255, 250, 238);
+    FLogoFrame.Pen.Color := RGBToColor(194, 142, 0);
+    FLogoFrame.Pen.Width := 2;
+  end;
+
+  Image1.Align := alNone;
+  Image1.AnchorSideLeft.Control := nil;
+  Image1.AnchorSideTop.Control := nil;
+  Image1.AnchorSideRight.Control := nil;
+  Image1.AnchorSideBottom.Control := nil;
+  Image1.Anchors := [];
+  Image1.Stretch := True;
+  Image1.Proportional := True;
+  Image1.Center := True;
+
+  ImagenLogo.Align := alNone;
+  ImagenLogo.AnchorSideLeft.Control := nil;
+  ImagenLogo.AnchorSideTop.Control := nil;
+  ImagenLogo.AnchorSideRight.Control := nil;
+  ImagenLogo.AnchorSideBottom.Control := nil;
+  ImagenLogo.Anchors := [];
+  ImagenLogo.Stretch := True;
+  ImagenLogo.Proportional := True;
+  ImagenLogo.Center := True;
+  ImagenLogo.Transparent := True;
+
+  SpeedButton1.Parent := FQuickPanel;
+  SpeedButton2.Parent := FQuickPanel;
+  SpeedButton1.AnchorSideLeft.Control := nil;
+  SpeedButton1.AnchorSideTop.Control := nil;
+  SpeedButton1.AnchorSideRight.Control := nil;
+  SpeedButton1.AnchorSideBottom.Control := nil;
+  SpeedButton2.AnchorSideLeft.Control := nil;
+  SpeedButton2.AnchorSideTop.Control := nil;
+  SpeedButton2.AnchorSideRight.Control := nil;
+  SpeedButton2.AnchorSideBottom.Control := nil;
+  SpeedButton1.Anchors := [];
+  SpeedButton2.Anchors := [];
+  SpeedButton1.ParentFont := False;
+  SpeedButton2.ParentFont := False;
+  SpeedButton1.Font.Name := 'Sans';
+  SpeedButton2.Font.Name := 'Sans';
+  SpeedButton1.Font.Height := -11;
+  SpeedButton2.Font.Height := -11;
+  SpeedButton1.Font.Style := [fsBold];
+  SpeedButton2.Font.Style := [fsBold];
+  SpeedButton1.Font.Color := RGBToColor(30, 41, 59);
+  SpeedButton2.Font.Color := RGBToColor(30, 41, 59);
+  SpeedButton1.Layout := blGlyphTop;
+  SpeedButton2.Layout := blGlyphTop;
+  SpeedButton1.Flat := True;
+  SpeedButton2.Flat := True;
+
+  PageControl1.Align := alNone;
+  PageControl1.ParentFont := False;
+  PageControl1.Font.Name := 'Sans';
+  PageControl1.Font.Height := -10;
+  PageControl1.Font.Style := [fsBold];
+  PageControl1.HotTrack := True;
+  PageControl1.MultiLine := True;
+  PageControl1.OnChange := @PageControl1ChangeModerno;
+
+  TabSheet1.Caption := 'Ventas';
+  TabSheet2.Caption := 'Archivos';
+  TabSheet3.Caption := 'Listados';
+  TabSheet4.Caption := 'Pedidos';
+  TabSheet5.Caption := 'Históricos';
+  TabSheet6.Caption := 'Etiquetas';
+  TabSheet7.Caption := 'Comunicaciones';
+  TabSheet9.Caption := 'Utilidades';
+  tsModulos1.Caption := 'Módulos extra';
+  TabSheet11.Caption := 'Veri*Factu';
+  TabSheet8.Caption := 'Ayuda';
+  TabSheet10.Caption := 'Finalizar';
+
+  BitBtn3.Caption := 'Albaranes';
+  BitBtn4.Caption := 'Presupuestos';
+  BitBtn5.Caption := 'Facturas';
+  BitBtn14.Caption := 'Proveedores';
+  BitBtn16.Caption := 'Departamentos';
+  BitBtn17.Caption := 'Otros archivos';
+  BitBtn25.Caption := 'Tiendas';
+  BitBtn34.Caption := 'Departamentos';
+  BitBtn28.Caption := 'Artículos';
+  BitBtn29.Caption := 'Clientes';
+  BitBtn30.Caption := 'Familias';
+  BitBtn31.Caption := 'Proveedores';
+  BitBtn32.Caption := 'IVA emitido';
+  BitBtn33.Caption := 'IVA recibido';
+  BitBtn60.Caption := 'Modelo 347';
+  BitBtn27.Caption := 'Gestión pedidos';
+  BitBtn39.Caption := 'Entrada pedidos';
+  BitBtn52.Caption := 'Unir pedidos';
+  BitBtn53.Caption := 'Generar pedido';
+  BitBtn57.Caption := 'Facturar pedido';
+  BitBtn26.Caption := 'Operaciones';
+  BitBtn41.Caption := 'Pedidos';
+  BitBtn36.Caption := 'Albaranes';
+  BitBtn59.Caption := 'Facturas proveedor';
+  BitBtn45.Caption := 'Códigos de barras';
+  BitBtn46.Caption := 'Etiquetas lineales';
+  BitBtn13.Caption := 'Configuración';
+  BitBtn37.Caption := 'Copias seguridad';
+  BitBtn44.Caption := 'Actualizar stock';
+  BitBtn47.Caption := 'Diseñar informes';
+  BitBtn40.Caption := 'Actualizador';
+  BitBtn50.Caption := 'Tarifas';
+  BitBtn54.Caption := 'Roles';
+  BitBtnAbout.Caption := 'Acerca de';
+  BitBtnManual.Caption := 'Manual';
+  if BitBtnManual.Glyph.Empty and (not BitBtnAbout.Glyph.Empty) then
+    BitBtnManual.Glyph.Assign(BitBtnAbout.Glyph);
+  BitBtn8.Caption := 'Cerrar FacturLinEx';
+
+  for I := 0 to PageControl1.PageCount - 1 do
+  begin
+    TS := PageControl1.Pages[I];
+    TS.Color := ColorSuavePestana(TS);
+    TS.Caption := TituloBasePestana(TS);
+  end;
+
+  ActualizarPestanaActivaVisual;
+
+  StatusBar1.Align := alBottom;
+  StatusBar1.ParentFont := False;
+  StatusBar1.Font.Name := 'Sans';
+  StatusBar1.Font.Height := -11;
+  StatusBar1.Font.Style := [fsBold];
+  StatusBar1.Color := RGBToColor(55, 65, 81);
+  StatusBar1.Font.Color := clWhite;
+
+  EstilizarPanelesAuxiliares;
+  FModernMenuApplied := True;
+  OnResize := @FormResizeModerno;
+  RecolocarMenuModerno;
+end;
+
+
 //===================== CREAR APLICACION ==============
 Procedure Tfmenu.Formcreate(Sender: Tobject);
 var
@@ -821,6 +2794,8 @@ Begin
      DecimalSeparator:='.';
      if AbrirAchivo= '' then AbrirAchivo:= 'explorer.exe';
   {$ENDIF}
+  { Aplicación visual temprana: también cubre la configuración inicial. }
+  AplicarEstiloModernoMenu;
   if not FileExists(RutaIni+'FacturConf.ini') then
     begin
      //------------- Linex / Debian / Ubuntu -------------
@@ -845,6 +2820,8 @@ Begin
        end;
      Pagecontrol1.Enabled:=False;
      Panel1.Visible:=True; Panel1.Enabled:=True;
+     RecolocarMenuModerno;
+     Panel1.BringToFront;
      //Edit21.SetFocus;
      Exit;
     end;
@@ -888,12 +2865,19 @@ Begin
      AddTendenciasFacturLinExButton;
      AddPrediccionesFacturLinExButton;
      AddAccionesRecomendadasFacturLinExButton;
+     AddPersonalizarMenuButton;
      CompactarBotonesInteligenciaFLX;
      // No crear un segundo botón de actualizador en Utilidades.
      // El botón antiguo "Actualizar BBDD" se reutiliza y redirige
      // al actualizador moderno mediante ActualizaBBDD -> FLXUpdateConfigClick.
      //AddFLXUpdateConfigButton;
      UpdateVFStatusBar;
+     { Segunda pasada: incluye módulos y botones creados en ejecución. }
+     FMenuFinalReady := True;
+     AplicarEstiloModernoMenu;
+     CapturarOrdenOriginalMenu;
+     CargarOrdenMenuPersonalizado;
+  FLXAplicarTemaVisual(Self);
 
 End;
 
@@ -968,6 +2952,8 @@ begin
         SpeedButton1.Enabled:=False; SpeedButton2.Enabled:=False;
         PageControl1.Enabled:=False;
         Panel6.Visible:=True;
+        RecolocarMenuModerno;
+        Panel6.BringToFront;
         Exit;
       end else
       begin
@@ -1170,13 +3156,27 @@ end;
 //------------------------ VARIOS -------------------------
 procedure TFMenu.BitBtn17Click(Sender: TObject);
 begin
-  Panel2.Visible:=True; Pagecontrol1.Enabled:=False;
+  Panel2.Visible := True;
+  PageControl1.Enabled := False;
+  RecolocarMenuModerno;
+  PosicionarPanelOtrosArchivos;
+  Panel2.BringToFront;
 end;
 
 //-------------------- CERRAR VARIOS ----------------------
 procedure TFMenu.BitBtn20Click(Sender: TObject);
+var
+  Tarjeta: TPanel;
 begin
-  Panel2.Visible:=False; PageControl1.Enabled:=True;
+  Panel2.Visible := False;
+  PageControl1.Enabled := True;
+
+  { Devolver el foco al botón/tarjeta que abrió el panel. }
+  Tarjeta := BuscarTarjetaMenu(BitBtn17);
+  if Assigned(Tarjeta) and Tarjeta.CanFocus then
+    Tarjeta.SetFocus
+  else if PageControl1.CanFocus then
+    PageControl1.SetFocus;
 end;
 //------------------ FORMAS DE PAGO / COBRO ---------------
 procedure TFMenu.BitBtn21Click(Sender: TObject);
@@ -1749,6 +3749,7 @@ var
   MaxRight: Integer;
   C: TControl;
   Rutas: TStringList;
+  LogoVF: TImage;
 
   procedure AddIconPath(const APath: string);
   var S: string;
@@ -1773,8 +3774,6 @@ var
   end;
 
 begin
-  if FindComponent('BitBtnCentroInteligenciaFacturLinEx') <> nil then Exit;
-
   TS := TTabSheet(FindComponent('TabSheetInteligenciaFLX'));
   if TS = nil then
   begin
@@ -1784,6 +3783,33 @@ begin
     TS.Caption := 'Inteligencia';
     try TS.PageIndex := TabSheet9.PageIndex; except end;
   end;
+
+  { La pestaña Inteligencia se crea en ejecución y, a diferencia de las
+    pestañas definidas en el LFM, no tenía el logotipo Veri*Factu. Creamos
+    una única imagen dinámica y copiamos exactamente el gráfico de la
+    pestaña Veri*Factu para que el diseño moderno la trate igual que al resto. }
+  LogoVF := TImage(FindComponent('ImageInteligenciaVeriFactuFLX'));
+  if LogoVF = nil then
+  begin
+    LogoVF := TImage.Create(Self);
+    LogoVF.Name := 'ImageInteligenciaVeriFactuFLX';
+    LogoVF.Parent := TS;
+    LogoVF.Picture.Assign(Image11.Picture);
+    LogoVF.Align := alNone;
+    LogoVF.Anchors := [akTop, akRight];
+    LogoVF.Stretch := True;
+    LogoVF.Proportional := True;
+    LogoVF.Center := True;
+    LogoVF.Transparent := True;
+    LogoVF.SetBounds(TS.ClientWidth - 188, 12, 160, 54);
+  end
+  else if LogoVF.Parent <> TS then
+    LogoVF.Parent := TS;
+
+  LogoVF.Visible := True;
+  LogoVF.BringToFront;
+
+  if FindComponent('BitBtnCentroInteligenciaFacturLinEx') <> nil then Exit;
 
   MaxRight := 0;
   for I := 0 to TS.ControlCount - 1 do
@@ -2203,7 +4229,7 @@ begin
   B.Width := 135;
   B.Height := 84;
   B.Caption := 'Tendencias';
-  B.Hint := 'Tendencias: familias y art�culos que suben o bajan';
+  B.Hint := 'Tendencias: familias y artículos que suben o bajan';
   B.ShowHint := True;
   B.Layout := blGlyphTop;
   B.Spacing := 4;
@@ -2323,7 +4349,7 @@ begin
   B.Width := 135;
   B.Height := 84;
   B.Caption := 'Predicciones';
-  B.Hint := 'Predicciones: se�ales de rotura, crecimiento y reposici�n';
+  B.Hint := 'Predicciones: señales de rotura, crecimiento y reposición';
   B.ShowHint := True;
   B.Layout := blGlyphTop;
   B.Spacing := 4;
@@ -3589,6 +5615,19 @@ procedure TFMenu.BitBtn13Click(Sender: TObject);
 begin
   timer1.enabled:=false;
   ShowFormConfig();
+
+  { Configuración puede haber modificado cualquier sección. Se descarta el
+    lector abierto al arrancar para que el menú no siga usando valores antiguos
+    ni pueda reescribirlos posteriormente. }
+  FreeAndNil(IniReader);
+  IniReader := FLXOpenFacturConfIni;
+  if Assigned(Sections) then
+  begin
+    Sections.Clear;
+    IniReader.ReadSections(Sections);
+  end;
+  CargaValoresIniReaderEnVariables(IniReader);
+
   Timer1Timer(nil);
 end;
 //---------------------- Copias de seguridad ----------------
@@ -3612,6 +5651,34 @@ begin
   FPopupBackup.Items.Add(MI);
 
   MI := TMenuItem.Create(FPopupBackup);
+  MI.Caption := '-';
+  FPopupBackup.Items.Add(MI);
+
+  MI := TMenuItem.Create(FPopupBackup);
+  MI.Caption := 'Copia completa del servidor MariaDB';
+  MI.OnClick := @MenuBackupRemotoClick;
+  FPopupBackup.Items.Add(MI);
+
+  MI := TMenuItem.Create(FPopupBackup);
+  MI.Caption := 'Copia completa del servidor + FTP';
+  MI.OnClick := @MenuBackupRemotoFTPClick;
+  FPopupBackup.Items.Add(MI);
+
+  MI := TMenuItem.Create(FPopupBackup);
+  MI.Caption := 'Backup físico de la BBDD configurada';
+  MI.OnClick := @MenuBackupBaseRemotaClick;
+  FPopupBackup.Items.Add(MI);
+
+  MI := TMenuItem.Create(FPopupBackup);
+  MI.Caption := 'Backup físico de la BBDD configurada + FTP';
+  MI.OnClick := @MenuBackupBaseRemotaFTPClick;
+  FPopupBackup.Items.Add(MI);
+
+  MI := TMenuItem.Create(FPopupBackup);
+  MI.Caption := '-';
+  FPopupBackup.Items.Add(MI);
+
+  MI := TMenuItem.Create(FPopupBackup);
   MI.Caption := 'Backup FLX + FTP';
   MI.OnClick := @MenuBackupFLXFTPClick;
   FPopupBackup.Items.Add(MI);
@@ -3627,7 +5694,12 @@ begin
   FPopupBackup.Items.Add(MI);
 
   MI := TMenuItem.Create(FPopupBackup);
-  MI.Caption := 'Restaurar copia';
+  MI.Caption := 'Restaurar copia completa del servidor';
+  MI.OnClick := @MenuRestoreRemotoClick;
+  FPopupBackup.Items.Add(MI);
+
+  MI := TMenuItem.Create(FPopupBackup);
+  MI.Caption := 'Restaurar copia FLX anterior';
   MI.OnClick := @MenuRestoreCopiaClick;
   FPopupBackup.Items.Add(MI);
 end;
@@ -3657,6 +5729,203 @@ begin
 
   Timer1Timer(nil);
 end;
+
+
+procedure TFMenu.MenuBackupRemotoClick(Sender: TObject);
+var
+  Cfg: TFLXRemoteBackupConfig;
+  DBSel, LocalFile, Msg: string;
+begin
+  timer1.Enabled := False;
+  try
+    DBSel := Trim(IniReader.ReadString('BBDD', 'database', ''));
+    if DBSel = '' then DBSel := DBDataBase;
+    Cfg := FLXReadRemoteBackupConfig(IniReader, DBSel);
+  Cfg.Password := FLX_IniReadPassword(IniReader, 'BackupRemoto',
+      'PasswordSSH', '');
+
+    Screen.Cursor := crHourGlass;
+    try
+      if FLXRunRemoteBackup(Cfg, LocalFile, Msg) then
+        ShowMessage(Msg)
+      else
+        ShowMessage('ERROR EN LA COPIA COMPLETA DEL SERVIDOR:' + LineEnding + Msg);
+    finally
+      Screen.Cursor := crDefault;
+    end;
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+
+
+function TFMenu.SubirBackupRemotoFTP(const ALocalFile: string;
+  out AMessage: string): Boolean;
+var
+  CfgActual: TBackupFTPConfigData;
+  CfgFTP: TFLXFTPTransferConfig;
+  IniFile, FTPPass: string;
+begin
+  Result := False;
+  AMessage := '';
+  IniFile := IncludeTrailingPathDelimiter(GetUserDir) +
+    '.config' + PathDelim + 'facturlinex' + PathDelim + 'backup_ftp.ini';
+
+  if not LoadBackupFTPConfig(IniFile, CfgActual) then
+  begin
+    AMessage := 'No existe la configuración del FTP. Utilice primero ' +
+      '«Configurar backup FTP».';
+    Exit;
+  end;
+  if Trim(CfgActual.Host) = '' then
+  begin
+    AMessage := 'Falta el servidor FTP en la configuración.';
+    Exit;
+  end;
+  if Trim(CfgActual.User) = '' then
+  begin
+    AMessage := 'Falta el usuario FTP en la configuración.';
+    Exit;
+  end;
+
+  FTPPass := '';
+  if Trim(CfgActual.PasswordEnc) <> '' then
+    FTPPass := FLX_DecryptStringCtx(CfgActual.PasswordEnc, 'FTP|PasswordEnc');
+
+  CfgFTP.UseFTPS := CfgActual.UseFTPS;
+  CfgFTP.Host := Trim(CfgActual.Host);
+  CfgFTP.Port := CfgActual.Port;
+  CfgFTP.UserName := Trim(CfgActual.User);
+  CfgFTP.Password := FTPPass;
+  CfgFTP.RemoteDir := Trim(CfgActual.RemoteDir);
+  CfgFTP.Passive := CfgActual.Passive;
+  CfgFTP.CreateRemoteDir := CfgActual.CreateRemoteDir;
+  CfgFTP.TimeoutSeconds := 3600;
+
+  Result := FLXUploadFileFTP(CfgFTP, ALocalFile, AMessage);
+end;
+
+procedure TFMenu.MenuBackupRemotoFTPClick(Sender: TObject);
+var
+  Cfg: TFLXRemoteBackupConfig;
+  DBSel, LocalFile, Msg, MsgFTP: string;
+begin
+  timer1.Enabled := False;
+  try
+    DBSel := Trim(IniReader.ReadString('BBDD', 'database', ''));
+    if DBSel = '' then DBSel := DBDataBase;
+    Cfg := FLXReadRemoteBackupConfig(IniReader, DBSel);
+  Cfg.Password := FLX_IniReadPassword(IniReader, 'BackupRemoto',
+      'PasswordSSH', '');
+
+    Screen.Cursor := crHourGlass;
+    try
+      if not FLXRunRemoteBackup(Cfg, LocalFile, Msg) then
+      begin
+        ShowMessage('ERROR EN LA COPIA COMPLETA DEL SERVIDOR:' + LineEnding + Msg);
+        Exit;
+      end;
+
+      if not SubirBackupRemotoFTP(LocalFile, MsgFTP) then
+      begin
+        ShowMessage('La copia completa del servidor se ha creado y verificado, pero ' +
+          'ha fallado el envío al FTP.' + LineEnding + MsgFTP + LineEnding +
+          'La copia local permanece disponible en:' + LineEnding + LocalFile);
+        Exit;
+      end;
+
+      ShowMessage('Copia completa del servidor finalizada, verificada y enviada al FTP.' +
+        LineEnding + LocalFile);
+    finally
+      Screen.Cursor := crDefault;
+    end;
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+
+
+procedure TFMenu.MenuBackupBaseRemotaClick(Sender: TObject);
+var
+  Cfg: TFLXRemoteBackupConfig;
+  DBSel, LocalFile, Msg: string;
+begin
+  timer1.Enabled := False;
+  try
+    DBSel := Trim(IniReader.ReadString('BBDD', 'database', ''));
+    if DBSel = '' then DBSel := DBDataBase;
+    if DBSel = '' then
+    begin
+      ShowMessage('No se ha podido determinar la base de datos configurada.');
+      Exit;
+    end;
+
+    Cfg := FLXReadRemoteBackupConfig(IniReader, DBSel);
+    Cfg.Password := FLX_IniReadPassword(IniReader, 'BackupRemoto',
+      'PasswordSSH', '');
+
+    Screen.Cursor := crHourGlass;
+    try
+      if FLXRunRemoteDatabaseBackup(Cfg, DBSel, LocalFile, Msg) then
+        ShowMessage(Msg)
+      else
+        ShowMessage('ERROR EN EL BACKUP DE LA BBDD "' + DBSel + '":' +
+          LineEnding + Msg);
+    finally
+      Screen.Cursor := crDefault;
+    end;
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+
+procedure TFMenu.MenuBackupBaseRemotaFTPClick(Sender: TObject);
+var
+  Cfg: TFLXRemoteBackupConfig;
+  DBSel, LocalFile, Msg, MsgFTP: string;
+begin
+  timer1.Enabled := False;
+  try
+    DBSel := Trim(IniReader.ReadString('BBDD', 'database', ''));
+    if DBSel = '' then DBSel := DBDataBase;
+    if DBSel = '' then
+    begin
+      ShowMessage('No se ha podido determinar la base de datos configurada.');
+      Exit;
+    end;
+
+    Cfg := FLXReadRemoteBackupConfig(IniReader, DBSel);
+    Cfg.Password := FLX_IniReadPassword(IniReader, 'BackupRemoto',
+      'PasswordSSH', '');
+
+    Screen.Cursor := crHourGlass;
+    try
+      if not FLXRunRemoteDatabaseBackup(Cfg, DBSel, LocalFile, Msg) then
+      begin
+        ShowMessage('ERROR EN EL BACKUP DE LA BBDD "' + DBSel + '":' +
+          LineEnding + Msg);
+        Exit;
+      end;
+
+      if not SubirBackupRemotoFTP(LocalFile, MsgFTP) then
+      begin
+        ShowMessage('El backup físico de la BBDD "' + DBSel +
+          '" se ha creado y verificado, pero ha fallado el envío al FTP.' +
+          LineEnding + MsgFTP + LineEnding +
+          'La copia local permanece disponible en:' + LineEnding + LocalFile);
+        Exit;
+      end;
+
+      ShowMessage('Backup físico de la BBDD "' + DBSel +
+        '" finalizado, verificado y enviado al FTP.' + LineEnding + LocalFile);
+    finally
+      Screen.Cursor := crDefault;
+    end;
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+
 
 procedure TFMenu.MenuBackupFLXFTPClick(Sender: TObject);
 var
@@ -3765,6 +6034,94 @@ begin
   FLX_UnpackBackupInteractive(Self, GetUserDir);
 end;
 
+
+procedure TFMenu.MenuRestoreRemotoClick(Sender: TObject);
+var
+  Dlg: TOpenDialog;
+  Cfg: TFLXRemoteBackupConfig;
+  DBSel, Confirmacion, Msg: string;
+  Restaurado: Boolean;
+begin
+  timer1.Enabled := False;
+  Restaurado := False;
+  try
+    Dlg := TOpenDialog.Create(Self);
+    try
+      Dlg.Title := 'Seleccionar copia física remota de MariaDB';
+      Dlg.Filter := 'Copias físicas MariaDB (*.tar.gz)|*.tar.gz|Todos los archivos|*';
+      Dlg.InitialDir := IniReader.ReadString('BackupRemoto', 'DestinoLocal', GetUserDir);
+      if not Dlg.Execute then Exit;
+
+      if MessageDlg(
+        'ATENCIÓN: se va a sustituir todo el contenido del servidor MariaDB.' +
+        LineEnding + LineEnding +
+        'Deben estar cerrados todos los demás puestos de FacturLinEx. ' +
+        'Esta restauración es independiente de la opción mono-usuario.' +
+        LineEnding +
+        'El sistema verificará la copia, creará una copia preventiva del estado ' +
+        'actual, detendrá MariaDB y restaurará el archivo:' + LineEnding +
+        Dlg.FileName + LineEnding + LineEnding +
+        '¿Desea continuar?',
+        mtWarning, [mbYes, mbNo], 0) <> mrYes then Exit;
+
+      Confirmacion := '';
+      if not InputQuery('Confirmación de restauración',
+        'Escriba RESTAURAR para confirmar:', Confirmacion) then Exit;
+      if UpperCase(Trim(Confirmacion)) <> 'RESTAURAR' then
+      begin
+        ShowMessage('Confirmación incorrecta. No se ha realizado ningún cambio.');
+        Exit;
+      end;
+
+      DBSel := Trim(IniReader.ReadString('BBDD', 'database', ''));
+      if DBSel = '' then DBSel := DBDataBase;
+      Cfg := FLXReadRemoteBackupConfig(IniReader, DBSel);
+      Cfg.Password := FLX_IniReadPassword(IniReader, 'BackupRemoto',
+      'PasswordSSH', '');
+
+      if Assigned(TimerVF) then TimerVF.Enabled := False;
+      if Assigned(Timer1) then Timer1.Enabled := False;
+      try
+        datamodule1.dbConexion.Disconnect;
+      except
+        { La restauración continuará aunque la conexión ya estuviera cerrada. }
+      end;
+
+      Screen.Cursor := crHourGlass;
+      try
+        Restaurado := FLXRunRemoteRestore(Cfg, Dlg.FileName, Msg);
+      finally
+        Screen.Cursor := crDefault;
+      end;
+
+      if Restaurado then
+      begin
+        FBackupRemotoSalidaEjecutado := True;
+        FBackupRemotoSustituyeLocal := True;
+        ShowMessage(Msg + LineEnding + LineEnding +
+          'FacturLinEx se cerrará ahora. Vuelva a abrirlo para trabajar con ' +
+          'los datos restaurados.');
+        Application.Terminate;
+      end
+      else
+      begin
+        ShowMessage('ERROR EN LA RESTAURACIÓN REMOTA:' + LineEnding + Msg);
+        try
+          datamodule1.dbConexion.Connect;
+        except
+          on E: Exception do
+            ShowMessage('Además, no se ha podido reconectar con MariaDB:' +
+              LineEnding + E.Message);
+        end;
+      end;
+    finally
+      Dlg.Free;
+    end;
+  finally
+    if not Restaurado then Timer1Timer(nil);
+  end;
+end;
+
 procedure TFMenu.MenuRestoreCopiaClick(Sender: TObject);
 begin
   timer1.Enabled := False;
@@ -3786,10 +6143,24 @@ end;
 procedure TFMenu.BitBtn37Click(Sender: TObject);
 var
   P: TPoint;
+  Tarjeta: TPanel;
+  ControlReferencia: TControl;
 begin
   timer1.Enabled := False;
   InitBackupPopupMenu;
-  P := BitBtn37.ClientToScreen(Types.Point(0, BitBtn37.Height));
+
+  { En el menú moderno el BitBtn37 original está oculto y la interfaz
+    visible utiliza la tarjeta FLXTile_BitBtn37. El desplegable debe tomar
+    como referencia el control visible para aparecer justo debajo de él. }
+  Tarjeta := BuscarTarjetaMenu(BitBtn37);
+  if Assigned(Tarjeta) and Tarjeta.Visible then
+    ControlReferencia := Tarjeta
+  else
+    ControlReferencia := BitBtn37;
+
+  P := ControlReferencia.ClientToScreen(
+    Types.Point(0, ControlReferencia.ClientHeight)
+  );
   FPopupBackup.PopUp(P.X, P.Y);
 end;
 //-------------------- Actualizaciones BBDD -----------------
@@ -3879,6 +6250,124 @@ end;
 //===========================================================
 //========================= AYUDA ===========================
 //===========================================================
+//---------------------- Manual de FacturLinEx ---------------------
+procedure TFMenu.BitBtnManualClick(Sender: TObject);
+begin
+  Timer1.Enabled := False;
+  try
+    MostrarManualFacturLinEx;
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+
+procedure TFMenu.AplicarPermisosAccesoMenu;
+  procedure Aplicar(const ANombreBoton, AModulo: string);
+  var
+    C: TComponent;
+  begin
+    C := FindComponent(ANombreBoton);
+    if C is TBitBtn then
+      TBitBtn(C).Enabled := FLXTienePermiso(AModulo, 1);
+  end;
+
+  procedure AplicarDos(const ANombreBoton, AModulo1, AModulo2: string);
+  var
+    C: TComponent;
+  begin
+    C := FindComponent(ANombreBoton);
+    if C is TBitBtn then
+      TBitBtn(C).Enabled :=
+        FLXTienePermiso(AModulo1, 1) or FLXTienePermiso(AModulo2, 1);
+  end;
+begin
+  { Sin filas para el rol, FLXTienePermiso devuelve True para conservar
+    el comportamiento histórico y evitar bloqueos accidentales. }
+
+  { Ventas y documentos emitidos. }
+  Aplicar('BitBtn1',  'VENTAS_TPV');
+  Aplicar('BitBtn2',  'CAJAS_ARQUEOS');
+  Aplicar('BitBtn3',  'FACT_EMITIDAS');
+  Aplicar('BitBtn4',  'PRESUPUESTOS');
+  Aplicar('BitBtn5',  'FACT_EMITIDAS');
+  Aplicar('BitBtn6',  'FACT_EMITIDAS');
+  Aplicar('BitBtn38', 'CREDITOS');
+  Aplicar('BitBtn43', 'PRESUPUESTOS');
+  Aplicar('BitBtnDashboardProductividad', 'DASHBOARD');
+
+  { Listados. }
+  Aplicar('BitBtn9',  'LIST_MAESTROS');
+  Aplicar('BitBtn25', 'LIST_MAESTROS');
+  Aplicar('BitBtn28', 'LIST_ARTICULOS');
+  Aplicar('BitBtn29', 'LIST_CLIENTES');
+  Aplicar('BitBtn30', 'LIST_MAESTROS');
+  Aplicar('BitBtn31', 'LIST_PROVEED');
+  Aplicar('BitBtn34', 'LIST_MAESTROS');
+  Aplicar('BitBtn32', 'INFORMES_IVA');
+  Aplicar('BitBtn33', 'INFORMES_IVA');
+  Aplicar('BitBtn60', 'MODELO_347');
+
+  { Pedidos, compras y entradas. }
+  Aplicar('BitBtn27', 'PED_PROVEED');
+  Aplicar('BitBtn39', 'ENTRADAS');
+  Aplicar('BitBtn52', 'PED_PROVEED');
+  Aplicar('BitBtn53', 'PED_PROVEED');
+  Aplicar('BitBtn57', 'PED_PROVEED');
+  Aplicar('BitBtnPedidoVentasProveedor', 'PED_PROVEED');
+  Aplicar('BitBtnPedidoProveedorAuto', 'PED_PROVEED');
+  Aplicar('BitBtnPedidoTemporadaAuto', 'PED_PROVEED');
+
+  { Históricos. }
+  Aplicar('BitBtn26', 'HIST_VENTAS');
+  Aplicar('BitBtn41', 'HIST_PEDIDOS');
+  Aplicar('BitBtn36', 'HIST_FACT_EMI');
+  Aplicar('BitBtn59', 'HIST_FACT_REC');
+  Aplicar('BitBtnHistoricoPreciosFacturLinEx', 'HIST_PRECIOS');
+
+  { Etiquetas y salidas. }
+  Aplicar('BitBtn45', 'EXPORTACIONES');
+  Aplicar('BitBtn46', 'EXPORTACIONES');
+
+  { Comunicaciones. }
+  Aplicar('BitBtnActuArti', 'ACTUALIZADOR');
+  Aplicar('BitBtnActuEans', 'ACTUALIZADOR');
+  Aplicar('BitBtnComun', 'COMUNICACIONES');
+  Aplicar('BitBtnActuPedi', 'IMPORTACIONES');
+  Aplicar('BitBtnEnviArti', 'COMUNICACIONES');
+  Aplicar('BitBtnEnviCli', 'COMUNICACIONES');
+
+  { Utilidades y configuración. }
+  Aplicar('BitBtn13', 'CONFIGURACION');
+  AplicarDos('BitBtn37', 'COPIAS_SEGURIDAD', 'RESTAURACION');
+  Aplicar('BitBtn44', 'STOCKS');
+  Aplicar('BitBtn47', 'CONFIGURACION');
+  Aplicar('BitBtn40', 'ACTUALIZADOR');
+  Aplicar('BitBtn50', 'TARIFAS');
+  Aplicar('BitBtn54', 'CONFIGURACION');
+  Aplicar('BitBtnFLXUpdateConfig', 'ACTUALIZADOR');
+
+  { VeriFactu. }
+  Aplicar('btnEnviarAhora', 'VERIFACTU');
+  Aplicar('btnVFReenviarErrores', 'VERIFACTU');
+  Aplicar('BitBtn61', 'VERIFACTU');
+  Aplicar('BitBtnMonitor', 'VERIFACTU');
+
+  { Inteligencia, auditoría y mantenimiento. }
+  Aplicar('BitBtnDoctorFacturLinEx', 'AUDITORIA');
+  Aplicar('BitBtnAlertasFacturLinEx', 'INTELIGENCIA');
+  Aplicar('BitBtnAsistenteFacturLinEx', 'INTELIGENCIA');
+  Aplicar('BitBtnCentroInteligenciaFacturLinEx', 'INTELIGENCIA');
+  Aplicar('BitBtnTendenciasFacturLinEx', 'INTELIGENCIA');
+  Aplicar('BitBtnPrediccionesFacturLinEx', 'INTELIGENCIA');
+  Aplicar('BitBtnAccionesRecomendadasFacturLinEx', 'INTELIGENCIA');
+  Aplicar('BitBtnRentabilidadFacturLinEx', 'INTELIGENCIA');
+  Aplicar('BitBtnComparadorProveedoresFacturLinEx', 'INTELIGENCIA');
+  Aplicar('BitBtnAsesorComprasFacturLinEx', 'INTELIGENCIA');
+  Aplicar('BitBtnCentroMantenimientoFacturLinEx', 'MANTENIMIENTO');
+
+  RecolocarMenuModerno;
+end;
+
 //---------------------- A cerca de ... ---------------------
 procedure TFMenu.BitBtnAboutClick(Sender: TObject);
 begin
@@ -4103,6 +6592,81 @@ begin
 end;
 
 
+procedure TFMenu.EjecutarBackupRemotoAlSalir;
+var
+  Cfg: TFLXRemoteBackupConfig;
+  DBSel, LocalFile, Msg, LIniFileName: string;
+  LIni: TIniFile;
+begin
+  if FBackupRemotoSalidaEjecutado then Exit;
+  FBackupRemotoSalidaEjecutado := True;
+
+  { Se vuelve a leer FacturConf.ini directamente del disco en el instante
+    del cierre. De este modo la copia automática utiliza siempre el último
+    valor guardado desde Configuración y no una instancia antigua del INI. }
+  LIniFileName := IncludeTrailingPathDelimiter(RutaIni) + 'FacturConf.ini';
+  LIni := TIniFile.Create(LIniFileName);
+  try
+    DBSel := Trim(LIni.ReadString('BBDD', 'database', ''));
+    if DBSel = '' then DBSel := DBDataBase;
+    Cfg := FLXReadRemoteBackupConfig(LIni, DBSel);
+    Cfg.Password := FLX_IniReadPassword(LIni, 'BackupRemoto',
+      'PasswordSSH', '');
+  finally
+    LIni.Free;
+  end;
+
+  FLX_WriteLog('BackupRemoto',
+    'Configuración al cerrar: Activo=' + BoolToStr(Cfg.Enabled, True) +
+    ', Automatico=' + BoolToStr(Cfg.AutoOnExit, True) +
+    ', INI=' + LIniFileName);
+
+  if not (Cfg.Enabled and Cfg.AutoOnExit) then Exit;
+  { No sustituye a la copia local existente. Si el usuario conserva también
+    activa aquella opción, ambas copias se ejecutan de forma independiente. }
+
+  { Evita que durante una copia larga se disparen tareas automáticas o nuevos
+    envíos mientras el formulario ya está en proceso de cierre. }
+  if Assigned(TimerVF) then TimerVF.Enabled := False;
+  if Assigned(Timer1) then Timer1.Enabled := False;
+
+  ShowMessage('Voy a iniciar la copia física del servidor MariaDB. ' +
+    'El programa se cerrará cuando termine.');
+  Screen.Cursor := crHourGlass;
+  try
+    if not FLXRunRemoteBackup(Cfg, LocalFile, Msg) then
+    begin
+      FLX_WriteLog('BackupRemoto', 'ERROR al cerrar: ' + Msg);
+      ShowMessage('La copia física remota no ha podido completarse.' +
+        LineEnding + Msg + LineEnding +
+        'FacturLinEx se cerrará igualmente; revisa el registro de copias.');
+    end
+    else
+    begin
+      FLX_WriteLog('BackupRemoto', 'Copia al cerrar correcta: ' + LocalFile);
+      if Cfg.FTPOnExit then
+      begin
+        if SubirBackupRemotoFTP(LocalFile, Msg) then
+        begin
+          FLX_WriteLog('BackupRemoto', 'Envío FTP al cerrar correcto: ' + LocalFile);
+          ShowMessage('Copia física remota finalizada, verificada y enviada al FTP.');
+        end
+        else
+        begin
+          FLX_WriteLog('BackupRemoto', 'ERROR FTP al cerrar: ' + Msg);
+          ShowMessage('La copia física remota se ha guardado correctamente, pero ' +
+            'no se ha podido enviar al FTP.' + LineEnding + Msg + LineEnding +
+            'La copia local permanece disponible.');
+        end;
+      end
+      else
+        ShowMessage('Copia física remota finalizada y verificada.');
+    end;
+  finally
+    Screen.Cursor := crDefault;
+  end;
+end;
+
 //=================== CERRAR APLICACION ==================
 Procedure Tfmenu.Bitbtn8click(Sender: Tobject);
 Begin
@@ -4123,7 +6687,9 @@ Var
     Txt: string;
 Begin
     {$IFDEF LINUX}
-    if bbddauto='-1' then
+    EjecutarBackupRemotoAlSalir;
+
+    if (bbddauto='-1') and not FBackupRemotoSustituyeLocal then
       begin
         ShowMessage('Voy a iniciar la copia de seguridad, esto puede tardar un tiempo, por favor ESPERE, le avisaremos al finalizar');
 
@@ -4151,7 +6717,8 @@ Begin
 
   // 4) Continúa con el cierre habitual
 
-
+  FLXPermisosLimpiar;
+  FreeAndNil(FOrdenOriginalBotones);
   CloseAction:= CaFree;
 End;
 
@@ -4162,7 +6729,11 @@ End;
 procedure TFMenu.SpeedButton1Click(Sender: TObject);
 begin
    if Panel3.Visible=False then
-    Panel3.Visible:=true
+    begin
+      Panel3.Visible:=true;
+      RecolocarMenuModerno;
+      Panel3.BringToFront;
+    end
   else
     Panel3.Visible:=False;
 end;
@@ -4172,6 +6743,7 @@ procedure TFMenu.MenuItem1Click(Sender: TObject);
 begin
   LabelLlamada.Caption:='NUEVA LLAMADA / CORREO';
   Panel5.Visible:=True;
+  Panel5.BringToFront;
   Edit1.Text:=FormatDateTime('DD/MM/YYYY',Date);
   Edit2.Text:=FormatDateTime('HH:MM:SS',Time);
   Edit3.Text:='';
@@ -4195,7 +6767,7 @@ begin
   Edit2.Text:=dbLlamadas.FieldByName('Horallama').AsString;
   //dbLlamadas.FieldByName('Usuariollama').Value:=1;
   Edit3.Text:=dbLlamadas.FieldByName('Textollama').AsString;
-  Panel5.Visible:=True; Edit3.SetFocus;
+  Panel5.Visible:=True; Panel5.BringToFront; Edit3.SetFocus;
 end;
 
 //----------------- Editar / Nueva llamada --------
@@ -4229,7 +6801,11 @@ end;
 procedure TFMenu.SpeedButton2Click(Sender: TObject);
 begin
     if Panel4.Visible=False then
-    Panel4.Visible:=true
+    begin
+      Panel4.Visible:=true;
+      RecolocarMenuModerno;
+      Panel4.BringToFront;
+    end
   else
     Panel4.Visible:=False;
 end;
@@ -4554,6 +7130,7 @@ begin
 
   //------------- Iniciar normalmente --------
   Iniciar();
+  AplicarEstiloModernoMenu;
 
 end;
 
@@ -4566,9 +7143,18 @@ end;
 procedure TFMenu.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState
   );
 begin
+  { ESC cierra primero el panel auxiliar de Otros Archivos.
+    Fuera de ese caso se consume para que nunca cierre la aplicación. }
+  if Key = VK_ESCAPE then
+  begin
+    if Panel2.Visible then
+      BitBtn20Click(nil);
+    Key := 0;
+    Exit;
+  end;
 
-  if (ssAlt in Shift) = False then exit;
-  case key of
+  if (ssAlt in Shift) = False then Exit;
+  case Key of
     VK_1:  PageControl1.ActivePage:= TabSheet1;
     VK_2:  PageControl1.ActivePage:= TabSheet2;
     VK_3:  PageControl1.ActivePage:= TabSheet3;
@@ -4584,6 +7170,9 @@ end;
 
 procedure TFMenu.FormShow(Sender: TObject);
 begin
+  AplicarEstiloModernoMenu;
+  RecolocarMenuModerno;
+  FLXAplicarTemaVisual(Self);
 
  if (LogoEmpresa = '') then exit;
  ImagenLogo.Picture.Clear;
@@ -4619,6 +7208,7 @@ begin
   Pagecontrol1.Enabled:=True;
   SpeedButton1.Enabled:=True; SpeedButton2.Enabled:=True;
   CgRol:=dbUsuarios.FieldByName('USU11').AsString;//--------- Rol del usuario
+  FLXPermisosCargar(TZConnection(dbRoles.Connection), Tienda, CgRol);
 
   BitBtn7.Enabled:=CheckRoles(dbRoles, CgRol, 'Tiendas', 1);//------ Rol Ficha Tiendas
   BitBtn12.Enabled:=CheckRoles(dbRoles, CgRol, 'Usuarios', 1);//---- Rol Ficha Usuarios
@@ -4633,6 +7223,9 @@ begin
   BitBtn24.Enabled:=CheckRoles(dbRoles, CgRol, 'Envases', 1);//----- Rol Ficha Envases
   BitBtn42.Enabled:=CheckRoles(dbRoles, CgRol, 'Puestos', 1);//----- Rol Ficha Puestos
   BitBtn35.Enabled:=CheckRoles(dbRoles, CgRol, 'Produccion', 1);//-- Rol Ficha Produccion
+  AplicarPermisosAccesoMenu;
+  CargarOrdenMenuPersonalizado;
+  RecolocarMenuModerno;
 end;
 
 //------------------- Cerrar panel usuario y clave
@@ -4701,11 +7294,17 @@ begin
      DataModule1.Mensaje('FacturLinEx','Cargando módulo extra '+
                          ModuloConfiguracion.ReadString('Modulo','nombre',''), 1500 , clSilver);
 
-     Boton := TBitBtn.Create(tsModulos1);
+     { El botón debe pertenecer al formulario, igual que los botones
+       estáticos del menú. Las tarjetas modernas recuperan el botón real
+       mediante FMenu.Components[ComponentIndex]. Si el Owner es tsModulos1,
+       el índice pertenece a otra lista y el clic de la tarjeta no llega al
+       evento del módulo. }
+     Boton := TBitBtn.Create(Self);
      With Boton do
        begin
          Parent := tsModulos1;
          Name := 'modulo'+IntToStr(contModulos);
+         Tag := contModulos;  // Índice estable del ejecutable asociado.
          ShowHint := True;
          Hint := ModuloConfiguracion.ReadString('Modulo','descripcion','');
          AutoSize:=False;
@@ -4744,43 +7343,59 @@ end;
 
 procedure TFMenu.ModulosExtraClick(Sender: TObject);
 var
-  nomBoton: string;
-  numBoton: integer;
+  numBoton: Integer;
+  Ejecutable: string;
   Proceso: TProcess;
   Salida: TStringList;
 begin
+  if not (Sender is TBitBtn) then Exit;
 
-  // Definición de "proceso" como una variable de tipo "TProcess"
-  // También añadimos un TStringList para almacenar los datos
-  // leídos desde la salida del programa.
+  { El índice se guarda al crear el botón. No se obtiene ya del último
+    carácter del Name, porque ese método falla a partir de modulo10. }
+  numBoton := TBitBtn(Sender).Tag;
+  if (numBoton < 0) or (numBoton >= Length(BinarioModulos)) then
+  begin
+    ShowMessage('No se ha podido identificar el módulo seleccionado.');
+    Exit;
+  end;
 
-  nomBoton := tBitBtn(sender).Name;
-  delete(nomBoton, 1, length(nomBoton)-1);
-  numBoton := StrToInt(nomBoton);
+  Ejecutable := Trim(BinarioModulos[numBoton]);
 
-  if  ( not (FileExists(BinarioModulos[numBoton]))) and
-      ( not (FileExists(RutaModulos+BinarioModulos[numBoton])))  then
-    if Application.MessageBox(PChar(' No encuentro el archivo ejecutable :'+ #13 + #13 +
-              '       '+ BinarioModulos[numBoton]+ #13 + #13 +
-              ' Continuar de todos modos la ejecución ?'), 'FacturLinEx',
-              MB_ICONQUESTION + MB_YESNO) <> idYes then Exit;
+  { Admite tanto rutas absolutas como ejecutables ubicados dentro de Extras. }
+  if (Ejecutable <> '') and (not FileExists(Ejecutable)) and
+     FileExists(IncludeTrailingPathDelimiter(RutaModulos) + Ejecutable) then
+    Ejecutable := IncludeTrailingPathDelimiter(RutaModulos) + Ejecutable;
+
+  if (Ejecutable = '') or (not FileExists(Ejecutable)) then
+  begin
+    Application.MessageBox(
+      PChar('No encuentro el archivo ejecutable:' + LineEnding + LineEnding +
+            '  ' + BinarioModulos[numBoton]),
+      'FacturLinEx', MB_ICONERROR + MB_OK);
+    Exit;
+  end;
 
   Salida := TStringList.Create;
   Proceso := TProcess.Create(nil);
+  try
+    try
+      Proceso.Executable := Ejecutable;
+      Proceso.CurrentDirectory := ExtractFileDir(Ejecutable);
+      Proceso.Options := Proceso.Options + [poWaitOnExit, poUsePipes];
+      Proceso.Execute;
 
-  Proceso.CommandLine := BinarioModulos[numBoton];
-  Proceso.Options := Proceso.Options + [poWaitOnExit, poUsePipes];
-  proceso.Execute;
-
-  // Ahora leemos la salida del programa que acabamos de ejecutar
-  // dentro de TStringList.
-  Salida.LoadFromStream(Proceso.Output);
-  Salida.SaveToFile('Modulo_'+tBitBtn(sender).Name+'.txt');
-
-  // Ahora que hemos guardado el archivo podemos liberar la memoria
-  // TStringList y TProcess.
-  Salida.Free;
-  Proceso.Free;
+      { Conservamos el registro de salida que ya generaba el menú. }
+      Salida.LoadFromStream(Proceso.Output);
+      Salida.SaveToFile('Modulo_' + TBitBtn(Sender).Name + '.txt');
+    except
+      on E: Exception do
+        ShowMessage('No se ha podido ejecutar el módulo:' + LineEnding +
+                    Ejecutable + LineEnding + LineEnding + E.Message);
+    end;
+  finally
+    Proceso.Free;
+    Salida.Free;
+  end;
 end;
 
 Initialization

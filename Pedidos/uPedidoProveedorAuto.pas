@@ -144,7 +144,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls, ComCtrls,
-  Grids, Spin, DateUtils, Math, DB, Types, Printers, LConvEncoding, LCLIntf, LazUTF8,
+  Grids, Spin, DateUtils, Math, DB, Types, Printers, LConvEncoding, LCLIntf, LCLType, LazUTF8,
   Process, ZConnection, ZDataset;
 
 type
@@ -325,6 +325,7 @@ type
     procedure BtnImprimirClick(Sender: TObject);
     procedure BtnOrdenTiendaClick(Sender: TObject);
     procedure BtnRecalcularFinalClick(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure BtnCerrarClick(Sender: TObject);
     procedure GridEditingDone(Sender: TObject);
     procedure GridSelectCell(Sender: TObject; aCol, aRow: Integer; var CanSelect: Boolean);
@@ -491,6 +492,8 @@ begin
   Width := 1250;
   Height := 720;
   WindowState := wsMaximized;
+  KeyPreview := True;
+  OnKeyDown := @FormKeyDown;
 
   ConstruirInterfaz;
   InicializarGrid;
@@ -4628,6 +4631,24 @@ begin
   for R := 1 to Grid.RowCount - 1 do
     if Trim(Grid.Cells[2, R]) <> '' then
       RecalcularCantidadFinalFila(R);
+end;
+
+procedure TfPedidoProveedorAuto.FormKeyDown(Sender: TObject;
+  var Key: Word; Shift: TShiftState);
+begin
+  if Key <> VK_ESCAPE then
+    Exit;
+
+  { Si hay un desplegable activo, ESC lo cierra antes de salir del formulario. }
+  if (ActiveControl is TComboBox) and TComboBox(ActiveControl).DroppedDown then
+  begin
+    TComboBox(ActiveControl).DroppedDown := False;
+    Key := 0;
+    Exit;
+  end;
+
+  Key := 0;
+  BtnCerrarClick(Self);
 end;
 
 procedure TfPedidoProveedorAuto.BtnCerrarClick(Sender: TObject);

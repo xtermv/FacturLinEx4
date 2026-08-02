@@ -31,7 +31,7 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
   ComCtrls, Grids, Spin, DateUtils, Math, DB, Types, Printers, LCLIntf,
-  LazUTF8, Process, ZConnection, ZDataset;
+  LCLType, LazUTF8, Process, ZConnection, ZDataset;
 
 type
   TLineaTemporada = record
@@ -206,6 +206,7 @@ type
     procedure EjecutarBusquedaArticuloManual;
     procedure OrdenarBusquedaArticuloManual(const ACol: Integer; const AAsc: Boolean);
 
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure BtnCerrarClick(Sender: TObject);
     procedure BtnLimpiarProveedorClick(Sender: TObject);
     procedure EdtBuscarProveedorChange(Sender: TObject);
@@ -306,6 +307,8 @@ begin
   Color := $00F3F5F7;
   Font.Name := 'Sans';
   Font.Height := -13;
+  KeyPreview := True;
+  OnKeyDown := @FormKeyDown;
   ConstruirInterfaz;
   CrearTablasTemporada;
   CargarKeywordsTemporada;
@@ -2951,6 +2954,24 @@ begin
     Printer.Abort;
     raise;
   end;
+end;
+
+procedure TfPedidoTemporadaAuto.FormKeyDown(Sender: TObject;
+  var Key: Word; Shift: TShiftState);
+begin
+  if Key <> VK_ESCAPE then
+    Exit;
+
+  { Si hay un desplegable activo, ESC lo cierra antes de salir del formulario. }
+  if (ActiveControl is TComboBox) and TComboBox(ActiveControl).DroppedDown then
+  begin
+    TComboBox(ActiveControl).DroppedDown := False;
+    Key := 0;
+    Exit;
+  end;
+
+  Key := 0;
+  BtnCerrarClick(Self);
 end;
 
 procedure TfPedidoTemporadaAuto.BtnCerrarClick(Sender: TObject);

@@ -29,7 +29,10 @@ Interface
 Uses
   Classes, Sysutils, Lresources, Forms, Controls, Graphics, Dialogs, ComCtrls,
   Buttons, ZConnection, ZDataset, StdCtrls, ExtCtrls, LCLType, DBGrids,
-  TAGraph, TASeries, db, DbCtrls, variants;
+  TAGraph, TASeries, db, DbCtrls, variants, Grids
+  {$IFDEF LCLGTK2}
+  , gtk2, gdk2
+  {$ENDIF};
 
 
 Type
@@ -86,6 +89,12 @@ Type
     Panel4: TPanel;
     StaticText1: TStaticText;
     StaticText2: TStaticText;
+    PanelCabecera: TPanel;
+    PanelPie: TPanel;
+    LabelTitulo: TLabel;
+    LabelSubtitulo: TLabel;
+    LabelPanelProducto: TLabel;
+    LabelPanelComponente: TLabel;
     procedure BitBtn10Click(Sender: TObject);
     procedure BitBtn11Click(Sender: TObject);
     procedure BitBtn5Click(Sender: TObject);
@@ -101,6 +110,15 @@ Type
     procedure Edit7Exit(Sender: TObject);
     procedure Edit8Exit(Sender: TObject);
     procedure Edit9Exit(Sender: TObject);
+    procedure DBGrid1DrawColumnCell(Sender: TObject; const Rect: TRect;
+      DataCol: Integer; Column: TColumn; State: TGridDrawState);
+    procedure DBGrid2DrawColumnCell(Sender: TObject; const Rect: TRect;
+      DataCol: Integer; Column: TColumn; State: TGridDrawState);
+    procedure DBGrid1TitleClick(Column: TColumn);
+    procedure DBGrid2TitleClick(Column: TColumn);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure FormResize(Sender: TObject);
+    procedure FormShow(Sender: TObject);
     Procedure Formcreate(Sender: Tobject);
     Procedure Edit1enter(Sender: Tobject);
     Procedure Edit1exit(Sender: Tobject);
@@ -119,7 +137,21 @@ Type
     Procedure Bitbtn3click(Sender: Tobject);
 
   Private
-    { Private Declarations }
+    FOrdenProductoCampo: String;
+    FOrdenProductoAscendente: Boolean;
+    FOrdenComponenteCampo: String;
+    FOrdenComponenteAscendente: Boolean;
+    procedure AplicarEstiloModerno;
+    procedure CentrarPanelesEdicion;
+    procedure AplicarContrasteSeleccion(AControl: TWinControl);
+    procedure AplicarContrasteSeleccionControles(AParent: TWinControl);
+    procedure DibujarCeldaGrid(AGrid: TDBGrid; const Rect: TRect;
+      DataCol: Integer; Column: TColumn; State: TGridDrawState);
+    procedure OrdenarConsulta(AQuery: TZQuery; const ACampo: String;
+      AAscendente: Boolean);
+    procedure ActualizarFlechasProducto;
+    procedure ActualizarFlechasComponente;
+    function QuitarFlechaOrden(const ATexto: String): String;
   Public
     { Public Declarations }
   End;
@@ -165,12 +197,24 @@ Begin
       dbLotesdd.Active:=False;
       dbLotesdd.SQL.Text:='SELECT * from lotesdd'+Tienda;
       dbLotesdd.Active:=True;
+      FOrdenProductoCampo:='';
+      FOrdenProductoAscendente:=True;
+      FOrdenComponenteCampo:='';
+      FOrdenComponenteAscendente:=True;
+      AplicarEstiloModerno;
+      CentrarPanelesEdicion;
       exit;
     end;
   dbLotescc.First;
   dbLotesdd.Active:=False;
   dbLotesdd.SQL.Text:='SELECT * from lotesdd'+Tienda+' WHERE PROD0='+dbLotescc.FieldByName('PROC0').AsString;
   dbLotesdd.Active:=True;
+  FOrdenProductoCampo:='';
+  FOrdenProductoAscendente:=True;
+  FOrdenComponenteCampo:='';
+  FOrdenComponenteAscendente:=True;
+  AplicarEstiloModerno;
+  CentrarPanelesEdicion;
 end;
 
 
@@ -189,6 +233,8 @@ End;
 Procedure TFProduccion.Bitbtn2click(Sender: Tobject);
 begin
   Panel2.Visible:=True;
+  Panel2.BringToFront;
+  CentrarPanelesEdicion;
   DBGrid1.Enabled:=False; Panel1.Enabled:=False;
   Edit1.Text:=''; LimpiaForm();
   Edit1.Enabled:=True; Edit1.SetFocus;
@@ -198,6 +244,8 @@ end;
 procedure TFProduccion.BitBtn5Click(Sender: TObject);
 begin
   Panel4.Visible:=True;
+  Panel4.BringToFront;
+  CentrarPanelesEdicion;
   DBGrid2.Enabled:=False; Panel3.Enabled:=False;
   Edit3.Text:=''; LimpiaForm1();
   Edit3.Enabled:=True; Edit3.SetFocus;
@@ -247,6 +295,8 @@ end;
 Procedure TFProduccion.Bitbtn4click(Sender: Tobject);
 Begin
   Panel2.Visible:=True;
+  Panel2.BringToFront;
+  CentrarPanelesEdicion;
   DBGrid1.Enabled:=False; Panel1.Enabled:=False;
   LimpiaForm(); Relleno();
   Edit1.Enabled:=False; Edit2.SetFocus;
@@ -256,6 +306,8 @@ End;
 procedure TFProduccion.BitBtn9Click(Sender: TObject);
 begin
   Panel4.Visible:=True;
+  Panel4.BringToFront;
+  CentrarPanelesEdicion;
   DBGrid2.Enabled:=False; Panel3.Enabled:=False;
   LimpiaForm1(); Relleno1();
   Edit3.Enabled:=False; Edit4.SetFocus;
@@ -525,6 +577,332 @@ begin
   dblotescc.FieldByName('PROC2').Value:=dbSumas.FieldByName('SumaDD').AsFloat;
   dbLotescc.Post;
 
+end;
+
+
+procedure TFProduccion.FormShow(Sender: TObject);
+begin
+  AplicarEstiloModerno;
+  AplicarContrasteSeleccionControles(Self);
+  CentrarPanelesEdicion;
+end;
+
+procedure TFProduccion.FormResize(Sender: TObject);
+begin
+  CentrarPanelesEdicion;
+end;
+
+procedure TFProduccion.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key<>VK_ESCAPE then Exit;
+  Key:=0;
+  if Panel4.Visible then
+    BitBtn11Click(BitBtn11)
+  else if Panel2.Visible then
+    BitBtn8Click(BitBtn8)
+  else
+    BitBtn1Click(BitBtn1);
+end;
+
+procedure TFProduccion.AplicarEstiloModerno;
+var
+  I: Integer;
+  Botones: array[0..10] of TBitBtn;
+  Etiquetas: array[0..10] of TLabel;
+begin
+  Color:=RGBToColor(244,247,251);
+  Font.Name:='Sans';
+  Font.Height:=-13;
+
+  PanelCabecera.Caption:='';
+  PanelCabecera.Color:=RGBToColor(31,78,121);
+  PanelPie.Caption:='';
+  PanelPie.Color:=RGBToColor(232,239,247);
+  Panel1.Caption:='';
+  Panel1.Color:=RGBToColor(239,245,251);
+  Panel3.Caption:='';
+  Panel3.Color:=RGBToColor(239,245,251);
+  Panel2.Caption:='';
+  Panel2.Color:=RGBToColor(247,250,253);
+  Panel4.Caption:='';
+  Panel4.Color:=RGBToColor(247,250,253);
+
+  LabelTitulo.Font.Color:=clWhite;
+  LabelSubtitulo.Font.Color:=RGBToColor(221,235,248);
+  LabelPanelProducto.Font.Color:=RGBToColor(24,36,48);
+  LabelPanelComponente.Font.Color:=RGBToColor(24,36,48);
+
+  StaticText1.Color:=RGBToColor(218,230,242);
+  StaticText2.Color:=RGBToColor(218,230,242);
+  StaticText1.Font.Color:=RGBToColor(24,36,48);
+  StaticText2.Font.Color:=RGBToColor(24,36,48);
+
+  DBGrid1.Color:=clWhite;
+  DBGrid2.Color:=clWhite;
+  DBGrid1.FixedColor:=RGBToColor(218,230,242);
+  DBGrid2.FixedColor:=RGBToColor(218,230,242);
+  DBGrid1.Font.Color:=RGBToColor(24,36,48);
+  DBGrid2.Font.Color:=RGBToColor(24,36,48);
+  DBGrid1.TitleFont.Color:=RGBToColor(24,36,48);
+  DBGrid2.TitleFont.Color:=RGBToColor(24,36,48);
+  DBGrid1.TitleFont.Style:=[fsBold];
+  DBGrid2.TitleFont.Style:=[fsBold];
+
+  Etiquetas[0]:=Label1;
+  Etiquetas[1]:=Label2;
+  Etiquetas[2]:=Label3;
+  Etiquetas[3]:=Label4;
+  Etiquetas[4]:=Label5;
+  Etiquetas[5]:=Label6;
+  Etiquetas[6]:=Label7;
+  Etiquetas[7]:=Label8;
+  Etiquetas[8]:=Label9;
+  Etiquetas[9]:=Label10;
+  Etiquetas[10]:=Label11;
+  for I:=Low(Etiquetas) to High(Etiquetas) do
+  begin
+    Etiquetas[I].Font.Name:='Sans';
+    Etiquetas[I].Font.Height:=-13;
+    Etiquetas[I].Font.Style:=[fsBold];
+    Etiquetas[I].Font.Color:=RGBToColor(24,36,48);
+    Etiquetas[I].ParentColor:=True;
+  end;
+
+  for I:=1 to 11 do
+    if FindComponent('Edit'+IntToStr(I)) is TEdit then
+    begin
+      TEdit(FindComponent('Edit'+IntToStr(I))).Color:=clWhite;
+      TEdit(FindComponent('Edit'+IntToStr(I))).Font.Color:=RGBToColor(24,36,48);
+    end;
+
+  Botones[0]:=BitBtn1;
+  Botones[1]:=BitBtn2;
+  Botones[2]:=BitBtn3;
+  Botones[3]:=BitBtn4;
+  Botones[4]:=BitBtn5;
+  Botones[5]:=BitBtn6;
+  Botones[6]:=BitBtn7;
+  Botones[7]:=BitBtn8;
+  Botones[8]:=BitBtn9;
+  Botones[9]:=BitBtn10;
+  Botones[10]:=BitBtn11;
+  for I:=Low(Botones) to High(Botones) do
+  begin
+    Botones[I].Font.Name:='Sans';
+    Botones[I].Font.Height:=-13;
+    Botones[I].Font.Style:=[fsBold];
+    Botones[I].Font.Color:=RGBToColor(24,36,48);
+    Botones[I].Visible:=True;
+    Botones[I].BringToFront;
+  end;
+
+  BitBtn2.Color:=RGBToColor(215,236,224);
+  BitBtn5.Color:=RGBToColor(215,236,224);
+  BitBtn3.Color:=RGBToColor(249,221,221);
+  BitBtn6.Color:=RGBToColor(249,221,221);
+  BitBtn4.Color:=RGBToColor(219,234,248);
+  BitBtn9.Color:=RGBToColor(219,234,248);
+  BitBtn7.Color:=RGBToColor(207,235,218);
+  BitBtn10.Color:=RGBToColor(207,235,218);
+  BitBtn8.Color:=RGBToColor(229,233,238);
+  BitBtn11.Color:=RGBToColor(229,233,238);
+  BitBtn1.Color:=RGBToColor(229,233,238);
+end;
+
+procedure TFProduccion.CentrarPanelesEdicion;
+var
+  L, T, ZonaTop, ZonaBottom: Integer;
+begin
+  ZonaTop:=PanelCabecera.Height;
+  ZonaBottom:=PanelPie.Height;
+
+  L:=(ClientWidth-Panel2.Width) div 2;
+  if L<16 then L:=16;
+  T:=ZonaTop+(ClientHeight-ZonaTop-ZonaBottom-Panel2.Height) div 2;
+  if T<ZonaTop+16 then T:=ZonaTop+16;
+  Panel2.Left:=L;
+  Panel2.Top:=T;
+
+  L:=(ClientWidth-Panel4.Width) div 2;
+  if L<16 then L:=16;
+  T:=ZonaTop+(ClientHeight-ZonaTop-ZonaBottom-Panel4.Height) div 2;
+  if T<ZonaTop+16 then T:=ZonaTop+16;
+  Panel4.Left:=L;
+  Panel4.Top:=T;
+end;
+
+procedure TFProduccion.AplicarContrasteSeleccion(AControl: TWinControl);
+{$IFDEF LCLGTK2}
+var
+  FondoNormal, TextoNormal, FondoSeleccion, TextoSeleccion: TGdkColor;
+  Widget: PGtkWidget;
+{$ENDIF}
+begin
+  if not Assigned(AControl) then Exit;
+  AControl.HandleNeeded;
+  {$IFDEF LCLGTK2}
+  Widget:=PGtkWidget(AControl.Handle);
+  if Assigned(Widget) then
+  begin
+    gdk_color_parse(PChar('#FFFFFF'),@FondoNormal);
+    gdk_color_parse(PChar('#182430'),@TextoNormal);
+    gtk_widget_modify_base(Widget,GTK_STATE_NORMAL,@FondoNormal);
+    gtk_widget_modify_text(Widget,GTK_STATE_NORMAL,@TextoNormal);
+    gdk_color_parse(PChar('#2A5684'),@FondoSeleccion);
+    gdk_color_parse(PChar('#FFFFFF'),@TextoSeleccion);
+    gtk_widget_modify_base(Widget,GTK_STATE_SELECTED,@FondoSeleccion);
+    gtk_widget_modify_text(Widget,GTK_STATE_SELECTED,@TextoSeleccion);
+  end;
+  {$ENDIF}
+end;
+
+procedure TFProduccion.AplicarContrasteSeleccionControles(AParent: TWinControl);
+var
+  I: Integer;
+  C: TControl;
+begin
+  if not Assigned(AParent) then Exit;
+  for I:=0 to AParent.ControlCount-1 do
+  begin
+    C:=AParent.Controls[I];
+    if C is TCustomEdit then
+      AplicarContrasteSeleccion(TWinControl(C));
+    if C is TWinControl then
+      AplicarContrasteSeleccionControles(TWinControl(C));
+  end;
+end;
+
+procedure TFProduccion.DibujarCeldaGrid(AGrid: TDBGrid; const Rect: TRect;
+  DataCol: Integer; Column: TColumn; State: TGridDrawState);
+begin
+  if gdSelected in State then
+  begin
+    AGrid.Canvas.Brush.Color:=RGBToColor(42,86,132);
+    AGrid.Canvas.Font.Color:=clWhite;
+  end
+  else
+  begin
+    AGrid.Canvas.Brush.Color:=clWhite;
+    AGrid.Canvas.Font.Color:=RGBToColor(24,36,48);
+  end;
+  AGrid.Canvas.FillRect(Rect);
+  AGrid.DefaultDrawColumnCell(Rect,DataCol,Column,State);
+end;
+
+procedure TFProduccion.DBGrid1DrawColumnCell(Sender: TObject;
+  const Rect: TRect; DataCol: Integer; Column: TColumn;
+  State: TGridDrawState);
+begin
+  DibujarCeldaGrid(TDBGrid(Sender),Rect,DataCol,Column,State);
+end;
+
+procedure TFProduccion.DBGrid2DrawColumnCell(Sender: TObject;
+  const Rect: TRect; DataCol: Integer; Column: TColumn;
+  State: TGridDrawState);
+begin
+  DibujarCeldaGrid(TDBGrid(Sender),Rect,DataCol,Column,State);
+end;
+
+function TFProduccion.QuitarFlechaOrden(const ATexto: String): String;
+var
+  P: SizeInt;
+begin
+  Result:=ATexto;
+  P:=Pos(' ▲',Result);
+  if P>0 then Delete(Result,P,Length(Result)-P+1);
+  P:=Pos(' ▼',Result);
+  if P>0 then Delete(Result,P,Length(Result)-P+1);
+end;
+
+procedure TFProduccion.OrdenarConsulta(AQuery: TZQuery; const ACampo: String;
+  AAscendente: Boolean);
+var
+  SQLBase, Direccion: String;
+  P: SizeInt;
+begin
+  if (AQuery=nil) or (ACampo='') or (not AQuery.Active) then Exit;
+  SQLBase:=Trim(AQuery.SQL.Text);
+  P:=Pos(' ORDER BY ',UpperCase(SQLBase));
+  if P>0 then SQLBase:=Trim(Copy(SQLBase,1,P-1));
+  if AAscendente then Direccion:=' ASC' else Direccion:=' DESC';
+
+  AQuery.DisableControls;
+  try
+    AQuery.Close;
+    AQuery.SQL.Text:=SQLBase+' ORDER BY '+ACampo+Direccion;
+    AQuery.Open;
+  finally
+    AQuery.EnableControls;
+  end;
+end;
+
+procedure TFProduccion.ActualizarFlechasProducto;
+var
+  I: Integer;
+  Base: String;
+begin
+  for I:=0 to DBGrid1.Columns.Count-1 do
+  begin
+    Base:=QuitarFlechaOrden(DBGrid1.Columns[I].Title.Caption);
+    if SameText(DBGrid1.Columns[I].FieldName,FOrdenProductoCampo) then
+    begin
+      if FOrdenProductoAscendente then
+        DBGrid1.Columns[I].Title.Caption:=Base+' ▲'
+      else
+        DBGrid1.Columns[I].Title.Caption:=Base+' ▼';
+    end
+    else
+      DBGrid1.Columns[I].Title.Caption:=Base;
+  end;
+end;
+
+procedure TFProduccion.ActualizarFlechasComponente;
+var
+  I: Integer;
+  Base: String;
+begin
+  for I:=0 to DBGrid2.Columns.Count-1 do
+  begin
+    Base:=QuitarFlechaOrden(DBGrid2.Columns[I].Title.Caption);
+    if SameText(DBGrid2.Columns[I].FieldName,FOrdenComponenteCampo) then
+    begin
+      if FOrdenComponenteAscendente then
+        DBGrid2.Columns[I].Title.Caption:=Base+' ▲'
+      else
+        DBGrid2.Columns[I].Title.Caption:=Base+' ▼';
+    end
+    else
+      DBGrid2.Columns[I].Title.Caption:=Base;
+  end;
+end;
+
+procedure TFProduccion.DBGrid1TitleClick(Column: TColumn);
+begin
+  if (Column=nil) or (Column.FieldName='') or (not dblotescc.Active) then Exit;
+  if SameText(FOrdenProductoCampo,Column.FieldName) then
+    FOrdenProductoAscendente:=not FOrdenProductoAscendente
+  else
+  begin
+    FOrdenProductoCampo:=Column.FieldName;
+    FOrdenProductoAscendente:=True;
+  end;
+  OrdenarConsulta(dblotescc,FOrdenProductoCampo,FOrdenProductoAscendente);
+  ActualizarFlechasProducto;
+end;
+
+procedure TFProduccion.DBGrid2TitleClick(Column: TColumn);
+begin
+  if (Column=nil) or (Column.FieldName='') or (not dblotesdd.Active) then Exit;
+  if SameText(FOrdenComponenteCampo,Column.FieldName) then
+    FOrdenComponenteAscendente:=not FOrdenComponenteAscendente
+  else
+  begin
+    FOrdenComponenteCampo:=Column.FieldName;
+    FOrdenComponenteAscendente:=True;
+  end;
+  OrdenarConsulta(dblotesdd,FOrdenComponenteCampo,FOrdenComponenteAscendente);
+  ActualizarFlechasComponente;
 end;
 
 Initialization

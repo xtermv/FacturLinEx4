@@ -5,7 +5,7 @@ unit uTendenciasFacturLinEx;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Dialogs, ExtCtrls, StdCtrls, Buttons,
+  Classes, SysUtils, Forms, Controls, LCLType, Dialogs, ExtCtrls, StdCtrls, Buttons,
   Grids, Graphics, DB, ZConnection, ZDataset, uFLXGridUtils, uFLXIcons;
 
 procedure MostrarTendenciasFacturLinEx(AOwner: TComponent; AConnection: TZConnection; const ATienda: string);
@@ -55,6 +55,7 @@ type
     procedure AddRow(const Tipo, Codigo, Descripcion: string; Actual, Anterior, Dif, Porc: Double; const Tendencia, Accion: string);
     procedure AnalizarClick(Sender: TObject);
     procedure CSVClick(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure CerrarClick(Sender: TObject);
     procedure GridHeaderClick(Sender: TObject; IsColumn: Boolean; Index: Integer);
     procedure GridPrepareCanvas(Sender: TObject; aCol, aRow: Integer; aState: TGridDrawState);
@@ -200,6 +201,8 @@ var
   BtnAplicar: TBitBtn;
 begin
   inherited CreateNew(AOwner, 1);
+  KeyPreview := True;
+  OnKeyDown := @FormKeyDown;
   FConn := AConnection;
   FTienda := ATienda;
   FSortCol := -1;
@@ -785,6 +788,22 @@ begin
   finally
     SL.Free; SD.Free;
   end;
+end;
+
+procedure TTendenciasForm.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if Key <> VK_ESCAPE then Exit;
+
+  // Si hay un desplegable activo, ESC lo cierra antes de salir del formulario.
+  if (ActiveControl is TComboBox) and TComboBox(ActiveControl).DroppedDown then
+  begin
+    TComboBox(ActiveControl).DroppedDown := False;
+    Key := 0;
+    Exit;
+  end;
+
+  Key := 0;
+  CerrarClick(Self);
 end;
 
 procedure TTendenciasForm.CerrarClick(Sender: TObject);

@@ -5,7 +5,7 @@ unit uAlertasFacturLinEx;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls,
+  Classes, SysUtils, Forms, Controls, LCLType, Graphics, Dialogs, ExtCtrls, StdCtrls,
   Buttons, Grids, DB, ZConnection, ZDataset,
   uFLXIntelligenceEngine, uFLXGridStyle, uFLXExport, uFLXIcons, uFLXDialogs;
 
@@ -68,6 +68,7 @@ type
     procedure ActualizarResumen;
     procedure RevisarClick(Sender: TObject);
     procedure CSVClick(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure CerrarClick(Sender: TObject);
     procedure GridMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure GridDrawCell(Sender: TObject; aCol, aRow: Integer; aRect: TRect; aState: TGridDrawState);
@@ -163,6 +164,8 @@ var
   L: TLabel;
 begin
   inherited CreateNew(AOwner, 1);
+  KeyPreview := True;
+  OnKeyDown := @FormKeyDown;
   FConn := AConnection;
   FTienda := ATienda;
   FLastSortCol := -1;
@@ -755,6 +758,22 @@ procedure TAlertasFacturLinExForm.CSVClick(Sender: TObject);
 begin
   if FLXGuardarCSVConDialogo(Grid, 'Exportar alertas FacturLinEx', 'alertas_facturlinex.csv') then
     FLXInfo('CSV generado correctamente.', 'Alertas');
+end;
+
+procedure TAlertasFacturLinExForm.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if Key <> VK_ESCAPE then Exit;
+
+  // Si hay un desplegable activo, ESC lo cierra antes de salir del formulario.
+  if (ActiveControl is TComboBox) and TComboBox(ActiveControl).DroppedDown then
+  begin
+    TComboBox(ActiveControl).DroppedDown := False;
+    Key := 0;
+    Exit;
+  end;
+
+  Key := 0;
+  CerrarClick(Self);
 end;
 
 procedure TAlertasFacturLinExForm.CerrarClick(Sender: TObject);

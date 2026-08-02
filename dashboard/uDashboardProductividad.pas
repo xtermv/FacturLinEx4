@@ -832,6 +832,8 @@ type
     procedure PintarBarrasMeses(APaintBox: TPaintBox; const ATitulo, ALeg1, ALeg2: string; const A1, A2: TDoubleMonthArray; const APrefijo, ASufijo: string);
     procedure PintarBarrasHorasDouble(APaintBox: TPaintBox; const ATitulo: string; const A: TDoubleHourArray; const APrefijo, ASufijo: string);
     procedure PintarBarrasHorasEntero(APaintBox: TPaintBox; const ATitulo: string; const A: TIntegerHourArray);
+    procedure PintarHorasHorizontalDouble(APaintBox: TPaintBox; const ATitulo: string; const A: TDoubleHourArray; const APrefijo, ASufijo: string);
+    procedure PintarHorasHorizontalEntero(APaintBox: TPaintBox; const ATitulo: string; const A: TIntegerHourArray);
     procedure PintarPagosComparativa(Sender: TObject);
     procedure GrafAnoActualAnteriorPaint(Sender: TObject);
     procedure GrafTicketMedioHoraPaint(Sender: TObject);
@@ -5137,7 +5139,7 @@ begin
   gbComprasVentas := TGroupBox.Create(Self);
   gbComprasVentas.Parent := pnlBottom;
   gbComprasVentas.Align := alClient;
-  gbComprasVentas.Caption := 'Compras vs ventas';
+  gbComprasVentas.Caption := 'Albaranes compra vs ventas';
 
   pbGrafComprasVentas := TPaintBox.Create(Self);
   pbGrafComprasVentas.Parent := gbComprasVentas;
@@ -9396,7 +9398,7 @@ begin
 
     memoDiagnostico.Lines.Add('');
     memoDiagnostico.Lines.Add('Accion recomendada: revisar primero la tabla de margen negativo/bajo, despues las horas fuertes/flojas y por ultimo proveedores con margen bajo.');
-    memoDiagnostico.Lines.Add('Nota compras: esta primera version cruza ventas y margen por proveedor del articulo. En el siguiente paso revisaremos albaranes de compra, porque tus pedidos reales entran normalmente como albaranes y no como pedicc/pedidd.');
+    memoDiagnostico.Lines.Add('Nota compras: la grafica Compras vs Ventas toma los albaranes recibidos del historico hipedicc/hipedidd; pedicc/pedidd contiene principalmente pedidos aun activos.');
   finally
     memoDiagnostico.Lines.EndUpdate;
   end;
@@ -10163,7 +10165,22 @@ begin
     end;
     Q.Close;
 
-    if TablaExiste('pedicc' + FTienda) then
+    { Las compras reales/recibidas dejan de estar en pedicc/pedidd cuando se
+      consolida la entrada. FacturLinEx las copia al historico
+      hipedicc/hipedidd y elimina el pedido activo. Por eso la grafica debe
+      tomar HPC1/HPC8 del historico. pedicc queda solo como compatibilidad
+      para instalaciones antiguas que no dispongan de hipedicc. }
+    if TablaExiste('hipedicc' + FTienda) then
+    begin
+      Q.SQL.Text :=
+        'SELECT MONTH(HPC1) AS mes, ROUND(COALESCE(SUM(HPC8),0),2) AS total ' +
+        'FROM ' + Tabla('hipedicc') + ' ' +
+        'WHERE YEAR(HPC1)=:anyo ' +
+        'GROUP BY MONTH(HPC1)';
+      Q.ParamByName('anyo').AsInteger := Y;
+      Q.Open;
+    end
+    else if TablaExiste('pedicc' + FTienda) then
     begin
       Q.SQL.Text :=
         'SELECT MONTH(PC1) AS mes, ROUND(COALESCE(SUM(PC8),0),2) AS total ' +
@@ -10172,6 +10189,9 @@ begin
         'GROUP BY MONTH(PC1)';
       Q.ParamByName('anyo').AsInteger := Y;
       Q.Open;
+    end;
+
+    if Q.Active then
       while not Q.EOF do
       begin
         M := CampoInteger(Q, 'mes');
@@ -10179,7 +10199,6 @@ begin
           FGComprasMes[M] := CampoDouble(Q, 'total');
         Q.Next;
       end;
-    end;
   finally
     Q.Free;
   end;
@@ -10240,12 +10259,13 @@ end;
 
 procedure TFDashboardProductividad.PintarBarrasMeses(APaintBox: TPaintBox; const ATitulo, ALeg1, ALeg2: string; const A1, A2: TDoubleMonthArray; const APrefijo, ASufijo: string);
 const
-  Meses: array[1..12] of string = ('E','F','M','A','M','J','J','A','S','O','N','D');
+  Meses: array[1..12] of string = ('Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic');
 var
   C: TCanvas;
-  W, H, I, X, YBase, TopY, PlotW, PlotH, StepX, BarW, H1, H2: Integer;
+  W, H, I, Y, RowH, BarH, X0, X1, MaxW, W1, W2: Integer;
+  LabelW, ValueW, TextoY1, TextoY2, FontDatos: Integer;
   MaxV: Double;
-  TextoMax: string;
+  Texto1, Texto2: string;
 begin
   if APaintBox = nil then Exit;
 
@@ -10253,64 +10273,115 @@ begin
   W := APaintBox.Width;
   H := APaintBox.Height;
   C.Brush.Color := clWhite;
-  C.FillRect(Rect(0,0,W,H));
+  C.FillRect(Rect(0, 0, W, H));
   C.Font.Color := clBlack;
+  C.Font.Size := 8;
   C.Font.Style := [fsBold];
-  C.TextOut(8,6,ATitulo);
+  C.TextOut(8, 5, ATitulo);
   C.Font.Style := [];
 
   MaxV := 0;
+  ValueW := 70;
+  C.Font.Size := 7;
   for I := 1 to 12 do
   begin
     if Abs(A1[I]) > MaxV then MaxV := Abs(A1[I]);
     if Abs(A2[I]) > MaxV then MaxV := Abs(A2[I]);
+    Texto1 := APrefijo + FormatFloat('#,##0.##', A1[I]) + ASufijo;
+    Texto2 := APrefijo + FormatFloat('#,##0.##', A2[I]) + ASufijo;
+    ValueW := Max(ValueW, C.TextWidth(Texto1) + 8);
+    ValueW := Max(ValueW, C.TextWidth(Texto2) + 8);
   end;
+  C.Font.Size := 8;
 
   if MaxV <= 0 then
   begin
-    C.TextOut(8,30,'Sin datos para dibujar.');
+    C.TextOut(8, 30, 'Sin datos para dibujar.');
     Exit;
   end;
 
-  TopY := 42;
-  YBase := H - 34;
-  PlotH := Max(20, YBase - TopY);
-  PlotW := W - 58;
-  StepX := Max(16, PlotW div 12);
-  BarW := Max(5, (StepX - 6) div 2);
+  { Leyenda. Cada serie ocupa una línea dentro de cada mes. }
+  C.Brush.Color := clSkyBlue;
+  C.Pen.Color := clBlue;
+  C.Rectangle(8, 22, 18, 32);
+  C.Brush.Color := clMoneyGreen;
+  C.Pen.Color := clGreen;
+  C.Rectangle(84, 22, 94, 32);
+  C.Font.Color := clBlack;
+  C.TextOut(22, 20, ALeg1);
+  C.TextOut(98, 20, ALeg2);
 
-  C.Pen.Color := clGray;
-  C.Line(34, TopY, 34, YBase);
-  C.Line(34, YBase, W - 16, YBase);
+  LabelW := 30;
+  ValueW := Min(ValueW, Max(90, W div 3));
+  X0 := LabelW + 8;
+  X1 := W - ValueW - 6;
+  if X1 < X0 + 50 then
+  begin
+    ValueW := Min(ValueW, 90);
+    X1 := W - ValueW - 6;
+  end;
+  if X1 <= X0 then X1 := X0 + 20;
+  MaxW := X1 - X0;
+
+  RowH := Max(8, (H - 40) div 12);
+  BarH := Max(3, Min(7, (RowH - 3) div 2));
+  if RowH <= 11 then FontDatos := 6 else FontDatos := 7;
+  Y := 38;
+
+  { Guías verticales del 50 % y del máximo. }
+  C.Pen.Color := clSilver;
+  C.Pen.Style := psDot;
+  C.Line(X0 + (MaxW div 2), Y, X0 + (MaxW div 2), Min(H - 3, Y + (RowH * 12)));
+  C.Line(X1, Y, X1, Min(H - 3, Y + (RowH * 12)));
+  C.Pen.Style := psSolid;
 
   for I := 1 to 12 do
   begin
-    X := 38 + (I-1) * StepX;
-    H1 := Round((Abs(A1[I]) / MaxV) * PlotH);
-    H2 := Round((Abs(A2[I]) / MaxV) * PlotH);
+    if Y + RowH > H + 2 then Break;
+
+    C.Font.Color := clBlack;
+    C.Font.Size := FontDatos;
+    C.Font.Style := [fsBold];
+    C.TextOut(5, Y + Max(0, (RowH - C.TextHeight(Meses[I])) div 2), Meses[I]);
+    C.Font.Style := [];
+
+    W1 := Round((Abs(A1[I]) / MaxV) * MaxW);
+    W2 := Round((Abs(A2[I]) / MaxV) * MaxW);
 
     C.Brush.Color := clSkyBlue;
     C.Pen.Color := clBlue;
-    C.Rectangle(X, YBase - H1, X + BarW, YBase);
+    if W1 > 0 then
+      C.Rectangle(X0, Y, X0 + W1, Y + BarH)
+    else
+      C.Line(X0, Y + (BarH div 2), X0 + 2, Y + (BarH div 2));
 
     C.Brush.Color := clMoneyGreen;
     C.Pen.Color := clGreen;
-    C.Rectangle(X + BarW + 2, YBase - H2, X + (BarW*2) + 2, YBase);
+    if W2 > 0 then
+      C.Rectangle(X0, Y + BarH + 2, X0 + W2, Y + (BarH * 2) + 2)
+    else
+      C.Line(X0, Y + BarH + 2 + (BarH div 2), X0 + 2, Y + BarH + 2 + (BarH div 2));
 
-    C.Font.Color := clBlack;
-    C.TextOut(X, YBase + 4, Meses[I]);
+    Texto1 := APrefijo + FormatFloat('#,##0.##', A1[I]) + ASufijo;
+    Texto2 := APrefijo + FormatFloat('#,##0.##', A2[I]) + ASufijo;
+    TextoY1 := Y - 2;
+    TextoY2 := Y + BarH;
+    C.Brush.Style := bsClear;
+    C.Font.Size := FontDatos;
+    C.Font.Color := clNavy;
+    C.TextOut(W - C.TextWidth(Texto1) - 4, TextoY1, Texto1);
+    C.Font.Color := clGreen;
+    C.TextOut(W - C.TextWidth(Texto2) - 4, TextoY2, Texto2);
+    C.Brush.Style := bsSolid;
+
+    C.Pen.Color := $00E8E8E8;
+    C.Line(4, Y + RowH - 1, W - 4, Y + RowH - 1);
+    Inc(Y, RowH);
   end;
 
-  C.Brush.Color := clSkyBlue;
-  C.Rectangle(8, 24, 18, 34);
-  C.Brush.Color := clMoneyGreen;
-  C.Rectangle(105, 24, 115, 34);
+  C.Font.Size := 8;
+  C.Font.Style := [];
   C.Font.Color := clBlack;
-  C.TextOut(22, 22, ALeg1);
-  C.TextOut(119, 22, ALeg2);
-
-  TextoMax := 'Max.: ' + APrefijo + FormatFloat('#,##0.##', MaxV) + ASufijo;
-  C.TextOut(Max(8, W - C.TextWidth(TextoMax) - 8), 22, TextoMax);
 end;
 
 procedure TFDashboardProductividad.PintarBarrasHorasDouble(APaintBox: TPaintBox; const ATitulo: string; const A: TDoubleHourArray; const APrefijo, ASufijo: string);
@@ -10450,12 +10521,219 @@ begin
   C.TextOut(42, TopY + 2, TextoMax);
 end;
 
+procedure TFDashboardProductividad.PintarHorasHorizontalDouble(APaintBox: TPaintBox; const ATitulo: string; const A: TDoubleHourArray; const APrefijo, ASufijo: string);
+var
+  C: TCanvas;
+  W, H, I, Y, RowH, BarH, X0, X1, MaxW, BarW: Integer;
+  LabelW, ValueW, FontDatos: Integer;
+  MaxV: Double;
+  TextoValor, HoraTexto: string;
+begin
+  if APaintBox = nil then Exit;
+
+  C := APaintBox.Canvas;
+  W := APaintBox.Width;
+  H := APaintBox.Height;
+  C.Brush.Color := clWhite;
+  C.FillRect(Rect(0, 0, W, H));
+  C.Font.Color := clBlack;
+  C.Font.Size := 8;
+  C.Font.Style := [fsBold];
+  C.TextOut(8, 5, ATitulo);
+  C.Font.Style := [];
+
+  MaxV := 0;
+  ValueW := 70;
+  C.Font.Size := 7;
+  for I := 0 to 23 do
+  begin
+    if Abs(A[I]) > MaxV then MaxV := Abs(A[I]);
+    TextoValor := APrefijo + FormatFloat('#,##0.##', A[I]) + ASufijo;
+    ValueW := Max(ValueW, C.TextWidth(TextoValor) + 8);
+  end;
+
+  if MaxV <= 0 then
+  begin
+    C.Font.Size := 8;
+    C.TextOut(8, 30, 'Sin datos en el rango seleccionado.');
+    Exit;
+  end;
+
+  LabelW := 30;
+  ValueW := Min(ValueW, Max(85, W div 3));
+  X0 := LabelW + 6;
+  X1 := W - ValueW - 6;
+  if X1 < X0 + 60 then
+  begin
+    ValueW := Min(ValueW, 85);
+    X1 := W - ValueW - 6;
+  end;
+  if X1 <= X0 then X1 := X0 + 20;
+  MaxW := X1 - X0;
+
+  RowH := Max(6, (H - 27) div 24);
+  BarH := Max(2, RowH - 3);
+  if RowH <= 7 then FontDatos := 5
+  else if RowH <= 10 then FontDatos := 6
+  else FontDatos := 7;
+  Y := 25;
+
+  C.Pen.Color := clSilver;
+  C.Pen.Style := psDot;
+  C.Line(X0 + (MaxW div 2), Y, X0 + (MaxW div 2), Min(H - 3, Y + (RowH * 24)));
+  C.Line(X1, Y, X1, Min(H - 3, Y + (RowH * 24)));
+  C.Pen.Style := psSolid;
+
+  for I := 0 to 23 do
+  begin
+    if Y + RowH > H + 2 then Break;
+
+    HoraTexto := Format('%.2dh', [I]);
+    C.Font.Color := clBlack;
+    C.Font.Size := FontDatos;
+    C.Font.Style := [fsBold];
+    C.TextOut(4, Y + Max(0, (RowH - C.TextHeight(HoraTexto)) div 2), HoraTexto);
+    C.Font.Style := [];
+
+    BarW := Round((Abs(A[I]) / MaxV) * MaxW);
+    C.Brush.Color := clSkyBlue;
+    C.Pen.Color := clBlue;
+    if BarW > 0 then
+      C.Rectangle(X0, Y + 1, X0 + BarW, Y + 1 + BarH)
+    else
+      C.Line(X0, Y + 1 + (BarH div 2), X0 + 2, Y + 1 + (BarH div 2));
+
+    TextoValor := APrefijo + FormatFloat('#,##0.##', A[I]) + ASufijo;
+    C.Brush.Style := bsClear;
+    C.Font.Color := clNavy;
+    C.Font.Size := FontDatos;
+    C.TextOut(W - C.TextWidth(TextoValor) - 4,
+              Y + Max(0, (RowH - C.TextHeight(TextoValor)) div 2), TextoValor);
+    C.Brush.Style := bsSolid;
+
+    Inc(Y, RowH);
+  end;
+
+  C.Font.Size := 8;
+  C.Font.Style := [];
+  C.Font.Color := clBlack;
+end;
+
+procedure TFDashboardProductividad.PintarHorasHorizontalEntero(APaintBox: TPaintBox; const ATitulo: string; const A: TIntegerHourArray);
+var
+  C: TCanvas;
+  W, H, I, Y, RowH, BarH, X0, X1, MaxW, BarW, MaxV: Integer;
+  LabelW, ValueW, FontDatos: Integer;
+  TextoValor, HoraTexto: string;
+begin
+  if APaintBox = nil then Exit;
+
+  C := APaintBox.Canvas;
+  W := APaintBox.Width;
+  H := APaintBox.Height;
+  C.Brush.Color := clWhite;
+  C.FillRect(Rect(0, 0, W, H));
+  C.Font.Color := clBlack;
+  C.Font.Size := 8;
+  C.Font.Style := [fsBold];
+  C.TextOut(8, 5, ATitulo);
+  C.Font.Style := [];
+
+  MaxV := 0;
+  ValueW := 42;
+  C.Font.Size := 7;
+  for I := 0 to 23 do
+  begin
+    if A[I] > MaxV then MaxV := A[I];
+    ValueW := Max(ValueW, C.TextWidth(IntToStr(A[I])) + 8);
+  end;
+
+  if MaxV <= 0 then
+  begin
+    C.Font.Size := 8;
+    C.TextOut(8, 30, 'Sin tickets en el rango seleccionado.');
+    Exit;
+  end;
+
+  LabelW := 30;
+  ValueW := Min(ValueW, Max(55, W div 4));
+  X0 := LabelW + 6;
+  X1 := W - ValueW - 6;
+  if X1 <= X0 then X1 := X0 + 20;
+  MaxW := X1 - X0;
+
+  RowH := Max(6, (H - 27) div 24);
+  BarH := Max(2, RowH - 3);
+  if RowH <= 7 then FontDatos := 5
+  else if RowH <= 10 then FontDatos := 6
+  else FontDatos := 7;
+  Y := 25;
+
+  C.Pen.Color := clSilver;
+  C.Pen.Style := psDot;
+  C.Line(X0 + (MaxW div 2), Y, X0 + (MaxW div 2), Min(H - 3, Y + (RowH * 24)));
+  C.Line(X1, Y, X1, Min(H - 3, Y + (RowH * 24)));
+  C.Pen.Style := psSolid;
+
+  for I := 0 to 23 do
+  begin
+    if Y + RowH > H + 2 then Break;
+
+    HoraTexto := Format('%.2dh', [I]);
+    C.Font.Color := clBlack;
+    C.Font.Size := FontDatos;
+    C.Font.Style := [fsBold];
+    C.TextOut(4, Y + Max(0, (RowH - C.TextHeight(HoraTexto)) div 2), HoraTexto);
+    C.Font.Style := [];
+
+    BarW := Round((A[I] / MaxV) * MaxW);
+    C.Brush.Color := clMoneyGreen;
+    C.Pen.Color := clGreen;
+    if BarW > 0 then
+      C.Rectangle(X0, Y + 1, X0 + BarW, Y + 1 + BarH)
+    else
+      C.Line(X0, Y + 1 + (BarH div 2), X0 + 2, Y + 1 + (BarH div 2));
+
+    TextoValor := IntToStr(A[I]);
+    C.Brush.Style := bsClear;
+    C.Font.Color := clGreen;
+    C.Font.Size := FontDatos;
+    C.TextOut(W - C.TextWidth(TextoValor) - 4,
+              Y + Max(0, (RowH - C.TextHeight(TextoValor)) div 2), TextoValor);
+    C.Brush.Style := bsSolid;
+
+    Inc(Y, RowH);
+  end;
+
+  C.Font.Size := 8;
+  C.Font.Style := [];
+  C.Font.Color := clBlack;
+end;
+
 procedure TFDashboardProductividad.PintarPagosComparativa(Sender: TObject);
 var
   C: TCanvas;
   W, H, I, Y, RowH, X0, X1, MaxW, WAct, WAnt: Integer;
+  LabelW, ValueW, BarAlto, FontDatos: Integer;
   MaxV: Double;
-  Texto: string;
+  TextoAct, TextoAnt, Nombre: string;
+
+  function AjustarTexto(const S: string; AMaxWidth: Integer): string;
+  var
+    P: Integer;
+  begin
+    Result := S;
+    if C.TextWidth(Result) <= AMaxWidth then Exit;
+    while (Length(Result) > 1) and (C.TextWidth(Result + '...') > AMaxWidth) do
+    begin
+      { Elimina un carácter UTF-8 completo para no partir nombres acentuados. }
+      P := Length(Result);
+      while (P > 1) and ((Ord(Result[P]) and $C0) = $80) do Dec(P);
+      Delete(Result, P, Length(Result) - P + 1);
+    end;
+    Result := Result + '...';
+  end;
+
 begin
   if pbGrafPagosComparativa = nil then Exit;
 
@@ -10465,6 +10743,7 @@ begin
   C.Brush.Color := clWhite;
   C.FillRect(Rect(0,0,W,H));
   C.Font.Color := clBlack;
+  C.Font.Size := 8;
   C.Font.Style := [fsBold];
   C.TextOut(8,6,'Formas de pago: rango actual vs año anterior');
   C.Font.Style := [];
@@ -10476,10 +10755,15 @@ begin
   end;
 
   MaxV := 0;
+  LabelW := 80;
+  ValueW := 70;
   for I := 0 to FGPagoCompCount - 1 do
   begin
     if Abs(FGPagoActual[I]) > MaxV then MaxV := Abs(FGPagoActual[I]);
     if Abs(FGPagoAnterior[I]) > MaxV then MaxV := Abs(FGPagoAnterior[I]);
+    LabelW := Max(LabelW, C.TextWidth(FGPagoNombres[I]) + 8);
+    ValueW := Max(ValueW, C.TextWidth(Dinero(FGPagoActual[I])) + 8);
+    ValueW := Max(ValueW, C.TextWidth(Dinero(FGPagoAnterior[I])) + 8);
   end;
   if MaxV <= 0 then
   begin
@@ -10487,41 +10771,72 @@ begin
     Exit;
   end;
 
-  X0 := 112;
-  X1 := W - 92;
+  LabelW := Min(LabelW, Max(90, W div 3));
+  ValueW := Min(ValueW, Max(90, W div 3));
+  X0 := LabelW + 8;
+  X1 := W - ValueW - 8;
+  if X1 < X0 + 40 then
+  begin
+    LabelW := Min(LabelW, 90);
+    ValueW := Min(ValueW, 100);
+    X0 := LabelW + 8;
+    X1 := W - ValueW - 8;
+  end;
   if X1 <= X0 then X1 := X0 + 20;
   MaxW := X1 - X0;
-  RowH := Max(22, (H - 50) div Max(1, FGPagoCompCount));
-  Y := 34;
+
+  RowH := Max(12, (H - 40) div Max(1, FGPagoCompCount));
+  BarAlto := Max(3, Min(7, (RowH - 3) div 2));
+  if RowH <= 13 then FontDatos := 6 else FontDatos := 7;
+  Y := 36;
 
   C.Brush.Color := clSkyBlue;
-  C.Rectangle(8, 22, 18, 32);
+  C.Pen.Color := clBlue;
+  C.Rectangle(8, 23, 18, 33);
   C.Brush.Color := clMoneyGreen;
-  C.Rectangle(74, 22, 84, 32);
+  C.Pen.Color := clGreen;
+  C.Rectangle(74, 23, 84, 33);
   C.Font.Color := clBlack;
-  C.TextOut(22, 20, 'Actual');
-  C.TextOut(88, 20, 'Año ant.');
+  C.TextOut(22, 21, 'Actual');
+  C.TextOut(88, 21, 'Año ant.');
 
   for I := 0 to FGPagoCompCount - 1 do
   begin
-    if Y > H - 18 then Break;
+    if Y + RowH > H + 2 then Break;
+
+    Nombre := AjustarTexto(FGPagoNombres[I], LabelW - 10);
     C.Font.Color := clBlack;
-    C.TextOut(8, Y + 2, Copy(FGPagoNombres[I],1,15));
+    C.Font.Size := FontDatos;
+    C.TextOut(8, Y + Max(0, (RowH - C.TextHeight(Nombre)) div 2), Nombre);
 
     WAct := Round((Abs(FGPagoActual[I]) / MaxV) * MaxW);
     WAnt := Round((Abs(FGPagoAnterior[I]) / MaxV) * MaxW);
 
     C.Brush.Color := clSkyBlue;
     C.Pen.Color := clBlue;
-    C.Rectangle(X0, Y, X0 + WAct, Y + 8);
+    if WAct > 0 then
+      C.Rectangle(X0, Y, X0 + WAct, Y + BarAlto)
+    else
+      C.Line(X0, Y + (BarAlto div 2), X0 + 2, Y + (BarAlto div 2));
 
     C.Brush.Color := clMoneyGreen;
     C.Pen.Color := clGreen;
-    C.Rectangle(X0, Y + 10, X0 + WAnt, Y + 18);
+    if WAnt > 0 then
+      C.Rectangle(X0, Y + BarAlto + 2, X0 + WAnt, Y + (BarAlto * 2) + 2)
+    else
+      C.Line(X0, Y + BarAlto + 2 + (BarAlto div 2), X0 + 2, Y + BarAlto + 2 + (BarAlto div 2));
 
-    Texto := Dinero(FGPagoActual[I]) + ' / ' + Dinero(FGPagoAnterior[I]);
+    { Cada serie lleva su importe en su propia línea, alineado a la derecha.
+      Así no se recortan dos cantidades unidas por una barra inclinada. }
+    TextoAct := Dinero(FGPagoActual[I]);
+    TextoAnt := Dinero(FGPagoAnterior[I]);
     C.Brush.Style := bsClear;
-    C.TextOut(X0 + Max(WAct, WAnt) + 6, Y + 2, Texto);
+    C.Font.Size := FontDatos;
+    C.Font.Color := clNavy;
+    C.TextOut(W - C.TextWidth(TextoAct) - 5, Y - 1, TextoAct);
+    C.Font.Color := clGreen;
+    C.TextOut(W - C.TextWidth(TextoAnt) - 5, Y + BarAlto + 1, TextoAnt);
+    C.Font.Size := 8;
     C.Brush.Style := bsSolid;
 
     Inc(Y, RowH);
@@ -10538,19 +10853,19 @@ end;
 
 procedure TFDashboardProductividad.GrafTicketMedioHoraPaint(Sender: TObject);
 begin
-  PintarBarrasHorasDouble(pbGrafTicketMedioHora, 'Ticket medio por hora', FGTicketMedioHora, '', ' €');
+  PintarHorasHorizontalDouble(pbGrafTicketMedioHora, 'Ticket medio por hora', FGTicketMedioHora, '', ' €');
 end;
 
 procedure TFDashboardProductividad.GrafTicketsHoraPaint(Sender: TObject);
 begin
-  PintarBarrasHorasEntero(pbGrafTicketsHora, 'Número de tickets por hora', FGTicketsHora);
+  PintarHorasHorizontalEntero(pbGrafTicketsHora, 'Número de tickets por hora', FGTicketsHora);
 end;
 
 procedure TFDashboardProductividad.GrafComprasVentasPaint(Sender: TObject);
 begin
   PintarBarrasMeses(pbGrafComprasVentas,
-                    'Compras vs ventas - ' + IntToStr(YearOf(FechaHasta)),
-                    'Ventas', 'Compras',
+                    'Albaranes compra vs ventas - ' + IntToStr(YearOf(FechaHasta)),
+                    'Ventas', 'Albaranes',
                     FGVentasMes, FGComprasMes, '', ' €');
 end;
 
@@ -13362,12 +13677,70 @@ begin
   qVFResumen.Close;
   qVFResumen.SQL.Text :=
     'SELECT ''Total registros rango'' AS concepto, COUNT(*) AS cantidad, ROUND(COALESCE(SUM(total_con_iva),0),2) AS importe FROM `verifactu_queue` WHERE fecha BETWEEN :desde1 AND :hasta1 ' +
-    'UNION ALL SELECT ''Pendientes / cola'', COUNT(*), ROUND(COALESCE(SUM(total_con_iva),0),2) FROM `verifactu_queue` WHERE fecha BETWEEN :desde2 AND :hasta2 AND (TRIM(COALESCE(estado,''''))='''' OR UPPER(COALESCE(estado,'''')) IN (''PENDIENTE'',''PENDIENTE_ENVIO'',''EN_COLA'',''COLA'',''NUEVO'',''ERROR_REINTENTO'')) ' +
-    'UNION ALL SELECT ''Aceptados'', COUNT(*), ROUND(COALESCE(SUM(total_con_iva),0),2) FROM `verifactu_queue` WHERE fecha BETWEEN :desde3 AND :hasta3 AND UPPER(COALESCE(estado,'''')) LIKE ''%ACEPT%'' AND UPPER(COALESCE(estado,'''')) NOT LIKE ''%ERROR%'' ' +
-    'UNION ALL SELECT ''Aceptados con errores'', COUNT(*), ROUND(COALESCE(SUM(total_con_iva),0),2) FROM `verifactu_queue` WHERE fecha BETWEEN :desde4 AND :hasta4 AND ((UPPER(COALESCE(estado,'''')) LIKE ''%ACEPT%'' AND UPPER(COALESCE(estado,'''')) LIKE ''%ERROR%'') OR UPPER(COALESCE(respuesta_text,'''')) LIKE ''%ACEPT%ERROR%'') ' +
-    'UNION ALL SELECT ''Errores / revisar'', COUNT(*), ROUND(COALESCE(SUM(total_con_iva),0),2) FROM `verifactu_queue` WHERE fecha BETWEEN :desde5 AND :hasta5 AND (UPPER(COALESCE(estado,'''')) LIKE ''%ERROR%'' OR TRIM(COALESCE(last_error,''''))<>'''') AND NOT ((UPPER(COALESCE(estado,'''')) LIKE ''%ACEPT%'' AND UPPER(COALESCE(estado,'''')) LIKE ''%ERROR%'')) ' +
+
+    'UNION ALL SELECT ''Pendientes / cola'', COUNT(*), ROUND(COALESCE(SUM(total_con_iva),0),2) FROM `verifactu_queue` ' +
+    'WHERE fecha BETWEEN :desde2 AND :hasta2 ' +
+    'AND (TRIM(COALESCE(estado,''''))='''' OR UPPER(COALESCE(estado,'''')) IN ' +
+    '(''PENDIENTE'',''PENDIENTE_ENVIO'',''EN_COLA'',''COLA'',''NUEVO'',''ERROR_REINTENTO'',''EN_PROCESO'')) ' +
+
+    'UNION ALL SELECT ''Aceptados'', COUNT(*), ROUND(COALESCE(SUM(total_con_iva),0),2) FROM `verifactu_queue` ' +
+    'WHERE fecha BETWEEN :desde3 AND :hasta3 ' +
+    'AND COALESCE(respuesta_text,'''') LIKE ''%RespuestaRegFactuSistemaFacturacion%'' ' +
+    'AND COALESCE(respuesta_text,'''') LIKE ''%EstadoEnvio>Correcto%'' ' +
+    'AND COALESCE(respuesta_text,'''') LIKE ''%EstadoRegistro>Correcto%'' ' +
+    'AND COALESCE(last_error,'''') NOT LIKE ''%key values mismatch%'' ' +
+    'AND COALESCE(last_error,'''') NOT LIKE ''%PEM routines%'' ' +
+    'AND COALESCE(last_error,'''') NOT LIKE ''%no start line%'' ' +
+    'AND COALESCE(last_error,'''') NOT LIKE ''%HTTPMethod%'' ' +
+    'AND COALESCE(last_error,'''') NOT LIKE ''%sin respuesta HTTP%'' ' +
+    'AND COALESCE(last_error,'''') NOT LIKE ''%SockErr%'' ' +
+    'AND COALESCE(last_error,'''') NOT LIKE ''%SSLErr%'' ' +
+    'AND COALESCE(respuesta_text,'''') NOT LIKE ''%<wsdl:definitions%'' ' +
+    'AND COALESCE(respuesta_text,'''') NOT LIKE ''%SistemaFacturacion.wsdl%'' ' +
+    'AND COALESCE(respuesta_text,'''') NOT LIKE ''%<env:Fault%'' ' +
+    'AND COALESCE(respuesta_text,'''') NOT LIKE ''%<soap:Fault%'' ' +
+    'AND COALESCE(respuesta_text,'''') NOT LIKE ''%faultstring%'' ' +
+
+    'UNION ALL SELECT ''Aceptados con errores'', COUNT(*), ROUND(COALESCE(SUM(total_con_iva),0),2) FROM `verifactu_queue` ' +
+    'WHERE fecha BETWEEN :desde4 AND :hasta4 ' +
+    'AND COALESCE(respuesta_text,'''') LIKE ''%EstadoRegistro>AceptadoConErrores%'' ' +
+    'AND COALESCE(last_error,'''') NOT LIKE ''%key values mismatch%'' ' +
+    'AND COALESCE(last_error,'''') NOT LIKE ''%PEM routines%'' ' +
+    'AND COALESCE(last_error,'''') NOT LIKE ''%no start line%'' ' +
+    'AND COALESCE(last_error,'''') NOT LIKE ''%HTTPMethod%'' ' +
+    'AND COALESCE(last_error,'''') NOT LIKE ''%sin respuesta HTTP%'' ' +
+    'AND COALESCE(last_error,'''') NOT LIKE ''%SockErr%'' ' +
+    'AND COALESCE(last_error,'''') NOT LIKE ''%SSLErr%'' ' +
+    'AND COALESCE(respuesta_text,'''') NOT LIKE ''%<wsdl:definitions%'' ' +
+    'AND COALESCE(respuesta_text,'''') NOT LIKE ''%SistemaFacturacion.wsdl%'' ' +
+    'AND COALESCE(respuesta_text,'''') NOT LIKE ''%<env:Fault%'' ' +
+    'AND COALESCE(respuesta_text,'''') NOT LIKE ''%<soap:Fault%'' ' +
+    'AND COALESCE(respuesta_text,'''') NOT LIKE ''%faultstring%'' ' +
+
+    'UNION ALL SELECT ''Errores / revisar'', COUNT(*), ROUND(COALESCE(SUM(total_con_iva),0),2) FROM `verifactu_queue` ' +
+    'WHERE fecha BETWEEN :desde5 AND :hasta5 AND (' +
+    'COALESCE(last_error,'''') LIKE ''%key values mismatch%'' OR ' +
+    'COALESCE(last_error,'''') LIKE ''%PEM routines%'' OR ' +
+    'COALESCE(last_error,'''') LIKE ''%no start line%'' OR ' +
+    'COALESCE(last_error,'''') LIKE ''%HTTPMethod%'' OR ' +
+    'COALESCE(last_error,'''') LIKE ''%sin respuesta HTTP%'' OR ' +
+    'COALESCE(last_error,'''') LIKE ''%SockErr%'' OR ' +
+    'COALESCE(last_error,'''') LIKE ''%SSLErr%'' OR ' +
+    'COALESCE(respuesta_text,'''') LIKE ''%<wsdl:definitions%'' OR ' +
+    'COALESCE(respuesta_text,'''') LIKE ''%SistemaFacturacion.wsdl%'' OR ' +
+    'COALESCE(respuesta_text,'''') LIKE ''%<env:Fault%'' OR ' +
+    'COALESCE(respuesta_text,'''') LIKE ''%<soap:Fault%'' OR ' +
+    'COALESCE(respuesta_text,'''') LIKE ''%faultstring%'' OR ' +
+    'COALESCE(respuesta_text,'''') LIKE ''%EstadoRegistro>Incorrecto%'' OR ' +
+    '(UPPER(COALESCE(estado,''''))=''ERROR'' ' +
+    ' AND COALESCE(respuesta_text,'''') NOT LIKE ''%EstadoRegistro>AceptadoConErrores%'' ' +
+    ' AND NOT (COALESCE(respuesta_text,'''') LIKE ''%EstadoEnvio>Correcto%'' ' +
+    '          AND COALESCE(respuesta_text,'''') LIKE ''%EstadoRegistro>Correcto%''))' +
+    ') ' +
+
     'UNION ALL SELECT ''F1'', COUNT(*), ROUND(COALESCE(SUM(total_con_iva),0),2) FROM `verifactu_queue` WHERE fecha BETWEEN :desde6 AND :hasta6 AND UPPER(COALESCE(tipo_factura,''''))=''F1'' ' +
     'UNION ALL SELECT ''F2 simplificadas'', COUNT(*), ROUND(COALESCE(SUM(total_con_iva),0),2) FROM `verifactu_queue` WHERE fecha BETWEEN :desde7 AND :hasta7 AND UPPER(COALESCE(tipo_factura,''''))=''F2''';
+
   qVFResumen.ParamByName('desde1').AsDateTime := FechaDesde;
   qVFResumen.ParamByName('hasta1').AsDateTime := FechaHasta;
   qVFResumen.ParamByName('desde2').AsDateTime := FechaDesde;
@@ -13393,10 +13766,12 @@ procedure TFDashboardProductividad.CargarVFPendientes;
 begin
   qVFPendientes.Close;
   qVFPendientes.SQL.Text :=
-    'SELECT fecha, hora, serie, numero, COALESCE(tipo_factura,'''') AS tipo, ROUND(COALESCE(total_con_iva,0),2) AS total, COALESCE(estado,'''') AS estado ' +
+    'SELECT fecha, hora, serie, numero, COALESCE(tipo_factura,'''') AS tipo, ' +
+    'ROUND(COALESCE(total_con_iva,0),2) AS total, COALESCE(estado,'''') AS estado ' +
     'FROM `verifactu_queue` ' +
     'WHERE fecha BETWEEN :desde AND :hasta ' +
-    '  AND (TRIM(COALESCE(estado,''''))='''' OR UPPER(COALESCE(estado,'''')) IN (''PENDIENTE'',''PENDIENTE_ENVIO'',''EN_COLA'',''COLA'',''NUEVO'',''ERROR_REINTENTO'')) ' +
+    '  AND (TRIM(COALESCE(estado,''''))='''' OR UPPER(COALESCE(estado,'''')) IN ' +
+    '(''PENDIENTE'',''PENDIENTE_ENVIO'',''EN_COLA'',''COLA'',''NUEVO'',''ERROR_REINTENTO'',''EN_PROCESO'')) ' +
     'ORDER BY fecha, hora, serie, numero ' +
     'LIMIT 200';
   qVFPendientes.ParamByName('desde').AsDateTime := FechaDesde;
@@ -13416,10 +13791,25 @@ procedure TFDashboardProductividad.CargarVFAceptadosErrores;
 begin
   qVFAceptadosErrores.Close;
   qVFAceptadosErrores.SQL.Text :=
-    'SELECT fecha, hora, serie, numero, COALESCE(tipo_factura,'''') AS tipo, ROUND(COALESCE(total_con_iva,0),2) AS total, COALESCE(estado,'''') AS estado, LEFT(COALESCE(respuesta_text,''''),120) AS respuesta ' +
+    'SELECT fecha, hora, serie, numero, COALESCE(tipo_factura,'''') AS tipo, ' +
+    'ROUND(COALESCE(total_con_iva,0),2) AS total, ' +
+    '''ACEPTADO CON ERRORES'' AS resultado, ' +
+    'LEFT(COALESCE(respuesta_text,''''),120) AS respuesta ' +
     'FROM `verifactu_queue` ' +
     'WHERE fecha BETWEEN :desde AND :hasta ' +
-    '  AND ((UPPER(COALESCE(estado,'''')) LIKE ''%ACEPT%'' AND UPPER(COALESCE(estado,'''')) LIKE ''%ERROR%'') OR UPPER(COALESCE(respuesta_text,'''')) LIKE ''%ACEPT%ERROR%'') ' +
+    'AND COALESCE(respuesta_text,'''') LIKE ''%EstadoRegistro>AceptadoConErrores%'' ' +
+    'AND COALESCE(last_error,'''') NOT LIKE ''%key values mismatch%'' ' +
+    'AND COALESCE(last_error,'''') NOT LIKE ''%PEM routines%'' ' +
+    'AND COALESCE(last_error,'''') NOT LIKE ''%no start line%'' ' +
+    'AND COALESCE(last_error,'''') NOT LIKE ''%HTTPMethod%'' ' +
+    'AND COALESCE(last_error,'''') NOT LIKE ''%sin respuesta HTTP%'' ' +
+    'AND COALESCE(last_error,'''') NOT LIKE ''%SockErr%'' ' +
+    'AND COALESCE(last_error,'''') NOT LIKE ''%SSLErr%'' ' +
+    'AND COALESCE(respuesta_text,'''') NOT LIKE ''%<wsdl:definitions%'' ' +
+    'AND COALESCE(respuesta_text,'''') NOT LIKE ''%SistemaFacturacion.wsdl%'' ' +
+    'AND COALESCE(respuesta_text,'''') NOT LIKE ''%<env:Fault%'' ' +
+    'AND COALESCE(respuesta_text,'''') NOT LIKE ''%<soap:Fault%'' ' +
+    'AND COALESCE(respuesta_text,'''') NOT LIKE ''%faultstring%'' ' +
     'ORDER BY fecha DESC, hora DESC, serie, numero ' +
     'LIMIT 200';
   qVFAceptadosErrores.ParamByName('desde').AsDateTime := FechaDesde;
@@ -13432,19 +13822,51 @@ begin
   AjustarCampo(qVFAceptadosErrores, 'numero', 'Número', 8);
   AjustarCampo(qVFAceptadosErrores, 'tipo', 'Tipo', 5);
   AjustarCampoMoneda(qVFAceptadosErrores, 'total', 'Total', 10);
-  AjustarCampo(qVFAceptadosErrores, 'estado', 'Estado', 18);
-  AjustarCampo(qVFAceptadosErrores, 'respuesta', 'Respuesta', 45);
+  AjustarCampo(qVFAceptadosErrores, 'resultado', 'Resultado', 22);
+  AjustarCampo(qVFAceptadosErrores, 'respuesta', 'Respuesta AEAT', 45);
 end;
 
 procedure TFDashboardProductividad.CargarVFErrores;
 begin
   qVFErrores.Close;
   qVFErrores.SQL.Text :=
-    'SELECT fecha, hora, serie, numero, COALESCE(tipo_factura,'''') AS tipo, COALESCE(estado,'''') AS estado, LEFT(COALESCE(last_error, respuesta_text, ''''),160) AS error ' +
+    'SELECT fecha, hora, serie, numero, COALESCE(tipo_factura,'''') AS tipo, ' +
+    'CASE ' +
+    ' WHEN COALESCE(last_error,'''') LIKE ''%key values mismatch%'' THEN ''ERROR CERTIFICADO'' ' +
+    ' WHEN COALESCE(last_error,'''') LIKE ''%PEM routines%'' THEN ''ERROR CERTIFICADO'' ' +
+    ' WHEN COALESCE(last_error,'''') LIKE ''%no start line%'' THEN ''ERROR CERTIFICADO'' ' +
+    ' WHEN COALESCE(last_error,'''') LIKE ''%HTTPMethod%'' THEN ''ERROR COMUNICACION'' ' +
+    ' WHEN COALESCE(last_error,'''') LIKE ''%sin respuesta HTTP%'' THEN ''ERROR COMUNICACION'' ' +
+    ' WHEN COALESCE(last_error,'''') LIKE ''%SockErr%'' THEN ''ERROR COMUNICACION'' ' +
+    ' WHEN COALESCE(last_error,'''') LIKE ''%SSLErr%'' THEN ''ERROR SSL'' ' +
+    ' WHEN COALESCE(respuesta_text,'''') LIKE ''%<wsdl:definitions%'' THEN ''RESPUESTA INVALIDA'' ' +
+    ' WHEN COALESCE(respuesta_text,'''') LIKE ''%SistemaFacturacion.wsdl%'' THEN ''RESPUESTA INVALIDA'' ' +
+    ' WHEN COALESCE(respuesta_text,'''') LIKE ''%<env:Fault%'' THEN ''ERROR SOAP'' ' +
+    ' WHEN COALESCE(respuesta_text,'''') LIKE ''%<soap:Fault%'' THEN ''ERROR SOAP'' ' +
+    ' WHEN COALESCE(respuesta_text,'''') LIKE ''%faultstring%'' THEN ''ERROR SOAP'' ' +
+    ' WHEN COALESCE(respuesta_text,'''') LIKE ''%EstadoRegistro>Incorrecto%'' THEN ''INCORRECTO AEAT'' ' +
+    ' ELSE COALESCE(NULLIF(last_error,''''),''ERROR'') END AS resultado, ' +
+    'LEFT(COALESCE(NULLIF(last_error,''''),respuesta_text,''''),160) AS motivo ' +
     'FROM `verifactu_queue` ' +
-    'WHERE fecha BETWEEN :desde AND :hasta ' +
-    '  AND (UPPER(COALESCE(estado,'''')) LIKE ''%ERROR%'' OR TRIM(COALESCE(last_error,''''))<>'''') ' +
-    '  AND NOT ((UPPER(COALESCE(estado,'''')) LIKE ''%ACEPT%'' AND UPPER(COALESCE(estado,'''')) LIKE ''%ERROR%'')) ' +
+    'WHERE fecha BETWEEN :desde AND :hasta AND (' +
+    'COALESCE(last_error,'''') LIKE ''%key values mismatch%'' OR ' +
+    'COALESCE(last_error,'''') LIKE ''%PEM routines%'' OR ' +
+    'COALESCE(last_error,'''') LIKE ''%no start line%'' OR ' +
+    'COALESCE(last_error,'''') LIKE ''%HTTPMethod%'' OR ' +
+    'COALESCE(last_error,'''') LIKE ''%sin respuesta HTTP%'' OR ' +
+    'COALESCE(last_error,'''') LIKE ''%SockErr%'' OR ' +
+    'COALESCE(last_error,'''') LIKE ''%SSLErr%'' OR ' +
+    'COALESCE(respuesta_text,'''') LIKE ''%<wsdl:definitions%'' OR ' +
+    'COALESCE(respuesta_text,'''') LIKE ''%SistemaFacturacion.wsdl%'' OR ' +
+    'COALESCE(respuesta_text,'''') LIKE ''%<env:Fault%'' OR ' +
+    'COALESCE(respuesta_text,'''') LIKE ''%<soap:Fault%'' OR ' +
+    'COALESCE(respuesta_text,'''') LIKE ''%faultstring%'' OR ' +
+    'COALESCE(respuesta_text,'''') LIKE ''%EstadoRegistro>Incorrecto%'' OR ' +
+    '(UPPER(COALESCE(estado,''''))=''ERROR'' ' +
+    ' AND COALESCE(respuesta_text,'''') NOT LIKE ''%EstadoRegistro>AceptadoConErrores%'' ' +
+    ' AND NOT (COALESCE(respuesta_text,'''') LIKE ''%EstadoEnvio>Correcto%'' ' +
+    '          AND COALESCE(respuesta_text,'''') LIKE ''%EstadoRegistro>Correcto%''))' +
+    ') ' +
     'ORDER BY fecha DESC, hora DESC, serie, numero ' +
     'LIMIT 200';
   qVFErrores.ParamByName('desde').AsDateTime := FechaDesde;
@@ -13456,8 +13878,8 @@ begin
   AjustarCampo(qVFErrores, 'serie', 'Serie', 7);
   AjustarCampo(qVFErrores, 'numero', 'Número', 8);
   AjustarCampo(qVFErrores, 'tipo', 'Tipo', 5);
-  AjustarCampo(qVFErrores, 'estado', 'Estado', 18);
-  AjustarCampo(qVFErrores, 'error', 'Error / motivo', 55);
+  AjustarCampo(qVFErrores, 'resultado', 'Resultado', 22);
+  AjustarCampo(qVFErrores, 'motivo', 'Error / motivo', 55);
 end;
 
 procedure TFDashboardProductividad.CargarVFSeries;
@@ -13465,11 +13887,27 @@ begin
   qVFSeries.Close;
   qVFSeries.SQL.Text :=
     'SELECT COALESCE(serie,'''') AS serie, COALESCE(tipo_factura,'''') AS tipo, COUNT(*) AS registros, ' +
-    '       SUM(CASE WHEN TRIM(COALESCE(estado,''''))='''' OR UPPER(COALESCE(estado,'''')) IN (''PENDIENTE'',''PENDIENTE_ENVIO'',''EN_COLA'',''COLA'',''NUEVO'',''ERROR_REINTENTO'') THEN 1 ELSE 0 END) AS pendientes, ' +
-    '       SUM(CASE WHEN UPPER(COALESCE(estado,'''')) LIKE ''%ERROR%'' OR TRIM(COALESCE(last_error,''''))<>'''' THEN 1 ELSE 0 END) AS con_error, ' +
-    '       SUM(CASE WHEN TRIM(COALESCE(hash,''''))='''' THEN 1 ELSE 0 END) AS sin_hash, ' +
-    '       SUM(CASE WHEN TRIM(COALESCE(hash_prev,''''))='''' THEN 1 ELSE 0 END) AS sin_hash_prev, ' +
-    '       ROUND(COALESCE(SUM(total_con_iva),0),2) AS importe ' +
+    'SUM(CASE WHEN TRIM(COALESCE(estado,''''))='''' OR UPPER(COALESCE(estado,'''')) IN ' +
+    '(''PENDIENTE'',''PENDIENTE_ENVIO'',''EN_COLA'',''COLA'',''NUEVO'',''ERROR_REINTENTO'',''EN_PROCESO'') THEN 1 ELSE 0 END) AS pendientes, ' +
+    'SUM(CASE WHEN ' +
+    ' COALESCE(respuesta_text,'''') LIKE ''%EstadoRegistro>AceptadoConErrores%'' OR ' +
+    ' COALESCE(respuesta_text,'''') LIKE ''%EstadoRegistro>Incorrecto%'' OR ' +
+    ' COALESCE(last_error,'''') LIKE ''%key values mismatch%'' OR ' +
+    ' COALESCE(last_error,'''') LIKE ''%PEM routines%'' OR ' +
+    ' COALESCE(last_error,'''') LIKE ''%no start line%'' OR ' +
+    ' COALESCE(last_error,'''') LIKE ''%HTTPMethod%'' OR ' +
+    ' COALESCE(last_error,'''') LIKE ''%sin respuesta HTTP%'' OR ' +
+    ' COALESCE(last_error,'''') LIKE ''%SockErr%'' OR ' +
+    ' COALESCE(last_error,'''') LIKE ''%SSLErr%'' OR ' +
+    ' COALESCE(respuesta_text,'''') LIKE ''%<wsdl:definitions%'' OR ' +
+    ' COALESCE(respuesta_text,'''') LIKE ''%SistemaFacturacion.wsdl%'' OR ' +
+    ' COALESCE(respuesta_text,'''') LIKE ''%<env:Fault%'' OR ' +
+    ' COALESCE(respuesta_text,'''') LIKE ''%<soap:Fault%'' OR ' +
+    ' COALESCE(respuesta_text,'''') LIKE ''%faultstring%'' ' +
+    'THEN 1 ELSE 0 END) AS con_error, ' +
+    'SUM(CASE WHEN TRIM(COALESCE(hash,''''))='''' THEN 1 ELSE 0 END) AS sin_hash, ' +
+    'SUM(CASE WHEN TRIM(COALESCE(hash_prev,''''))='''' THEN 1 ELSE 0 END) AS sin_hash_prev, ' +
+    'ROUND(COALESCE(SUM(total_con_iva),0),2) AS importe ' +
     'FROM `verifactu_queue` ' +
     'WHERE fecha BETWEEN :desde AND :hasta ' +
     'GROUP BY COALESCE(serie,''''), COALESCE(tipo_factura,'''') ' +
@@ -13492,7 +13930,30 @@ procedure TFDashboardProductividad.CargarVFUltimos;
 begin
   qVFUltimos.Close;
   qVFUltimos.SQL.Text :=
-    'SELECT fecha, hora, serie, numero, COALESCE(tipo_factura,'''') AS tipo, ROUND(COALESCE(total_con_iva,0),2) AS total, COALESCE(estado,'''') AS estado, LEFT(COALESCE(last_error, respuesta_text, ''''),120) AS resultado ' +
+    'SELECT fecha, hora, serie, numero, COALESCE(tipo_factura,'''') AS tipo, ' +
+    'ROUND(COALESCE(total_con_iva,0),2) AS total, COALESCE(estado,'''') AS estado, ' +
+    'CASE ' +
+    ' WHEN COALESCE(last_error,'''') LIKE ''%key values mismatch%'' THEN ''ERROR CERTIFICADO'' ' +
+    ' WHEN COALESCE(last_error,'''') LIKE ''%PEM routines%'' THEN ''ERROR CERTIFICADO'' ' +
+    ' WHEN COALESCE(last_error,'''') LIKE ''%no start line%'' THEN ''ERROR CERTIFICADO'' ' +
+    ' WHEN COALESCE(last_error,'''') LIKE ''%HTTPMethod%'' THEN ''ERROR COMUNICACION'' ' +
+    ' WHEN COALESCE(last_error,'''') LIKE ''%sin respuesta HTTP%'' THEN ''ERROR COMUNICACION'' ' +
+    ' WHEN COALESCE(last_error,'''') LIKE ''%SockErr%'' THEN ''ERROR COMUNICACION'' ' +
+    ' WHEN COALESCE(last_error,'''') LIKE ''%SSLErr%'' THEN ''ERROR SSL'' ' +
+    ' WHEN COALESCE(respuesta_text,'''') LIKE ''%<wsdl:definitions%'' THEN ''RESPUESTA INVALIDA'' ' +
+    ' WHEN COALESCE(respuesta_text,'''') LIKE ''%SistemaFacturacion.wsdl%'' THEN ''RESPUESTA INVALIDA'' ' +
+    ' WHEN COALESCE(respuesta_text,'''') LIKE ''%<env:Fault%'' THEN ''ERROR SOAP'' ' +
+    ' WHEN COALESCE(respuesta_text,'''') LIKE ''%<soap:Fault%'' THEN ''ERROR SOAP'' ' +
+    ' WHEN COALESCE(respuesta_text,'''') LIKE ''%faultstring%'' THEN ''ERROR SOAP'' ' +
+    ' WHEN COALESCE(respuesta_text,'''') LIKE ''%EstadoRegistro>AceptadoConErrores%'' THEN ''ACEPTADO CON ERRORES'' ' +
+    ' WHEN COALESCE(respuesta_text,'''') LIKE ''%EstadoRegistro>Incorrecto%'' THEN ''INCORRECTO AEAT'' ' +
+    ' WHEN COALESCE(respuesta_text,'''') LIKE ''%RespuestaRegFactuSistemaFacturacion%'' ' +
+    '  AND COALESCE(respuesta_text,'''') LIKE ''%EstadoEnvio>Correcto%'' ' +
+    '  AND COALESCE(respuesta_text,'''') LIKE ''%EstadoRegistro>Correcto%'' THEN ''CORRECTO'' ' +
+    ' WHEN estado=''PENDIENTE'' AND intentos>0 AND COALESCE(last_error,'''')<>'''' THEN ''PENDIENTE REINTENTO'' ' +
+    ' WHEN estado=''ERROR'' THEN ''ERROR'' ' +
+    ' WHEN estado=''ENVIADO'' THEN ''NO VERIFICADO'' ' +
+    ' ELSE COALESCE(estado,'''') END AS resultado ' +
     'FROM `verifactu_queue` ' +
     'WHERE fecha BETWEEN :desde AND :hasta ' +
     'ORDER BY fecha DESC, hora DESC, serie DESC, numero DESC ' +
@@ -13507,8 +13968,8 @@ begin
   AjustarCampo(qVFUltimos, 'numero', 'Número', 8);
   AjustarCampo(qVFUltimos, 'tipo', 'Tipo', 5);
   AjustarCampoMoneda(qVFUltimos, 'total', 'Total', 10);
-  AjustarCampo(qVFUltimos, 'estado', 'Estado', 18);
-  AjustarCampo(qVFUltimos, 'resultado', 'Resultado / error', 45);
+  AjustarCampo(qVFUltimos, 'estado', 'Cola', 14);
+  AjustarCampo(qVFUltimos, 'resultado', 'Resultado AEAT', 24);
 end;
 
 procedure TFDashboardProductividad.CargarAlerta(AAlerta: TDashboardAlerta);

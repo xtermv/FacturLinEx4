@@ -29,8 +29,12 @@ interface
 uses
   Classes, SysUtils, LResources, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   Buttons, ZConnection, ZDataset, DBGrids, db, StdCtrls, DbCtrls, LR_Class,
-  LR_DBSet, LCLType, CheckLst, EditBtn, lr_e_pdf, Process, Grids, Menus,
-  ExtDlgs, MaskEdit, Spin;
+  LR_DBSet, LCLType, LCLIntf, CheckLst, EditBtn, lr_e_pdf, Process, Grids, Menus,
+  ExtDlgs, MaskEdit, Spin
+  {$IFDEF LCLGTK2}
+  , gtk2, gdk2
+  {$ENDIF}
+  ;
 
 type
 
@@ -374,7 +378,13 @@ type
       );
     procedure DBGrid2MouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
+    procedure DBGrid1TitleClick(Column: TColumn);
     procedure DBGrid2TitleClick(Column: TColumn);
+    procedure DBGrid3TitleClick(Column: TColumn);
+    procedure DBGrid4TitleClick(Column: TColumn);
+    procedure DBGrid5TitleClick(Column: TColumn);
+    procedure DBGridAuxDrawColumnCell(Sender: TObject; const Rect: TRect;
+      DataCol: Integer; Column: TColumn; State: TGridDrawState);
     procedure Edit11Exit(Sender: TObject);
     procedure Edit12Exit(Sender: TObject);
     procedure Edit14Enter(Sender: TObject);
@@ -408,6 +418,8 @@ type
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCreate(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure FormResize(Sender: TObject);
+    procedure FormShow(Sender: TObject);
     procedure frReport1EnterRect(Memo: TStringList; View: TfrView);
     procedure MenuItem1Click(Sender: TObject);
     procedure MenuItem2Click(Sender: TObject);
@@ -458,9 +470,37 @@ type
     procedure Stock_ReadOnlyKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 private
     { private declarations }
+    //--- Modernización visual y ordenación segura de grids
+    FOrdenGrid1: String;
+    FOrdenGrid3: String;
+    FOrdenGrid4: String;
+    FOrdenGrid5: String;
+    procedure AplicarEstiloModerno;
+    procedure ConfigurarGridModerno(AGrid: TDBGrid);
+    procedure AplicarOrdenGrid(AGrid: TDBGrid; AQuery: TZQuery;
+      Column: TColumn; var AOrden: String);
+    procedure MarcarColumnaOrdenada(AGrid: TDBGrid; Column: TColumn;
+      const AOrden: String);
+    procedure EstiloTitulo(ALabel: TLabel);
+    procedure CentrarPanel(APanel: TPanel);
+    procedure RecolocarPaneles;
+    procedure AplicarContrasteSeleccion(AEditControl: TWinControl);
+    procedure AplicarContrasteSeleccionControles(AParent: TWinControl);
+    procedure Panel6DragMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure Panel6DragMouseMove(Sender: TObject; Shift: TShiftState;
+      X, Y: Integer);
+    procedure Panel6DragMouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure LimitarPanel6AlAreaVisible;
+
+  private
     //--- STOCK informativo (solo lectura)
     FLabelStock: TLabel;
     FEditStock: TEdit;
+    FMoviendoPanel6: Boolean;
+    FPanel6MovidoPorUsuario: Boolean;
+    FPanel6DragOffset: TPoint;
   public
     { public declarations }
   end;
@@ -509,9 +549,29 @@ begin
   Panel4.Align:=AlClient;
   //-- ORDENAR COLUMNAS PEDIDOS
   sOrden:='DESC';
+  FOrdenGrid1:='ASC';
+  FOrdenGrid3:='ASC';
+  FOrdenGrid4:='ASC';
+  FOrdenGrid5:='ASC';
+  FMoviendoPanel6:=False;
+  FPanel6MovidoPorUsuario:=False;
+
+  //--- Diseño moderno, claro y coherente con el resto de FacturLinEx
+  AplicarEstiloModerno;
 
   //--- STOCK informativo (solo lectura)
   Stock_InitUI;
+
+  //--- Centrado inicial de paneles auxiliares
+  RecolocarPaneles;
+end;
+
+procedure TFPedido.FormShow(Sender: TObject);
+begin
+  // En OnShow todos los widgets GTK ya tienen su Handle nativo creado.
+  // Se reaplican aquí los colores para garantizar texto blanco mientras
+  // existe selección y el color normal al desaparecer dicha selección.
+  AplicarContrasteSeleccionControles(Self);
 end;
 
 procedure TFPedido.FormKeyDown(Sender: TObject; var Key: Word;
@@ -537,6 +597,21 @@ begin
  if (key=VK_ESCAPE) and (panel8.Visible=true) then begin key:=0; BitBtn20Click(self); Exit; End;                // Salir de entrada pedido nuevo
  if (key=VK_F8) and (panel9.Visible=true) then begin key:=0; BitBtn21Click(self); Exit; End;                    // Aceptar Listado
  if (key=VK_ESCAPE) and (panel9.Visible=true) then begin key:=0; BitBtn22Click(self); Exit; End;                // Salir de Listado nuevo
+
+ // Los paneles auxiliares se cierran antes que la pantalla principal.
+ // Así ESC mantiene el comportamiento estándar del resto de FacturLinEx.
+ if (key=VK_ESCAPE) and (Panel19.Visible=true) then begin key:=0; BitBtn42Click(self); Exit; End;
+ if (key=VK_ESCAPE) and (Panel12.Visible=true) then begin key:=0; BitBtn31Click(self); Exit; End;
+ if (key=VK_ESCAPE) and (Panel13.Visible=true) then begin key:=0; BitBtn33Click(self); Exit; End;
+ if (key=VK_ESCAPE) and (Panel14.Visible=true) then begin key:=0; BitBtn35Click(self); Exit; End;
+ if (key=VK_ESCAPE) and (Panel15.Visible=true) then begin key:=0; Panel15.Visible:=False; Exit; End;
+ if (key=VK_ESCAPE) and (Panel16.Visible=true) then begin key:=0; BitBtn38Click(self); Exit; End;
+ if (key=VK_ESCAPE) and (Panel11.Visible=true) then begin key:=0; BitBtn29Click(self); Exit; End;
+ if (key=VK_ESCAPE) and (Panel2.Visible=true) then
+   begin key:=0; Panel2.Visible:=False; DBGrid1.Enabled:=True; DBGrid1.SetFocus; Exit; End;
+ if (key=VK_ESCAPE) and (Panel3.Visible=true) then
+   begin key:=0; Panel3.Visible:=False; DBGrid1.Enabled:=True; DBGrid1.SetFocus; Exit; End;
+
  if (key=VK_ESCAPE) and (dbGrid2.Visible=false) then begin key:=0; BitBtn2Click(self); Exit; End;                // Salir de tarea de pedidos
 
 //     **********  Pantalla de detalles   **********
@@ -558,6 +633,11 @@ end;
 procedure TFPedido.FormClose(Sender: TObject; var CloseAction: TCloseAction);
 begin
   CloseAction:=CaFree;
+end;
+
+procedure TFPedido.FormResize(Sender: TObject);
+begin
+  RecolocarPaneles;
 end;
 
 //==========================================================================
@@ -1015,23 +1095,57 @@ begin
   if Button=mbLeft then exit else BitBtn37Click(BitBtn37);
 end;
 
-procedure TFPedido.DBGrid2TitleClick(Column: TColumn);
-var
-  corden: string;
+procedure TFPedido.DBGrid1TitleClick(Column: TColumn);
 begin
-//--  Colorea(Column,DBGrid2,dbPedid, AntColun, Orden, TituloColumn, Ordenado);
-  DBGrid2.Enabled:=False;
-  corden:='SELECT * FROM pedidd'+Tienda+' WHERE PD0='+dbPedic.FieldByName('PC0').AsString+
-                       ' AND PD1="'+FormatDateTime('YYYY/MM/DD',dbPedic.FieldByName('PC1').AsDateTime)+'"'+
-                       ' AND PD2='+dbPedic.FieldByName('PC2').AsString+
-                       ' AND PD3="'+dbPedic.FieldByName('PC3').AsString+'"'+
-                       ' AND PD4='+dbPedic.FieldByName('PC4').AsString+
-                       ' ORDER BY '+Column.FieldName+' '+sOrden;
-  if sOrden='DESC' then sOrden:='ASC' else sOrden:='DESC';
-  dbPedid.Sql.Text:=corden; dbPedid.Active:=True;
+  AplicarOrdenGrid(DBGrid1, dbPedic, Column, FOrdenGrid1);
+end;
+
+procedure TFPedido.DBGrid2TitleClick(Column: TColumn);
+begin
+  AplicarOrdenGrid(DBGrid2, dbPedid, Column, sOrden);
   Stock_EnsureGridColumn;
-  dbPedid.Refresh; DBGrid2.Refresh;
-  DBGrid2.Enabled:=True;
+end;
+
+procedure TFPedido.DBGridAuxDrawColumnCell(Sender: TObject; const Rect: TRect;
+  DataCol: Integer; Column: TColumn; State: TGridDrawState);
+var
+  AGrid: TDBGrid;
+  S: String;
+begin
+  if not (Sender is TDBGrid) then Exit;
+  AGrid:=TDBGrid(Sender);
+
+  // Selección clara y texto oscuro: evita el fondo azul oscuro con
+  // texto negro impuesto por algunos temas GTK.
+  if gdSelected in State then
+  begin
+    AGrid.Canvas.Brush.Color:=RGBToColor(218, 235, 250);
+    AGrid.Canvas.Font.Color:=RGBToColor(20, 40, 60);
+    AGrid.Canvas.FillRect(Rect);
+    if (Column<>nil) and (Column.Field<>nil) then
+      S:=Column.Field.DisplayText
+    else
+      S:='';
+    AGrid.Canvas.TextRect(Rect, Rect.Left+3, Rect.Top+2, S);
+    Exit;
+  end;
+
+  AGrid.DefaultDrawColumnCell(Rect, DataCol, Column, State);
+end;
+
+procedure TFPedido.DBGrid3TitleClick(Column: TColumn);
+begin
+  AplicarOrdenGrid(DBGrid3, dbSeries, Column, FOrdenGrid3);
+end;
+
+procedure TFPedido.DBGrid4TitleClick(Column: TColumn);
+begin
+  AplicarOrdenGrid(DBGrid4, dbTiendas, Column, FOrdenGrid4);
+end;
+
+procedure TFPedido.DBGrid5TitleClick(Column: TColumn);
+begin
+  AplicarOrdenGrid(DBGrid5, dbProve, Column, FOrdenGrid5);
 end;
 
 //---------------- PINTAR LINEAS MARCADAS EN ROJO ----------------
@@ -2235,6 +2349,9 @@ end;
 //============================================================
 procedure TFPedido.BitBtn25Click(Sender: TObject);
 begin
+  Panel19.Visible:=False;
+  Panel12.Height:=304;
+  CentrarPanel(Panel12);
   Panel12.Visible:=True;
   DbGrid4.Visible:=True; DbGrid4.BringToFront;
   dbTiendas.Active:=False;
@@ -2346,6 +2463,11 @@ begin
   //------------- Trasmitir a proveedores ----------
   if RadioButton5.Checked=True then
     begin
+      // El panel de opciones de proveedor necesita más altura que la
+      // selección inicial. Se amplía solo durante este paso para que
+      // todos los controles queden visibles y sin recortes.
+      Panel12.Height:=536;
+      CentrarPanel(Panel12);
       Panel19.Visible:=True; Panel19.BringToFront;
       StaticText6.Caption:=dbProve.FieldByName('P0').AsString;//Codigo
       StaticText7.Caption:=dbProve.FieldByName('P1').AsString;//Nombre
@@ -2387,6 +2509,8 @@ end;
 procedure TFPedido.BitBtn42Click(Sender: TObject);
 begin
   Panel19.Visible:=False;
+  Panel12.Height:=304;
+  CentrarPanel(Panel12);
 end;
 
 //================ DAR ENTRADA AL PEDIDO =====================
@@ -2421,6 +2545,8 @@ end;
 //-------------------- Cerrar comunicaciones ------------------------
 procedure TFPedido.BitBtn31Click(Sender: TObject);
 begin
+  Panel19.Visible:=False;
+  Panel12.Height:=304;
   Panel12.Visible:=False;
   dbTiendas.Active:=False;
 end;
@@ -2630,6 +2756,486 @@ end;
 
 
 //=============================================================
+//================ DISEÑO MODERNO Y ORDENACIÓN ==================
+//=============================================================
+procedure TFPedido.ConfigurarGridModerno(AGrid: TDBGrid);
+begin
+  if not Assigned(AGrid) then exit;
+
+  AGrid.ParentFont:=False;
+  AGrid.Font.Name:='Sans';
+  AGrid.Font.Height:=-13;
+  AGrid.Font.Color:=RGBToColor(30, 45, 60);
+  AGrid.TitleFont.Name:='Sans';
+  AGrid.TitleFont.Height:=-13;
+  AGrid.TitleFont.Color:=RGBToColor(30, 55, 80);
+  AGrid.TitleFont.Style:=[fsBold];
+  AGrid.Color:=clWhite;
+  AGrid.FixedColor:=RGBToColor(221, 233, 246);
+  AGrid.Options:=AGrid.Options+
+    [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines,
+     dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection,
+     dgDisplayMemoText];
+end;
+
+procedure TFPedido.EstiloTitulo(ALabel: TLabel);
+begin
+  if not Assigned(ALabel) then exit;
+
+  ALabel.ParentFont:=False;
+  ALabel.ParentColor:=False;
+  ALabel.AutoSize:=False;
+  ALabel.Left:=0;
+  ALabel.Top:=0;
+  if ALabel.Parent is TWinControl then
+    ALabel.Width:=TWinControl(ALabel.Parent).ClientWidth;
+  ALabel.Height:=32;
+  ALabel.Anchors:=[akTop, akLeft, akRight];
+  ALabel.Alignment:=taCenter;
+  ALabel.Layout:=tlCenter;
+  ALabel.Color:=RGBToColor(42, 86, 132);
+  ALabel.Font.Color:=clWhite;
+  ALabel.Font.Height:=-14;
+  ALabel.Font.Style:=[fsBold];
+end;
+
+procedure TFPedido.AplicarEstiloModerno;
+var
+  I, J: Integer;
+  C: TComponent;
+  B: TBitBtn;
+  S: String;
+begin
+  Color:=RGBToColor(241, 246, 251);
+  Font.Name:='Sans';
+  Font.Color:=RGBToColor(35, 52, 70);
+
+  // Fondos principales y barra inferior.
+  Panel5.Color:=RGBToColor(241, 246, 251);
+  Panel4.Color:=RGBToColor(241, 246, 251);
+  Panel1.Color:=RGBToColor(42, 68, 96);
+  Panel1.BevelOuter:=bvNone;
+
+  // Paneles auxiliares diferenciados, claros y sin fondos oscuros heredados.
+  Panel2.Color:=RGBToColor(232, 242, 252);
+  Panel3.Color:=RGBToColor(232, 242, 252);
+  Panel7.Color:=RGBToColor(248, 250, 253);
+  Panel8.Color:=RGBToColor(248, 250, 253);
+  Panel9.Color:=RGBToColor(248, 250, 253);
+  Panel10.Color:=RGBToColor(226, 242, 247);
+  Panel11.Color:=RGBToColor(248, 250, 253);
+  Panel12.Color:=RGBToColor(248, 250, 253);
+  Panel13.Color:=RGBToColor(248, 250, 253);
+  Panel14.Color:=RGBToColor(248, 250, 253);
+  Panel15.Color:=RGBToColor(248, 250, 253);
+  Panel16.Color:=RGBToColor(248, 250, 253);
+  Panel17.Color:=RGBToColor(239, 246, 252);
+  Panel18.Color:=clWhite;
+  Panel19.Color:=RGBToColor(248, 250, 253);
+  Panel6.Color:=RGBToColor(248, 250, 253);
+
+  // Un poco más de espacio útil en la entrada de líneas.
+  Panel6.Width:=820;
+  Panel6.Height:=372;
+  Edit6.Width:=Panel6.ClientWidth-Edit6.Left-52;
+  BitBtn24.Left:=Panel6.ClientWidth-BitBtn24.Width-12;
+  Edit33.Width:=Panel6.ClientWidth-Edit33.Left-52;
+  BitBtn28.Left:=Panel6.ClientWidth-BitBtn28.Width-12;
+  cbPrecioEan.Width:=540;
+  BitBtn6.Left:=Panel6.ClientWidth-BitBtn6.Width-16;
+  BitBtn8.Left:=BitBtn6.Left-BitBtn8.Width-16;
+  BitBtn6.Top:=Panel6.ClientHeight-BitBtn6.Height-12;
+  BitBtn8.Top:=BitBtn6.Top;
+
+  // Revisión sistemática de todos los controles visuales.
+  for I:=0 to ComponentCount-1 do
+  begin
+    C:=Components[I];
+
+    if C is TLabel then
+    begin
+      TLabel(C).ParentFont:=False;
+      TLabel(C).Font.Name:='Sans';
+      TLabel(C).Font.Color:=RGBToColor(35, 52, 70);
+    end
+    else if C is TStaticText then
+    begin
+      TStaticText(C).ParentFont:=False;
+      TStaticText(C).Font.Name:='Sans';
+      TStaticText(C).Font.Color:=RGBToColor(35, 52, 70);
+      TStaticText(C).Color:=RGBToColor(238, 244, 249);
+    end
+    else if C is TEdit then
+    begin
+      TEdit(C).ParentFont:=False;
+      TEdit(C).Font.Name:='Sans';
+      TEdit(C).Font.Color:=clWindowText;
+      TEdit(C).Color:=clWindow;
+      // Conservamos la selección automática original, pero con colores
+      // explícitos y legibles en el widget nativo.
+      AplicarContrasteSeleccion(TEdit(C));
+    end
+    else if C is TDateEdit then
+    begin
+      TDateEdit(C).ParentFont:=False;
+      TDateEdit(C).Font.Name:='Sans';
+      TDateEdit(C).Font.Color:=clWindowText;
+      TDateEdit(C).Color:=clWindow;
+      // TDateEdit es un control compuesto: aplicamos el contraste al editor
+      // interno sin depender de miembros protegidos de Lazarus.
+      for J:=0 to TDateEdit(C).ControlCount-1 do
+        if TDateEdit(C).Controls[J] is TCustomMaskEdit then
+          AplicarContrasteSeleccion(TWinControl(TDateEdit(C).Controls[J]));
+    end
+    else if C is TMemo then
+    begin
+      TMemo(C).ParentFont:=False;
+      TMemo(C).Font.Name:='Sans';
+      TMemo(C).Font.Color:=clWindowText;
+      TMemo(C).Color:=clWindow;
+      AplicarContrasteSeleccion(TMemo(C));
+    end
+    else if C is TCheckBox then
+    begin
+      TCheckBox(C).ParentFont:=False;
+      TCheckBox(C).Font.Name:='Sans';
+      TCheckBox(C).Font.Color:=RGBToColor(25, 45, 65);
+      TCheckBox(C).Color:=RGBToColor(248, 250, 253);
+    end
+    else if C is TRadioButton then
+    begin
+      TRadioButton(C).ParentFont:=False;
+      TRadioButton(C).Font.Name:='Sans';
+      TRadioButton(C).Font.Color:=RGBToColor(25, 45, 65);
+      TRadioButton(C).Color:=RGBToColor(248, 250, 253);
+    end
+    else if C is TRadioGroup then
+    begin
+      TRadioGroup(C).ParentFont:=False;
+      TRadioGroup(C).Font.Name:='Sans';
+      TRadioGroup(C).Font.Color:=RGBToColor(25, 45, 65);
+      TRadioGroup(C).Color:=RGBToColor(239, 246, 252);
+    end
+    else if C is TCheckListBox then
+    begin
+      TCheckListBox(C).ParentFont:=False;
+      TCheckListBox(C).Font.Name:='Sans';
+      TCheckListBox(C).Font.Color:=clWindowText;
+      TCheckListBox(C).Color:=clWindow;
+    end
+    else if C is TBitBtn then
+    begin
+      B:=TBitBtn(C);
+      B.ParentFont:=False;
+      B.Font.Name:='Sans';
+      B.Font.Height:=-13;
+      B.Font.Style:=[fsBold];
+      B.Font.Color:=RGBToColor(25, 50, 75);
+      B.Color:=RGBToColor(222, 235, 248);
+
+      S:=LowerCase(Trim(B.Caption));
+      if (S='...') or ((B.Caption='') and (B.Width<=32)) then
+      begin
+        // Botones interiores de búsqueda: contraste fuerte para que nunca
+        // vuelvan a confundirse con el fondo.
+        B.Color:=RGBToColor(36, 105, 171);
+        B.Font.Color:=clWhite;
+        if B.Width<30 then B.Width:=30;
+        if B.Height<29 then B.Height:=29;
+      end
+      else if (Pos('borrar',S)>0) then
+      begin
+        B.Color:=RGBToColor(250, 225, 225);
+        B.Font.Color:=RGBToColor(145, 35, 35);
+      end
+      else if (Pos('cerrar',S)>0) or (Pos('salir',S)>0) or
+              (Pos('cancelar',S)>0) then
+      begin
+        B.Color:=RGBToColor(232, 236, 240);
+        B.Font.Color:=RGBToColor(50, 60, 70);
+      end
+      else if (Pos('aceptar',S)>0) or (Pos('aplicar',S)>0) or
+              (Pos('crear',S)>0) or (Pos('nuevo',S)>0) or
+              (Pos('importar',S)>0) or (Pos('transm',S)>0) then
+      begin
+        B.Color:=RGBToColor(219, 240, 230);
+        B.Font.Color:=RGBToColor(30, 95, 65);
+      end;
+    end;
+  end;
+
+  Button1.ParentFont:=False;
+  Button1.Font.Style:=[fsBold];
+  Button1.Font.Color:=clWhite;
+  Button1.Color:=RGBToColor(185, 55, 55);
+
+  // Cabeceras de panel con contraste uniforme.
+  EstiloTitulo(Label20);
+  EstiloTitulo(Label25);
+  EstiloTitulo(Label35);
+  EstiloTitulo(Label50);
+  EstiloTitulo(Label57);
+  EstiloTitulo(Label58);
+  EstiloTitulo(Label62);
+  EstiloTitulo(Label67);
+  EstiloTitulo(Label72);
+
+  StaticText5.ParentFont:=False;
+  StaticText5.Font.Name:='Sans';
+  StaticText5.Font.Height:=-14;
+  StaticText5.Font.Style:=[fsBold];
+  StaticText5.Font.Color:=clWhite;
+  StaticText5.Color:=RGBToColor(42, 86, 132);
+  StaticText5.Alignment:=taCenter;
+  StaticText5.Left:=390;
+  StaticText5.Top:=8;
+  StaticText5.Height:=32;
+  StaticText5.Width:=Panel5.ClientWidth-StaticText5.Left-12;
+  StaticText5.Anchors:=[akTop, akLeft, akRight];
+
+  LabelTotal.ParentFont:=False;
+  LabelTotal.Font.Name:='Sans';
+  LabelTotal.Font.Height:=-28;
+  LabelTotal.Font.Style:=[fsBold];
+  LabelTotal.Font.Color:=RGBToColor(25, 75, 125);
+
+  // La casilla y todo su texto quedan expresamente visibles.
+  cbPrecioEan.ParentFont:=False;
+  cbPrecioEan.Font.Height:=-13;
+  cbPrecioEan.Font.Style:=[fsBold];
+  cbPrecioEan.Font.Color:=RGBToColor(30, 65, 90);
+  cbPrecioEan.Color:=Panel6.Color;
+
+  // La cabecera funciona como asa de arrastre para poder apartar el panel
+  // y consultar las líneas que queden debajo.
+  Label72.Cursor:=crSizeAll;
+  Label72.Hint:='Arrastre esta cabecera para mover el panel';
+  Label72.ShowHint:=True;
+  Label72.OnMouseDown:=@Panel6DragMouseDown;
+  Label72.OnMouseMove:=@Panel6DragMouseMove;
+  Label72.OnMouseUp:=@Panel6DragMouseUp;
+  // Al capturar el ratón los eventos pueden llegar al propio panel.
+  Panel6.OnMouseMove:=@Panel6DragMouseMove;
+  Panel6.OnMouseUp:=@Panel6DragMouseUp;
+
+  ConfigurarGridModerno(DBGrid1);
+  ConfigurarGridModerno(DBGrid2);
+  ConfigurarGridModerno(DBGrid3);
+  ConfigurarGridModerno(DBGrid4);
+  ConfigurarGridModerno(DBGrid5);
+end;
+
+procedure TFPedido.MarcarColumnaOrdenada(AGrid: TDBGrid; Column: TColumn;
+  const AOrden: String);
+var
+  I: Integer;
+  S: String;
+begin
+  if not Assigned(AGrid) then exit;
+
+  for I:=0 to AGrid.Columns.Count-1 do
+  begin
+    S:=AGrid.Columns[I].Title.Caption;
+    S:=StringReplace(S, ' ▲', '', [rfReplaceAll]);
+    S:=StringReplace(S, ' ▼', '', [rfReplaceAll]);
+    AGrid.Columns[I].Title.Caption:=S;
+  end;
+
+  if not Assigned(Column) then exit;
+  S:=Column.Title.Caption;
+  if SameText(AOrden,'ASC') then
+    Column.Title.Caption:=S+' ▲'
+  else
+    Column.Title.Caption:=S+' ▼';
+end;
+
+procedure TFPedido.AplicarOrdenGrid(AGrid: TDBGrid; AQuery: TZQuery;
+  Column: TColumn; var AOrden: String);
+var
+  SQLBase, SQLMayus, OrdenUsado: String;
+  P: Integer;
+begin
+  if (not Assigned(AGrid)) or (not Assigned(AQuery)) or
+     (not Assigned(Column)) or (Column.FieldName='') or
+     (not AQuery.Active) then exit;
+
+  AGrid.Enabled:=False;
+  try
+    SQLBase:=Trim(AQuery.SQL.Text);
+    SQLMayus:=UpperCase(SQLBase);
+    P:=Pos(' ORDER BY ',SQLMayus);
+    if P>0 then
+      SQLBase:=Trim(Copy(SQLBase,1,P-1));
+
+    OrdenUsado:=AOrden;
+    AQuery.Close;
+    AQuery.SQL.Text:=SQLBase+' ORDER BY '+Column.FieldName+' '+OrdenUsado;
+    AQuery.Open;
+
+    MarcarColumnaOrdenada(AGrid,Column,OrdenUsado);
+    if SameText(AOrden,'ASC') then AOrden:='DESC' else AOrden:='ASC';
+    AGrid.Refresh;
+  finally
+    AGrid.Enabled:=True;
+  end;
+end;
+
+procedure TFPedido.CentrarPanel(APanel: TPanel);
+var
+  W, H: Integer;
+begin
+  if (not Assigned(APanel)) or (not (APanel.Parent is TWinControl)) then exit;
+
+  W:=TWinControl(APanel.Parent).ClientWidth;
+  H:=TWinControl(APanel.Parent).ClientHeight;
+  APanel.Left:=(W-APanel.Width) div 2;
+  APanel.Top:=(H-APanel.Height) div 2;
+  if APanel.Left<8 then APanel.Left:=8;
+  if APanel.Top<8 then APanel.Top:=8;
+end;
+
+procedure TFPedido.AplicarContrasteSeleccion(AEditControl: TWinControl);
+{$IFDEF LCLGTK2}
+var
+  FondoNormal, TextoNormal, FondoSeleccion, TextoSeleccion: TGdkColor;
+  Widget: PGtkWidget;
+{$ENDIF}
+begin
+  if not Assigned(AEditControl) then Exit;
+
+  // Aseguramos que el widget nativo exista. En FormCreate algunos controles
+  // compuestos todavía no tienen Handle y GTK ignora los cambios de color.
+  AEditControl.HandleNeeded;
+
+  {$IFDEF LCLGTK2}
+  Widget:=PGtkWidget(AEditControl.Handle);
+  if Assigned(Widget) then
+  begin
+    // Estado normal: campo blanco y texto oscuro.
+    gdk_color_parse(PChar('#FFFFFF'), @FondoNormal);
+    gdk_color_parse(PChar('#101820'), @TextoNormal);
+    gtk_widget_modify_base(Widget, GTK_STATE_NORMAL, @FondoNormal);
+    gtk_widget_modify_text(Widget, GTK_STATE_NORMAL, @TextoNormal);
+
+    // Texto seleccionado: azul oscuro con fuente blanca.
+    gdk_color_parse(PChar('#2A5684'), @FondoSeleccion);
+    gdk_color_parse(PChar('#FFFFFF'), @TextoSeleccion);
+    gtk_widget_modify_base(Widget, GTK_STATE_SELECTED, @FondoSeleccion);
+    gtk_widget_modify_text(Widget, GTK_STATE_SELECTED, @TextoSeleccion);
+  end;
+  {$ENDIF}
+end;
+
+procedure TFPedido.AplicarContrasteSeleccionControles(AParent: TWinControl);
+var
+  I: Integer;
+  C: TControl;
+begin
+  if not Assigned(AParent) then Exit;
+
+  for I:=0 to AParent.ControlCount-1 do
+  begin
+    C:=AParent.Controls[I];
+
+    // TDateEdit es compuesto: su editor interno se alcanza mediante
+    // la recursión cuando el formulario ya está visible.
+    if (C is TCustomEdit) or (C is TMemo) then
+      AplicarContrasteSeleccion(TWinControl(C));
+
+    if C is TWinControl then
+      AplicarContrasteSeleccionControles(TWinControl(C));
+  end;
+end;
+
+procedure TFPedido.LimitarPanel6AlAreaVisible;
+var
+  MaxLeft, MaxTop: Integer;
+begin
+  if (not Assigned(Panel6)) or (not (Panel6.Parent is TWinControl)) then Exit;
+
+  MaxLeft:=TWinControl(Panel6.Parent).ClientWidth-Panel6.Width;
+  MaxTop:=TWinControl(Panel6.Parent).ClientHeight-Panel6.Height;
+  if MaxLeft<0 then MaxLeft:=0;
+  if MaxTop<0 then MaxTop:=0;
+
+  if Panel6.Left<0 then Panel6.Left:=0;
+  if Panel6.Top<0 then Panel6.Top:=0;
+  if Panel6.Left>MaxLeft then Panel6.Left:=MaxLeft;
+  if Panel6.Top>MaxTop then Panel6.Top:=MaxTop;
+end;
+
+procedure TFPedido.Panel6DragMouseDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+var
+  P, OrigenPanel: TPoint;
+begin
+  if Button<>mbLeft then Exit;
+  if not (Sender is TControl) then Exit;
+
+  P:=TControl(Sender).ClientToScreen(Point(X,Y));
+  OrigenPanel:=Panel6.ClientToScreen(Point(0,0));
+  FPanel6DragOffset:=Point(P.X-OrigenPanel.X,P.Y-OrigenPanel.Y);
+  FMoviendoPanel6:=True;
+  FPanel6MovidoPorUsuario:=True;
+  SetCapture(Panel6.Handle);
+end;
+
+procedure TFPedido.Panel6DragMouseMove(Sender: TObject; Shift: TShiftState;
+  X, Y: Integer);
+var
+  P, OrigenPadre: TPoint;
+begin
+  if (not FMoviendoPanel6) or (not (Sender is TControl)) then Exit;
+
+  P:=TControl(Sender).ClientToScreen(Point(X,Y));
+  OrigenPadre:=TWinControl(Panel6.Parent).ClientToScreen(Point(0,0));
+  Panel6.Left:=P.X-FPanel6DragOffset.X-OrigenPadre.X;
+  Panel6.Top:=P.Y-FPanel6DragOffset.Y-OrigenPadre.Y;
+  LimitarPanel6AlAreaVisible;
+end;
+
+procedure TFPedido.Panel6DragMouseUp(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+begin
+  if Button<>mbLeft then Exit;
+  FMoviendoPanel6:=False;
+  ReleaseCapture;
+  LimitarPanel6AlAreaVisible;
+end;
+
+procedure TFPedido.RecolocarPaneles;
+begin
+  // Los filtros pertenecen a la cabecera: deben aparecer siempre justo a la
+  // derecha de su RadioButton, nunca centrados sobre el grid.
+  Panel2.Left:=RadioButton2.Left+RadioButton2.Width+12;
+  Panel2.Top:=RadioButton2.Top-((Panel2.Height-RadioButton2.Height) div 2);
+  if Panel2.Top<4 then Panel2.Top:=4;
+
+  Panel3.Left:=RadioButton3.Left+RadioButton3.Width+12;
+  Panel3.Top:=RadioButton3.Top-((Panel3.Height-RadioButton3.Height) div 2);
+  if Panel3.Top<4 then Panel3.Top:=4;
+
+  // El panel de entrada empieza centrado, pero cuando el usuario lo mueve
+  // respetamos su posición y únicamente evitamos que quede fuera de pantalla.
+  if not FPanel6MovidoPorUsuario then
+    CentrarPanel(Panel6)
+  else
+    LimitarPanel6AlAreaVisible;
+
+  // El resto sí son paneles modales/auxiliares y se mantienen centrados.
+  CentrarPanel(Panel7);
+  CentrarPanel(Panel8);
+  CentrarPanel(Panel9);
+  CentrarPanel(Panel11);
+  CentrarPanel(Panel12);
+  CentrarPanel(Panel13);
+  CentrarPanel(Panel14);
+  CentrarPanel(Panel15);
+  CentrarPanel(Panel16);
+end;
+
+
+//=============================================================
 //================ STOCK INFORMATIVO (SOLO LECTURA) =============
 //=============================================================
 procedure TFPedido.Stock_InitUI;
@@ -2642,53 +3248,51 @@ begin
     FLabelStock.Parent := Panel6;
     FLabelStock.Caption := 'STOCK';
     FLabelStock.AutoSize := True;
+    FLabelStock.ParentFont := False;
+    FLabelStock.Font.Color := RGBToColor(35, 52, 70);
+    FLabelStock.Font.Style := [fsBold];
 
     FEditStock := TEdit.Create(Self);
     FEditStock.Parent := Panel6;
     FEditStock.ReadOnly := True;
     FEditStock.TabStop := False;
     FEditStock.Enabled := True;           // lo mantenemos habilitado para que el texto no salga "gris"
-    FEditStock.Color := clBtnFace;        // visualmente "informativo"
+    FEditStock.Color := RGBToColor(238, 243, 248); // visualmente informativo
+    FEditStock.Font.Color := RGBToColor(35, 52, 70);
     FEditStock.Alignment := taRightJustify;
+    AplicarContrasteSeleccion(FEditStock);
     
     FEditStock.Cursor := crArrow;FEditStock.Text := '';
     // Blindaje: que NO sea editable de ninguna forma (teclado/pegado)
     FEditStock.OnKeyPress := @Stock_ReadOnlyKeyPress;
     FEditStock.OnKeyDown  := @Stock_ReadOnlyKeyDown;
 
-    // Posición pedida (sin solaparse con COSTO):
-    // - Label "STOCK" a la derecha del label COSTO (Label14)
-    // - Edit de stock bajo la palabra STOCK y a la derecha del Edit COSTO (Edit8)
-    if Assigned(Label14) then
-    begin
-      FLabelStock.Top := Label14.Top;
-      FLabelStock.Left := Label14.Left + Label14.Width + 8;
-      FLabelStock.Anchors := [akTop];
-    end;
-
+    // STOCK queda como una columna independiente, completamente a la
+    // derecha de COSTE y alineada con él, sin invadir el Edit8.
     if Assigned(Edit8) then
     begin
       FEditStock.Height := Edit8.Height;
-      FEditStock.Width := (Edit8.Width div 2);
-      if FEditStock.Width < 20 then FEditStock.Width := 20;
+      FEditStock.Width := 88;
+      FEditStock.Left := Edit8.Left + Edit8.Width + 16;
+      FEditStock.Top := Edit8.Top;
+      FEditStock.Anchors := [akTop, akLeft];
 
-      // Columna a la derecha del COSTO
       if Assigned(FLabelStock) then
-        FEditStock.Left := FLabelStock.Left
-      else
-        FEditStock.Left := Edit8.Left + Edit8.Width + 8;
+      begin
+        FLabelStock.Left := FEditStock.Left;
+        if Assigned(Label14) then
+          FLabelStock.Top := Label14.Top
+        else
+          FLabelStock.Top := FEditStock.Top-FLabelStock.Height-4;
+        FLabelStock.Anchors := [akTop, akLeft];
+      end;
 
-      // Mismo "renglón" que el edit COSTO (pero sin solapar porque va a la derecha)
-      if Assigned(FLabelStock) then
-        FEditStock.Top := FLabelStock.Top + FLabelStock.Height + 2
-      else
-        FEditStock.Top := Edit8.Top;
-
-      // Ajuste para no salirse del panel
-      if FEditStock.Left + FEditStock.Width > Panel6.ClientWidth - 8 then
-        FEditStock.Left := Panel6.ClientWidth - FEditStock.Width - 8;
-
-      FEditStock.Anchors := [akTop, akRight];
+      // Margen de seguridad por si el panel se abre con un ancho menor.
+      if FEditStock.Left + FEditStock.Width > Panel6.ClientWidth - 12 then
+      begin
+        FEditStock.Left := Panel6.ClientWidth-FEditStock.Width-12;
+        if Assigned(FLabelStock) then FLabelStock.Left := FEditStock.Left;
+      end;
     end
     else
     begin

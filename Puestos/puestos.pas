@@ -29,7 +29,10 @@ Interface
 Uses
   Classes, Sysutils, Lresources, Forms, Controls, Graphics, Dialogs, ComCtrls,
   Buttons, ZConnection, ZDataset, StdCtrls, ExtCtrls, LCLType, DBGrids,
-  TAGraph, TASeries, db, DbCtrls;
+  TAGraph, TASeries, db, DbCtrls
+  {$IFDEF LCLGTK2}
+  , gtk2, gdk2
+  {$ENDIF};
 
 
 Type
@@ -70,12 +73,27 @@ Type
     Tabsheet1: Ttabsheet;
     Label2: Tlabel;
     Edit2: Tedit;
+    PanelCabecera: TPanel;
+    PanelFichaCabecera: TPanel;
+    PanelIdentificacion: TPanel;
+    PanelContacto: TPanel;
+    PanelConexion: TPanel;
+    PanelTienda: TPanel;
+    LabelTitulo: TLabel;
+    LabelSubtitulo: TLabel;
+    LabelCodigoAyuda: TLabel;
+    LabelSeccionIdentificacion: TLabel;
+    LabelSeccionContacto: TLabel;
+    LabelSeccionConexion: TLabel;
+    LabelAyudaConexion: TLabel;
     //procedure BitBtn7Click(Sender: TObject);
     procedure BitBtn8Click(Sender: TObject);
     //procedure Edit12Enter(Sender: TObject);
     //procedure Edit12Exit(Sender: TObject);
     procedure Edit1Change(Sender: TObject);
     procedure Edit2KeyPress(Sender: TObject; var Key: char);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure FormShow(Sender: TObject);
     Procedure Formcreate(Sender: Tobject);
     Procedure Edit1enter(Sender: Tobject);
     Procedure Edit1exit(Sender: Tobject);
@@ -100,6 +118,11 @@ Type
     procedure BorrarTablas();
     
   Private
+    procedure AplicarEstiloModerno;
+    procedure AplicarContrasteSeleccion(AControl: TWinControl);
+    procedure AplicarContrasteSeleccionControles(AParent: TWinControl);
+    procedure ConfigurarBoton(ABoton: TBitBtn; const ACaption, AHint: String;
+      AColor: TColor);
     { Private Declarations }
   Public
     { Public Declarations }
@@ -142,6 +165,149 @@ Begin
   //s := TBarSeries.Create(Chart1);
   //Chart1.AddSerie(s);
   //s.SeriesColor := clRed;
+
+  AplicarEstiloModerno;
+end;
+
+
+procedure TFPuestos.ConfigurarBoton(ABoton: TBitBtn;
+  const ACaption, AHint: String; AColor: TColor);
+begin
+  if not Assigned(ABoton) then Exit;
+  ABoton.Caption:=ACaption;
+  ABoton.Hint:=AHint;
+  ABoton.ShowHint:=True;
+  ABoton.Color:=AColor;
+  ABoton.Font.Color:=RGBToColor(24,36,48);
+  ABoton.Font.Height:=-13;
+  ABoton.Font.Style:=[fsBold];
+  ABoton.Visible:=True;
+  ABoton.BringToFront;
+end;
+
+procedure TFPuestos.AplicarEstiloModerno;
+begin
+  Caption:='FacturLinEx - Puestos de trabajo';
+  Color:=clWhite;
+  WindowState:=wsMaximized;
+  Position:=poDesktopCenter;
+  KeyPreview:=True;
+
+  LabelTitulo.Caption:='PUESTOS DE TRABAJO';
+  LabelSubtitulo.Caption:=
+    'Configuración de terminales, comunicaciones y tablas asociadas a cada puesto.';
+  LabelCodigoAyuda.Caption:=
+    'Introduzca una letra para identificar el puesto (A, B, C...).';
+  LabelSeccionIdentificacion.Caption:='IDENTIFICACIÓN DEL PUESTO';
+  LabelSeccionContacto.Caption:='DATOS DE CONTACTO';
+  LabelSeccionConexion.Caption:='COMUNICACIONES DEL PUESTO';
+  LabelAyudaConexion.Caption:=
+    'Estos datos se utilizan para la comunicación con el terminal o servicio asociado.';
+
+  Label1.Caption:='Código';
+  Label2.Caption:='Nombre o descripción';
+  Label8.Caption:='Teléfono';
+  Label15.Caption:='Dirección IP';
+  Label16.Caption:='Puerto';
+  Label23.Caption:='Usuario';
+  Label24.Caption:='Clave de acceso';
+  Label3.Caption:='Tienda activa';
+
+  BitBtn8.Caption:='Buscar...';
+  BitBtn8.Hint:='Buscar un puesto por su nombre o descripción';
+  BitBtn8.Color:=RGBToColor(207,232,246);
+  BitBtn8.Font.Color:=RGBToColor(24,36,48);
+  BitBtn8.Font.Style:=[fsBold];
+  BitBtn8.Visible:=True;
+  BitBtn8.BringToFront;
+
+  ConfigurarBoton(BitBtn2,'Crear puesto',
+    'Crear el puesto con los datos introducidos',RGBToColor(214,240,222));
+  ConfigurarBoton(BitBtn3,'Eliminar puesto',
+    'Eliminar el puesto y sus tablas asociadas',RGBToColor(248,220,220));
+  ConfigurarBoton(BitBtn4,'Guardar cambios',
+    'Modificar los datos del puesto actual',RGBToColor(207,232,246));
+  ConfigurarBoton(BitBtn5,'Anterior',
+    'Ir al puesto anterior',RGBToColor(238,238,238));
+  ConfigurarBoton(BitBtn6,'Siguiente',
+    'Ir al puesto siguiente',RGBToColor(238,238,238));
+  ConfigurarBoton(BitBtn1,'Cerrar',
+    'Cerrar la ficha de puestos',RGBToColor(232,232,232));
+
+  Edit1.Color:=clWhite;
+  Edit1.Font.Color:=RGBToColor(24,36,48);
+  Edit2.Color:=clWhite;
+  Edit2.Font.Color:=RGBToColor(24,36,48);
+  Edit7.Color:=clWhite;
+  Edit7.Font.Color:=RGBToColor(24,36,48);
+  Edit13.Color:=clWhite;
+  Edit13.Font.Color:=RGBToColor(24,36,48);
+  Edit14.Color:=clWhite;
+  Edit14.Font.Color:=RGBToColor(24,36,48);
+  Edit20.Color:=clWhite;
+  Edit20.Font.Color:=RGBToColor(24,36,48);
+  Edit21.Color:=clWhite;
+  Edit21.Font.Color:=RGBToColor(24,36,48);
+end;
+
+procedure TFPuestos.FormShow(Sender: TObject);
+begin
+  AplicarContrasteSeleccionControles(Self);
+  if Edit1.CanFocus then
+    Edit1.SetFocus;
+end;
+
+procedure TFPuestos.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key=VK_ESCAPE then
+  begin
+    Key:=0;
+    Close;
+  end;
+end;
+
+procedure TFPuestos.AplicarContrasteSeleccion(AControl: TWinControl);
+{$IFDEF LCLGTK2}
+var
+  FondoNormal, TextoNormal, FondoSeleccion, TextoSeleccion: TGdkColor;
+  Widget: PGtkWidget;
+{$ENDIF}
+begin
+  if not Assigned(AControl) then Exit;
+  AControl.HandleNeeded;
+
+  {$IFDEF LCLGTK2}
+  Widget:=PGtkWidget(AControl.Handle);
+  if Assigned(Widget) then
+  begin
+    gdk_color_parse(PChar('#FFFFFF'),@FondoNormal);
+    gdk_color_parse(PChar('#182430'),@TextoNormal);
+    gtk_widget_modify_base(Widget,GTK_STATE_NORMAL,@FondoNormal);
+    gtk_widget_modify_text(Widget,GTK_STATE_NORMAL,@TextoNormal);
+
+    gdk_color_parse(PChar('#2A5684'),@FondoSeleccion);
+    gdk_color_parse(PChar('#FFFFFF'),@TextoSeleccion);
+    gtk_widget_modify_base(Widget,GTK_STATE_SELECTED,@FondoSeleccion);
+    gtk_widget_modify_text(Widget,GTK_STATE_SELECTED,@TextoSeleccion);
+  end;
+  {$ENDIF}
+end;
+
+procedure TFPuestos.AplicarContrasteSeleccionControles(AParent: TWinControl);
+var
+  I: Integer;
+  C: TControl;
+begin
+  if not Assigned(AParent) then Exit;
+  for I:=0 to AParent.ControlCount-1 do
+  begin
+    C:=AParent.Controls[I];
+    if C is TCustomEdit then
+      AplicarContrasteSeleccion(TWinControl(C));
+    if C is TWinControl then
+      AplicarContrasteSeleccionControles(TWinControl(C));
+  end;
 end;
 
 //==================== CERRAR ======================

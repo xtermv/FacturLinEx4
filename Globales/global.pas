@@ -104,6 +104,10 @@ var
   HoraEnTicket, SacaVende, SacaIva, DesgloIva, CgoEnTicket: String;
   ColorFondo, ColorBotones: String;
 
+  { Preferencia visual local del puesto. NORMAL conserva exactamente la
+    apariencia existente. }
+  ContrasteInterfaz: String = 'NORMAL';
+
   //---------- Aplicaciones extras -----
   VisorPdf, RutaPdf, RutaImagenes: String;
   AbrirAchivo: String;
@@ -145,10 +149,74 @@ var
 
 procedure CargaValoresIniReaderEnVariables(IniReader : TIniFile);
 
+{ Ruta y acceso centralizados al fichero principal de configuración.
+  Todas las escrituras deben abrir una instancia NUEVA de TIniFile para evitar
+  que una copia antigua en memoria reescriba secciones guardadas por otra
+  pestaña o por otro formulario. }
+function FLXFacturConfPath: string;
+function FLXOpenFacturConfIni: TIniFile;
+procedure FLXCreateFacturConfBackup;
+
 implementation
 
 uses
   Mensajes, uFLX_CryptoIni;
+
+function FLXFacturConfPath: string;
+begin
+  Result := IncludeTrailingPathDelimiter(RutaIni) + 'FacturConf.ini';
+end;
+
+function FLXOpenFacturConfIni: TIniFile;
+var
+  LFileName: string;
+begin
+  LFileName := FLXFacturConfPath;
+  if not DirectoryExists(ExtractFileDir(LFileName)) then
+    ForceDirectories(ExtractFileDir(LFileName));
+  Result := TIniFile.Create(LFileName);
+end;
+
+procedure FLXCopyFileByStream(const ASource, ADestination: string);
+var
+  LSourceStream, LDestinationStream: TFileStream;
+begin
+  LSourceStream := TFileStream.Create(ASource, fmOpenRead or fmShareDenyNone);
+  try
+    LDestinationStream := TFileStream.Create(ADestination, fmCreate);
+    try
+      LDestinationStream.CopyFrom(LSourceStream, 0);
+    finally
+      LDestinationStream.Free;
+    end;
+  finally
+    LSourceStream.Free;
+  end;
+end;
+
+procedure FLXCreateFacturConfBackup;
+var
+  LSource, LBak1, LBak2, LBak3: string;
+begin
+  LSource := FLXFacturConfPath;
+  if not FileExists(LSource) then Exit;
+
+  LBak1 := LSource + '.bak1';
+  LBak2 := LSource + '.bak2';
+  LBak3 := LSource + '.bak3';
+
+  { La copia de seguridad nunca debe impedir que el usuario pueda guardar.
+    Se mantienen tres versiones anteriores del INI. }
+  try
+    if FileExists(LBak3) then DeleteFile(LBak3);
+    if FileExists(LBak2) then RenameFile(LBak2, LBak3);
+    if FileExists(LBak1) then RenameFile(LBak1, LBak2);
+    FLXCopyFileByStream(LSource, LBak1);
+  except
+    { La configuración continúa guardándose aunque no se haya podido crear
+      la copia auxiliar, por ejemplo por permisos insuficientes. }
+  end;
+end;
 
 //----------- Carga los valores del IniReader de configuración en las variables
 procedure CargaValoresIniReaderEnVariables(IniReader : TIniFile);
@@ -174,6 +242,13 @@ begin
     EMail:=IniReader.ReadString('datos','mail','');
     LogoEmpresa:=IniReader.ReadString('datos','logo','');
     Registro:=IniReader.ReadString('datos','registro','');
+
+    ContrasteInterfaz := UpperCase(Trim(
+      IniReader.ReadString('Apariencia','ContrasteInterfaz','NORMAL')));
+    if (ContrasteInterfaz <> 'NORMAL') and
+       (ContrasteInterfaz <> 'REFORZADO') and
+       (ContrasteInterfaz <> 'ALTO') then
+      ContrasteInterfaz := 'NORMAL';
     //----------------- CONEXION -----------------
     DBHost:=IniReader.ReadString('BBDD','host','');
     DBDataBase:=IniReader.ReadString('BBDD','database','');

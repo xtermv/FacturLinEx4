@@ -23,9 +23,13 @@ unit importar;
 interface
 
 uses
-  Classes, SysUtils, db, FileUtil, LResources, Forms, Controls, Graphics,
+  Classes, SysUtils, Math, db, FileUtil, LResources, Forms, Controls, Graphics,
   Dialogs, ExtCtrls, Buttons, StdCtrls, Grids, ComCtrls, DBGrids, ZConnection,
-  ZDataset, SynEdit, LCLType, Gestionar;
+  ZDataset, SynEdit, LCLType, LCLIntf, Gestionar
+  {$IFDEF LCLGTK2}
+  , gtk2, gdk2
+  {$ENDIF}
+  ;
 
 type
      RLineaPedido = record
@@ -208,6 +212,10 @@ type
     //procedure FormCreate(Sender: TObject;FPedido: TFPedido);
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
+    procedure FormResize(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure GridHeaderMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
     procedure Label72Click(Sender: TObject);
     procedure MostrarPosicion(Sender: TObject);
     procedure PanelEdicionClick(Sender: TObject);
@@ -247,7 +255,54 @@ type
     procedure NuevoEan(const nuevoEan: string; var linea: RLineaPedido);
 
   private
-    { private declarations }
+    { Estado visual de la modernización. Los campos se declaran antes que los
+      métodos para mantener compatibilidad con FPC 3.2.2. }
+    FCabeceraPrincipal: TPanel;
+    FTituloPrincipal: TLabel;
+    FSubtituloPrincipal: TLabel;
+    FSortColDatos: Integer;
+    FSortColProcesados: Integer;
+    FSortColPendientes: Integer;
+    FSortAscDatos: Boolean;
+    FSortAscProcesados: Boolean;
+    FSortAscPendientes: Boolean;
+    FMoviendoPanelEdicion: Boolean;
+    FPanelEdicionMovidoPorUsuario: Boolean;
+    FPanelEdicionDragOffset: TPoint;
+    FPanelPasoSeleccionar: TPanel;
+    FPanelPasoAnalizar: TPanel;
+    FPanelPasoPedido: TPanel;
+    FPanelPasoSalir: TPanel;
+    FDescPasoSeleccionar: TLabel;
+    FDescPasoAnalizar: TLabel;
+    FDescPasoPedido: TLabel;
+    FDescPasoSalir: TLabel;
+    FLabelAyudaPosicion: TLabel;
+
+    procedure CrearCabeceraPrincipal;
+    procedure CrearPanelesAccionPrincipal;
+    procedure CrearAyudaPosicion;
+    procedure ConfigurarBotonesPlantilla;
+    procedure AplicarEstiloModerno;
+    procedure RecolocarControles;
+    procedure ConfigurarStringGrid(AGrid: TStringGrid);
+    procedure EstiloTitulo(ALabel: TLabel);
+    procedure OrdenarStringGrid(AGrid: TStringGrid; ACol: Integer;
+      var AColOrdenada: Integer; var AAscendente: Boolean);
+    procedure MarcarColumnaOrdenada(AGrid: TStringGrid; ACol: Integer;
+      AAscendente: Boolean);
+    function CompararValoresGrid(const A, B: String): Integer;
+    procedure DibujarCeldaGridLegible(AGrid: TStringGrid; ACol, ARow: Integer;
+      ARect: TRect; AState: TGridDrawState);
+    procedure AplicarContrasteSeleccion(AControl: TWinControl);
+    procedure AplicarContrasteSeleccionControles(AParent: TWinControl);
+    procedure PanelEdicionDragMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure PanelEdicionDragMouseMove(Sender: TObject; Shift: TShiftState;
+      X, Y: Integer);
+    procedure PanelEdicionDragMouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure LimitarPanelEdicionAlAreaVisible;
   public
     { public declarations }
     procedure LlenarLineaGrid(
@@ -2321,8 +2376,7 @@ end;
 procedure TfImportar.sgDatosDrawCell(Sender: TObject; aCol, aRow: Integer;
   aRect: TRect; aState: TGridDrawState);
 begin
-   sgDatos.Canvas.Font.Color:= ColorLineas;
-   sgDatos.DefaultDrawCell(aCol, aRow, aRect, aState);
+  DibujarCeldaGridLegible(sgDatos,aCol,aRow,aRect,aState);
 end;
 
 procedure TfImportar.sbSave1Click(Sender: TObject);
@@ -2997,6 +3051,7 @@ begin
   SynEdit1.Clear;
   Panel3.Enabled:=false;
   btnGenerar.Enabled:=False;
+  btnAPedido.Enabled:=False;
   TodoEnblanco1();
   TodoEnBlanco2();
 
@@ -3296,21 +3351,16 @@ EditPenEan.Text:=dbgPendientes.Cells[0,fila];
 //EditPenUnid.Text:=dbgPendientes.Cells[3,fila];
 
   PanelEdicion.Visible:=True;
+  PanelEdicion.BringToFront;
+  AplicarContrasteSeleccionControles(PanelEdicion);
+  if EditPenCodigo.CanFocus then EditPenCodigo.SetFocus;
 end;
 
 procedure TfImportar.dbgProcesadosDrawCell(Sender: TObject; aCol,
   aRow: Integer; aRect: TRect; aState: TGridDrawState);
 begin
-{ with (Sender as TDBGrid) do
-   begin
-     if DataSource.DataSet.RecNo mod 2 = 0 then
-       Canvas.Brush.Color := $00F8FFC6
-     else
-       Canvas.Brush.Color := clWhite;
-     Canvas.Font.Color := Font.Color;
-     DefaultDrawColumnCell(Rect, DataCol, Column, State);
-   end;
-}
+  if Sender is TStringGrid then
+    DibujarCeldaGridLegible(TStringGrid(Sender),aCol,aRow,aRect,aState);
 end;
 
 //Dar de alta ean con el codigo.txt
@@ -3981,6 +4031,7 @@ begin
   tsPendientes.Enabled:=true;
   pc.ActivePage:=tsPendientes;
   btnAPedido.Visible:=True;
+  btnAPedido.Enabled:=True;
   //Formatear();
 
 
@@ -4017,23 +4068,865 @@ end;
 //procedure TfImportar.FormCreate(Sender: TObject;FPedido: TFPedido);
 procedure TfImportar.FormCreate(Sender: TObject);
 begin
- //--------- Conectar con la bbdd
+  FCabeceraPrincipal:=nil;
+  FTituloPrincipal:=nil;
+  FSubtituloPrincipal:=nil;
+  FSortColDatos:=-1;
+  FSortColProcesados:=-1;
+  FSortColPendientes:=-1;
+  FSortAscDatos:=True;
+  FSortAscProcesados:=True;
+  FSortAscPendientes:=True;
+  FMoviendoPanelEdicion:=False;
+  FPanelEdicionMovidoPorUsuario:=False;
+  FPanelPasoSeleccionar:=nil;
+  FPanelPasoAnalizar:=nil;
+  FPanelPasoPedido:=nil;
+  FPanelPasoSalir:=nil;
+  FDescPasoSeleccionar:=nil;
+  FDescPasoAnalizar:=nil;
+  FDescPasoPedido:=nil;
+  FDescPasoSalir:=nil;
+  FLabelAyudaPosicion:=nil;
+
+  KeyPreview:=True;
+  OnResize:=@FormResize;
+  OnKeyDown:=@FormKeyDown;
+  sgDatos.OnMouseDown:=@GridHeaderMouseDown;
+  dbgProcesados.OnMouseDown:=@GridHeaderMouseDown;
+  dbgPendientes.OnMouseDown:=@GridHeaderMouseDown;
+  dbgPendientes.OnDrawCell:=@dbgProcesadosDrawCell;
+
+  CrearCabeceraPrincipal;
+  CrearPanelesAccionPrincipal;
+  CrearAyudaPosicion;
+  AplicarEstiloModerno;
+  RecolocarControles;
+
+  //--------- Conectar con la bbdd
   //Conectate(dbConnect);       // Utilizamos datamodule1.dbConexión para toda la aplicación.
-
-  //dbPedidAux:=dbPedid;
-  //dbPedicAux:=dbPedic;
-
   pc.ActivePage:=tsSeleccion;
 end;
 
 procedure TfImportar.FormShow(Sender: TObject);
 begin
- btnGenerar.Enabled:=False;
- tsProcesados.Enabled:=false;
- tsPendientes.Enabled:=false;
- PanelEdicion.Visible:=False;
- btnAPedido.Visible:=False;
- if not (DirectoryExists(RutaSql+'selecciones')) then CreateDir(RutaSql+'selecciones')
+  btnGenerar.Enabled:=False;
+  tsProcesados.Enabled:=False;
+  tsPendientes.Enabled:=False;
+  PanelEdicion.Visible:=False;
+  // El tercer paso permanece visible para que el flujo sea comprensible,
+  // pero sólo se activa después de analizar correctamente el fichero.
+  btnAPedido.Visible:=True;
+  btnAPedido.Enabled:=False;
+  if not DirectoryExists(RutaSql+'selecciones') then
+    CreateDir(RutaSql+'selecciones');
+
+  // En OnShow los controles GTK ya disponen de widget nativo.
+  AplicarContrasteSeleccionControles(Self);
+  RecolocarControles;
+  if btnSeleccionar.CanFocus then btnSeleccionar.SetFocus;
+end;
+
+procedure TfImportar.FormResize(Sender: TObject);
+begin
+  RecolocarControles;
+end;
+
+procedure TfImportar.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key<>VK_ESCAPE then Exit;
+
+  // Primero se cierra el panel auxiliar. Sólo desde la pantalla principal
+  // se ejecuta la misma acción que el botón Salir.
+  if PanelEdicion.Visible then
+  begin
+    Key:=0;
+    BitBtn6Click(Self);
+    Exit;
+  end;
+
+  Key:=0;
+  btnSalirClick(Self);
+end;
+
+procedure TfImportar.GridHeaderMouseDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+var
+  ACol, ARow: Integer;
+begin
+  if (Button<>mbLeft) or not (Sender is TStringGrid) then Exit;
+  TStringGrid(Sender).MouseToCell(X,Y,ACol,ARow);
+  if (ARow<>0) or (ACol<0) or (ACol>=TStringGrid(Sender).ColCount-1) then Exit;
+
+  if Sender=sgDatos then
+    OrdenarStringGrid(sgDatos,ACol,FSortColDatos,FSortAscDatos)
+  else if Sender=dbgProcesados then
+    OrdenarStringGrid(dbgProcesados,ACol,FSortColProcesados,FSortAscProcesados)
+  else if Sender=dbgPendientes then
+    OrdenarStringGrid(dbgPendientes,ACol,FSortColPendientes,FSortAscPendientes);
+end;
+
+procedure TfImportar.CrearCabeceraPrincipal;
+begin
+  if Assigned(FCabeceraPrincipal) then Exit;
+
+  FCabeceraPrincipal:=TPanel.Create(Self);
+  FCabeceraPrincipal.Parent:=Self;
+  FCabeceraPrincipal.BevelOuter:=bvNone;
+  FCabeceraPrincipal.Color:=RGBToColor(31,78,121);
+  FCabeceraPrincipal.SetBounds(0,0,ClientWidth,72);
+
+  FTituloPrincipal:=TLabel.Create(Self);
+  FTituloPrincipal.Parent:=FCabeceraPrincipal;
+  FTituloPrincipal.AutoSize:=False;
+  FTituloPrincipal.SetBounds(22,12,520,28);
+  FTituloPrincipal.Caption:='IMPORTACIÓN DE PEDIDOS';
+  FTituloPrincipal.ParentFont:=False;
+  FTituloPrincipal.Font.Name:='Sans';
+  FTituloPrincipal.Font.Height:=-22;
+  FTituloPrincipal.Font.Style:=[fsBold];
+  FTituloPrincipal.Font.Color:=clWhite;
+  FTituloPrincipal.Transparent:=True;
+
+  FSubtituloPrincipal:=TLabel.Create(Self);
+  FSubtituloPrincipal.Parent:=FCabeceraPrincipal;
+  FSubtituloPrincipal.AutoSize:=False;
+  FSubtituloPrincipal.SetBounds(24,42,720,20);
+  FSubtituloPrincipal.Caption:='Seleccione el fichero, revise la estructura y resuelva las líneas pendientes antes de crear el pedido';
+  FSubtituloPrincipal.ParentFont:=False;
+  FSubtituloPrincipal.Font.Name:='Sans';
+  FSubtituloPrincipal.Font.Height:=-12;
+  FSubtituloPrincipal.Font.Color:=RGBToColor(220,235,248);
+  FSubtituloPrincipal.Transparent:=True;
+end;
+
+procedure TfImportar.CrearPanelesAccionPrincipal;
+
+  procedure PrepararPaso(var APanel: TPanel; var ADescripcion: TLabel;
+    AButton: TBitBtn; const AColor: TColor; const ATexto: String);
+  begin
+    APanel:=TPanel.Create(Self);
+    APanel.Parent:=Panel1;
+    APanel.BevelOuter:=bvNone;
+    APanel.Color:=AColor;
+
+    AButton.Parent:=APanel;
+
+    ADescripcion:=TLabel.Create(Self);
+    ADescripcion.Parent:=APanel;
+    ADescripcion.AutoSize:=False;
+    ADescripcion.Alignment:=taCenter;
+    ADescripcion.Layout:=tlCenter;
+    ADescripcion.WordWrap:=True;
+    ADescripcion.Transparent:=True;
+    ADescripcion.ParentFont:=False;
+    ADescripcion.Font.Name:='Sans';
+    ADescripcion.Font.Height:=-11;
+    ADescripcion.Font.Color:=RGBToColor(48,64,80);
+    ADescripcion.Caption:=ATexto;
+  end;
+
+begin
+  if Assigned(FPanelPasoSeleccionar) then Exit;
+
+  PrepararPaso(FPanelPasoSeleccionar,FDescPasoSeleccionar,btnSeleccionar,
+    RGBToColor(224,239,252),'TXT, CSV o XLSX. Muestra una vista previa del contenido.');
+  PrepararPaso(FPanelPasoAnalizar,FDescPasoAnalizar,btnGenerar,
+    RGBToColor(255,244,213),'Lee las columnas, identifica artículos y separa las incidencias.');
+  PrepararPaso(FPanelPasoPedido,FDescPasoPedido,btnAPedido,
+    RGBToColor(226,244,232),'Añade al pedido las líneas ya revisadas y preparadas.');
+  PrepararPaso(FPanelPasoSalir,FDescPasoSalir,btnSalir,
+    RGBToColor(239,242,245),'Cierra esta pantalla sin continuar con la importación.');
+end;
+
+procedure TfImportar.CrearAyudaPosicion;
+begin
+  if Assigned(FLabelAyudaPosicion) then Exit;
+
+  FLabelAyudaPosicion:=TLabel.Create(Self);
+  FLabelAyudaPosicion.Parent:=tsSeleccion;
+  FLabelAyudaPosicion.AutoSize:=False;
+  FLabelAyudaPosicion.Transparent:=True;
+  FLabelAyudaPosicion.ParentFont:=False;
+  FLabelAyudaPosicion.Font.Name:='Sans';
+  FLabelAyudaPosicion.Font.Height:=-11;
+  FLabelAyudaPosicion.Font.Color:=RGBToColor(74,89,104);
+  FLabelAyudaPosicion.Caption:=
+    'Haga clic en la vista previa: esta columna sirve de referencia para completar DESDE y HASTA.';
+end;
+
+procedure TfImportar.ConfigurarBotonesPlantilla;
+
+  procedure Preparar(ABoton: TSpeedButton; const ACaption, AHint: String);
+  begin
+    ABoton.AutoSize:=False;
+    ABoton.Flat:=False;
+    ABoton.Layout:=blGlyphLeft;
+    ABoton.Spacing:=6;
+    ABoton.Caption:=ACaption;
+    ABoton.Hint:=AHint;
+    ABoton.ShowHint:=True;
+  end;
+
+begin
+  Preparar(sbLimpiar1,'Limpiar campos',
+    'Borra todas las posiciones DESDE/HASTA de esta plantilla.');
+  Preparar(sbSave1,'Guardar plantilla',
+    'Guarda las posiciones actuales para reutilizarlas con este proveedor.');
+  Preparar(sbLoad1,'Cargar plantilla',
+    'Recupera una plantilla de posiciones guardada anteriormente.');
+
+  Preparar(sbLimpiar2,'Limpiar campos',
+    'Borra el delimitador y el orden de las columnas configuradas.');
+  Preparar(sbSave2,'Guardar plantilla',
+    'Guarda el delimitador y el orden actual de las columnas.');
+  Preparar(sbLoad2,'Cargar plantilla',
+    'Recupera una plantilla delimitada guardada anteriormente.');
+end;
+
+procedure TfImportar.EstiloTitulo(ALabel: TLabel);
+begin
+  if not Assigned(ALabel) then Exit;
+  ALabel.ParentFont:=False;
+  ALabel.Font.Name:='Sans';
+  ALabel.Font.Height:=-15;
+  ALabel.Font.Style:=[fsBold];
+  ALabel.Font.Color:=clWhite;
+  ALabel.Color:=RGBToColor(47,99,145);
+  ALabel.Transparent:=False;
+  ALabel.Alignment:=taCenter;
+  ALabel.Layout:=tlCenter;
+end;
+
+procedure TfImportar.ConfigurarStringGrid(AGrid: TStringGrid);
+begin
+  if not Assigned(AGrid) then Exit;
+  AGrid.ParentFont:=False;
+  AGrid.Font.Name:='Sans';
+  AGrid.Font.Height:=-13;
+  AGrid.Font.Color:=RGBToColor(30,43,56);
+  AGrid.Color:=clWhite;
+  AGrid.FixedColor:=RGBToColor(218,231,244);
+  AGrid.DefaultRowHeight:=27;
+  AGrid.GridLineWidth:=1;
+  AGrid.ScrollBars:=ssAutoBoth;
+  AGrid.ShowHint:=True;
+  AGrid.Hint:='Pulse una cabecera para ordenar por esa columna';
+  if AGrid.ColCount>7 then AGrid.ColWidths[7]:=0;
+  AGrid.Options:=AGrid.Options+
+    [goFixedVertLine,goFixedHorzLine,goVertLine,goHorzLine,goRangeSelect,
+     goColSizing,goSmoothScroll];
+end;
+
+procedure TfImportar.AplicarEstiloModerno;
+var
+  I: Integer;
+  C: TComponent;
+  B: TBitBtn;
+begin
+  Caption:='Importar pedidos - FacturLinEx';
+  Color:=RGBToColor(241,246,251);
+  Font.Name:='Sans';
+  Font.Color:=RGBToColor(35,52,70);
+  Constraints.MinWidth:=980;
+  Constraints.MinHeight:=700;
+  WindowState:=wsMaximized;
+
+  SpeedButton1.Visible:=False;
+  Panel1.Align:=alNone;
+  Panel1.BevelOuter:=bvNone;
+  Panel1.Color:=RGBToColor(226,238,248);
+  Panel2.BevelOuter:=bvNone;
+  Panel2.Color:=RGBToColor(248,250,253);
+  Panel3.BevelOuter:=bvNone;
+  Panel3.Color:=RGBToColor(248,250,253);
+  Panel4.BevelOuter:=bvNone;
+  Panel4.Color:=RGBToColor(248,250,253);
+  PanelEdicion.BevelOuter:=bvNone;
+  PanelEdicion.Color:=RGBToColor(248,250,253);
+
+  pc.ParentFont:=False;
+  pc.Font.Name:='Sans';
+  pc.Font.Height:=-13;
+  pc.Font.Style:=[fsBold];
+  pc.Font.Color:=RGBToColor(28,55,82);
+
+  Memo1.ParentFont:=False;
+  Memo1.Font.Name:='Monospace';
+  Memo1.Font.Height:=-13;
+  Memo1.Font.Color:=RGBToColor(28,42,56);
+  Memo1.Color:=RGBToColor(255,252,232);
+
+  SynEdit1.Color:=clWhite;
+  SynEdit1.Font.Name:='Monospace';
+  SynEdit1.Font.Height:=-13;
+
+  for I:=0 to ComponentCount-1 do
+  begin
+    C:=Components[I];
+    if C is TLabel then
+    begin
+      TLabel(C).ParentFont:=False;
+      TLabel(C).Font.Name:='Sans';
+      TLabel(C).Font.Height:=-13;
+      TLabel(C).Font.Color:=RGBToColor(35,52,70);
+      TLabel(C).Transparent:=True;
+    end
+    else if C is TCustomEdit then
+    begin
+      // TCustomEdit no publica ParentFont en Lazarus 4.x.
+      TCustomEdit(C).Font.Name:='Sans';
+      TCustomEdit(C).Font.Height:=-13;
+      TCustomEdit(C).Font.Color:=clWindowText;
+      TCustomEdit(C).Color:=clWindow;
+      AplicarContrasteSeleccion(TWinControl(C));
+    end
+    else if C is TCheckBox then
+    begin
+      TCheckBox(C).ParentFont:=False;
+      TCheckBox(C).Font.Name:='Sans';
+      TCheckBox(C).Font.Height:=-13;
+      TCheckBox(C).Font.Style:=[fsBold];
+      TCheckBox(C).Font.Color:=RGBToColor(25,55,80);
+      TCheckBox(C).Color:=PanelEdicion.Color;
+    end
+    else if C is TBitBtn then
+    begin
+      B:=TBitBtn(C);
+      B.ParentFont:=False;
+      B.Font.Name:='Sans';
+      B.Font.Height:=-13;
+      B.Font.Style:=[fsBold];
+      B.Font.Color:=RGBToColor(24,48,72);
+    end
+    else if C is TSpeedButton then
+    begin
+      TSpeedButton(C).ParentFont:=False;
+      TSpeedButton(C).Font.Name:='Sans';
+      TSpeedButton(C).Font.Height:=-12;
+      TSpeedButton(C).Font.Style:=[fsBold];
+      TSpeedButton(C).Flat:=False;
+    end;
+  end;
+
+  // Colores semánticos y títulos que deben conservar contraste propio.
+  // Restaurar los colores de la cabecera, ya que sus labels dinámicos
+  // también forman parte de Components[] y han pasado por el bucle general.
+  if Assigned(FTituloPrincipal) then
+  begin
+    FTituloPrincipal.Font.Name:='Sans';
+    FTituloPrincipal.Font.Height:=-22;
+    FTituloPrincipal.Font.Style:=[fsBold];
+    FTituloPrincipal.Font.Color:=clWhite;
+    FTituloPrincipal.Transparent:=True;
+  end;
+  if Assigned(FSubtituloPrincipal) then
+  begin
+    FSubtituloPrincipal.Font.Name:='Sans';
+    FSubtituloPrincipal.Font.Height:=-12;
+    FSubtituloPrincipal.Font.Style:=[];
+    FSubtituloPrincipal.Font.Color:=RGBToColor(220,235,248);
+    FSubtituloPrincipal.Transparent:=True;
+  end;
+
+  if Assigned(FDescPasoSeleccionar) then
+  begin
+    FDescPasoSeleccionar.Font.Height:=-11;
+    FDescPasoSeleccionar.Font.Color:=RGBToColor(48,64,80);
+    FDescPasoAnalizar.Font.Height:=-11;
+    FDescPasoAnalizar.Font.Color:=RGBToColor(48,64,80);
+    FDescPasoPedido.Font.Height:=-11;
+    FDescPasoPedido.Font.Color:=RGBToColor(48,64,80);
+    FDescPasoSalir.Font.Height:=-11;
+    FDescPasoSalir.Font.Color:=RGBToColor(48,64,80);
+  end;
+  if Assigned(FLabelAyudaPosicion) then
+  begin
+    FLabelAyudaPosicion.Font.Height:=-11;
+    FLabelAyudaPosicion.Font.Style:=[];
+    FLabelAyudaPosicion.Font.Color:=RGBToColor(74,89,104);
+  end;
+
+  Label29.Font.Color:=RGBToColor(25,105,70);
+  Label29.Font.Style:=[fsBold];
+  Label30.Font.Color:=RGBToColor(145,91,0);
+  Label30.Font.Style:=[fsBold];
+  Label31.Font.Color:=RGBToColor(180,40,40);
+  Label31.Font.Style:=[fsBold];
+  EstiloTitulo(Label72);
+
+  // Campos informativos de base de datos diferenciados de los editables.
+  EditBDCodigo.Color:=RGBToColor(235,241,246);
+  EditBDNombre.Color:=RGBToColor(235,241,246);
+  EditBDEan.Color:=RGBToColor(235,241,246);
+  EditBDCodigo.Font.Color:=RGBToColor(40,58,75);
+  EditBDNombre.Font.Color:=RGBToColor(40,58,75);
+  EditBDEan.Font.Color:=RGBToColor(40,58,75);
+
+  // Flujo principal expresado como pasos y acciones inequívocas.
+  btnSeleccionar.Caption:='1. ELEGIR ARCHIVO';
+  btnSeleccionar.Hint:='Seleccione el fichero TXT, CSV o XLSX recibido del proveedor.';
+  btnGenerar.Caption:='2. ANALIZAR DATOS';
+  btnGenerar.Hint:='Lee el fichero con la plantilla elegida y clasifica las líneas.';
+  btnAPedido.Caption:='3. CREAR PEDIDO';
+  btnAPedido.Hint:='Incorpora al pedido las líneas procesadas y revisadas.';
+  btnSalir.Caption:='CERRAR';
+  btnSalir.Hint:='Cierra la importación sin añadir nuevas líneas al pedido.';
+
+  btnSeleccionar.Layout:=blGlyphLeft;
+  btnGenerar.Layout:=blGlyphLeft;
+  btnAPedido.Layout:=blGlyphLeft;
+  btnSalir.Layout:=blGlyphLeft;
+  btnSeleccionar.Spacing:=8;
+  btnGenerar.Spacing:=8;
+  btnAPedido.Spacing:=8;
+  btnSalir.Spacing:=8;
+  btnSeleccionar.ShowHint:=True;
+  btnGenerar.ShowHint:=True;
+  btnAPedido.ShowHint:=True;
+  btnSalir.ShowHint:=True;
+
+  // Acciones del panel de resolución de incidencias.
+  BitBtnDAltaCod.Caption:='Crear artículo nuevo';
+  BitBtnDAltaCod.Hint:='Da de alta un artículo nuevo con los datos de la línea pendiente.';
+  BitBtnAltaEan.Caption:='Crear EAN / auxiliar';
+  BitBtnAltaEan.Hint:='Asocia el EAN o código auxiliar de la línea al artículo seleccionado.';
+  BitBtnAceptarDatosBD.Caption:='Usar artículo existente';
+  BitBtnAceptarDatosBD.Hint:='Resuelve la línea utilizando el código y descripción existentes en la base de datos.';
+  BitBtn6.Caption:='Cerrar edición';
+  BitBtn6.Hint:='Cierra este panel sin aceptar otra acción.';
+  BitBtnDAltaCod.ShowHint:=True;
+  BitBtnAltaEan.ShowHint:=True;
+  BitBtnAceptarDatosBD.ShowHint:=True;
+  BitBtn6.ShowHint:=True;
+
+  Label13.Caption:='Columna actual del cursor:';
+  Label13.Hint:='Número de carácter donde está situado el cursor en la vista previa.';
+  Label13.ShowHint:=True;
+  ePos.ReadOnly:=True;
+  ePos.TabStop:=False;
+  ePos.Alignment:=taCenter;
+  ePos.Color:=RGBToColor(235,241,246);
+  ePos.Font.Style:=[fsBold];
+  ePos.Hint:='Use este número para completar las columnas DESDE y HASTA del campo correspondiente.';
+  ePos.ShowHint:=True;
+
+  ConfigurarBotonesPlantilla;
+  ConfigurarStringGrid(sgDatos);
+  ConfigurarStringGrid(dbgProcesados);
+  ConfigurarStringGrid(dbgPendientes);
+
+  Label72.Cursor:=crSizeAll;
+  Label72.Hint:='Arrastre esta cabecera para mover el panel';
+  Label72.ShowHint:=True;
+  Label72.OnMouseDown:=@PanelEdicionDragMouseDown;
+  Label72.OnMouseMove:=@PanelEdicionDragMouseMove;
+  Label72.OnMouseUp:=@PanelEdicionDragMouseUp;
+  PanelEdicion.OnMouseMove:=@PanelEdicionDragMouseMove;
+  PanelEdicion.OnMouseUp:=@PanelEdicionDragMouseUp;
+end;
+
+procedure TfImportar.RecolocarControles;
+var
+  Ancho, AltoDisponible, AltoPC: Integer;
+  Margen, Separacion, AnchoSalir, AnchoPaso, X: Integer;
+begin
+  if ClientWidth<1 then Exit;
+  Ancho:=ClientWidth;
+
+  if Assigned(FCabeceraPrincipal) then
+  begin
+    FCabeceraPrincipal.SetBounds(0,0,Ancho,72);
+    FCabeceraPrincipal.BringToFront;
+  end;
+
+  Panel1.SetBounds(0,72,Ancho,118);
+
+  // Tarjetas de proceso: el usuario ve siempre qué hace cada paso y en qué orden.
+  Margen:=18;
+  Separacion:=12;
+  AnchoSalir:=140;
+  AnchoPaso:=(Ancho-(Margen*2)-AnchoSalir-(Separacion*3)) div 3;
+  if AnchoPaso<210 then AnchoPaso:=210;
+  X:=Margen;
+  FPanelPasoSeleccionar.SetBounds(X,8,AnchoPaso,102);
+  Inc(X,AnchoPaso+Separacion);
+  FPanelPasoAnalizar.SetBounds(X,8,AnchoPaso,102);
+  Inc(X,AnchoPaso+Separacion);
+  FPanelPasoPedido.SetBounds(X,8,AnchoPaso,102);
+  Inc(X,AnchoPaso+Separacion);
+  FPanelPasoSalir.SetBounds(X,8,Ancho-Margen-X,102);
+  if FPanelPasoSalir.Width<AnchoSalir then FPanelPasoSalir.Width:=AnchoSalir;
+
+  btnSeleccionar.SetBounds(8,7,FPanelPasoSeleccionar.Width-16,50);
+  btnGenerar.SetBounds(8,7,FPanelPasoAnalizar.Width-16,50);
+  btnAPedido.SetBounds(8,7,FPanelPasoPedido.Width-16,50);
+  btnSalir.SetBounds(8,7,FPanelPasoSalir.Width-16,50);
+  FDescPasoSeleccionar.SetBounds(10,60,FPanelPasoSeleccionar.Width-20,36);
+  FDescPasoAnalizar.SetBounds(10,60,FPanelPasoAnalizar.Width-20,36);
+  FDescPasoPedido.SetBounds(10,60,FPanelPasoPedido.Width-20,36);
+  FDescPasoSalir.SetBounds(10,60,FPanelPasoSalir.Width-20,36);
+
+  Memo1.SetBounds(16,202,Ancho-32,82);
+  pc.Left:=16;
+  pc.Top:=296;
+  pc.Width:=Ancho-32;
+
+  AltoDisponible:=ClientHeight-pc.Top-28;
+  AltoPC:=AltoDisponible div 2;
+  if AltoPC<230 then AltoPC:=230;
+  if AltoPC>300 then AltoPC:=300;
+  pc.Height:=AltoPC;
+
+  Panel3.SetBounds(16,pc.Top+pc.Height+12,Ancho-32,
+    ClientHeight-(pc.Top+pc.Height+28));
+  if Panel3.Height<155 then Panel3.Height:=155;
+
+  // Selección por posiciones. Las acciones de plantilla quedan identificadas
+  // con texto y la columna del cursor se explica junto a la vista previa.
+  Panel2.SetBounds(16,14,Max(650,Min(780,tsSeleccion.ClientWidth-190)),132);
+  sbLimpiar1.SetBounds(tsSeleccion.ClientWidth-168,14,152,36);
+  sbSave1.SetBounds(tsSeleccion.ClientWidth-168,56,152,36);
+  sbLoad1.SetBounds(tsSeleccion.ClientWidth-168,98,152,36);
+  if Assigned(FLabelAyudaPosicion) then
+    FLabelAyudaPosicion.SetBounds(16,138,tsSeleccion.ClientWidth-206,18);
+  SynEdit1.SetBounds(16,158,tsSeleccion.ClientWidth-206,
+    tsSeleccion.ClientHeight-170);
+  Label13.SetBounds(tsSeleccion.ClientWidth-174,142,158,20);
+  ePos.SetBounds(tsSeleccion.ClientWidth-168,164,152,28);
+  if SynEdit1.Height<36 then SynEdit1.Height:=36;
+
+  // Campos de posiciones más amplios y alineados.
+  eEANDesde.SetBounds(78,28,72,27); eEANHasta.SetBounds(158,28,72,27);
+  eCodigoDesde.SetBounds(78,61,72,27); eCodigoHasta.SetBounds(158,61,72,27);
+  eNombreDesde.SetBounds(78,94,72,27); eNombreHasta.SetBounds(158,94,72,27);
+  eUnidDesde.SetBounds(330,28,72,27); eUnidHasta.SetBounds(410,28,72,27);
+  eCostoDesde.SetBounds(330,61,72,27); eCostoHasta.SetBounds(410,61,72,27);
+  eDecCostoDesde.SetBounds(330,94,72,27); eDecCostoHasta.SetBounds(410,94,72,27);
+  eIVADesde.SetBounds(600,28,72,27); eIVAHasta.SetBounds(680,28,72,27);
+  ePVPDesde.SetBounds(600,61,72,27); ePVPHasta.SetBounds(680,61,72,27);
+  eDecPVPDesde.SetBounds(600,94,72,27); eDecPVPHasta.SetBounds(680,94,72,27);
+
+  Label22.SetBounds(16,33,58,20); Label1.SetBounds(16,66,58,20);
+  Label4.SetBounds(16,99,58,20);
+  Label2.SetBounds(88,7,62,20); Label3.SetBounds(168,7,62,20);
+  Label5.SetBounds(244,33,82,20); Label6.SetBounds(244,66,82,20);
+  Label9.SetBounds(244,99,82,20);
+  Label7.SetBounds(340,7,62,20); Label8.SetBounds(420,7,62,20);
+  Label10.SetBounds(506,33,88,20); Label11.SetBounds(506,66,88,20);
+  Label12.SetBounds(506,99,88,20);
+  Label14.SetBounds(610,7,62,20); Label15.SetBounds(690,7,62,20);
+
+  // Selección delimitada.
+  Label27.SetBounds(22,18,210,24);
+  eDelimitador.SetBounds(238,14,56,30);
+  Panel4.SetBounds(22,52,Max(620,Min(700,tsDelimitado.ClientWidth-194)),140);
+  sbLimpiar2.SetBounds(tsDelimitado.ClientWidth-168,52,152,38);
+  sbSave2.SetBounds(tsDelimitado.ClientWidth-168,98,152,38);
+  sbLoad2.SetBounds(tsDelimitado.ClientWidth-168,144,152,38);
+  eOEAN.SetBounds(104,34,72,28); eOCodigo.SetBounds(104,72,72,28);
+  eONombre.SetBounds(104,110,72,28);
+  eOUnidades.SetBounds(326,34,72,28); eOCosto.SetBounds(326,72,72,28);
+  eODesCosto.SetBounds(326,110,72,28);
+  eOIVA.SetBounds(588,34,72,28); eOPVP.SetBounds(588,72,72,28);
+  eODesPVP.SetBounds(588,110,72,28);
+  Label24.SetBounds(22,39,78,20); Label16.SetBounds(22,77,78,20);
+  Label20.SetBounds(22,115,78,20); Label17.SetBounds(110,8,70,20);
+  Label21.SetBounds(220,39,102,20); Label23.SetBounds(220,77,102,20);
+  Label32.SetBounds(220,115,102,20); Label18.SetBounds(332,8,70,20);
+  Label25.SetBounds(500,39,84,20); Label26.SetBounds(482,77,102,20);
+  Label33.SetBounds(482,115,102,20); Label19.SetBounds(592,8,70,20);
+
+  // Los grids ocupan toda la pestaña o panel disponible.
+  dbgProcesados.SetBounds(8,8,tsProcesados.ClientWidth-16,tsProcesados.ClientHeight-16);
+  dbgPendientes.SetBounds(8,8,tsPendientes.ClientWidth-16,tsPendientes.ClientHeight-16);
+  Label28.SetBounds(12,8,240,22);
+  sgDatos.SetBounds(8,34,Panel3.ClientWidth-16,Panel3.ClientHeight-70);
+  Label29.SetBounds(18,Panel3.ClientHeight-28,145,20);
+  Label31.SetBounds(180,Panel3.ClientHeight-28,130,20);
+  Label30.SetBounds(330,Panel3.ClientHeight-28,Panel3.ClientWidth-345,20);
+
+  // Panel auxiliar de edición amplio, ordenado y móvil.
+  PanelEdicion.Width:=Min(900,ClientWidth-48);
+  PanelEdicion.Height:=430;
+  Label72.SetBounds(0,0,PanelEdicion.Width,42);
+  Label34.SetBounds(150,56,180,22);
+  Label73.SetBounds(560,56,180,22);
+  Label44.SetBounds(28,86,110,24); EditBDCodigo.SetBounds(150,84,300,28);
+  Label45.SetBounds(28,120,110,24); EditPenCodigo.SetBounds(150,118,300,28);
+  EditBDEan.SetBounds(560,84,PanelEdicion.Width-590,28);
+  EditPenEan.SetBounds(560,118,PanelEdicion.Width-590,28);
+  Label35.SetBounds(150,160,180,22);
+  Label38.SetBounds(28,190,110,24); EditBDNombre.SetBounds(150,188,PanelEdicion.Width-180,29);
+  Label39.SetBounds(28,226,110,24); EditPenNombre.SetBounds(150,224,PanelEdicion.Width-180,29);
+  BitBtnDAltaCod.SetBounds(28,278,160,38);
+  BitBtnAltaEan.SetBounds(204,278,160,38);
+  BitBtnAceptarDatosBD.SetBounds(380,278,PanelEdicion.Width-408,38);
+  cbCodtxtAEan.SetBounds(30,334,PanelEdicion.Width-60,24);
+  BitBtn6.SetBounds((PanelEdicion.Width-120) div 2,378,120,38);
+
+  if not FPanelEdicionMovidoPorUsuario then
+  begin
+    PanelEdicion.Left:=(ClientWidth-PanelEdicion.Width) div 2;
+    PanelEdicion.Top:=(ClientHeight-PanelEdicion.Height) div 2;
+  end
+  else
+    LimitarPanelEdicionAlAreaVisible;
+
+  if PanelEdicion.Visible then PanelEdicion.BringToFront;
+end;
+
+function TfImportar.CompararValoresGrid(const A, B: String): Integer;
+var
+  SA, SB: String;
+  NA, NB: Double;
+  DA, DB: TDateTime;
+  FS: TFormatSettings;
+begin
+  SA:=Trim(A); SB:=Trim(B);
+  FS:=DefaultFormatSettings;
+  FS.DecimalSeparator:='.';
+  FS.ThousandSeparator:=#0;
+
+  SA:=StringReplace(SA,' ','',[rfReplaceAll]);
+  SB:=StringReplace(SB,' ','',[rfReplaceAll]);
+  if (Pos(',',SA)>0) and (Pos('.',SA)>0) then SA:=StringReplace(SA,'.','',[rfReplaceAll]);
+  if (Pos(',',SB)>0) and (Pos('.',SB)>0) then SB:=StringReplace(SB,'.','',[rfReplaceAll]);
+  SA:=StringReplace(SA,',','.',[rfReplaceAll]);
+  SB:=StringReplace(SB,',','.',[rfReplaceAll]);
+
+  if TryStrToFloat(SA,NA,FS) and TryStrToFloat(SB,NB,FS) then
+  begin
+    if NA<NB then Exit(-1);
+    if NA>NB then Exit(1);
+    Exit(0);
+  end;
+
+  if TryStrToDate(A,DA) and TryStrToDate(B,DB) then
+  begin
+    if DA<DB then Exit(-1);
+    if DA>DB then Exit(1);
+    Exit(0);
+  end;
+
+  Result:=CompareText(Trim(A),Trim(B));
+end;
+
+procedure TfImportar.MarcarColumnaOrdenada(AGrid: TStringGrid; ACol: Integer;
+  AAscendente: Boolean);
+var
+  I: Integer;
+  S: String;
+begin
+  if not Assigned(AGrid) then Exit;
+  for I:=0 to AGrid.Columns.Count-1 do
+  begin
+    S:=AGrid.Columns[I].Title.Caption;
+    S:=StringReplace(S,' ▲','',[rfReplaceAll]);
+    S:=StringReplace(S,' ▼','',[rfReplaceAll]);
+    AGrid.Columns[I].Title.Caption:=S;
+  end;
+  if (ACol<0) or (ACol>=AGrid.Columns.Count) then Exit;
+  if AAscendente then
+    AGrid.Columns[ACol].Title.Caption:=AGrid.Columns[ACol].Title.Caption+' ▲'
+  else
+    AGrid.Columns[ACol].Title.Caption:=AGrid.Columns[ACol].Title.Caption+' ▼';
+end;
+
+procedure TfImportar.OrdenarStringGrid(AGrid: TStringGrid; ACol: Integer;
+  var AColOrdenada: Integer; var AAscendente: Boolean);
+var
+  DireccionAsc: Boolean;
+  procedure IntercambiarFilas(R1, R2: Integer);
+  var C: Integer; T: String;
+  begin
+    if R1=R2 then Exit;
+    for C:=0 to AGrid.ColCount-1 do
+    begin
+      T:=AGrid.Cells[C,R1];
+      AGrid.Cells[C,R1]:=AGrid.Cells[C,R2];
+      AGrid.Cells[C,R2]:=T;
+    end;
+  end;
+  procedure QuickSort(L, R: Integer);
+  var I, J: Integer; P: String;
+  begin
+    I:=L; J:=R; P:=AGrid.Cells[ACol,(L+R) div 2];
+    repeat
+      if DireccionAsc then
+      begin
+        while CompararValoresGrid(AGrid.Cells[ACol,I],P)<0 do Inc(I);
+        while CompararValoresGrid(AGrid.Cells[ACol,J],P)>0 do Dec(J);
+      end
+      else
+      begin
+        while CompararValoresGrid(AGrid.Cells[ACol,I],P)>0 do Inc(I);
+        while CompararValoresGrid(AGrid.Cells[ACol,J],P)<0 do Dec(J);
+      end;
+      if I<=J then
+      begin
+        IntercambiarFilas(I,J);
+        Inc(I); Dec(J);
+      end;
+    until I>J;
+    if L<J then QuickSort(L,J);
+    if I<R then QuickSort(I,R);
+  end;
+begin
+  if (not Assigned(AGrid)) or (AGrid.RowCount<=AGrid.FixedRows+1) or
+     (ACol<0) or (ACol>=AGrid.ColCount-1) then Exit;
+
+  if AColOrdenada=ACol then
+    AAscendente:=not AAscendente
+  else
+  begin
+    AColOrdenada:=ACol;
+    AAscendente:=True;
+  end;
+  DireccionAsc:=AAscendente;
+
+  AGrid.Enabled:=False;
+  try
+    QuickSort(AGrid.FixedRows,AGrid.RowCount-1);
+    MarcarColumnaOrdenada(AGrid,ACol,DireccionAsc);
+    AGrid.Row:=AGrid.FixedRows;
+  finally
+    AGrid.Enabled:=True;
+    AGrid.Invalidate;
+  end;
+end;
+
+procedure TfImportar.DibujarCeldaGridLegible(AGrid: TStringGrid;
+  ACol, ARow: Integer; ARect: TRect; AState: TGridDrawState);
+var
+  Texto: String;
+  XTexto, YTexto: Integer;
+begin
+  if not Assigned(AGrid) then Exit;
+  if gdFixed in AState then
+  begin
+    AGrid.Canvas.Brush.Color:=RGBToColor(218,231,244);
+    AGrid.Canvas.Font.Color:=RGBToColor(28,55,82);
+    AGrid.Canvas.Font.Style:=[fsBold];
+  end
+  else if gdSelected in AState then
+  begin
+    // Dibujo manual para impedir que el tema GTK vuelva a imponer
+    // texto negro sobre el fondo azul de la selección.
+    AGrid.Canvas.Brush.Color:=RGBToColor(42,86,132);
+    AGrid.Canvas.Font.Color:=clWhite;
+    AGrid.Canvas.Font.Style:=[];
+  end
+  else
+  begin
+    if Odd(ARow) then
+      AGrid.Canvas.Brush.Color:=RGBToColor(247,250,253)
+    else
+      AGrid.Canvas.Brush.Color:=clWhite;
+    AGrid.Canvas.Font.Color:=RGBToColor(30,43,56);
+    AGrid.Canvas.Font.Style:=[];
+  end;
+
+  AGrid.Canvas.FillRect(ARect);
+  Texto:=AGrid.Cells[ACol,ARow];
+  if gdFixed in AState then
+    XTexto:=ARect.Left+Max(5,((ARect.Right-ARect.Left)-AGrid.Canvas.TextWidth(Texto)) div 2)
+  else
+    XTexto:=ARect.Left+6;
+  YTexto:=ARect.Top+Max(2,((ARect.Bottom-ARect.Top)-AGrid.Canvas.TextHeight(Texto)) div 2);
+  AGrid.Canvas.TextRect(ARect,XTexto,YTexto,Texto);
+end;
+
+procedure TfImportar.AplicarContrasteSeleccion(AControl: TWinControl);
+{$IFDEF LCLGTK2}
+var
+  FondoNormal, TextoNormal, FondoSeleccion, TextoSeleccion: TGdkColor;
+  Widget: PGtkWidget;
+{$ENDIF}
+begin
+  if not Assigned(AControl) then Exit;
+  AControl.HandleNeeded;
+  {$IFDEF LCLGTK2}
+  Widget:=PGtkWidget(AControl.Handle);
+  if Assigned(Widget) then
+  begin
+    gdk_color_parse(PChar('#FFFFFF'),@FondoNormal);
+    gdk_color_parse(PChar('#101820'),@TextoNormal);
+    gtk_widget_modify_base(Widget,GTK_STATE_NORMAL,@FondoNormal);
+    gtk_widget_modify_text(Widget,GTK_STATE_NORMAL,@TextoNormal);
+    gdk_color_parse(PChar('#2A5684'),@FondoSeleccion);
+    gdk_color_parse(PChar('#FFFFFF'),@TextoSeleccion);
+    gtk_widget_modify_base(Widget,GTK_STATE_SELECTED,@FondoSeleccion);
+    gtk_widget_modify_text(Widget,GTK_STATE_SELECTED,@TextoSeleccion);
+  end;
+  {$ENDIF}
+end;
+
+procedure TfImportar.AplicarContrasteSeleccionControles(AParent: TWinControl);
+var
+  I: Integer;
+  C: TControl;
+begin
+  if not Assigned(AParent) then Exit;
+  for I:=0 to AParent.ControlCount-1 do
+  begin
+    C:=AParent.Controls[I];
+    if C is TCustomEdit then
+      AplicarContrasteSeleccion(TWinControl(C));
+    if C is TWinControl then
+      AplicarContrasteSeleccionControles(TWinControl(C));
+  end;
+end;
+
+procedure TfImportar.LimitarPanelEdicionAlAreaVisible;
+var
+  MaxLeft, MaxTop: Integer;
+begin
+  MaxLeft:=ClientWidth-PanelEdicion.Width;
+  MaxTop:=ClientHeight-PanelEdicion.Height;
+  if MaxLeft<0 then MaxLeft:=0;
+  if MaxTop<0 then MaxTop:=0;
+  if PanelEdicion.Left<0 then PanelEdicion.Left:=0;
+  if PanelEdicion.Top<0 then PanelEdicion.Top:=0;
+  if PanelEdicion.Left>MaxLeft then PanelEdicion.Left:=MaxLeft;
+  if PanelEdicion.Top>MaxTop then PanelEdicion.Top:=MaxTop;
+end;
+
+procedure TfImportar.PanelEdicionDragMouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  P, OrigenPanel: TPoint;
+begin
+  if (Button<>mbLeft) or not (Sender is TControl) then Exit;
+  P:=TControl(Sender).ClientToScreen(Point(X,Y));
+  OrigenPanel:=PanelEdicion.ClientToScreen(Point(0,0));
+  FPanelEdicionDragOffset:=Point(P.X-OrigenPanel.X,P.Y-OrigenPanel.Y);
+  FMoviendoPanelEdicion:=True;
+  FPanelEdicionMovidoPorUsuario:=True;
+  SetCapture(PanelEdicion.Handle);
+end;
+
+procedure TfImportar.PanelEdicionDragMouseMove(Sender: TObject;
+  Shift: TShiftState; X, Y: Integer);
+var
+  P, OrigenPadre: TPoint;
+begin
+  if (not FMoviendoPanelEdicion) or not (Sender is TControl) then Exit;
+  P:=TControl(Sender).ClientToScreen(Point(X,Y));
+  OrigenPadre:=ClientToScreen(Point(0,0));
+  PanelEdicion.Left:=P.X-FPanelEdicionDragOffset.X-OrigenPadre.X;
+  PanelEdicion.Top:=P.Y-FPanelEdicionDragOffset.Y-OrigenPadre.Y;
+  LimitarPanelEdicionAlAreaVisible;
+end;
+
+procedure TfImportar.PanelEdicionDragMouseUp(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  if Button<>mbLeft then Exit;
+  FMoviendoPanelEdicion:=False;
+  ReleaseCapture;
+  LimitarPanelEdicionAlAreaVisible;
 end;
 
 procedure TfImportar.Label72Click(Sender: TObject);

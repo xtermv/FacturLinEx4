@@ -28,7 +28,11 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, LResources, Forms, Controls, Graphics, Dialogs,
-  StdCtrls, ExtCtrls, ZConnection, ZDataset, Buttons;
+  StdCtrls, ExtCtrls, ZConnection, ZDataset, Buttons, LCLType
+  {$IFDEF LCLGTK2}
+  , gtk2, gdk2
+  {$ENDIF}
+  ;
 
 type
 
@@ -84,6 +88,12 @@ type
     Label82: TLabel;
     Label83: TLabel;
     PanelAvisoAutomatizacion: TPanel;
+    PanelCabecera: TPanel;
+    PanelArticulo: TPanel;
+    PanelComparacion: TPanel;
+    PanelOpciones: TPanel;
+    PanelAcciones: TPanel;
+    BitBtnCerrar: TBitBtn;
     StaticText1: TStaticText;
     StaticText12: TStaticText;
     StaticText13: TStaticText;
@@ -96,6 +106,7 @@ type
     Timer1: TTimer;
     procedure BitBtn30Click(Sender: TObject);
     procedure BitBtn31Click(Sender: TObject);
+    procedure BitBtnCerrarClick(Sender: TObject);
     procedure cbAutoClick(Sender: TObject);
     procedure cbFCostoClick(Sender: TObject);
     procedure CambiaSeleccion(cbCambia: TCheckBox; cbpareja: TCheckBox);
@@ -117,12 +128,15 @@ type
     procedure Edit8Exit(Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCreate(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure PintaArticulo();
     procedure Timer1StartTimer(Sender: TObject);
     procedure Timer1StopTimer(Sender: TObject);
 
   private
-    { private declarations }
+    procedure AplicarContrasteSeleccion(AEditControl: TWinControl);
+    procedure AplicarContrasteSeleccionControles(AParent: TWinControl);
+    procedure AplicarEstiloModerno;
   public
     { public declarations }
   end;
@@ -157,6 +171,8 @@ begin
 end;
 procedure TFCambiPrecio.FormCreate(Sender: TObject);
 begin
+  AplicarEstiloModerno;
+
   //--------- Conectar con la bbdd
   //Conectate(dbConnect);   // Utilizamos datamodule1.dbConexión para toda la aplicación.
   //--------- Pedido
@@ -180,6 +196,10 @@ end;
 
 procedure TFCambiPrecio.FormShow(Sender: TObject);
 begin
+  // En OnShow los controles GTK ya tienen creado su widget nativo.
+  // Reaplicamos el contraste para que la selección sea azul con texto blanco.
+  AplicarContrasteSeleccionControles(Self);
+
   if SeleccionAutomatica = true then BitBtn30Click(BitBtn30);
 end;
 
@@ -238,6 +258,23 @@ end;
 procedure TFCambiPrecio.BitBtn31Click(Sender: TObject);
 begin
   SeleccionInversa();
+end;
+
+//======================== CERRAR SIN CAMBIOS =====================
+procedure TFCambiPrecio.BitBtnCerrarClick(Sender: TObject);
+begin
+  Close;
+end;
+
+//======================== ATAJOS DE TECLADO ======================
+procedure TFCambiPrecio.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key=VK_ESCAPE then
+  begin
+    Key:=0;
+    Close;
+  end;
 end;
 
 //=============   SELECCIONES DE LOS CHECKBOX PARA LA ACTUALIZACION
@@ -520,6 +557,80 @@ procedure TFCambiPrecio.Timer1StopTimer(Sender: TObject);
 begin
   Timer1.Enabled:= False;
   PanelAvisoAutomatizacion.Visible:= False;
+end;
+
+//======================= ESTILO VISUAL MODERNO ===================
+procedure TFCambiPrecio.AplicarEstiloModerno;
+begin
+  Caption:='Revisión de cambios de precio';
+  Color:=$00FBF7F4;
+  Font.Name:='Sans';
+  Font.Height:=-12;
+
+  if Assigned(PanelCabecera) then PanelCabecera.Caption:='';
+  if Assigned(PanelArticulo) then PanelArticulo.Caption:='';
+  if Assigned(PanelComparacion) then PanelComparacion.Caption:='';
+  if Assigned(PanelOpciones) then PanelOpciones.Caption:='';
+  if Assigned(PanelAcciones) then PanelAcciones.Caption:='';
+
+  BitBtn30.Caption:='Aplicar cambios seleccionados';
+  BitBtn31.Caption:='Invertir selección';
+  BitBtnCerrar.Caption:='Cerrar sin cambios';
+
+  BitBtn30.Hint:='Actualiza la ficha del artículo con los valores marcados';
+  BitBtn31.Hint:='Intercambia en todas las filas la opción Ficha/Pedido';
+  BitBtnCerrar.Hint:='Cierra esta revisión sin modificar la ficha';
+  BitBtn30.ShowHint:=True;
+  BitBtn31.ShowHint:=True;
+  BitBtnCerrar.ShowHint:=True;
+
+  Edit1.ReadOnly:=True;
+  Edit1.TabStop:=False;
+end;
+
+procedure TFCambiPrecio.AplicarContrasteSeleccion(AEditControl: TWinControl);
+{$IFDEF LCLGTK2}
+var
+  FondoNormal, TextoNormal, FondoSeleccion, TextoSeleccion: TGdkColor;
+  Widget: PGtkWidget;
+{$ENDIF}
+begin
+  if not Assigned(AEditControl) then Exit;
+  AEditControl.HandleNeeded;
+
+  {$IFDEF LCLGTK2}
+  Widget:=PGtkWidget(AEditControl.Handle);
+  if Assigned(Widget) then
+  begin
+    gdk_color_parse(PChar('#FFFFFF'), @FondoNormal);
+    gdk_color_parse(PChar('#162433'), @TextoNormal);
+    gtk_widget_modify_base(Widget, GTK_STATE_NORMAL, @FondoNormal);
+    gtk_widget_modify_text(Widget, GTK_STATE_NORMAL, @TextoNormal);
+
+    gdk_color_parse(PChar('#2A5684'), @FondoSeleccion);
+    gdk_color_parse(PChar('#FFFFFF'), @TextoSeleccion);
+    gtk_widget_modify_base(Widget, GTK_STATE_SELECTED, @FondoSeleccion);
+    gtk_widget_modify_text(Widget, GTK_STATE_SELECTED, @TextoSeleccion);
+  end;
+  {$ENDIF}
+end;
+
+procedure TFCambiPrecio.AplicarContrasteSeleccionControles(AParent: TWinControl);
+var
+  I: Integer;
+  C: TControl;
+begin
+  if not Assigned(AParent) then Exit;
+
+  for I:=0 to AParent.ControlCount-1 do
+  begin
+    C:=AParent.Controls[I];
+    if C is TCustomEdit then
+      AplicarContrasteSeleccion(TWinControl(C));
+
+    if C is TWinControl then
+      AplicarContrasteSeleccionControles(TWinControl(C));
+  end;
 end;
 
 initialization

@@ -150,7 +150,7 @@ Var
 Implementation
 
 uses
-  Global;
+  Global, uFLXTemaVisual;
   //, Funciones; // quitado por javi no usa ese unit
 
 //=============== Crea el formulario ================
@@ -173,6 +173,7 @@ Begin
    Teclado.Visible:=True;
    LabelTeclado.Caption:=titulo;
    EditTecla.Text:='';
+  FLXAplicarTemaVisual(Self);
   
 End;
 

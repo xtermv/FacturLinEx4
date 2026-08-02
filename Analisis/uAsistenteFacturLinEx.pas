@@ -5,7 +5,7 @@ unit uAsistenteFacturLinEx;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls,
+  Classes, SysUtils, Forms, Controls, LCLType, Graphics, Dialogs, ExtCtrls, StdCtrls,
   Buttons, Grids, DB, ZConnection, ZDataset,
   uFLXGridStyle, uFLXExport, uFLXIcons, uFLXDialogs;
 
@@ -81,6 +81,7 @@ type
 
     procedure GenerarClick(Sender: TObject);
     procedure CSVClick(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure CerrarClick(Sender: TObject);
     procedure VistaChange(Sender: TObject);
     procedure GridMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -172,6 +173,8 @@ var
   L: TLabel;
 begin
   inherited CreateNew(AOwner, 1);
+  KeyPreview := True;
+  OnKeyDown := @FormKeyDown;
   FConn := AConnection;
   FTienda := ATienda;
   FSortCol := -1;
@@ -760,6 +763,22 @@ begin
   FN := 'asistente_facturlinex_' + FormatDateTime('yyyymmdd_hhnnss', Now) + '.csv';
   if FLXGuardarCSVConDialogo(Grid, 'Exportar Asistente diario', FN) then
     FLXInfo('CSV generado correctamente.', 'Asistente diario');
+end;
+
+procedure TAsistenteFacturLinExForm.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if Key <> VK_ESCAPE then Exit;
+
+  // Si hay un desplegable activo, ESC lo cierra antes de salir del formulario.
+  if (ActiveControl is TComboBox) and TComboBox(ActiveControl).DroppedDown then
+  begin
+    TComboBox(ActiveControl).DroppedDown := False;
+    Key := 0;
+    Exit;
+  end;
+
+  Key := 0;
+  CerrarClick(Self);
 end;
 
 procedure TAsistenteFacturLinExForm.CerrarClick(Sender: TObject);

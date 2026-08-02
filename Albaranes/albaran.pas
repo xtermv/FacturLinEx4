@@ -23,12 +23,13 @@
 unit Albaran;
 
 {$mode objfpc}{$H+}
+{$codepage utf8}
 
 interface
 
 uses
-  Classes, SysUtils, LResources, Forms, Controls, Graphics, Dialogs, ExtCtrls,
-  Buttons, ZConnection, ZDataset, DBGrids, db, StdCtrls, DbCtrls, LR_Class,
+  Classes, SysUtils, StrUtils, LResources, Forms, Controls, Graphics, Dialogs, ExtCtrls,
+  Buttons, ZConnection, ZDataset, DBGrids, Grids, db, StdCtrls, DbCtrls, EditBtn, LR_Class,
   LR_DBSet, LCLType, Menus,  LR_E_CSV, LR_E_HTM, lr_e_pdf;
 
 type
@@ -104,8 +105,8 @@ TFAlbaran = class(TForm)
   Edit22: TEdit;
   Edit23: TEdit;
   edRecibos: TEdit;
-  Edit3: TEdit;
-  Edit4: TEdit;
+  Edit3: TDateEdit;
+  Edit4: TDateEdit;
   Edit5: TEdit;
   Edit6: TEdit;
   Edit7: TEdit;
@@ -205,6 +206,9 @@ TFAlbaran = class(TForm)
   procedure ComboBox1Change(Sender: TObject);
   procedure DBGrid1KeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
   procedure DBGrid1TitleClick(Column: TColumn);
+  procedure DBGrid2TitleClick(Column: TColumn);
+  procedure DBGridPrepareCanvas(Sender: TObject; DataCol: Integer;
+    Column: TColumn; aState: TGridDrawState);
   procedure DBGrid2DblClick(Sender: TObject);
   procedure DBGrid2KeyDown(Sender: TObject; var Key: Word;
    Shift: TShiftState);
@@ -280,13 +284,63 @@ TFAlbaran = class(TForm)
   function HayStock: boolean;
 
   private
-    { private declarations }
+    { Diseño moderno conservador. No sustituye controles ni eventos originales. }
+    FEstiloModernoAplicado: Boolean;
+    FPanelAtajos: TPanel;
+    FLabelAtajos: TLabel;
+    FOrdenGrid1Campo: String;
+    FOrdenGrid1Direccion: String;
+    FOrdenGrid2Campo: String;
+    FOrdenGrid2Direccion: String;
+    FBtnCalEdit3: TSpeedButton;
+    FBtnCalEdit4: TSpeedButton;
+    procedure AplicarEstiloModerno;
+    procedure CrearBotonCalendarioVisible(var AButton: TSpeedButton;
+      AFecha: TDateEdit; ATag: Integer);
+    procedure PrepararCalendariosVisibles;
+    procedure AbrirCalendarioVisible(Sender: TObject);
+    procedure AjustarLayoutModerno;
+    procedure FormResizeModerno(Sender: TObject);
+    procedure CrearPieAtajos;
+    procedure ActualizarPieAtajos;
+    procedure ConfigurarOrdenacionGrids;
+    procedure OrdenarGrid(AQuery: TZQuery; AGrid: TDBGrid; AColumn: TColumn;
+      var ACampo, ADireccion: String);
+    procedure ActualizarFlechaGrid(AGrid: TDBGrid;
+      const ACampo, ADireccion: String);
+    function SQLSinOrden(const ASQL: String): String;
+
+    { Sincronización de albaranes con créditos e histórico }
+    function SQLTexto(const ATexto: String): String;
+    function SQLNumero(const AValor: Double): String;
+    function EsCreditoAjuste(const ANotas: String; var ABase: Double): Boolean;
+    function NotasConAuditoria(const ANotasAlbaran, ANotasHistorico: String): String;
+    procedure InicializarControlAlbaran;
+    function ValidarClienteDocumento: Boolean;
+    procedure MarcarAlbaranModificado;
+    procedure RehacerDetalleCreditoCompleto(const ACliente: Integer;
+      const AFecha, AHora: TDateTime; const ASerie: String; const ANumero: Integer);
+    procedure RehacerDetalleCreditoAjuste(const ACliente: Integer;
+      const AFecha, AHora: TDateTime; const ASerie: String; const ANumero: Integer;
+      const ABase, ATotalActual, ADiferencia: Double);
+    procedure CrearCreditoCompleto(const ATotal: Double);
+    procedure CrearCreditoAjuste(const ABase, ATotalActual: Double);
+    function SincronizarCreditoAlbaran(const ATotalActual: Double): String;
+    procedure EliminarCreditoAlbaranExistente;
+    procedure RegistrarAuditoriaHistorico(const ATotalAnterior, ATotalNuevo: Double;
+      const AResultadoCredito: String);
+    procedure ObtenerFechaHoraHistorico(var AFecha, AHora: TDateTime);
+
   public
     { public declarations }
   end;
 
   procedure ShowFormAlbaranes;
   
+const
+  MARCA_AJUSTE_ALBARAN = '[FLX_AJUSTE_ALBARAN_BASE=';
+  MARCA_AUDITORIA_ALBARAN = '--- MODIFICACIONES DEL ALBARAN ---';
+
 var
   FAlbaran: TFAlbaran;
   SALBARAN: String;
@@ -306,12 +360,1411 @@ var
 
   ValorInicial: String;   // Valor de entrada de un edit para controlar si cambió al salir.
 
+  // Estado del albarán que se está gestionando. Permite sincronizar una sola vez
+  // al salir, evitando duplicar movimientos por cada línea editada.
+  FAlbaranEnGestion: Boolean;
+  FAlbaranModificado: Boolean;
+  FAlbaranNuevo: Boolean;
+  FTotalOriginalAlbaran: Double;
+  FClienteAlbaran: Integer;
+  FFechaAlbaran: TDateTime;
+  FSerieAlbaran: String;
+  FNumeroAlbaran: Integer;
+  FPuestoHistoricoAlbaran: String;
+  FFechaHistoricoAlbaran: TDateTime;
+  FHoraHistoricoAlbaran: TDateTime;
+  FHistoricoAlbaranLocalizado: Boolean;
+
 implementation
 
 uses
-  Global, Funciones, busquedas, Imprimir, calculos;
+  Global, Funciones, busquedas, Imprimir, calculos, uFLXTemaVisual;
   
  { TFAlbaran }
+
+//================== CALENDARIOS VISIBLES ==================
+procedure TFAlbaran.CrearBotonCalendarioVisible(
+  var AButton: TSpeedButton; AFecha: TDateEdit; ATag: Integer);
+begin
+  if not Assigned(AFecha) then Exit;
+
+  AFecha.ButtonOnlyWhenFocused := False;
+  AFecha.ButtonWidth := 27;
+  AFecha.Button.Visible := True;
+  AFecha.Button.Enabled := True;
+  AFecha.Button.Flat := False;
+  AFecha.Button.Hint := 'Abrir calendario';
+  AFecha.Button.ShowHint := True;
+
+  if not Assigned(AButton) then
+  begin
+    AButton := TSpeedButton.Create(Self);
+    AButton.Parent := AFecha.Parent;
+    AButton.Tag := ATag;
+    AButton.Hint := 'Abrir calendario';
+    AButton.ShowHint := True;
+    AButton.Flat := False;
+    AButton.OnClick := @AbrirCalendarioVisible;
+  end;
+
+  AButton.SetBounds(
+    AFecha.Left + AFecha.Width - 28,
+    AFecha.Top,
+    28,
+    AFecha.Height
+  );
+  AButton.Glyph.Assign(AFecha.Glyph);
+  AButton.NumGlyphs := 1;
+  AButton.Visible := AFecha.Visible;
+  AButton.Enabled := AFecha.Enabled;
+  AButton.BringToFront;
+end;
+
+procedure TFAlbaran.PrepararCalendariosVisibles;
+begin
+  CrearBotonCalendarioVisible(FBtnCalEdit3, Edit3, 3);
+  CrearBotonCalendarioVisible(FBtnCalEdit4, Edit4, 4);
+end;
+
+procedure TFAlbaran.AbrirCalendarioVisible(Sender: TObject);
+var
+  Fecha: TDateEdit;
+begin
+  Fecha := nil;
+  if Sender is TComponent then
+    case TComponent(Sender).Tag of
+      3: Fecha := Edit3;
+      4: Fecha := Edit4;
+    end;
+
+  if not Assigned(Fecha) then Exit;
+
+  Fecha.Enabled := True;
+  Fecha.ButtonOnlyWhenFocused := False;
+  Fecha.Button.Visible := True;
+  Fecha.Button.Enabled := True;
+  Fecha.SetFocus;
+  Fecha.Button.Click;
+end;
+
+//================== DISEÑO MODERNO CONSERVADOR ==================
+procedure TFAlbaran.AplicarEstiloModerno;
+var
+  CFondo, CTarjeta, CCabecera, CPrimario: TColor;
+  CTexto, CTextoSuave, CVerde, CVerdeSuave: TColor;
+  CRojo, CAmbarSuave, CAzulSuave: TColor;
+  CCremaSuave, CGrisSuave, CLavandaSuave: TColor;
+  I: Integer;
+
+  procedure EstilarPanel(APanel: TPanel; AColor: TColor;
+    AConMarco: Boolean = False);
+  begin
+    if not Assigned(APanel) then Exit;
+    APanel.ParentBackground := False;
+    APanel.ParentColor := False;
+    APanel.Color := AColor;
+    APanel.Caption := '';
+    APanel.BevelInner := bvNone;
+    APanel.BevelOuter := bvNone;
+    if AConMarco then
+      APanel.BorderWidth := 1
+    else
+      APanel.BorderWidth := 0;
+  end;
+
+  procedure EstilarBoton(ABoton: TBitBtn; AColor, ATexto: TColor;
+    AResaltado: Boolean = True);
+  begin
+    if not Assigned(ABoton) then Exit;
+    ABoton.ParentFont := False;
+    ABoton.Font.Name := 'Sans';
+    ABoton.Font.Height := -10;
+    ABoton.Font.Color := ATexto;
+    ABoton.Color := AColor;
+    if AResaltado then
+      ABoton.Font.Style := [fsBold]
+    else
+      ABoton.Font.Style := [];
+  end;
+
+  procedure EstilarGrid(AGrid: TDBGrid);
+  var
+    K: Integer;
+  begin
+    if not Assigned(AGrid) then Exit;
+    AGrid.ParentFont := False;
+    AGrid.Font.Name := 'Sans';
+    // Tamaño compacto y coherente con el resto de formularios.
+    // Ocho puntos permite mostrar más filas sin perder legibilidad.
+    AGrid.Font.Size := 8;
+    AGrid.Font.Color := CTexto;
+    AGrid.Color := clWhite;
+    AGrid.FixedColor := CCabecera;
+    AGrid.AlternateColor := RGBToColor(248, 250, 252);
+    AGrid.SelectedColor := RGBToColor(191, 219, 254);
+    AGrid.OnPrepareCanvas := @DBGridPrepareCanvas;
+    AGrid.GridLineColor := RGBToColor(203, 213, 225);
+    AGrid.DefaultRowHeight := 18;
+    AGrid.TitleFont.Name := 'Sans';
+    AGrid.TitleFont.Size := 8;
+    AGrid.TitleFont.Style := [fsBold];
+    AGrid.TitleFont.Color := clWhite;
+
+    // Algunas columnas traen una fuente propia definida en el LFM. Se fija
+    // también en 8 pt para impedir que sobrescriban el tamaño del grid.
+    for K := 0 to AGrid.Columns.Count - 1 do
+    begin
+      AGrid.Columns[K].Font.Name := 'Sans';
+      AGrid.Columns[K].Font.Size := 8;
+      AGrid.Columns[K].Font.Color := CTexto;
+      AGrid.Columns[K].MinSize := 20;
+      AGrid.Columns[K].MaxSize := 2000;
+    end;
+  end;
+
+  procedure EstilarEtiqueta(ALabel: TLabel; AColor: TColor;
+    ATamano: Integer; AResaltada: Boolean = False);
+  begin
+    if not Assigned(ALabel) then Exit;
+    ALabel.ParentFont := False;
+    ALabel.Font.Name := 'Sans';
+    ALabel.Font.Height := ATamano;
+    ALabel.Font.Color := AColor;
+    if AResaltada then
+      ALabel.Font.Style := [fsBold]
+    else
+      ALabel.Font.Style := [];
+  end;
+
+begin
+  if FEstiloModernoAplicado then Exit;
+  FEstiloModernoAplicado := True;
+
+  // Misma familia visual que Ventas y Créditos.
+  CFondo         := RGBToColor(239, 244, 249);
+  CTarjeta       := clWhite;
+  CCabecera      := RGBToColor(6, 55, 86);
+  CPrimario      := RGBToColor(37, 99, 235);
+  CTexto         := RGBToColor(21, 38, 62);
+  CTextoSuave    := RGBToColor(74, 91, 112);
+  CVerde         := RGBToColor(0, 128, 72);
+  CVerdeSuave    := RGBToColor(222, 247, 232);
+  CRojo          := RGBToColor(185, 28, 28);
+  CAmbarSuave    := RGBToColor(255, 246, 214);
+  CAzulSuave     := RGBToColor(228, 240, 252);
+  CCremaSuave    := RGBToColor(255, 248, 225);
+  CGrisSuave     := RGBToColor(242, 245, 247);
+  CLavandaSuave  := RGBToColor(242, 237, 250);
+
+  KeyPreview := True;
+  Color := CFondo;
+  ParentFont := False;
+  Font.Name := 'Sans';
+  Font.Height := -10;
+  Font.Color := CTexto;
+  Caption := 'FacturLinEx · Gestión de albaranes';
+
+  EstilarPanel(Panel5, CFondo);
+  EstilarPanel(Panel1, CCabecera);
+  EstilarPanel(Panel2, CAzulSuave, True);
+  EstilarPanel(Panel3, CAzulSuave, True);
+  EstilarPanel(Panel4, CTarjeta);
+  EstilarPanel(Panel6, CCremaSuave);
+  EstilarPanel(Panel7, CGrisSuave);
+  EstilarPanel(Panel8, CAzulSuave);
+  EstilarPanel(Panel9, CLavandaSuave);
+  EstilarPanel(panelRecibos, CVerdeSuave);
+
+  EstilarGrid(DBGrid1);
+  EstilarGrid(DBGrid2);
+
+  // Tipografía base prudente. No se agrandan indiscriminadamente las etiquetas
+  // pequeñas del LFM porque tienen alturas de 9-12 píxeles.
+  for I := 0 to ComponentCount - 1 do
+  begin
+    if Components[I] is TBitBtn then
+      with TBitBtn(Components[I]) do
+      begin
+        ParentFont := False;
+        Font.Name := 'Sans';
+        Font.Height := -10;
+      end
+    else if Components[I] is TEdit then
+      with TEdit(Components[I]) do
+      begin
+        ParentFont := False;
+        Font.Name := 'Sans';
+        Font.Height := -10;
+        Font.Color := CTexto;
+        Color := clWhite;
+      end
+    else if Components[I] is TMemo then
+      with TMemo(Components[I]) do
+      begin
+        ParentFont := False;
+        Font.Name := 'Sans';
+        Font.Height := -10;
+        Font.Color := CTexto;
+        Color := clWhite;
+      end
+    else if Components[I] is TComboBox then
+      with TComboBox(Components[I]) do
+      begin
+        ParentFont := False;
+        Font.Name := 'Sans';
+        Font.Height := -10;
+        Font.Color := CTexto;
+        Color := clWhite;
+      end
+    else if Components[I] is TListBox then
+      with TListBox(Components[I]) do
+      begin
+        ParentFont := False;
+        Font.Name := 'Sans';
+        Font.Height := -9;
+        Font.Color := CTexto;
+        Color := clWhite;
+      end
+    else if Components[I] is TRadioGroup then
+      with TRadioGroup(Components[I]) do
+      begin
+        ParentFont := False;
+        ParentColor := False;
+        Font.Name := 'Sans';
+        Font.Height := -10;
+        Font.Color := CTexto;
+        Color := CTarjeta;
+      end
+    else if Components[I] is TRadioButton then
+      with TRadioButton(Components[I]) do
+      begin
+        ParentFont := False;
+        Font.Name := 'Sans';
+        Font.Height := -9;
+        Font.Color := CTexto;
+      end
+    else if Components[I] is TCheckBox then
+      with TCheckBox(Components[I]) do
+      begin
+        ParentFont := False;
+        Font.Name := 'Sans';
+        Font.Height := -10;
+        Font.Color := CTextoSuave;
+      end
+    else if Components[I] is TLabel then
+      with TLabel(Components[I]) do
+      begin
+        ParentFont := False;
+        Font.Name := 'Sans';
+        Font.Color := CTexto;
+        if Height <= 10 then
+          Font.Height := -7
+        else if Height <= 12 then
+          Font.Height := -8
+        else if Height <= 16 then
+          Font.Height := -9
+        else if Height <= 24 then
+          Font.Height := -10;
+      end;
+  end;
+
+  // Pantalla principal de selección. Tipografía contenida y zonas separadas.
+  RadioButton1.ParentFont := False;
+  RadioButton2.ParentFont := False;
+  RadioButton3.ParentFont := False;
+  RadioButton1.Font.Name := 'Sans';
+  RadioButton2.Font.Name := 'Sans';
+  RadioButton3.Font.Name := 'Sans';
+  RadioButton1.Font.Height := -9;
+  RadioButton2.Font.Height := -9;
+  RadioButton3.Font.Height := -9;
+  RadioButton1.Font.Color := CTexto;
+  RadioButton2.Font.Color := CTexto;
+  RadioButton3.Font.Color := CTexto;
+
+  ComboBox1.ParentFont := False;
+  ComboBox1.Font.Name := 'Sans';
+  ComboBox1.Font.Height := -9;
+  ComboBox1.Font.Color := CTexto;
+  ComboBox1.Color := clWhite;
+
+  RadioGroup2.Caption := 'Documentos a visualizar';
+  RadioGroup2.ParentFont := False;
+  RadioGroup2.Font.Name := 'Sans';
+  RadioGroup2.Font.Height := -9;
+  RadioGroup2.Font.Color := CTexto;
+
+  Label1.Font.Height := -9;
+  Label2.Font.Height := -9;
+  Label3.Font.Height := -9;
+  Label35.Font.Height := -9;
+  Edit1.Font.Height := -9;
+  Edit2.Font.Height := -9;
+  Edit3.Font.Height := -9;
+  Edit4.Font.Height := -9;
+  BitBtn3.Caption := 'Aceptar';
+  BitBtn4.Caption := 'Aceptar';
+  BitBtn3.Font.Height := -9;
+  BitBtn4.Font.Height := -9;
+
+  // Cabecera del albarán: texto oscuro sobre tarjeta blanca.
+  Bevel1.Visible := False;
+  Label4.SetBounds(16, 8, 330, 15);
+  Label5.SetBounds(16, 24, 330, 15);
+  Label6.SetBounds(16, 40, 70, 15);
+  Label7.SetBounds(90, 40, 255, 15);
+  Label8.SetBounds(16, 56, 330, 15);
+  Label9.SetBounds(16, 72, 145, 15);
+  Label10.SetBounds(175, 72, 170, 15);
+
+  EstilarEtiqueta(Label4, CTexto, -10, True);
+  EstilarEtiqueta(Label5, CTexto, -9);
+  EstilarEtiqueta(Label6, CTextoSuave, -9);
+  EstilarEtiqueta(Label7, CTexto, -9);
+  EstilarEtiqueta(Label8, CTexto, -9);
+  EstilarEtiqueta(Label9, CTextoSuave, -9);
+  EstilarEtiqueta(Label10, CTexto, -9);
+
+  CheckBox1.SetBounds(365, 10, 185, 21);
+  CheckBox2.SetBounds(365, 34, 165, 21);
+
+  Label29.SetBounds(365, 62, 80, 16);
+  Label30.SetBounds(450, 62, 38, 16);
+  Label34.SetBounds(491, 62, 8, 16);
+  Label31.SetBounds(501, 62, 70, 16);
+  Label32.SetBounds(365, 82, 80, 16);
+  Label33.SetBounds(450, 82, 120, 16);
+  EstilarEtiqueta(Label29, CTextoSuave, -9, True);
+  EstilarEtiqueta(Label32, CTextoSuave, -9, True);
+  EstilarEtiqueta(Label30, CTexto, -10, True);
+  EstilarEtiqueta(Label31, CTexto, -10, True);
+  EstilarEtiqueta(Label33, CTexto, -10, True);
+  EstilarEtiqueta(Label34, CTexto, -10, True);
+
+  LabelTotal.ParentFont := False;
+  LabelTotal.Font.Name := 'Sans';
+  LabelTotal.Font.Height := -20;
+  LabelTotal.Font.Style := [fsBold];
+  LabelTotal.Font.Color := CVerde;
+  LabelTotal.Alignment := taRightJustify;
+  LabelTotal.Layout := tlCenter;
+
+  // Editor de líneas: cabecera fuerte, cuerpo crema y campos legibles.
+  Label28.ParentColor := False;
+  Label28.Transparent := False;
+  Label28.Color := CCabecera;
+  Label28.Font.Color := clWhite;
+  Label28.Font.Name := 'Sans';
+  Label28.Font.Height := -12;
+  Label28.Font.Style := [fsBold];
+  Label28.Layout := tlCenter;
+
+  EstilarEtiqueta(Label11, CTextoSuave, -9, True);
+  EstilarEtiqueta(Label12, CTextoSuave, -9, True);
+  EstilarEtiqueta(Label13, CTextoSuave, -9, True);
+  EstilarEtiqueta(Label14, CTextoSuave, -9, True);
+  EstilarEtiqueta(Label15, CTextoSuave, -9, True);
+  EstilarEtiqueta(Label16, CTextoSuave, -9, True);
+  EstilarEtiqueta(Label17, CTextoSuave, -9, True);
+  EstilarEtiqueta(Label18, CTextoSuave, -9, True);
+  EstilarEtiqueta(Label19, CVerde, -9, True);
+  EstilarEtiqueta(Label36, CTextoSuave, -9, True);
+  Label12.Caption := 'Descripción';
+  Label14.Caption := 'P.V.P.';
+  Label15.Caption := 'PRECIO S/IVA';
+
+  Edit13.Color := CVerdeSuave;
+  Edit13.Font.Color := CVerde;
+  Edit13.Font.Style := [fsBold];
+  lbHistoricos.Font.Size := 8;
+  lbHistoricos.Font.Color := CTextoSuave;
+  lbHistoricos.Font.Style := [fsBold];
+  lbActivarPrecios.Font.Size := 7;
+  lbActivarPrecios.Font.Color := CRojo;
+
+  // Observaciones.
+  Label20.ParentColor := False;
+  Label20.Transparent := False;
+  Label20.Color := CCabecera;
+  Label20.Font.Color := clWhite;
+  Label20.Font.Name := 'Sans';
+  Label20.Font.Height := -12;
+  Label20.Font.Style := [fsBold];
+  Label20.Alignment := taCenter;
+  Label20.Layout := tlCenter;
+  Label20.Caption := 'OBSERVACIONES DEL ALBARÁN';
+
+  // Botones fuertes: texto blanco. Botones pastel: texto oscuro.
+  EstilarBoton(BitBtn1,  CPrimario, clWhite);
+  EstilarBoton(BitBtn2,  CRojo, clWhite);
+  EstilarBoton(BitBtn3,  CAzulSuave, CCabecera);
+  EstilarBoton(BitBtn4,  CAzulSuave, CCabecera);
+  EstilarBoton(BitBtn5,  CRojo, clWhite);
+  EstilarBoton(BitBtn6,  CRojo, clWhite);
+  EstilarBoton(BitBtn8,  CVerde, clWhite);
+  EstilarBoton(BitBtn9,  CVerde, clWhite);
+  EstilarBoton(BitBtn10, CRojo, clWhite);
+  EstilarBoton(BitBtn11, CAzulSuave, CCabecera);
+  EstilarBoton(BitBtn12, CVerde, clWhite);
+  EstilarBoton(BitBtn13, CAmbarSuave, CTexto);
+  EstilarBoton(BitBtn14, CRojo, clWhite);
+  EstilarBoton(BitBtn15, CVerde, clWhite);
+  EstilarBoton(BitBtn16, CPrimario, clWhite);
+  EstilarBoton(BitBtn17, CRojo, clWhite);
+  EstilarBoton(BitBtn18, CVerde, clWhite);
+  EstilarBoton(BitBtn19, CVerde, clWhite);
+  EstilarBoton(BitBtn20, CRojo, clWhite);
+  EstilarBoton(BitBtn21, CVerde, clWhite);
+  EstilarBoton(BitBtn22, CRojo, clWhite);
+  EstilarBoton(BitBtn23, CPrimario, clWhite);
+  EstilarBoton(BitBtn24, CAzulSuave, CCabecera);
+  EstilarBoton(BitBtn25, CAzulSuave, CCabecera);
+  EstilarBoton(btRecibosAceptar, CVerde, clWhite);
+  EstilarBoton(btRecibosCancelar, CRojo, clWhite);
+
+  // Los botones de los filtros son compactos y deben mostrar el texto completo.
+  BitBtn3.Font.Height := -9;
+  BitBtn4.Font.Height := -9;
+
+  ConfigurarOrdenacionGrids;
+  CrearPieAtajos;
+  ActualizarPieAtajos;
+
+  OnResize := @FormResizeModerno;
+  AjustarLayoutModerno;
+  PrepararCalendariosVisibles;
+end;
+
+procedure TFAlbaran.AjustarLayoutModerno;
+var
+  W, Resto, WNombre, HPanel, AlturaLista: Integer;
+begin
+  if not FEstiloModernoAplicado then Exit;
+
+  // Zona principal de filtros. Se reserva más altura para evitar solapes.
+  RadioButton1.SetBounds(18, 10, 310, 22);
+  RadioButton3.SetBounds(18, 36, 245, 22);
+  RadioButton2.SetBounds(18, 62, 245, 22);
+  ComboBox1.SetBounds(18, 91, 230, 28);
+  // Separamos claramente la tarjeta Documentos de los filtros de la izquierda.
+  // Los paneles de cliente/fechas se desplazan en el mismo bloque para evitar
+  // cualquier solapamiento, incluso con fuentes GTK algo más anchas.
+  RadioGroup2.SetBounds(410, 10, 200, 108);
+
+  Panel2.SetBounds(630, 10, Panel5.ClientWidth - 640, 108);
+  if Panel2.Width < 450 then Panel2.Width := 450;
+  Panel3.SetBounds(630, 10, Panel5.ClientWidth - 640, 86);
+  if Panel3.Width < 450 then Panel3.Width := 450;
+
+  Label1.SetBounds(16, 8, 95, 15);
+  Edit1.SetBounds(16, 28, 100, 30);
+  BitBtn25.SetBounds(123, 28, 32, 30);
+  Label35.SetBounds(172, 8, 110, 15);
+  BitBtn3.SetBounds(Panel2.ClientWidth - 118, 27, 100, 32);
+  Edit2.SetBounds(172, 28, BitBtn3.Left - 184, 30);
+  if Edit2.Width < 220 then Edit2.Width := 220;
+
+  Label2.SetBounds(16, 8, 110, 15);
+  Edit3.SetBounds(16, 28, 132, 30);
+  Label3.SetBounds(170, 8, 110, 15);
+  Edit4.SetBounds(170, 28, 132, 30);
+  BitBtn4.SetBounds(324, 27, 105, 32);
+
+  // La rejilla empieza bajo toda la zona de filtros.
+  DBGrid1.SetBounds(5, 128, Panel5.ClientWidth - 6,
+    Panel5.ClientHeight - 129);
+
+  PrepararCalendariosVisibles;
+
+  // Columnas adaptables: se aprovecha el ancho disponible sin perder
+  // la posibilidad de redimensionarlas manualmente.
+  if DBGrid1.Columns.Count >= 11 then
+  begin
+    W := DBGrid1.ClientWidth - 34;
+    DBGrid1.Columns[0].Width := 82;
+    DBGrid1.Columns[1].Width := 52;
+    DBGrid1.Columns[2].Width := 70;
+    DBGrid1.Columns[3].Width := 86;
+    DBGrid1.Columns[4].Width := 68;
+    DBGrid1.Columns[6].Width := 34;
+    DBGrid1.Columns[7].Width := 72;
+    DBGrid1.Columns[8].Width := 94;
+    DBGrid1.Columns[9].Width := 70;
+    Resto := W - (82 + 52 + 70 + 86 + 68 + 34 + 72 + 94 + 70);
+    if Resto < 420 then Resto := 420;
+    WNombre := (Resto * 55) div 100;
+    DBGrid1.Columns[5].Width := WNombre;
+    DBGrid1.Columns[10].Width := Resto - WNombre;
+  end;
+
+  if DBGrid2.Columns.Count >= 10 then
+  begin
+    W := DBGrid2.ClientWidth - 34;
+    DBGrid2.Columns[0].Width := 92;
+    DBGrid2.Columns[2].Width := 72;
+    DBGrid2.Columns[3].Width := 74;
+    DBGrid2.Columns[4].Width := 74;
+    DBGrid2.Columns[5].Width := 84;
+    DBGrid2.Columns[6].Width := 62;
+    DBGrid2.Columns[7].Width := 84;
+    DBGrid2.Columns[8].Width := 54;
+    DBGrid2.Columns[9].Width := 86;
+    Resto := W - (92 + 72 + 74 + 74 + 84 + 62 + 84 + 54 + 86);
+    if Resto < 260 then Resto := 260;
+    DBGrid2.Columns[1].Width := Resto;
+  end;
+
+  // Total alineado a la derecha de la tarjeta de cabecera.
+  LabelTotal.SetBounds(Panel4.ClientWidth - 300, 8, 282, 48);
+
+  // Editor de líneas más amplio, compacto y con campos repartidos.
+  // En resoluciones bajas se adapta al ancho disponible sin salir de pantalla.
+  W := Panel5.ClientWidth - 24;
+  if W > 920 then W := 920;
+  if W < 760 then W := 760;
+
+  // El editor mantiene su tamaño normal. Solo al mostrar las coincidencias de
+  // artículos se amplía temporalmente para ofrecer, como mínimo, el doble de
+  // líneas visibles respecto a la lista anterior.
+  HPanel := 340;
+  if ListBox3.Visible then
+  begin
+    HPanel := Panel5.ClientHeight - 145;
+    if HPanel > 500 then HPanel := 500;
+    if HPanel < 430 then HPanel := 430;
+  end;
+  Panel6.SetBounds((Panel5.ClientWidth - W) div 2,
+    (Panel5.ClientHeight - HPanel) div 2, W, HPanel);
+  if Panel6.Left < 8 then Panel6.Left := 8;
+  if Panel6.Top < 112 then Panel6.Top := 112;
+
+  Label28.SetBounds(0, 0, Panel6.ClientWidth, 34);
+
+  // Primera fila: identificación del artículo y total de la línea.
+  Label11.SetBounds(20, 45, 112, 16);
+  Edit5.SetBounds(20, 64, 112, 28);
+  BitBtn11.SetBounds(138, 62, 36, 32);
+  Label12.SetBounds(190, 45, Panel6.ClientWidth - 410, 16);
+  Edit6.SetBounds(190, 64, Panel6.ClientWidth - 410, 28);
+  Label19.SetBounds(Panel6.ClientWidth - 198, 45, 174, 16);
+  Edit13.SetBounds(Panel6.ClientWidth - 198, 64, 174, 28);
+
+  // Segunda fila: datos económicos distribuidos en siete columnas iguales.
+  Resto := (Panel6.ClientWidth - 40) div 7;
+  Label13.SetBounds(20, 112, Resto - 12, 16);
+  Edit7.SetBounds(20, 131, Resto - 12, 28);
+  Label36.SetBounds(20 + Resto, 112, Resto - 12, 16);
+  Edit23.SetBounds(20 + Resto, 131, Resto - 12, 28);
+  Label14.SetBounds(20 + (Resto * 2), 112, Resto - 12, 16);
+  Edit8.SetBounds(20 + (Resto * 2), 131, Resto - 12, 28);
+  Label15.SetBounds(20 + (Resto * 3), 112, Resto - 12, 16);
+  Edit9.SetBounds(20 + (Resto * 3), 131, Resto - 12, 28);
+  Label16.SetBounds(20 + (Resto * 4), 112, Resto - 12, 16);
+  Edit10.SetBounds(20 + (Resto * 4), 131, Resto - 12, 28);
+  Label17.SetBounds(20 + (Resto * 5), 112, Resto - 12, 16);
+  Edit11.SetBounds(20 + (Resto * 5), 131, Resto - 12, 28);
+  Label18.SetBounds(20 + (Resto * 6), 112, Resto - 12, 16);
+  Edit12.SetBounds(20 + (Resto * 6), 131, Resto - 12, 28);
+
+  // Tercera fila: históricos y acciones, con margen inferior suficiente.
+  lbHistoricos.SetBounds(20, 190, 132, 16);
+  cbHistoricos.SetBounds(20, 208, 132, 29);
+  BitBtn24.SetBounds(164, 207, 120, 31);
+  lbActivarPrecios.SetBounds(304, 213, 280, 16);
+  BitBtn8.SetBounds(Panel6.ClientWidth - 214, 286, 94, 34);
+  BitBtn6.SetBounds(Panel6.ClientWidth - 108, 286, 94, 34);
+
+  // Lista de coincidencias al buscar artículos por descripción.
+  // Cuando está visible ocupa casi toda la altura libre del editor y muestra
+  // al menos el doble de artículos simultáneamente.
+  if ListBox3.Visible then
+    AlturaLista := Panel6.ClientHeight - 118
+  else
+    AlturaLista := 178;
+  if AlturaLista < 220 then AlturaLista := 220;
+  ListBox3.SetBounds(190, 99, Panel6.ClientWidth - 214, AlturaLista);
+  ListBox2.SetBounds(292, 176, 298, 92);
+
+  // Observaciones amplias y centradas.
+  Panel7.SetBounds((Panel5.ClientWidth - 700) div 2,
+    (Panel5.ClientHeight - 200) div 2, 700, 190);
+  if Panel7.Left < 8 then Panel7.Left := 8;
+  if Panel7.Top < 112 then Panel7.Top := 112;
+  Label20.SetBounds(0, 0, Panel7.ClientWidth, 34);
+  Memo1.SetBounds(16, 48, Panel7.ClientWidth - 32, 92);
+  BitBtn18.SetBounds(480, 151, 96, 30);
+  BitBtn17.SetBounds(588, 151, 96, 30);
+
+  // Resto de paneles auxiliares, centrados sin alterar su contenido.
+  Panel8.Left := (Panel5.ClientWidth - Panel8.Width) div 2;
+  Panel8.Top := (Panel5.ClientHeight - Panel8.Height) div 2;
+  Panel9.Left := (Panel5.ClientWidth - Panel9.Width) div 2;
+  Panel9.Top := (Panel5.ClientHeight - Panel9.Height) div 2;
+  panelRecibos.Left := (Panel5.ClientWidth - panelRecibos.Width) div 2;
+  panelRecibos.Top := (Panel5.ClientHeight - panelRecibos.Height) div 2;
+end;
+
+procedure TFAlbaran.FormResizeModerno(Sender: TObject);
+begin
+  AjustarLayoutModerno;
+end;
+
+procedure TFAlbaran.CrearPieAtajos;
+const
+  CBarra = TColor($0033210F);
+begin
+  if Assigned(FPanelAtajos) then Exit;
+
+  FPanelAtajos := TPanel.Create(Self);
+  FPanelAtajos.Name := 'pnlAtajosAlbaranModerno';
+  FPanelAtajos.Parent := Self;
+  FPanelAtajos.Align := alBottom;
+  FPanelAtajos.Height := 28;
+  FPanelAtajos.BevelOuter := bvNone;
+  FPanelAtajos.ParentBackground := False;
+  FPanelAtajos.ParentColor := False;
+  FPanelAtajos.Color := CBarra;
+  FPanelAtajos.Caption := '';
+
+  FLabelAtajos := TLabel.Create(Self);
+  FLabelAtajos.Name := 'lblAtajosAlbaranModerno';
+  FLabelAtajos.Parent := FPanelAtajos;
+  FLabelAtajos.Align := alClient;
+  FLabelAtajos.Alignment := taCenter;
+  FLabelAtajos.Layout := tlCenter;
+  FLabelAtajos.AutoSize := False;
+  FLabelAtajos.Transparent := True;
+  FLabelAtajos.ParentFont := False;
+  FLabelAtajos.Font.Name := 'Sans';
+  FLabelAtajos.Font.Height := -10;
+  FLabelAtajos.Font.Style := [fsBold];
+  FLabelAtajos.Font.Color := clWhite;
+end;
+
+procedure TFAlbaran.ActualizarPieAtajos;
+begin
+  if not Assigned(FLabelAtajos) then Exit;
+
+  if Panel7.Visible then
+    FLabelAtajos.Caption :=
+      'Ctrl+O Observaciones   ·   F8 Guardar observaciones   ·   ESC Cancelar'
+  else if Panel6.Visible then
+    FLabelAtajos.Caption :=
+      'F5 Cantidad   ·   F6 Descuento   ·   F7 Precio   ·   F8 Aceptar línea   ·   F10 Histórico   ·   F12 Buscar artículo   ·   ESC Finalizar'
+  else if DBGrid2.Visible then
+    FLabelAtajos.Caption :=
+      'Ctrl+O Observaciones   ·   F2 Nueva línea   ·   F3 Borrar línea   ·   F4 Modificar   ·   F10 Observaciones   ·   F11 Imprimir   ·   ESC Volver'
+  else
+    FLabelAtajos.Caption :=
+      'T Todos   ·   C Cliente   ·   F Fechas   ·   F1 Gestionar   ·   F2 Nuevo   ·   F3 Borrar   ·   F11 Listado   ·   F12 Buscar cliente   ·   ESC Cerrar';
+end;
+
+//================== ORDENACIÓN DE GRIDS ==================
+function TFAlbaran.SQLSinOrden(const ASQL: String): String;
+var
+  P: SizeInt;
+  U: String;
+begin
+  Result := Trim(ASQL);
+  U := UpperCase(Result);
+  P := RPos(' ORDER BY ', U);
+  if P > 0 then
+    Result := Trim(Copy(Result, 1, P - 1));
+end;
+
+procedure TFAlbaran.ActualizarFlechaGrid(AGrid: TDBGrid;
+  const ACampo, ADireccion: String);
+var
+  I: Integer;
+  S: String;
+begin
+  if not Assigned(AGrid) then Exit;
+
+  for I := 0 to AGrid.Columns.Count - 1 do
+  begin
+    S := AGrid.Columns[I].Title.Caption;
+    S := StringReplace(S, ' ▲', '', [rfReplaceAll]);
+    S := StringReplace(S, ' ▼', '', [rfReplaceAll]);
+    AGrid.Columns[I].Title.Caption := S;
+
+    if Assigned(AGrid.Columns[I].Field) and
+       SameText(AGrid.Columns[I].Field.FieldName, ACampo) then
+    begin
+      if S = '' then S := AGrid.Columns[I].Field.DisplayLabel;
+      if SameText(ADireccion, 'ASC') then
+        AGrid.Columns[I].Title.Caption := S + ' ▲'
+      else
+        AGrid.Columns[I].Title.Caption := S + ' ▼';
+    end;
+  end;
+end;
+
+procedure TFAlbaran.OrdenarGrid(AQuery: TZQuery; AGrid: TDBGrid;
+  AColumn: TColumn; var ACampo, ADireccion: String);
+var
+  Campo, SQLBase: String;
+begin
+  if (not Assigned(AQuery)) or (not Assigned(AGrid)) or
+     (not Assigned(AColumn)) or (not Assigned(AColumn.Field)) then Exit;
+
+  Campo := AColumn.Field.FieldName;
+  if Trim(Campo) = '' then Exit;
+
+  if SameText(ACampo, Campo) then
+  begin
+    if SameText(ADireccion, 'ASC') then
+      ADireccion := 'DESC'
+    else
+      ADireccion := 'ASC';
+  end
+  else
+  begin
+    ACampo := Campo;
+    ADireccion := 'ASC';
+  end;
+
+  SQLBase := SQLSinOrden(AQuery.SQL.Text);
+  AQuery.DisableControls;
+  try
+    AQuery.Active := False;
+    AQuery.SQL.Text := SQLBase + ' ORDER BY ' + Campo + ' ' + ADireccion;
+    AQuery.Active := True;
+  finally
+    AQuery.EnableControls;
+  end;
+
+  ActualizarFlechaGrid(AGrid, ACampo, ADireccion);
+  AGrid.Refresh;
+end;
+
+procedure TFAlbaran.ConfigurarOrdenacionGrids;
+begin
+  FOrdenGrid1Campo := '';
+  FOrdenGrid1Direccion := 'ASC';
+  FOrdenGrid2Campo := '';
+  FOrdenGrid2Direccion := 'ASC';
+  DBGrid1.OnTitleClick := @DBGrid1TitleClick;
+  DBGrid2.OnTitleClick := @DBGrid2TitleClick;
+end;
+
+//================== UTILIDADES SQL SEGURAS ==================
+function TFAlbaran.SQLTexto(const ATexto: String): String;
+begin
+  Result:=StringReplace(ATexto, '\', '\\', [rfReplaceAll]);
+  Result:=StringReplace(Result, '"', '\"', [rfReplaceAll]);
+end;
+
+function TFAlbaran.SQLNumero(const AValor: Double): String;
+var
+  FS: TFormatSettings;
+begin
+  FS:=DefaultFormatSettings;
+  FS.DecimalSeparator:='.';
+  Result:=FloatToStr(AValor, FS);
+end;
+
+// Los ajustes de un albarán ya saldado guardan el total base en CRE21.
+// De este modo, si vuelve a modificarse, se recalcula la diferencia acumulada
+// y no se suman diferencias sucesivas por error.
+function TFAlbaran.EsCreditoAjuste(const ANotas: String; var ABase: Double): Boolean;
+var
+  PInicio, PFin: Integer;
+  SBase: String;
+  FS: TFormatSettings;
+begin
+  Result:=False;
+  ABase:=0;
+  PInicio:=Pos(MARCA_AJUSTE_ALBARAN, ANotas);
+  if PInicio=0 then Exit;
+  Inc(PInicio, Length(MARCA_AJUSTE_ALBARAN));
+  PFin:=PInicio;
+  while (PFin<=Length(ANotas)) and (ANotas[PFin]<>']') do Inc(PFin);
+  if PFin>PInicio then
+    begin
+      SBase:=Copy(ANotas, PInicio, PFin-PInicio);
+      FS:=DefaultFormatSettings;
+      FS.DecimalSeparator:='.';
+      Result:=TryStrToFloat(SBase, ABase, FS);
+    end;
+end;
+
+function TFAlbaran.NotasConAuditoria(const ANotasAlbaran,
+  ANotasHistorico: String): String;
+var
+  P: Integer;
+begin
+  P:=Pos(MARCA_AUDITORIA_ALBARAN, ANotasHistorico);
+  if P=0 then
+    Result:=ANotasAlbaran
+  else
+    begin
+      Result:=TrimRight(ANotasAlbaran);
+      if Result<>'' then Result:=Result+LineEnding+LineEnding;
+      Result:=Result+Copy(ANotasHistorico, P, Length(ANotasHistorico)-P+1);
+    end;
+end;
+
+procedure TFAlbaran.InicializarControlAlbaran;
+begin
+  FAlbaranEnGestion:=True;
+  FAlbaranModificado:=False;
+  FTotalOriginalAlbaran:=dbMuestrac.FieldByName('AC9').AsFloat;
+  FClienteAlbaran:=dbMuestrac.FieldByName('AC0').AsInteger;
+  FFechaAlbaran:=dbMuestrac.FieldByName('AC1').AsDateTime;
+  FSerieAlbaran:=dbMuestrac.FieldByName('AC2').AsString;
+  FNumeroAlbaran:=dbMuestrac.FieldByName('AC3').AsInteger;
+  FAlbaranNuevo:=(dbMuestrac.FieldByName('AC4').AsInteger=0) and
+                 (Abs(FTotalOriginalAlbaran)<0.005);
+  FPuestoHistoricoAlbaran:=Puesto;
+  FFechaHistoricoAlbaran:=FFechaAlbaran;
+  FHoraHistoricoAlbaran:=0;
+  FHistoricoAlbaranLocalizado:=False;
+
+  // La identidad documental es serie + número. El puesto solo se conserva
+  // como dato histórico y nunca se usa para decidir si el albarán existe.
+end;
+
+function TFAlbaran.ValidarClienteDocumento: Boolean;
+var
+  CuentaHistorico, CuentaCredito: Integer;
+  ClienteHistorico, ClienteCredito: Integer;
+  DifiereHistorico, DifiereCredito: Boolean;
+  Pregunta, Detalle, Notas, Entrada, TxtQ: String;
+begin
+  Result:=False;
+  CuentaHistorico:=0;
+  CuentaCredito:=0;
+  ClienteHistorico:=FClienteAlbaran;
+  ClienteCredito:=FClienteAlbaran;
+
+  // El albarán es único por serie + número dentro de la tienda. Se recuperan
+  // una sola vez los datos originales del histórico, incluido el puesto.
+  dbHisopcc.Active:=False;
+  dbHisopcc.SQL.Text:='SELECT * FROM hisopcc'+Tienda+
+    ' WHERE HO3='+IntToStr(FNumeroAlbaran)+' AND HO4="'+
+    SQLTexto(FSerieAlbaran)+'" AND HO5="AL" ORDER BY HO0,HO1 LIMIT 2';
+  dbHisopcc.Active:=True;
+  CuentaHistorico:=dbHisopcc.RecordCount;
+  if CuentaHistorico>1 then
+    begin
+      ShowMessage('Se han encontrado varias cabeceras historicas para el albaran '+
+        FSerieAlbaran+'/'+IntToStr(FNumeroAlbaran)+'.'+LineEnding+
+        'No se permite editarlo hasta revisar el duplicado.');
+      dbHisopcc.Active:=False;
+      Exit;
+    end;
+
+  if CuentaHistorico=1 then
+    begin
+      FFechaHistoricoAlbaran:=dbHisopcc.FieldByName('HO0').AsDateTime;
+      FHoraHistoricoAlbaran:=dbHisopcc.FieldByName('HO1').AsDateTime;
+      FPuestoHistoricoAlbaran:=dbHisopcc.FieldByName('HO2').AsString;
+      ClienteHistorico:=dbHisopcc.FieldByName('HO8').AsInteger;
+      FHistoricoAlbaranLocalizado:=True;
+    end;
+
+  dbTrabajo.Active:=False;
+  dbTrabajo.SQL.Text:='SELECT CRE0 FROM creditos'+Tienda+
+    ' WHERE CRE3="AL" AND CRE4="'+SQLTexto(FSerieAlbaran)+'" AND CRE5='+
+    IntToStr(FNumeroAlbaran)+' LIMIT 2';
+  dbTrabajo.Active:=True;
+  CuentaCredito:=dbTrabajo.RecordCount;
+  if CuentaCredito>1 then
+    begin
+      ShowMessage('Se han encontrado varios movimientos de credito para el albaran '+
+        FSerieAlbaran+'/'+IntToStr(FNumeroAlbaran)+'.'+LineEnding+
+        'No se permite editarlo hasta revisar el duplicado.');
+      dbTrabajo.Active:=False;
+      dbHisopcc.Active:=False;
+      Exit;
+    end;
+  if CuentaCredito=1 then
+    ClienteCredito:=dbTrabajo.FieldByName('CRE0').AsInteger;
+  dbTrabajo.Active:=False;
+
+  DifiereHistorico:=(CuentaHistorico=1) and
+    (ClienteHistorico<>FClienteAlbaran);
+  DifiereCredito:=(CuentaCredito=1) and
+    (ClienteCredito<>FClienteAlbaran);
+
+  if not DifiereHistorico and not DifiereCredito then
+    begin
+      dbHisopcc.Active:=False;
+      Result:=True;
+      Exit;
+    end;
+
+  Detalle:='El albaran '+FSerieAlbaran+'/'+IntToStr(FNumeroAlbaran)+
+    ' pertenece en su cabecera al cliente '+IntToStr(FClienteAlbaran)+'.';
+  if DifiereHistorico then
+    Detalle:=Detalle+LineEnding+'En el historico figura el cliente '+
+      IntToStr(ClienteHistorico)+'.';
+  if DifiereCredito then
+    Detalle:=Detalle+LineEnding+'En creditos figura el cliente '+
+      IntToStr(ClienteCredito)+'.';
+  Pregunta:=Detalle+LineEnding+LineEnding+
+    '¿Desea trasladar el historico y el credito al cliente '+
+    IntToStr(FClienteAlbaran)+'?';
+
+  if Application.MessageBox(PChar(Pregunta),'FacturLinEx',
+    MB_ICONQUESTION+MB_YESNO)<>IDYES then
+    begin
+      ShowMessage('El albaran no se abrira para evitar mezclar movimientos de clientes distintos.');
+      dbHisopcc.Active:=False;
+      Exit;
+    end;
+
+  // Toda corrección de pertenencia queda anotada en la cabecera histórica.
+  if CuentaHistorico=1 then
+    begin
+      Notas:=NotasConAuditoria(dbMuestrac.FieldByName('AC11').AsString,
+        dbHisopcc.FieldByName('HO18').AsString);
+      if Pos(MARCA_AUDITORIA_ALBARAN, Notas)=0 then
+        begin
+          if Trim(Notas)<>'' then Notas:=TrimRight(Notas)+LineEnding+LineEnding;
+          Notas:=Notas+MARCA_AUDITORIA_ALBARAN;
+        end;
+      Entrada:=FormatDateTime('DD/MM/YYYY HH:MM:SS',Now)+' - Puesto '+Puesto+': ';
+      if DifiereHistorico then
+        Entrada:=Entrada+'historico cliente '+IntToStr(ClienteHistorico)+' -> '+
+          IntToStr(FClienteAlbaran)
+      else
+        Entrada:=Entrada+'historico ya pertenecia al cliente '+
+          IntToStr(FClienteAlbaran);
+      if DifiereCredito then
+        Entrada:=Entrada+'; credito cliente '+IntToStr(ClienteCredito)+' -> '+
+          IntToStr(FClienteAlbaran);
+      Entrada:=Entrada+' (correccion de pertenencia del albaran).';
+      Notas:=Notas+LineEnding+Entrada;
+      dbHisopcc.Edit;
+      if DifiereHistorico then
+        dbHisopcc.FieldByName('HO8').AsInteger:=FClienteAlbaran;
+      dbHisopcc.FieldByName('HO18').AsString:=Notas;
+      dbHisopcc.Post;
+    end;
+  dbHisopcc.Active:=False;
+
+  if DifiereCredito then
+    begin
+      TxtQ:='UPDATE creditos'+Tienda+' SET CRE0='+IntToStr(FClienteAlbaran)+
+        ' WHERE CRE3="AL" AND CRE4="'+SQLTexto(FSerieAlbaran)+
+        '" AND CRE5='+IntToStr(FNumeroAlbaran);
+      dbTrabajo.SQL.Text:=TxtQ;
+      dbTrabajo.ExecSQL;
+      TxtQ:='UPDATE creditosdd'+Tienda+' SET CRED0='+IntToStr(FClienteAlbaran)+
+        ' WHERE CRED3="'+SQLTexto(FSerieAlbaran)+'" AND CRED4='+
+        IntToStr(FNumeroAlbaran);
+      dbTrabajo.SQL.Text:=TxtQ;
+      dbTrabajo.ExecSQL;
+    end;
+
+  Result:=True;
+end;
+
+procedure TFAlbaran.MarcarAlbaranModificado;
+begin
+  if FAlbaranEnGestion then FAlbaranModificado:=True;
+end;
+
+procedure TFAlbaran.RehacerDetalleCreditoCompleto(const ACliente: Integer;
+  const AFecha, AHora: TDateTime; const ASerie: String; const ANumero: Integer);
+var
+  TxtQ, MarcaLinea: String;
+  LineasMarcadas: TStringList;
+begin
+  LineasMarcadas:=TStringList.Create;
+  try
+    // Conservamos las marcas manuales de las líneas que continúan existiendo.
+    dbTrabajo.Active:=False;
+    dbTrabajo.SQL.Text:='SELECT CRED5,CRED17 FROM creditosdd'+Tienda+
+      ' WHERE CRED3="'+SQLTexto(ASerie)+'" AND CRED4='+IntToStr(ANumero);
+    dbTrabajo.Active:=True;
+    while not dbTrabajo.EOF do
+      begin
+        if dbTrabajo.FieldByName('CRED17').AsString='S' then
+          LineasMarcadas.Add(dbTrabajo.FieldByName('CRED5').AsString);
+        dbTrabajo.Next;
+      end;
+    dbTrabajo.Active:=False;
+    dbTrabajo.SQL.Text:='DELETE FROM creditosdd'+Tienda+
+      ' WHERE CRED3="'+SQLTexto(ASerie)+'" AND CRED4='+IntToStr(ANumero);
+    dbTrabajo.ExecSQL;
+
+    dbMuestrad.First;
+    while not dbMuestrad.EOF do
+      begin
+        if LineasMarcadas.IndexOf(dbMuestrad.FieldByName('AD4').AsString)>=0 then
+          MarcaLinea:='S'
+        else
+          MarcaLinea:='N';
+        TxtQ:='INSERT INTO creditosdd'+Tienda+
+          ' (CRED0,CRED1,CRED2,CRED3,CRED4,CRED5,CRED6,CRED7,CRED8,CRED9,CRED10,'+
+          'CRED11,CRED12,CRED13,CRED14,CRED15,CRED16,CRED17) VALUES ('+
+          IntToStr(ACliente)+',"'+FormatDateTime('YYYY/MM/DD',AFecha)+'","'+
+          FormatDateTime('HH:MM:SS',AHora)+'","'+SQLTexto(ASerie)+'",'+
+          IntToStr(ANumero)+','+dbMuestrad.FieldByName('AD4').AsString+',"'+
+          SQLTexto(dbMuestrad.FieldByName('AD5').AsString)+'","'+
+          SQLTexto(dbMuestrad.FieldByName('AD6').AsString)+'",'+
+          SQLNumero(dbMuestrad.FieldByName('AD7').AsFloat)+','+
+          SQLNumero(dbMuestrad.FieldByName('AD8').AsFloat)+','+
+          SQLNumero(dbMuestrad.FieldByName('AD9').AsFloat)+','+
+          SQLNumero(dbMuestrad.FieldByName('AD10').AsFloat)+','+
+          SQLNumero(dbMuestrad.FieldByName('AD11').AsFloat)+','+
+          SQLNumero(dbMuestrad.FieldByName('AD12').AsFloat)+','+
+          SQLNumero(dbMuestrad.FieldByName('AD13').AsFloat)+',"'+
+          SQLTexto(dbMuestrad.FieldByName('AD14').AsString)+'","'+
+          SQLTexto(dbMuestrad.FieldByName('AD15').AsString)+'","'+MarcaLinea+'")';
+        dbTrabajo.SQL.Text:=TxtQ;
+        dbTrabajo.ExecSQL;
+        dbMuestrad.Next;
+      end;
+  finally
+    LineasMarcadas.Free;
+  end;
+end;
+
+procedure TFAlbaran.RehacerDetalleCreditoAjuste(const ACliente: Integer;
+  const AFecha, AHora: TDateTime; const ASerie: String; const ANumero: Integer;
+  const ABase, ATotalActual, ADiferencia: Double);
+var
+  TxtQ, Descripcion, MarcaLinea: String;
+begin
+  MarcaLinea:='N';
+  dbTrabajo.Active:=False;
+  dbTrabajo.SQL.Text:='SELECT CRED17 FROM creditosdd'+Tienda+
+    ' WHERE CRED3="'+SQLTexto(ASerie)+'" AND CRED4='+IntToStr(ANumero)+
+    ' ORDER BY CRED5 LIMIT 1';
+  dbTrabajo.Active:=True;
+  if dbTrabajo.RecordCount<>0 then
+    MarcaLinea:=dbTrabajo.FieldByName('CRED17').AsString;
+  dbTrabajo.Active:=False;
+  dbTrabajo.SQL.Text:='DELETE FROM creditosdd'+Tienda+
+    ' WHERE CRED3="'+SQLTexto(ASerie)+'" AND CRED4='+IntToStr(ANumero);
+  dbTrabajo.ExecSQL;
+
+  Descripcion:='MODIFICACION ALBARAN '+ASerie+'/'+IntToStr(ANumero)+
+    ' (anterior '+FormatFloat('0.00',ABase)+', actual '+
+    FormatFloat('0.00',ATotalActual)+')';
+  TxtQ:='INSERT INTO creditosdd'+Tienda+
+    ' (CRED0,CRED1,CRED2,CRED3,CRED4,CRED5,CRED6,CRED7,CRED8,CRED9,CRED10,'+
+    'CRED11,CRED12,CRED13,CRED14,CRED15,CRED16,CRED17) VALUES ('+
+    IntToStr(ACliente)+',"'+FormatDateTime('YYYY/MM/DD',AFecha)+'","'+
+    FormatDateTime('HH:MM:SS',AHora)+'","'+SQLTexto(ASerie)+'",'+
+    IntToStr(ANumero)+',1,"MOD-ALB","'+SQLTexto(Descripcion)+'",1,'+
+    SQLNumero(ADiferencia)+','+SQLNumero(ADiferencia)+',0,'+
+    SQLNumero(ADiferencia)+',0,'+SQLNumero(ADiferencia)+',"","A","'+
+    MarcaLinea+'")';
+  dbTrabajo.SQL.Text:=TxtQ;
+  dbTrabajo.ExecSQL;
+end;
+
+procedure TFAlbaran.ObtenerFechaHoraHistorico(var AFecha, AHora: TDateTime);
+begin
+  AFecha:=FFechaAlbaran;
+  AHora:=Time;
+
+  if FHistoricoAlbaranLocalizado then
+    begin
+      AFecha:=FFechaHistoricoAlbaran;
+      AHora:=FHoraHistoricoAlbaran;
+      Exit;
+    end;
+
+  dbHisopcc.Active:=False;
+  dbHisopcc.SQL.Text:='SELECT HO0,HO1,HO2 FROM hisopcc'+Tienda+
+    ' WHERE HO3='+IntToStr(FNumeroAlbaran)+' AND HO4="'+
+    SQLTexto(FSerieAlbaran)+'" AND HO5="AL" ORDER BY HO0,HO1 LIMIT 1';
+  dbHisopcc.Active:=True;
+  if dbHisopcc.RecordCount<>0 then
+    begin
+      AFecha:=dbHisopcc.FieldByName('HO0').AsDateTime;
+      AHora:=dbHisopcc.FieldByName('HO1').AsDateTime;
+      FFechaHistoricoAlbaran:=AFecha;
+      FHoraHistoricoAlbaran:=AHora;
+      FPuestoHistoricoAlbaran:=dbHisopcc.FieldByName('HO2').AsString;
+      FHistoricoAlbaranLocalizado:=True;
+    end;
+  dbHisopcc.Active:=False;
+end;
+
+procedure TFAlbaran.CrearCreditoCompleto(const ATotal: Double);
+var
+  Debe, Haber: Double;
+  FechaCredito, HoraCredito: TDateTime;
+  TxtQ: String;
+begin
+  FechaCredito:=0;
+  HoraCredito:=0;
+  if ATotal>=0 then begin Debe:=ATotal; Haber:=0; end
+  else begin Debe:=0; Haber:=Abs(ATotal); end;
+  ObtenerFechaHoraHistorico(FechaCredito, HoraCredito);
+
+  TxtQ:='INSERT INTO creditos'+Tienda+
+    ' (CRE0,CRE1,CRE2,CRE3,CRE4,CRE5,CRE6,CRE7,CRE8,CRE9,CRE10,CRE11,CRE12,'+
+    'CRE13,CRE14,CRE15,CRE16,CRE17,CRE18,CRE21) VALUES ('+
+    IntToStr(FClienteAlbaran)+',"'+FormatDateTime('YYYY/MM/DD',FechaCredito)+'","'+
+    FormatDateTime('HH:MM:SS',HoraCredito)+'","AL","'+SQLTexto(FSerieAlbaran)+'",'+
+    IntToStr(FNumeroAlbaran)+',"ALBARAN '+SQLTexto(FSerieAlbaran)+'/'+
+    IntToStr(FNumeroAlbaran)+'",'+SQLNumero(Debe)+','+SQLNumero(Haber)+
+    ',"N",1,"'+SQLTexto(FPuestoHistoricoAlbaran)+'","CREDITO",'+SQLNumero(ATotal)+
+    ',0,'+SQLNumero(ATotal)+',0,'+SQLNumero(-ATotal)+',0,"'+
+    SQLTexto(dbMuestrac.FieldByName('AC11').AsString)+'")';
+  dbTrabajo.Active:=False;
+  dbTrabajo.SQL.Text:=TxtQ;
+  dbTrabajo.ExecSQL;
+  RehacerDetalleCreditoCompleto(FClienteAlbaran, FechaCredito, HoraCredito,
+    FSerieAlbaran, FNumeroAlbaran);
+end;
+
+procedure TFAlbaran.CrearCreditoAjuste(const ABase, ATotalActual: Double);
+var
+  Debe, Haber, Diferencia: Double;
+  FechaCredito, HoraCredito: TDateTime;
+  TxtQ, Notas: String;
+begin
+  FechaCredito:=0;
+  HoraCredito:=0;
+  Diferencia:=ATotalActual-ABase;
+  if Diferencia>=0 then begin Debe:=Diferencia; Haber:=0; end
+  else begin Debe:=0; Haber:=Abs(Diferencia); end;
+  ObtenerFechaHoraHistorico(FechaCredito, HoraCredito);
+  Notas:=MARCA_AJUSTE_ALBARAN+SQLNumero(ABase)+'] '+
+    'Diferencia acumulada por modificaciones del albaran.';
+
+  TxtQ:='INSERT INTO creditos'+Tienda+
+    ' (CRE0,CRE1,CRE2,CRE3,CRE4,CRE5,CRE6,CRE7,CRE8,CRE9,CRE10,CRE11,CRE12,'+
+    'CRE13,CRE14,CRE15,CRE16,CRE17,CRE18,CRE21) VALUES ('+
+    IntToStr(FClienteAlbaran)+',"'+FormatDateTime('YYYY/MM/DD',FechaCredito)+'","'+
+    FormatDateTime('HH:MM:SS',HoraCredito)+'","AL","'+SQLTexto(FSerieAlbaran)+'",'+
+    IntToStr(FNumeroAlbaran)+',"MODIFICACION ALBARAN '+SQLTexto(FSerieAlbaran)+'/'+
+    IntToStr(FNumeroAlbaran)+'",'+SQLNumero(Debe)+','+SQLNumero(Haber)+
+    ',"N",1,"'+SQLTexto(FPuestoHistoricoAlbaran)+'","CREDITO",'+SQLNumero(Diferencia)+
+    ',0,'+SQLNumero(Diferencia)+',0,'+SQLNumero(-Diferencia)+',0,"'+
+    SQLTexto(Notas)+'")';
+  dbTrabajo.Active:=False;
+  dbTrabajo.SQL.Text:=TxtQ;
+  dbTrabajo.ExecSQL;
+  RehacerDetalleCreditoAjuste(FClienteAlbaran, FechaCredito, HoraCredito,
+    FSerieAlbaran, FNumeroAlbaran, ABase, ATotalActual, Diferencia);
+end;
+
+function TFAlbaran.SincronizarCreditoAlbaran(const ATotalActual: Double): String;
+var
+  Cuenta, ClienteCredito: Integer;
+  FechaCredito, HoraCredito: TDateTime;
+  Debe, Haber, BaseAjuste, ImporteCredito: Double;
+  EsAjuste: Boolean;
+  Notas, TxtQ, Pregunta: String;
+begin
+  FechaCredito:=0;
+  HoraCredito:=0;
+  BaseAjuste:=0;
+  Result:='Sin cambios en credito';
+  if not FAlbaranModificado then Exit;
+
+  dbTrabajo.Active:=False;
+  dbTrabajo.SQL.Text:='SELECT COUNT(*) FROM creditos'+Tienda+
+    ' WHERE CRE3="AL" AND CRE4="'+SQLTexto(FSerieAlbaran)+'" AND CRE5='+
+    IntToStr(FNumeroAlbaran);
+  dbTrabajo.Active:=True;
+  Cuenta:=dbTrabajo.Fields[0].AsInteger;
+
+  if Cuenta>1 then
+    begin
+      ShowMessage('Se han encontrado varios movimientos de credito para el albaran '+
+        FSerieAlbaran+'/'+IntToStr(FNumeroAlbaran)+'.'+LineEnding+
+        'No se ha actualizado ninguno para evitar duplicados.');
+      Result:='NO actualizado: existen varios creditos';
+      Exit;
+    end;
+
+  if Cuenta=1 then
+    begin
+      dbTrabajo.Active:=False;
+      dbTrabajo.SQL.Text:='SELECT * FROM creditos'+Tienda+
+        ' WHERE CRE3="AL" AND CRE4="'+SQLTexto(FSerieAlbaran)+'" AND CRE5='+
+        IntToStr(FNumeroAlbaran)+' LIMIT 1';
+      dbTrabajo.Active:=True;
+      ClienteCredito:=dbTrabajo.FieldByName('CRE0').AsInteger;
+      if ClienteCredito<>FClienteAlbaran then
+        begin
+          ShowMessage('El credito del albaran '+FSerieAlbaran+'/'+
+            IntToStr(FNumeroAlbaran)+' pertenece al cliente '+
+            IntToStr(ClienteCredito)+' y no al cliente '+
+            IntToStr(FClienteAlbaran)+'.'+LineEnding+
+            'No se ha actualizado para evitar mezclar cuentas.');
+          Result:='NO actualizado: credito de otro cliente';
+          dbTrabajo.Active:=False;
+          Exit;
+        end;
+      FechaCredito:=dbTrabajo.FieldByName('CRE1').AsDateTime;
+      HoraCredito:=dbTrabajo.FieldByName('CRE2').AsDateTime;
+      Notas:=dbTrabajo.FieldByName('CRE21').AsString;
+      EsAjuste:=EsCreditoAjuste(Notas, BaseAjuste);
+      if EsAjuste then ImporteCredito:=ATotalActual-BaseAjuste
+                  else ImporteCredito:=ATotalActual;
+      if ImporteCredito>=0 then begin Debe:=ImporteCredito; Haber:=0; end
+      else begin Debe:=0; Haber:=Abs(ImporteCredito); end;
+
+      dbTrabajo.Active:=False;
+      if EsAjuste and (Abs(ImporteCredito)<0.005) then
+        begin
+          dbTrabajo.SQL.Text:='DELETE FROM creditosdd'+Tienda+
+            ' WHERE CRED3="'+SQLTexto(FSerieAlbaran)+'" AND CRED4='+IntToStr(FNumeroAlbaran);
+          dbTrabajo.ExecSQL;
+          dbTrabajo.SQL.Text:='DELETE FROM creditos'+Tienda+
+            ' WHERE CRE3="AL" AND CRE4="'+SQLTexto(FSerieAlbaran)+'" AND CRE5='+
+            IntToStr(FNumeroAlbaran);
+          dbTrabajo.ExecSQL;
+          Result:='Ajuste de credito eliminado al quedar la diferencia a cero';
+          Exit;
+        end;
+
+      TxtQ:='UPDATE creditos'+Tienda+' SET CRE0='+IntToStr(FClienteAlbaran)+
+        ',CRE7='+SQLNumero(Debe)+',CRE8='+SQLNumero(Haber)+
+        ',CRE13='+SQLNumero(ImporteCredito)+',CRE14=0,CRE15='+SQLNumero(ImporteCredito)+
+        ',CRE16=0,CRE17='+SQLNumero(-ImporteCredito);
+      if EsAjuste then
+        TxtQ:=TxtQ+',CRE6="MODIFICACION ALBARAN '+SQLTexto(FSerieAlbaran)+'/'+
+          IntToStr(FNumeroAlbaran)+'"'
+      else
+        TxtQ:=TxtQ+',CRE21="'+SQLTexto(dbMuestrac.FieldByName('AC11').AsString)+'"';
+      TxtQ:=TxtQ+' WHERE CRE3="AL" AND CRE4="'+SQLTexto(FSerieAlbaran)+
+        '" AND CRE5='+IntToStr(FNumeroAlbaran);
+      dbTrabajo.SQL.Text:=TxtQ;
+      dbTrabajo.ExecSQL;
+
+      if EsAjuste then
+        begin
+          RehacerDetalleCreditoAjuste(FClienteAlbaran, FechaCredito, HoraCredito,
+            FSerieAlbaran, FNumeroAlbaran, BaseAjuste, ATotalActual, ImporteCredito);
+          Result:='Ajuste de credito actualizado por '+FormatFloat('0.00',ImporteCredito);
+        end
+      else
+        begin
+          RehacerDetalleCreditoCompleto(FClienteAlbaran, FechaCredito, HoraCredito,
+            FSerieAlbaran, FNumeroAlbaran);
+          Result:='Credito existente actualizado a '+FormatFloat('0.00',ATotalActual);
+        end;
+      Exit;
+    end;
+
+  // No existe crédito. Para un albarán recién creado se ofrece el total completo.
+  if FAlbaranNuevo then
+    begin
+      if Abs(ATotalActual)<0.005 then Exit;
+      Pregunta:='El albaran '+FSerieAlbaran+'/'+IntToStr(FNumeroAlbaran)+
+        ' no figura en la cuenta de credito.'+LineEnding+
+        '¿Desea anotarlo ahora por '+FormatFloat('0.00',ATotalActual)+'?';
+      if Application.MessageBox(PChar(Pregunta),'FacturLinEx',
+        MB_ICONQUESTION+MB_YESNO)=IDYES then
+        begin
+          CrearCreditoCompleto(ATotalActual);
+          Result:='Credito nuevo creado por '+FormatFloat('0.00',ATotalActual);
+        end
+      else Result:='Credito nuevo no añadido por decision del usuario';
+      Exit;
+    end;
+
+  // Si era un albarán anterior y ya no existe el crédito, solo se anota
+  // la diferencia de la modificación, nunca el documento completo.
+  ImporteCredito:=ATotalActual-FTotalOriginalAlbaran;
+  if Abs(ImporteCredito)<0.005 then
+    begin
+      Result:='Sin diferencia economica que anotar';
+      Exit;
+    end;
+  Pregunta:='El albaran '+FSerieAlbaran+'/'+IntToStr(FNumeroAlbaran)+
+    ' no tiene actualmente movimiento de credito.'+LineEnding+
+    'La modificacion supone una diferencia de '+FormatFloat('0.00',ImporteCredito)+'.'+
+    LineEnding+'¿Desea añadirla como MODIFICACION ALBARAN?';
+  if Application.MessageBox(PChar(Pregunta),'FacturLinEx',
+    MB_ICONQUESTION+MB_YESNO)=IDYES then
+    begin
+      CrearCreditoAjuste(FTotalOriginalAlbaran, ATotalActual);
+      Result:='Ajuste de credito creado por '+FormatFloat('0.00',ImporteCredito);
+    end
+  else Result:='Diferencia no añadida por decision del usuario';
+end;
+
+procedure TFAlbaran.EliminarCreditoAlbaranExistente;
+var
+  Cuenta, ClienteCredito: Integer;
+begin
+  dbTrabajo.Active:=False;
+  dbTrabajo.SQL.Text:='SELECT CRE0 FROM creditos'+Tienda+
+    ' WHERE CRE3="AL" AND CRE4="'+SQLTexto(FSerieAlbaran)+'" AND CRE5='+
+    IntToStr(FNumeroAlbaran)+' LIMIT 2';
+  dbTrabajo.Active:=True;
+  Cuenta:=dbTrabajo.RecordCount;
+  if Cuenta=0 then begin dbTrabajo.Active:=False; Exit; end;
+  if Cuenta>1 then
+    begin
+      dbTrabajo.Active:=False;
+      ShowMessage('El albaran tiene varios movimientos de credito. No se han borrado automaticamente.');
+      Exit;
+    end;
+  ClienteCredito:=dbTrabajo.FieldByName('CRE0').AsInteger;
+  dbTrabajo.Active:=False;
+  if ClienteCredito<>FClienteAlbaran then
+    begin
+      ShowMessage('El credito del albaran pertenece al cliente '+
+        IntToStr(ClienteCredito)+'. No se ha borrado para evitar afectar otra cuenta.');
+      Exit;
+    end;
+  dbTrabajo.SQL.Text:='DELETE FROM creditosdd'+Tienda+
+    ' WHERE CRED3="'+SQLTexto(FSerieAlbaran)+'" AND CRED4='+IntToStr(FNumeroAlbaran);
+  dbTrabajo.ExecSQL;
+  dbTrabajo.SQL.Text:='DELETE FROM creditos'+Tienda+
+    ' WHERE CRE3="AL" AND CRE4="'+SQLTexto(FSerieAlbaran)+'" AND CRE5='+
+    IntToStr(FNumeroAlbaran);
+  dbTrabajo.ExecSQL;
+end;
+
+procedure TFAlbaran.RegistrarAuditoriaHistorico(const ATotalAnterior,
+  ATotalNuevo: Double; const AResultadoCredito: String);
+var
+  Notas, Entrada: String;
+begin
+  dbHisopcc.Active:=False;
+  if FHistoricoAlbaranLocalizado then
+    dbHisopcc.SQL.Text:='SELECT * FROM hisopcc'+Tienda+
+      ' WHERE HO0="'+FormatDateTime('YYYY/MM/DD',FFechaHistoricoAlbaran)+'"'+
+      ' AND HO2="'+SQLTexto(FPuestoHistoricoAlbaran)+'"'+
+      ' AND HO3='+IntToStr(FNumeroAlbaran)+' AND HO4="'+
+      SQLTexto(FSerieAlbaran)+'" AND HO5="AL"'
+  else
+    dbHisopcc.SQL.Text:='SELECT * FROM hisopcc'+Tienda+
+      ' WHERE HO3='+IntToStr(FNumeroAlbaran)+' AND HO4="'+
+      SQLTexto(FSerieAlbaran)+'" AND HO5="AL" AND HO8='+
+      IntToStr(FClienteAlbaran)+' ORDER BY HO0,HO1 LIMIT 1';
+  dbHisopcc.Active:=True;
+  if dbHisopcc.RecordCount=0 then Exit;
+
+  FPuestoHistoricoAlbaran:=dbHisopcc.FieldByName('HO2').AsString;
+  Notas:=NotasConAuditoria(dbMuestrac.FieldByName('AC11').AsString,
+    dbHisopcc.FieldByName('HO18').AsString);
+  if Pos(MARCA_AUDITORIA_ALBARAN, Notas)=0 then
+    begin
+      if Trim(Notas)<>'' then Notas:=TrimRight(Notas)+LineEnding+LineEnding;
+      Notas:=Notas+MARCA_AUDITORIA_ALBARAN;
+    end;
+  Entrada:=FormatDateTime('DD/MM/YYYY HH:MM:SS',Now)+' - Puesto '+Puesto+
+    ': total '+FormatFloat('0.00',ATotalAnterior)+' -> '+
+    FormatFloat('0.00',ATotalNuevo)+' (diferencia '+
+    FormatFloat('+0.00;-0.00;0.00',ATotalNuevo-ATotalAnterior)+'). Credito: '+
+    AResultadoCredito+'.';
+  Notas:=Notas+LineEnding+Entrada;
+
+  dbHisopcc.Edit;
+  dbHisopcc.FieldByName('HO8').AsInteger:=FClienteAlbaran;
+  dbHisopcc.FieldByName('HO9').AsFloat:=ATotalNuevo;
+  dbHisopcc.FieldByName('HO11').AsFloat:=ATotalNuevo;
+  dbHisopcc.FieldByName('HO12').AsFloat:=ATotalNuevo;
+  dbHisopcc.FieldByName('HO18').AsString:=Notas;
+  dbHisopcc.Post;
+  dbHisopcc.Active:=False;
+end;
 
 //=============== Crea el formulario ================
 procedure ShowFormAlbaranes;
@@ -324,6 +1777,24 @@ end;
 //======================= CREAR FORMULARIO ==========================
 procedure TFAlbaran.FormCreate(Sender: TObject);
 begin
+  FEstiloModernoAplicado:=False;
+  FPanelAtajos:=nil;
+  FLabelAtajos:=nil;
+  FOrdenGrid1Campo:='';
+  FOrdenGrid1Direccion:='ASC';
+  FOrdenGrid2Campo:='';
+  FOrdenGrid2Direccion:='ASC';
+  FBtnCalEdit3:=nil;
+  FBtnCalEdit4:=nil;
+
+  FAlbaranEnGestion:=False;
+  FAlbaranModificado:=False;
+  FAlbaranNuevo:=False;
+  FTotalOriginalAlbaran:=0;
+  FPuestoHistoricoAlbaran:=Puesto;
+  FFechaHistoricoAlbaran:=0;
+  FHoraHistoricoAlbaran:=0;
+  FHistoricoAlbaranLocalizado:=False;
 
   //------------------- Tablas ------------------
   //-- MID(AC11,1,250)
@@ -350,6 +1821,8 @@ begin
   DBGrid2.SendToBack; DBGrid2.Visible:=False;
   AntColun:='0';Ordenado:=False; Orden:='DESC';
 
+  AplicarEstiloModerno;
+  FLXAplicarTemaVisual(Self);
 end;
 
 
@@ -445,13 +1918,36 @@ begin
   Panel2.Visible:=False;
   Edit3.Text:=FormatDateTime('DD/MM/YYYY',Date);
   Edit4.Text:=FormatDateTime('DD/MM/YYYY',Date);
+  PrepararCalendariosVisibles;
   Edit3.SetFocus;
 end;
 procedure TFAlbaran.BitBtn4Click(Sender: TObject);
+var
+  FechaDesde, FechaHasta: TDateTime;
 begin
-  If (Edit3.Text='') or (Edit4.Text='') then Exit;
+  if not TryStrToDate(Trim(Edit3.Text), FechaDesde) then
+  begin
+    ShowMessage('LA FECHA DESDE NO ES VÁLIDA.');
+    Edit3.SetFocus;
+    Exit;
+  end;
+
+  if not TryStrToDate(Trim(Edit4.Text), FechaHasta) then
+  begin
+    ShowMessage('LA FECHA HASTA NO ES VÁLIDA.');
+    Edit4.SetFocus;
+    Exit;
+  end;
+
+  if FechaDesde > FechaHasta then
+  begin
+    ShowMessage('LA FECHA DESDE NO PUEDE SER POSTERIOR A LA FECHA HASTA.');
+    Edit3.SetFocus;
+    Exit;
+  end;
+
   //-- MID(AC11,1,250)
-  dbMuestrac.Sql.Text:='SELECT *,CONVERT(AC11 USING UTF8) as ANOTAS,C1 FROM albac'+Tienda+', clientes WHERE AC0=C0 AND AC1>="'+FormatDateTime('YYYY/MM/DD',StrToDate(Edit3.Text))+'" AND AC1<="'+FormatDateTime('YYYY/MM/DD',StrToDate(Edit4.Text))+'" ORDER BY AC2 ASC, AC1 DESC, AC3 DESC';
+  dbMuestrac.Sql.Text:='SELECT *,CONVERT(AC11 USING UTF8) as ANOTAS,C1 FROM albac'+Tienda+', clientes WHERE AC0=C0 AND AC1>="'+FormatDateTime('YYYY/MM/DD',FechaDesde)+'" AND AC1<="'+FormatDateTime('YYYY/MM/DD',FechaHasta)+'" ORDER BY AC2 ASC, AC1 DESC, AC3 DESC';
   dbMuestrac.Active := True;
   If dbMuestrac.RecordCount=0 then
     begin
@@ -500,9 +1996,23 @@ begin
 end;
 
 //==================== ORDENAR AL PULSAR EN EL TITULO =======================
+procedure TFAlbaran.DBGridPrepareCanvas(Sender: TObject; DataCol: Integer;
+  Column: TColumn; aState: TGridDrawState);
+begin
+  if (Sender is TDBGrid) and (gdSelected in aState) then
+    TDBGrid(Sender).Canvas.Font.Color := clBlack;
+end;
+
 procedure TFAlbaran.DBGrid1TitleClick(Column: TColumn);
 begin
- Colorea(Column,DBGrid1,dbMuestrac, AntColun, Orden, TituloColumn, Ordenado);
+  OrdenarGrid(dbMuestrac, DBGrid1, Column,
+    FOrdenGrid1Campo, FOrdenGrid1Direccion);
+end;
+
+procedure TFAlbaran.DBGrid2TitleClick(Column: TColumn);
+begin
+  OrdenarGrid(dbMuestrad, DBGrid2, Column,
+    FOrdenGrid2Campo, FOrdenGrid2Direccion);
 end;
 
 //===========================================================
@@ -514,9 +2024,17 @@ begin
   dbClientes.SQL.Text:='SELECT * FROM clientes WHERE C0='+dbMuestrac.FieldByName('AC0').AsString;
   dbClientes.Active:=True;
   If dbClientes.RecordCount=0 then Begin Showmessage('SE HA BORRADO EL CLIENTE '+dbMuestrac.FieldByName('AC0').AsString+' ?'); Exit; End;
+  InicializarControlAlbaran;
+  if not ValidarClienteDocumento then
+    begin
+      FAlbaranEnGestion:=False;
+      FAlbaranModificado:=False;
+      Exit;
+    end;
   Panel4.BringToFront; Panel4.Visible:=True;
   DBGrid2.BringToFront; DBGrid2.Visible:=True;
   MostrarBotonesdd();
+  ActualizarPieAtajos;
   LimpiaCliente();
   //-- MID(AD6,1,150)
   dbMuestrad.SQL.Text:='SELECT *, CONVERT(AD6 USING UTF8) As DESCRI FROM albad'+Tienda+' WHERE AD0='+dbMuestrac.FieldByName('AC0').AsString+
@@ -536,8 +2054,9 @@ end;
 //--------------------- Salir de gestionar albaranes ------------
 procedure TFAlbaran.BitBtn5Click(Sender: TObject);
 var
- Posi: Integer;
- TxtQ, TxtTemp: String;
+  Posi: Integer;
+  TxtQ, TxtTemp, ResultadoCredito: String;
+  NuevoTotal: Double;
 begin
   Panel7.Visible:=False;
   Panel4.SendToBack; Panel4.Visible:=False;
@@ -552,13 +2071,15 @@ begin
           Exit;
 
        ActuHisopcc(2);
+       EliminarCreditoAlbaranExistente;
 
        TxtTemp:=dbMuestrac.SQL.Text;
        TxtQ:='DELETE FROM albac'+Tienda+' WHERE AC0='+dbMuestrac.FieldByName('AC0').AsString+
              ' AND AC1="'+FormatDateTime('YYYY/MM/DD',dbMuestrac.FieldByName('AC1').AsDateTime)+'"'+
              ' AND AC2="'+dbMuestrac.FieldByName('AC2').AsString+'" AND AC3='+dbMuestrac.FieldByName('AC3').AsString;
        dbAlbac.SQL.Text:=TxtQ; dbAlbac.ExecSQL;
-       //dbMuestrac.Refresh;
+       FAlbaranEnGestion:=False;
+       FAlbaranModificado:=False;
        dbMuestrac.Active:=False;
        dbMuestrac.Sql.Text:=TxtTemp;
        dbMuestrac.Active:=True;
@@ -574,12 +2095,23 @@ begin
                      ' AND AD3='+dbMuestrac.FieldByName('AC3').AsString;
   dbTrabajo.Active:=True;
   if dbTrabajo.RecordCount=0 then exit;
+  NuevoTotal:=dbTrabajo.Fields[3].AsFloat;
   TxtQ:='UPDATE albac'+Tienda+' SET AC4='+dbTrabajo.Fields[0].AsString+', AC5='+dbTrabajo.Fields[1].AsString+
         ', AC8='+dbTrabajo.Fields[2].AsString+', AC9='+dbTrabajo.Fields[3].AsString+
         ' WHERE AC0='+dbMuestrac.FieldByName('AC0').AsString+
         ' AND AC1="'+FormatDateTime('YYYY/MM/DD',dbMuestrac.FieldByName('AC1').AsDateTime)+'"'+
         ' AND AC2="'+dbMuestrac.FieldByName('AC2').AsString+'" AND AC3='+dbMuestrac.FieldByName('AC3').AsString;
   dbAlbac.SQL.Text:=TxtQ; dbAlbac.ExecSQL;
+
+  ResultadoCredito:=SincronizarCreditoAlbaran(NuevoTotal);
+  if FAlbaranModificado then
+    RegistrarAuditoriaHistorico(FTotalOriginalAlbaran, NuevoTotal, ResultadoCredito);
+
+  FTotalOriginalAlbaran:=NuevoTotal;
+  FAlbaranNuevo:=False;
+  FAlbaranModificado:=False;
+  FAlbaranEnGestion:=False;
+
   Posi:=dbMuestrac.RecNo; dbMuestrac.Refresh; dbMuestrac.RecNo:=Posi;
   DBGrid1.SetFocus;
 
@@ -595,6 +2127,7 @@ begin
   Panel6.Visible:=True; Edit5.Enabled:=True;
   Panel1.Enabled:=False; DBGrid2.Enabled:=False; DBGrid1.Enabled:= False;
   Limpiadd(); Edit5.SetFocus;
+  ActualizarPieAtajos;
 end;
 
 //===========================================================
@@ -618,6 +2151,7 @@ begin
   ActuHistoclie(1);     // Lo ponemos en modo borrado.
   ActuHisopcc(1);        // Activamos el modo borrado.
   dbMuestrad.Delete;
+  MarcarAlbaranModificado;
   ActualizaImporte();
   dbHisopcc.Active:=True;
   dbHisopcc.Edit;                        // Actualizamos Cabecera de históricos.
@@ -660,6 +2194,7 @@ begin
   dbArti.SQL.Text:='SELECT * FROM artitien'+Tienda+' WHERE A0="'+Edit5.Text+'"';
   dbArti.Active:=True;
   CargaTarifas(0);
+  ActualizarPieAtajos;
 end;
 
 procedure TFAlbaran.DBGrid2KeyDown(Sender: TObject; var Key: Word;
@@ -676,7 +2211,7 @@ begin
  // Panel6.SendToBack;
   Panel6.Visible:=False; DBGrid1.Enabled:= True;
   Panel1.Enabled:=True; DBGrid2.Enabled:=True; DBGrid2.SetFocus;
-
+  ActualizarPieAtajos;
 end;
 
 
@@ -698,6 +2233,7 @@ begin
               dbMuestrad.FieldByName('AD11').AsString);
 
     dbMuestrad.Edit; Llenadd(); dbMuestrad.Post;
+    MarcarAlbaranModificado;
 
     RestarStock(Edit5.Text,Edit7.Text);
     SumarEsta(Edit5.Text,Edit7.Text,Edit11.Text);
@@ -711,11 +2247,13 @@ begin
 
     ActuHistoclie(0);         // Actualiza histórico de clientes.
     ActuHisopcc(0);         // Actualiza histórico de operaciones.
+    ActualizarPieAtajos;
    end
  else
    begin
     //----- Crear linea
     dbMuestrad.Append; Llenadd(); dbMuestrad.Post;
+    MarcarAlbaranModificado;
     RestarStock(Edit5.Text, Edit7.Text);
     SumarEsta(Edit5.Text,Edit7.Text,Edit11.Text);
     Limpiadd(); Edit5.SetFocus;
@@ -859,6 +2397,14 @@ begin
                      ' AND AD2="'+dbMuestrac.FieldByName('AC2').AsString+'"'+
                      ' AND AD3='+dbMuestrac.FieldByName('AC3').AsString;
   dbMuestrad.Active:=True;
+  InicializarControlAlbaran;
+  if not ValidarClienteDocumento then
+    begin
+      FAlbaranEnGestion:=False;
+      FAlbaranModificado:=False;
+      dbMuestrad.Active:=False;
+      Exit;
+    end;
   if dbMuestrad.RecordCount<>0 then
     begin
       while not dbMuestrad.EOF do
@@ -884,6 +2430,7 @@ begin
 
   //----------------- Borrar cabeceras de albaranes
   ActuHisopcc(2);
+  EliminarCreditoAlbaranExistente;
   TxtTemp:=dbMuestrac.SQL.Text;
   TxtQ:='DELETE FROM albac'+Tienda+' WHERE AC0='+dbMuestrac.FieldByName('AC0').AsString+
         ' AND AC1="'+FormatDateTime('YYYY/MM/DD',dbMuestrac.FieldByName('AC1').AsDateTime)+'"'+
@@ -987,6 +2534,7 @@ begin
   Panel7.Visible:=True;
   Memo1.Lines.Text:=dbMuestrac.FieldByName('AC11').AsString;
   Memo1.SetFocus;
+  ActualizarPieAtajos;
 end;
 //--------------- Aceptar Observaciones --------
 procedure TFAlbaran.BitBtn18Click(Sender: TObject);
@@ -994,20 +2542,23 @@ var
  Posi: Integer;
  TxtQ: String;
 begin
-  TxtQ:='UPDATE albac'+Tienda+' SET AC11="'+Memo1.Lines.Text+'" WHERE AC0='+dbMuestrac.FieldByName('AC0').AsString+
+  if Memo1.Lines.Text<>dbMuestrac.FieldByName('AC11').AsString then
+    MarcarAlbaranModificado;
+  TxtQ:='UPDATE albac'+Tienda+' SET AC11="'+SQLTexto(Memo1.Lines.Text)+'" WHERE AC0='+dbMuestrac.FieldByName('AC0').AsString+
         ' AND AC1="'+FormatDateTime('YYYY/MM/DD',dbMuestrac.FieldByName('AC1').AsDateTime)+'"'+
         ' AND AC2="'+dbMuestrac.FieldByName('AC2').AsString+'" AND AC3='+dbMuestrac.FieldByName('AC3').AsString;
   dbAlbac.SQL.Text:=TxtQ; dbAlbac.ExecSQL;
   Posi:=dbMuestrac.RecNo; dbMuestrac.Refresh; dbMuestrac.RecNo:=Posi;
   Panel7.SendToBack; Panel7.Visible:=False;
   dbGrid2.SetFocus;
-
+  ActualizarPieAtajos;
 end;
 
 //--------------- Cancelar Observaciones --------
 procedure TFAlbaran.BitBtn17Click(Sender: TObject);
 begin
   Panel7.SendToBack; Panel7.Visible:=False; dbGrid2.SetFocus;
+  ActualizarPieAtajos;
 end;
 
 //=============== SALIR DEL CGO. ARTICULO =====================
@@ -1089,7 +2640,11 @@ begin
       ListBox3.Items.Add(dbBusca.FieldByName('A1').AsString);
       dbBusca.Next;
     end;
-    ListBox3.BringToFront; ListBox3.Visible:=True; ListBox3.ItemIndex:=0; ListBox3.SetFocus;
+    ListBox3.BringToFront;
+    ListBox3.Visible:=True;
+    AjustarLayoutModerno;
+    ListBox3.ItemIndex:=0;
+    ListBox3.SetFocus;
 
 end;
 
@@ -1104,12 +2659,15 @@ begin
   dbArti.Active:=True;
   Pintadd();
   CargaTarifas(1);
-  ListBox3.Visible:=False; Edit7.SetFocus;
+  ListBox3.Visible:=False;
+  AjustarLayoutModerno;
+  Edit7.SetFocus;
 end;
 
 procedure TFAlbaran.ListBox3Exit(Sender: TObject);
 begin
-   ListBox3.Visible:=False;
+  ListBox3.Visible:=False;
+  AjustarLayoutModerno;
 end;
 
 procedure TFAlbaran.ListBox3KeyPress(Sender: TObject; var Key: char);
@@ -2034,12 +3592,27 @@ begin
 { TODO: Falta asignar el numero de usuario que cierra la operacion }
 
   dbHisopcc.Active:=False;
-  TxtQ:='SELECT * FROM hisopcc'+Tienda+' WHERE HO0="'+FormatDateTime('YYYY/MM/DD',dbMuestrac.FieldByName('AC1').AsDateTime)+'"'+
-        ' AND HO2="'+Puesto+'"'+
-        ' AND HO3='+dbMuestrac.FieldByName('AC3').AsString+
-        ' AND HO4="'+dbMuestrac.FieldByName('AC2').AsString+
-        '" AND HO5="AL"';
+  if FHistoricoAlbaranLocalizado then
+    TxtQ:='SELECT * FROM hisopcc'+Tienda+
+          ' WHERE HO0="'+FormatDateTime('YYYY/MM/DD',FFechaHistoricoAlbaran)+'"'+
+          ' AND HO2="'+SQLTexto(FPuestoHistoricoAlbaran)+'"'+
+          ' AND HO3='+dbMuestrac.FieldByName('AC3').AsString+
+          ' AND HO4="'+SQLTexto(dbMuestrac.FieldByName('AC2').AsString)+
+          '" AND HO5="AL"'
+  else
+    TxtQ:='SELECT * FROM hisopcc'+Tienda+
+          ' WHERE HO3='+dbMuestrac.FieldByName('AC3').AsString+
+          ' AND HO4="'+SQLTexto(dbMuestrac.FieldByName('AC2').AsString)+
+          '" AND HO5="AL" AND HO8='+dbMuestrac.FieldByName('AC0').AsString+
+          ' ORDER BY HO0,HO1 LIMIT 1';
   dbHisopcc.Sql.Text:=TxtQ; dbHisopcc.Active := True;
+  if dbHisopcc.RecordCount<>0 then
+    begin
+      FFechaHistoricoAlbaran:=dbHisopcc.FieldByName('HO0').AsDateTime;
+      FHoraHistoricoAlbaran:=dbHisopcc.FieldByName('HO1').AsDateTime;
+      FPuestoHistoricoAlbaran:=dbHisopcc.FieldByName('HO2').AsString;
+      FHistoricoAlbaranLocalizado:=True;
+    end;
 
   if (dbHisopcc.Recordcount=0) and (Modo=2) then exit;   // No existe histórico de esta cabecera y entramos en modo borrado.
   if (dbHisopcc.Recordcount<>0) and (Modo=2) then        // Marcamos cabecera como borrada.
@@ -2055,18 +3628,23 @@ begin
       if Modo<>1 then
         begin
           dbHisopcc.Edit;
+          dbHisopcc.FieldByName('HO8').Value:=dbMuestrac.FieldByName('AC0').Value;//-- Cliente del albaran
           dbHisopcc.FieldByName('HO9').Value:=FormatFloat('0.00',dbBusca.Fields[0].AsFloat);//--- Importe total
           dbHisopcc.FieldByName('HO11').Value:=FormatFloat('0.00',dbBusca.Fields[0].AsFloat);//-- Importe total con Dto.
           dbHisopcc.FieldByName('HO12').Value:=FormatFloat('0.00',dbBusca.Fields[0].AsFloat);//-- Entrega
-          dbHisopcc.FieldByName('HO18').Value:=dbMuestrac.FieldByName('AC11').Value; //--Observaciones.
+          dbHisopcc.FieldByName('HO18').AsString:=NotasConAuditoria(
+            dbMuestrac.FieldByName('AC11').AsString,
+            dbHisopcc.FieldByName('HO18').AsString); //--Observaciones y auditoría.
           dbHisopcc.Post;
         end;
       dbHisopdd.Active:=False;
-      TxtQ:='SELECT * FROM hisopdd'+Tienda+' WHERE HOD0="'+FormatDateTime('YYYY/MM/DD',dbMuestrad.FieldByName('AD1').AsDateTime)+'"'+
-            ' AND HOD2="'+Puesto+'"'+
+      TxtQ:='SELECT * FROM hisopdd'+Tienda+
+            ' WHERE HOD0="'+FormatDateTime('YYYY/MM/DD',FFechaHistoricoAlbaran)+'"'+
+            ' AND HOD2="'+SQLTexto(FPuestoHistoricoAlbaran)+'"'+
             ' AND HOD3='+dbMuestrad.FieldByName('AD3').AsString+
-            ' AND HOD4="'+dbMuestrad.FieldByName('AD2').AsString+
-            '" AND HOD5='+dbMuestrad.FieldByName('AD4').AsString+' AND HOD23=0';
+            ' AND HOD4="'+SQLTexto(dbMuestrad.FieldByName('AD2').AsString)+
+            '" AND HOD5='+dbMuestrad.FieldByName('AD4').AsString+
+            ' AND HOD23=0';
 
       dbHisopdd.Sql.Text:=TxtQ; dbHisopdd.Active := True;
 
@@ -2107,7 +3685,8 @@ begin
 
    dbHisopcc.FieldByName('HO0').AsString:=dbMuestrac.FieldByName('AC1').AsString; //FormatDateTime('YYYY/MM/DD',dbMuestrac.FieldByName('AC1').AsDateTime);//-- Fecha
    dbHisopcc.FieldByName('HO1').AsString:=FormatDateTime('HH:MM:SS',Time);//-- Hora
-   dbHisopcc.FieldByName('HO2').Value:=Puesto;//--- Puesto
+   FPuestoHistoricoAlbaran:=Puesto;
+   dbHisopcc.FieldByName('HO2').Value:=FPuestoHistoricoAlbaran;//--- Puesto original
    dbHisopcc.FieldByName('HO3').Value:=dbMuestrac.FieldByName('AC3').Value;//- N.Albarán
    dbHisopcc.FieldByName('HO4').Value:=dbMuestrac.FieldByName('AC2').Value;//- Serie Albarán.
    dbHisopcc.FieldByName('HO5').Value:='AL';//----- Tipo operacion
@@ -2125,6 +3704,10 @@ begin
    dbHisopcc.FieldByName('HO18').Value:=dbMuestrac.FieldByName('AC11').Value; //--Observaciones.
 
    hora:=dbHisopcc.FieldByName('HO1').AsDateTime;
+   FFechaHistoricoAlbaran:=dbHisopcc.FieldByName('HO0').AsDateTime;
+   FHoraHistoricoAlbaran:=hora;
+   FPuestoHistoricoAlbaran:=dbHisopcc.FieldByName('HO2').AsString;
+   FHistoricoAlbaranLocalizado:=True;
 
    dbHisopcc.Post; dbHisopcc.Active:=False;
 
@@ -2142,13 +3725,13 @@ begin
   dbHisopdd.Active:=False;
   TxtQ:='INSERT INTO hisopdd'+Tienda+' (HOD0,HOD1,HOD2,HOD3,HOD4,HOD5,HOD6,HOD7,HOD8,HOD9,HOD10,HOD11'+
         ',HOD12,HOD13,HOD14,HOD15,HOD16, HOD22) VALUES ("'+FormatDateTime('YYYY/MM/DD',dbMuestrad.FieldByName('AD1').AsDateTime)+'",'+
-        '"'+FormatDateTime('HH:MM:SS',Hora)+'","'+Puesto+'",'+dbMuestrad.FieldByName('AD3').AsString+',"'+
-        dbMuestrad.FieldByName('AD2').AsString+'",'+dbMuestrad.FieldByName('AD4').AsString+',"'+
-        dbMuestrad.FieldByName('AD5').AsString+'","'+dbMuestrad.FieldByName('AD6').AsString+'",'+
+        '"'+FormatDateTime('HH:MM:SS',Hora)+'","'+FPuestoHistoricoAlbaran+'",'+dbMuestrad.FieldByName('AD3').AsString+',"'+
+        SQLTexto(dbMuestrad.FieldByName('AD2').AsString)+'",'+dbMuestrad.FieldByName('AD4').AsString+',"'+
+        SQLTexto(dbMuestrad.FieldByName('AD5').AsString)+'","'+SQLTexto(dbMuestrad.FieldByName('AD6').AsString)+'",'+
         dbMuestrad.FieldByName('AD7').AsString+','+dbMuestrad.FieldByName('AD8').AsString+','+
         dbMuestrad.FieldByName('AD9').AsString+','+dbMuestrad.FieldByName('AD10').AsString+','+
         dbMuestrad.FieldByName('AD11').AsString+','+dbMuestrad.FieldByName('AD12').AsString+','+
-        dbMuestrad.FieldByName('AD13').AsString+',"","'+dbMuestrad.FieldByName('AD15').AsString+'",'+
+        dbMuestrad.FieldByName('AD13').AsString+',"","'+SQLTexto(dbMuestrad.FieldByName('AD15').AsString)+'",'+
         dbMuestrad.FieldByName('AD17').AsString+')';
   dbHisopdd.SQL.Text:=TxtQ; dbHisopdd.ExecSQL;
 end;
@@ -2204,7 +3787,7 @@ begin
 
   //--------------- Oculta Filtro de cabeceras.
   RadioGroup2.Visible:=False;
-
+  ActualizarPieAtajos;
 end;
 
 //====================== OCULTAR BOTONES DD ====================
@@ -2220,7 +3803,7 @@ begin
 
 //--------------- Muestra Filtro de cabeceras.
   RadioGroup2.Visible:=True;
-
+  ActualizarPieAtajos;
 end;
 
 //=================== TECLAS RAPIDAS ======================
@@ -2228,6 +3811,19 @@ end;
 procedure TFAlbaran.FormKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
+
+ // Ctrl+O abre Observaciones únicamente dentro de un albarán. No interrumpe
+ // el editor de líneas y conserva F10 como atajo histórico ya existente.
+ if (ssCtrl in Shift) and (Key=VK_O) and DBGrid2.Visible and
+    (not Panel6.Visible) then
+ begin
+   Key:=0;
+   if Panel7.Visible then
+     Memo1.SetFocus
+   else
+     BitBtn16Click(Self);
+   Exit;
+ end;
 
 //     **********  Edición de las líneas del documento   **********
 
@@ -2294,7 +3890,11 @@ end;
 
 procedure TFAlbaran.FormShow(Sender: TObject);
 begin
+  AjustarLayoutModerno;
+  PrepararCalendariosVisibles;
+  ActualizarPieAtajos;
   dbGrid1.SetFocus;
+  FLXAplicarTemaVisual(Self);
 end;
 
 
@@ -2305,6 +3905,9 @@ begin
 end;
 procedure TFAlbaran.FormClose(Sender: TObject; var CloseAction: TCloseAction);
 begin
+   FAlbaranEnGestion:=False;
+   FAlbaranModificado:=False;
+   FHistoricoAlbaranLocalizado:=False;
    CloseAction:=CaFree;
 end;
 

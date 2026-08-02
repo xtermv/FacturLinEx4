@@ -11,6 +11,8 @@ object FCaja: TFCaja
   OnActivate = FormActivate
   OnClose = FormClose
   OnCreate = FormCreate
+  KeyPreview = True
+  OnKeyDown = FormKeyDown
   Position = poDesktopCenter
   LCLVersion = '2.0.6.0'
   WindowState = wsMaximized
@@ -2496,8 +2498,8 @@ object FCaja: TFCaja
             AnchorSideRight.Side = asrBottom
             AnchorSideBottom.Side = asrBottom
             Left = 6
-            Height = 35
-            Top = 325
+            Height = 28
+            Top = 332
             Width = 92
             Anchors = [akLeft, akRight, akBottom]
             Caption = 'Imprimir'
@@ -2602,7 +2604,7 @@ object FCaja: TFCaja
             AnchorSideRight.Control = GroupBox5
             AnchorSideRight.Side = asrBottom
             Left = 4
-            Height = 136
+            Height = 119
             Top = 145
             Width = 98
             Alignment = taCenter
@@ -2611,12 +2613,29 @@ object FCaja: TFCaja
             ParentFont = False
             TabOrder = 8
           end
+          object BitBtn26: TBitBtn
+            AnchorSideRight.Side = asrBottom
+            AnchorSideBottom.Side = asrBottom
+            Left = 6
+            Height = 28
+            Top = 270
+            Width = 92
+            Anchors = [akLeft, akRight, akBottom]
+            Caption = 'Buscar día'
+            Font.Height = -12
+            Font.Name = 'Sans'
+            Hint = 'Localizar una caja guardada por fecha'
+            OnClick = BitBtn26Click
+            ParentFont = False
+            ShowHint = True
+            TabOrder = 10
+          end
           object BitBtn22: TBitBtn
             AnchorSideRight.Side = asrBottom
             AnchorSideBottom.Side = asrBottom
             Left = 6
-            Height = 35
-            Top = 289
+            Height = 28
+            Top = 301
             Width = 91
             Anchors = [akLeft, akRight, akBottom]
             Caption = '&Pagos/V.'

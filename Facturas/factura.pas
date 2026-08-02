@@ -28,7 +28,8 @@ interface
 
 uses
   Classes, SysUtils, LResources, Forms, Controls, Graphics, Dialogs, ExtCtrls,
-  Buttons, ZConnection, ZDataset, DBGrids, db, StdCtrls, DbCtrls, LR_Class,
+  Buttons, ZConnection, ZDataset, DBGrids, db, StdCtrls, DbCtrls, EditBtn,
+  LR_Class,
   LR_DBSet, LCLType, CheckLst, Menus, LR_E_CSV, LR_E_HTM, LR_DSet;
 
 type
@@ -108,8 +109,8 @@ TFFacturas = class(TForm)
   Edit15: TEdit;
   Edit16: TEdit;
   Edit17: TEdit;
-  Edit18: TEdit;
-  Edit19: TEdit;
+  Edit18: TDateEdit;
+  Edit19: TDateEdit;
   Edit2: TEdit;
   Edit20: TEdit;
   Edit21: TEdit;
@@ -121,10 +122,10 @@ TFFacturas = class(TForm)
   Edit27: TEdit;
   Edit28: TEdit;
   Edit29: TEdit;
-  Edit3: TEdit;
+  Edit3: TDateEdit;
   Edit30: TEdit;
   Edit31: TEdit;
-  Edit4: TEdit;
+  Edit4: TDateEdit;
   Edit5: TEdit;
   Edit6: TEdit;
   Edit7: TEdit;
@@ -324,7 +325,18 @@ TFFacturas = class(TForm)
   function HayStock: boolean;
 
   private
-    { private declarations }
+    { Modernización visual conservadora: no cambia la lógica de negocio. }
+    FEstiloModernoAplicado: Boolean;
+    FBtnCalEdit3: TSpeedButton;
+    FBtnCalEdit4: TSpeedButton;
+    FBtnCalEdit18: TSpeedButton;
+    FBtnCalEdit19: TSpeedButton;
+    procedure AplicarEstiloModerno;
+    procedure CrearBotonCalendarioVisible(var AButton: TSpeedButton;
+      AFecha: TDateEdit; ATag: Integer);
+    procedure PrepararCalendariosVisibles;
+    procedure AbrirCalendarioVisible(Sender: TObject);
+    function CargarClavesFacturasSeleccionadas(AClaves: TStrings): Integer;
   public
     { public declarations }
   end;
@@ -347,9 +359,268 @@ var
 implementation
 
 uses
-  Global, Funciones, Busquedas, Imprimir, calculos;
+  Global, Funciones, Busquedas, Imprimir, calculos,
+  uFLXRecibosFacturasPDF;
   
  { TFFacturas }
+
+procedure TFFacturas.CrearBotonCalendarioVisible(
+  var AButton: TSpeedButton; AFecha: TDateEdit; ATag: Integer);
+begin
+  if not Assigned(AFecha) then
+    Exit;
+
+  // Forzamos también el botón interno del TDateEdit.
+  AFecha.ButtonOnlyWhenFocused := False;
+  AFecha.ButtonWidth := 26;
+  AFecha.Button.Visible := True;
+  AFecha.Button.Enabled := True;
+  AFecha.Button.Flat := False;
+  AFecha.Button.Hint := 'Abrir calendario';
+  AFecha.Button.ShowHint := True;
+
+  if not Assigned(AButton) then
+  begin
+    AButton := TSpeedButton.Create(Self);
+    AButton.Parent := AFecha.Parent;
+    AButton.Tag := ATag;
+    AButton.Hint := 'Abrir calendario';
+    AButton.ShowHint := True;
+    AButton.Flat := False;
+    AButton.OnClick := @AbrirCalendarioVisible;
+  end;
+
+  // Se coloca exactamente sobre la zona del botón interno. Así el
+  // calendario queda siempre visible incluso si GTK no pinta bien
+  // el botón compuesto del TDateEdit.
+  AButton.SetBounds(
+    AFecha.Left + AFecha.Width - 27,
+    AFecha.Top,
+    27,
+    AFecha.Height
+  );
+
+  AButton.Glyph.Assign(AFecha.Glyph);
+  AButton.NumGlyphs := 1;
+  AButton.Visible := AFecha.Visible;
+  AButton.Enabled := AFecha.Enabled;
+  AButton.BringToFront;
+end;
+
+procedure TFFacturas.PrepararCalendariosVisibles;
+begin
+  CrearBotonCalendarioVisible(FBtnCalEdit3, Edit3, 3);
+  CrearBotonCalendarioVisible(FBtnCalEdit4, Edit4, 4);
+  CrearBotonCalendarioVisible(FBtnCalEdit18, Edit18, 18);
+  CrearBotonCalendarioVisible(FBtnCalEdit19, Edit19, 19);
+
+  if Assigned(FBtnCalEdit3) then
+    FBtnCalEdit3.Visible := Panel3.Visible;
+  if Assigned(FBtnCalEdit4) then
+    FBtnCalEdit4.Visible := Panel3.Visible;
+  if Assigned(FBtnCalEdit18) then
+    FBtnCalEdit18.Visible := Panel9.Visible;
+  if Assigned(FBtnCalEdit19) then
+    FBtnCalEdit19.Visible := Panel9.Visible;
+end;
+
+procedure TFFacturas.AbrirCalendarioVisible(Sender: TObject);
+var
+  Fecha: TDateEdit;
+begin
+  Fecha := nil;
+
+  if Sender is TComponent then
+    case TComponent(Sender).Tag of
+      3:  Fecha := Edit3;
+      4:  Fecha := Edit4;
+      18: Fecha := Edit18;
+      19: Fecha := Edit19;
+    end;
+
+  if not Assigned(Fecha) then
+    Exit;
+
+  Fecha.Enabled := True;
+  Fecha.ButtonOnlyWhenFocused := False;
+  Fecha.Button.Visible := True;
+  Fecha.Button.Enabled := True;
+  Fecha.SetFocus;
+  Fecha.Button.Click;
+end;
+
+procedure TFFacturas.AplicarEstiloModerno;
+const
+  CFondo = TColor($00F8FAFC);
+  CTarjeta = clWhite;
+  CPanelAzul = TColor($00F5E9DE);      // RGB 222,233,245
+  CPanelVerde = TColor($00E6F0E2);     // RGB 226,240,230
+  CPanelGris = TColor($00F2EFEC);      // RGB 236,239,242
+  CPanelCrema = TColor($00E1F1F8);     // RGB 248,241,225
+  CPanelRosa = TColor($00ECE8F7);      // RGB 247,232,236
+  CPanelLavanda = TColor($00F7E8ED);   // RGB 237,232,247
+  CCabecera = TColor($0033210F);
+  CPrimario = TColor($00EB631D);
+  CVerde = TColor($003F8F16);
+  CRojo = TColor($002B2BC7);
+  CTexto = TColor($0033291E);
+  CTextoSuave = TColor($006B5E53);
+
+  procedure EstilarPanel(APanel: TPanel; AColor: TColor);
+  begin
+    if not Assigned(APanel) then Exit;
+    APanel.ParentBackground := False;
+    APanel.ParentColor := False;
+    APanel.Color := AColor;
+
+    // La diferenciación se hace por fondo pastel, no mediante marcos
+    // gruesos o relieves que recarguen la pantalla.
+    APanel.BevelOuter := bvNone;
+    APanel.BevelInner := bvNone;
+    APanel.BevelWidth := 1;
+    APanel.BorderWidth := 0;
+  end;
+
+  procedure EstilarBoton(ABoton: TBitBtn; AColor: TColor);
+  begin
+    if not Assigned(ABoton) then Exit;
+    ABoton.ParentFont := False;
+    ABoton.Font.Name := 'Sans';
+    ABoton.Font.Height := -13;
+    ABoton.Font.Style := [fsBold];
+    ABoton.Font.Color := clWhite;
+    ABoton.Color := AColor;
+  end;
+
+  procedure EstilarGrid(AGrid: TDBGrid);
+  begin
+    if not Assigned(AGrid) then Exit;
+    AGrid.ParentFont := False;
+    AGrid.Font.Name := 'Sans';
+    AGrid.Font.Height := -13;
+    AGrid.Font.Color := CTexto;
+    AGrid.Color := clWhite;
+    AGrid.FixedColor := TColor($00F0E8E2);
+    AGrid.AlternateColor := TColor($00FCFAF8);
+    // Esta versión de TDBGrid no permite fijar por separado
+    // el color del texto seleccionado. Usamos el color de selección
+    // del sistema para mantener un contraste correcto en GTK.
+    AGrid.SelectedColor := clHighlight;
+    AGrid.GridLineColor := TColor($00D5CDC5);
+    AGrid.DefaultRowHeight := 27;
+    AGrid.TitleFont.Name := 'Sans';
+    AGrid.TitleFont.Height := -13;
+    AGrid.TitleFont.Style := [fsBold];
+    AGrid.TitleFont.Color := CCabecera;
+  end;
+
+  procedure EstilarTitulo(ALabel: TLabel);
+  begin
+    if not Assigned(ALabel) then Exit;
+    ALabel.ParentFont := False;
+    ALabel.Font.Name := 'Sans';
+    ALabel.Font.Height := -14;
+    ALabel.Font.Style := [fsBold];
+    ALabel.Font.Color := clWhite;
+    ALabel.Color := CCabecera;
+    ALabel.Transparent := False;
+  end;
+
+var
+  I: Integer;
+begin
+  if FEstiloModernoAplicado then Exit;
+  FEstiloModernoAplicado := True;
+
+  Color := CFondo;
+  Caption := 'FacturLinEx · Facturas de clientes';
+
+  Panel5.Caption := '';
+  Panel5.ParentBackground := False;
+  Panel5.Color := CFondo;
+  Panel5.BevelOuter := bvNone;
+
+  Panel1.ParentBackground := False;
+  Panel1.Color := CCabecera;
+  Panel1.BevelOuter := bvNone;
+
+  EstilarGrid(DBGrid1);
+  EstilarGrid(DBGrid2);
+
+  // Colores suaves según el tipo de ventana auxiliar.
+  EstilarPanel(Panel2, CPanelAzul);       // filtro por cliente
+  EstilarPanel(Panel3, CPanelAzul);       // filtro por fechas
+  EstilarPanel(Panel4, CPanelGris);       // gestión de factura
+  EstilarPanel(Panel6, CPanelCrema);      // líneas
+  EstilarPanel(Panel7, CPanelGris);       // observaciones
+  EstilarPanel(Panel8, CPanelVerde);      // datos de factura
+  EstilarPanel(Panel9, CPanelAzul);       // listado de facturas
+  EstilarPanel(Panel10, CPanelRosa);      // rectificativas
+  EstilarPanel(Panel11, CPanelVerde);     // vencimientos
+  EstilarPanel(Panel12, CPanelLavanda);   // formato de impresión
+  EstilarPanel(panelRecibos, CPanelVerde);// justificantes/recibos
+
+  RadioGroup2.ParentBackground := False;
+  RadioGroup2.ParentColor := False;
+  RadioGroup2.Color := CTarjeta;
+  RadioGroup2.ParentFont := False;
+  RadioGroup2.Font.Name := 'Sans';
+  RadioGroup2.Font.Height := -13;
+  RadioGroup2.Font.Color := CTexto;
+
+  ComboBox1.ParentFont := False;
+  ComboBox1.Font.Name := 'Sans';
+  ComboBox1.Font.Height := -13;
+  ComboBox1.Font.Color := CTexto;
+  ComboBox1.Color := clWhite;
+
+  RadioButton1.ParentFont := False;
+  RadioButton2.ParentFont := False;
+  RadioButton3.ParentFont := False;
+  RadioButton1.Font.Name := 'Sans';
+  RadioButton2.Font.Name := 'Sans';
+  RadioButton3.Font.Name := 'Sans';
+  RadioButton1.Font.Height := -13;
+  RadioButton2.Font.Height := -13;
+  RadioButton3.Font.Height := -13;
+  RadioButton1.Font.Color := CTexto;
+  RadioButton2.Font.Color := CTexto;
+  RadioButton3.Font.Color := CTexto;
+
+  // Cabeceras de ventanas auxiliares ya existentes.
+  EstilarTitulo(lbRecibos);
+  EstilarTitulo(Label25);
+  EstilarTitulo(Label35);
+  EstilarTitulo(Label42);
+
+  // Botonera principal: solo apariencia, conserva todos los OnClick.
+  EstilarBoton(BitBtn1, CPrimario);  // Gestionar
+  EstilarBoton(BitBtn2, CRojo);      // Cerrar gestión
+  EstilarBoton(BitBtn5, CRojo);      // Salir
+  EstilarBoton(BitBtn9, CVerde);     // Nueva
+  EstilarBoton(BitBtn10, CRojo);     // Borrar
+  EstilarBoton(BitBtn11, CPrimario); // Recibos
+  EstilarBoton(BitBtn12, CVerde);    // Crear línea
+  EstilarBoton(BitBtn13, CPrimario); // Modificar
+  EstilarBoton(BitBtn14, CRojo);     // Borrar línea
+  EstilarBoton(BitBtn15, CVerde);    // Imprimir
+  EstilarBoton(BitBtn16, CPrimario); // Observaciones
+  EstilarBoton(BitBtn23, CPrimario); // Listado
+  EstilarBoton(BitBtn25, CPrimario); // Rectificativa
+  EstilarBoton(BitBtn26, CPrimario); // Vencimientos
+
+  // Resto de botones: tipografía coherente sin alterar su semántica.
+  for I := 0 to ComponentCount - 1 do
+    if Components[I] is TBitBtn then
+      with TBitBtn(Components[I]) do
+      begin
+        ParentFont := False;
+        Font.Name := 'Sans';
+        Font.Height := -13;
+      end;
+
+  PrepararCalendariosVisibles;
+end;
 
 //=============== Crea el formulario ================
 procedure ShowFormFacturas;
@@ -390,6 +661,8 @@ begin
   Panel4.SendToBack; Panel4.Visible:=False;
   DBGrid2.SendToBack; DBGrid2.Visible:=False;
   AntColun:='0';Ordenado:=False; Orden:='DESC';
+
+  AplicarEstiloModerno;
 end;
 
 //============== TODAS LAS FACTURAS =====================
@@ -477,13 +750,36 @@ begin
   Panel3.Visible:=True; Panel2.Visible:=False;
   Edit3.Text:=FormatDateTime('DD/MM/YYYY',Date);
   Edit4.Text:=FormatDateTime('DD/MM/YYYY',Date);
+  PrepararCalendariosVisibles;
   Edit3.SetFocus;
 end;
 procedure TFFacturas.BitBtn4Click(Sender: TObject);
+var
+  FechaDesde, FechaHasta: TDateTime;
 begin
-  If (Edit3.Text='') or (Edit4.Text='') then Exit;
+  if not TryStrToDate(Trim(Edit3.Text), FechaDesde) then
+  begin
+    ShowMessage('LA FECHA DESDE NO ES VÁLIDA.');
+    Edit3.SetFocus;
+    Exit;
+  end;
+
+  if not TryStrToDate(Trim(Edit4.Text), FechaHasta) then
+  begin
+    ShowMessage('LA FECHA HASTA NO ES VÁLIDA.');
+    Edit4.SetFocus;
+    Exit;
+  end;
+
+  if FechaDesde > FechaHasta then
+  begin
+    ShowMessage('LA FECHA DESDE NO PUEDE SER POSTERIOR A LA FECHA HASTA.');
+    Edit3.SetFocus;
+    Exit;
+  end;
+
   //-- MID(FC19,1,250)
-  dbMuestrac.Sql.Text:='SELECT *,CONVERT(FC19 USING UTF8) as FNOTAS,C1 FROM factuc'+Tienda+', clientes WHERE FC0=C0 AND FC1>="'+FormatDateTime('YYYY/MM/DD',StrToDate(Edit3.Text))+'" AND FC1<="'+FormatDateTime('YYYY/MM/DD',StrToDate(Edit4.Text))+'" ORDER BY FC2 ASC, FC1 DESC, FC3 DESC';
+  dbMuestrac.Sql.Text:='SELECT *,CONVERT(FC19 USING UTF8) as FNOTAS,C1 FROM factuc'+Tienda+', clientes WHERE FC0=C0 AND FC1>="'+FormatDateTime('YYYY/MM/DD',FechaDesde)+'" AND FC1<="'+FormatDateTime('YYYY/MM/DD',FechaHasta)+'" ORDER BY FC2 ASC, FC1 DESC, FC3 DESC';
   dbMuestrac.Active := True;
   If dbMuestrac.RecordCount=0 then
     begin
@@ -918,9 +1214,117 @@ begin
   dbMuestrac.Active:=True;
 end;
 
-procedure TFFacturas.BitBtn11Click(Sender: TObject);
-begin
+function TFFacturas.CargarClavesFacturasSeleccionadas(
+  AClaves: TStrings): Integer;
+var
+  I, PosicionAnterior: Integer;
+  Clave: string;
 
+  procedure AnadirFacturaActual;
+  begin
+    if Trim(dbMuestrac.FieldByName('FC0').AsString) = '' then
+      Exit;
+    if dbMuestrac.FieldByName('FC1').IsNull then
+      Exit;
+    if Trim(dbMuestrac.FieldByName('FC2').AsString) = '' then
+      Exit;
+    if Trim(dbMuestrac.FieldByName('FC3').AsString) = '' then
+      Exit;
+
+    Clave :=
+      dbMuestrac.FieldByName('FC0').AsString + #9 +
+      FormatDateTime('yyyy-mm-dd',
+        dbMuestrac.FieldByName('FC1').AsDateTime) + #9 +
+      dbMuestrac.FieldByName('FC2').AsString + #9 +
+      dbMuestrac.FieldByName('FC3').AsString;
+
+    if AClaves.IndexOf(Clave) < 0 then
+      AClaves.Add(Clave);
+  end;
+
+begin
+  Result := 0;
+  if not Assigned(AClaves) then
+    Exit;
+
+  AClaves.Clear;
+
+  if (not dbMuestrac.Active) or dbMuestrac.IsEmpty then
+    Exit;
+
+  PosicionAnterior := dbMuestrac.RecNo;
+  dbMuestrac.DisableControls;
+  try
+    // 1. Sistema original de FacturLinEx:
+    //    se incluyen todas las facturas marcadas con FC10='S'
+    //    dentro del listado actualmente cargado.
+    dbMuestrac.First;
+    while not dbMuestrac.EOF do
+    begin
+      if SameText(Trim(dbMuestrac.FieldByName('FC10').AsString), 'S') then
+        AnadirFacturaActual;
+      dbMuestrac.Next;
+    end;
+
+    // 2. Selección múltiple nueva mediante Ctrl o Mayús.
+    //    Las duplicadas no se repiten porque AClaves no admite duplicados.
+    for I := 0 to DBGrid1.SelectedRows.Count - 1 do
+    begin
+      dbMuestrac.GotoBookmark(
+        Pointer(DBGrid1.SelectedRows.Items[I])
+      );
+      AnadirFacturaActual;
+    end;
+  finally
+    if (PosicionAnterior > 0) and
+       (PosicionAnterior <= dbMuestrac.RecordCount) then
+      dbMuestrac.RecNo := PosicionAnterior;
+    dbMuestrac.EnableControls;
+  end;
+
+  Result := AClaves.Count;
+end;
+
+procedure TFFacturas.BitBtn11Click(Sender: TObject);
+var
+  Claves: TStringList;
+  MarcadasPagadas: Boolean;
+  PosicionAnterior: Integer;
+begin
+  Claves := TStringList.Create;
+  try
+    Claves.Sorted := True;
+    Claves.Duplicates := dupIgnore;
+
+    if CargarClavesFacturasSeleccionadas(Claves) = 0 then
+    begin
+      ShowMessage(
+        'NO HAY FACTURAS MARCADAS NI SELECCIONADAS.' + LineEnding +
+        'Puede utilizar el sistema original de Marcadas o seleccionar ' +
+        'varias filas con Ctrl o Mayús.'
+      );
+      DBGrid1.SetFocus;
+      Exit;
+    end;
+
+    MarcadasPagadas := False;
+    if FLXGestionarRecibosFacturas(
+      Self,
+      dbFactuc.Connection,
+      Tienda,
+      Claves,
+      MarcadasPagadas
+    ) and MarcadasPagadas then
+    begin
+      PosicionAnterior := dbMuestrac.RecNo;
+      dbMuestrac.Refresh;
+      if (PosicionAnterior > 0) and
+         (PosicionAnterior <= dbMuestrac.RecordCount) then
+        dbMuestrac.RecNo := PosicionAnterior;
+    end;
+  finally
+    Claves.Free;
+  end;
 end;
 
 
@@ -930,6 +1334,28 @@ end;
 //===========================================================
 procedure TFFacturas.BitBtn27Click(Sender: TObject);
 begin
+  // La rectificativa necesita una factura actual válida. Sin esta
+  // comprobación se generaba SQL inválido: WHERE FC0=
+  if not dbMuestrac.Active then
+  begin
+    ShowMessage('NO HAY NINGUNA FACTURA SELECCIONADA PARA RECTIFICAR.');
+    Exit;
+  end;
+
+  if dbMuestrac.IsEmpty then
+  begin
+    ShowMessage('NO HAY NINGUNA FACTURA SELECCIONADA PARA RECTIFICAR.');
+    Exit;
+  end;
+
+  if Trim(dbMuestrac.FieldByName('FC0').AsString) = '' then
+  begin
+    ShowMessage('SELECCIONE UNA FACTURA ANTES DE PULSAR RECTIF.');
+    DBGrid1.SetFocus;
+    Exit;
+  end;
+
+  dbTrabajo.Active := False;
   dbTrabajo.SQL.Text:='SELECT FC0,FC1,FC2,FC3,FC20 FROM factuc'+Tienda+
                       ' WHERE FC0='+dbMuestrac.FieldByName('FC0').AsString+
                       ' AND Concat(FC1,FC2,FC3)<>"'+
@@ -1081,10 +1507,12 @@ end;
 //===========================================================
 procedure TFFacturas.BitBtn23Click(Sender: TObject);
 begin
-  Panel9.Visible:=True; Edit14.SetFocus;
+  Panel9.Visible:=True;
   Edit14.Text:='1'; Edit16.Text:=ClienteVario;
   Edit18.Text:=FormatDateTime('DD/MM/YYYY',Date);
   Edit19.Text:=FormatDateTime('DD/MM/YYYY',Date);
+  PrepararCalendariosVisibles;
+  Edit14.SetFocus;
 end;
 
 
@@ -1092,9 +1520,31 @@ end;
 procedure TFFacturas.BitBtn21Click(Sender: TObject);
 var
   SerieAVer, filtroSerie: String;
+  FechaDesde, FechaHasta: TDateTime;
 begin
 
   if (Edit14.Text='') or (Edit16.Text='') then Exit;
+
+  if not TryStrToDate(Trim(Edit18.Text), FechaDesde) then
+  begin
+    ShowMessage('LA FECHA DESDE NO ES VÁLIDA.');
+    Edit18.SetFocus;
+    Exit;
+  end;
+
+  if not TryStrToDate(Trim(Edit19.Text), FechaHasta) then
+  begin
+    ShowMessage('LA FECHA HASTA NO ES VÁLIDA.');
+    Edit19.SetFocus;
+    Exit;
+  end;
+
+  if FechaDesde > FechaHasta then
+  begin
+    ShowMessage('LA FECHA DESDE NO PUEDE SER POSTERIOR A LA FECHA HASTA.');
+    Edit18.SetFocus;
+    Exit;
+  end;
 
   SerieAVer:=  trim(copy(cbSerieListado.Text,1,3));
 
@@ -1102,8 +1552,8 @@ begin
    else filtroSerie:=' AND FC2="'+SerieAVer+'" ';
 
   dbBusca.Sql.Text:='SELECT *,C1,C5 FROM factuc'+Tienda+', clientes WHERE FC0=C0'+
-                    ' AND FC1>="'+FormatDateTime('YYYY/MM/DD',StrToDate(Edit18.Text))+'"'+
-                    ' AND FC1<="'+FormatDateTime('YYYY/MM/DD',StrToDate(Edit19.Text))+'"'+
+                    ' AND FC1>="'+FormatDateTime('YYYY/MM/DD',FechaDesde)+'"'+
+                    ' AND FC1<="'+FormatDateTime('YYYY/MM/DD',FechaHasta)+'"'+
                     ' AND FC0>='+Edit14.Text+' AND FC0<='+Edit16.Text+
                     filtroSerie;
 
@@ -1154,6 +1604,8 @@ end;
 procedure TFFacturas.BitBtn22Click(Sender: TObject);
 begin
   Panel9.Visible:=False;
+  if Assigned(FBtnCalEdit18) then FBtnCalEdit18.Visible := False;
+  if Assigned(FBtnCalEdit19) then FBtnCalEdit19.Visible := False;
 end;
 
 
@@ -1362,14 +1814,9 @@ begin
 
    Posi:=dbMuestrac.RecNo; dbMuestrac.Refresh; dbMuestrac.RecNo:=Posi;
 
-   // Impresión del recibo de pago.
-
-   if (FacturasPagadas<>'') then
-     begin
-      edRecibos.Text:=FacturasPagadas;
-      panelRecibos.Visible:=True;
-      edRecibos.SetFocus;
-     end;
+   // El cambio manual Pagado/No pagado no genera recibos.
+   // Los recibos PDF se emiten desde el botón «Recibo PDF», que además
+   // agrupa por cliente y solo marca Pagado tras imprimir correctamente.
 
 end;
 
@@ -1400,13 +1847,8 @@ end;
 
 procedure TFFacturas.btRecibosAceptarClick(Sender: TObject);
 begin
-  FacturasPagadas:= edRecibos.Text;
-  panelRecibos.Visible:=False;
-  showmessage('Se iniciaría el proceso de impresión del justificante con ' + #13 +
-               'las facturas  : '+ FacturasPagadas);
-  // frReport1.LoadFromFile(RutaReports+'.lrf');
-  // frReport1.ShowReport;
-  Exit;
+  panelRecibos.Visible := False;
+  BitBtn11Click(Sender);
 end;
 
 

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Manual de uso y configuración de FacturLinEx" name="description"/>
+<meta content="#155eef" name="theme-color"/>
+<title>5. Ventas y TPV ilustrado | Manual FacturLinEx</title>
+<link href="../assets/img/favicon.svg" rel="icon" type="image/svg+xml"/>
+<link href="../assets/css/styles.css" rel="stylesheet"/>
+<script defer="" src="../assets/js/search-index.js"></script>
+<script defer="" src="../assets/js/app.js"></script>
+</head>
+<body>
+<a class="skip-link" href="#contenido">Saltar al contenido</a>
+<header class="topbar">
+<button aria-expanded="false" aria-label="Abrir menú" class="icon-button menu-button" data-menu-button="" type="button">☰</button>
+<a aria-label="Inicio del manual FacturLinEx" class="brand" href="../index.html">
+<span class="brand-mark">FLX</span><span><strong>FacturLinEx</strong><small>Manual de uso y configuración</small></span>
+</a>
+<div class="top-actions">
+<button aria-label="Buscar en el manual" class="search-button" data-search-open="" type="button"><span aria-hidden="true">⌕</span><span>Buscar</span><kbd>Ctrl K</kbd></button>
+<button aria-label="Cambiar modo de color" class="icon-button" data-theme-toggle="" type="button">◐</button>
+</div>
+</header>
+<div class="menu-overlay" data-menu-overlay=""></div>
+<div class="app-shell">
+<aside class="sidebar" data-sidebar="">
+<div class="sidebar-inner">
+<a class="sidebar-home" href="../index.html">⌂ Página principal</a>
+<nav aria-label="Capítulos del manual"><a href="../capitulos/control-del-documento.html"><span class="nav-number">i</span><span>Control del documento</span></a>
+<a href="../capitulos/01-primeros-pasos-y-navegacion.html"><span class="nav-number">1</span><span>Primeros pasos y navegación</span></a>
+<a href="../capitulos/02-configuracion-inicial.html"><span class="nav-number">2</span><span>Configuración inicial</span></a>
+<a href="../capitulos/03-clientes.html"><span class="nav-number">3</span><span>Clientes</span></a>
+<a href="../capitulos/04-articulos-familias-y-tarifas.html"><span class="nav-number">4</span><span>Artículos, familias y tarifas</span></a>
+<a aria-current="page" class="active" href="../capitulos/05-ventas-y-tpv.html"><span class="nav-number">5</span><span>Ventas y TPV</span></a>
+<a href="../capitulos/06-caja-cobros-y-creditos.html"><span class="nav-number">6</span><span>Caja, cobros y créditos</span></a>
+<a href="../capitulos/07-compras-pedidos-y-existencias.html"><span class="nav-number">7</span><span>Compras, pedidos y existencias</span></a>
+<a href="../capitulos/08-facturacion-impresion-pdf-y-correo.html"><span class="nav-number">8</span><span>Facturación, impresión, PDF y correo</span></a>
+<a href="../capitulos/09-verifactu-y-documentos-rectificativos.html"><span class="nav-number">9</span><span>VeriFactu y documentos rectificativos</span></a>
+<a href="../capitulos/10-dashboard-consultas-y-estadisticas.html"><span class="nav-number">10</span><span>Dashboard, consultas y estadísticas</span></a>
+<a href="../capitulos/11-copias-de-seguridad-y-mantenimiento.html"><span class="nav-number">11</span><span>Copias de seguridad y mantenimiento</span></a>
+<a href="../capitulos/12-solucion-de-problemas.html"><span class="nav-number">12</span><span>Solución de problemas</span></a>
+<a href="../capitulos/13-anexos-y-referencia-rapida.html"><span class="nav-number">13</span><span>Anexos y referencia rápida</span></a>
+<a href="../capitulos/14-plan-de-ampliacion-del-manual.html"><span class="nav-number">14</span><span>Plan de ampliación del manual</span></a></nav>
+<div class="sidebar-downloads"><strong>Descargas</strong>
+<a href="../descargas/Manual_FacturLinEx_v1.2_Mantenimiento_Solucion_Problemas_Ilustrado.pdf">Manual PDF</a>
+<a href="../descargas/Manual_FacturLinEx_v1.2_Mantenimiento_Solucion_Problemas_Ilustrado.docx">Manual DOCX</a>
+</div>
+</div>
+</aside>
+<main class="main-content" id="contenido">
+<article class="manual-page">
+<header class="chapter-header"><span class="eyebrow">Capítulo 5</span><h1>Ventas y TPV</h1><p class="chapter-version">Edición v1.2 · Mantenimiento y solución de problemas ilustrado</p></header>
+<nav aria-label="En esta página" class="page-toc"><strong>En esta página</strong><a href="#5-1-vision-general">5.1 Visión general</a><a href="#5-2-preparacion">5.2 Preparación antes de vender</a><a href="#5-3-cliente">5.3 Cliente</a><a href="#5-4-articulos">5.4 Artículos y líneas</a><a href="#5-5-tickets">5.5 Tickets aparcados y stock</a><a href="#5-6-busquedas">5.6 Búsquedas e históricos</a><a href="#5-7-teclados">5.7 Códigos varios y teclados</a><a href="#5-8-cobro">5.8 Totalización y cobro</a><a href="#5-9-documentos">5.9 Documentos de salida</a><a href="#5-10-ejemplo">5.10 Ejemplo completo</a><a href="#5-11-rectificativas">5.11 Devoluciones y rectificativas</a><a href="#5-12-atajos">5.12 Atajos</a><a href="#5-13-flujo">5.13 Flujo recomendado</a><a href="#5-14-problemas">5.14 Problemas habituales</a><a href="#5-15-comprobacion">5.15 Lista final</a></nav>
+<div class="chapter-content"><aside class="callout callout-success"><span aria-hidden="true" class="callout-icon">✓</span><div><strong>ESTADO</strong><p>Capítulo actualizado con Puesto visible, atajos Ctrl, F1-F4 para ventas aparcadas y el nuevo acceso Históricos. La figura principal es una composición documental sobre una captura real del 22/07/2026, pendiente de sustitución por una captura directa posterior al último cambio.</p></div></aside>
+<h2 id="5-1-vision-general">5.1 Objetivo y visión general <a class="heading-link" href="#5-1-vision-general">#</a></h2>
+<p>Ventas es el centro de trabajo del TPV. Desde esta pantalla se identifica al cliente, se añaden artículos, se revisan cantidades, precios, descuentos e IVA, se aparcan operaciones, se totaliza y se decide el documento de salida.</p>
+<figure class="manual-figure figure-wide"><a href="../assets/img/ventas/01_ventas_actualizada_historicos.png" target="_blank" title="Abrir imagen a tamaño completo"><img alt="Composición documental de Ventas actualizada con acceso Históricos" loading="lazy" src="../assets/img/ventas/01_ventas_actualizada_historicos.png"/></a><figcaption>Figura 5.1. Composición documental actualizada sobre una captura real; incorpora el acceso Históricos.<span>Pulse la imagen para ampliarla.</span></figcaption></figure>
+<aside class="callout callout-info"><span aria-hidden="true" class="callout-icon">i</span><div><strong>NOTA VISUAL</strong><p>El botón Históricos se ha incorporado documentalmente en su zona funcional. Esta figura no se presenta como captura directa posterior al cambio.</p></div></aside>
+<div class="zone-grid"><article><b>1. Cabecera</b><span>Fecha, hora, serie, puesto, número, usuario y estado.</span></article><article><b>2. Tickets y stock</b><span>Operaciones aparcadas y referencia rápida de existencias.</span></article><article><b>3. Cliente</b><span>Código, nombre, datos fiscales y descuentos.</span></article><article><b>4. Entrada</b><span>Código/EAN, descripción, unidades, precios, descuento e IVA.</span></article><article><b>5. Líneas</b><span>Artículos incorporados y detalle de importes.</span></article><article><b>6. Total y acciones</b><span>Total, VeriFactu, cobro, impresión, pedido e Históricos.</span></article><article><b>7. Venta en curso</b><span>Líneas, cliente, total y acceso a totalización.</span></article><article><b>8. Atajos</b><span>Ctrl, F1-F4, F5-F12 y ESC.</span></article></div>
+<h2 id="5-2-preparacion">5.2 Preparación antes de vender <a class="heading-link" href="#5-2-preparacion">#</a></h2>
+<ul class="checklist"><li><span class="checkbox"></span><span>Fecha y hora correctas.</span></li><li><span class="checkbox"></span><span>Serie adecuada al documento.</span></li><li><span class="checkbox"></span><span>Puesto y usuario correctos.</span></li><li><span class="checkbox"></span><span>TPV activo, impresora OK y BBDD conectada.</span></li><li><span class="checkbox"></span><span>Cliente de contado válido o sustituido por el cliente real.</span></li></ul>
+<aside class="callout callout-warning"><span aria-hidden="true" class="callout-icon">!</span><div><strong>PRECAUCIÓN</strong><p>Cambiar cliente, serie o tipo de documento después de cerrar la operación puede obligar a anularla o emitir una rectificativa.</p></div></aside>
+<h2 id="5-3-cliente">5.3 Selección e identificación del cliente <a class="heading-link" href="#5-3-cliente">#</a></h2>
+<figure class="manual-figure"><a href="../assets/img/ventas/02_cliente_entrada_articulos.png" target="_blank" title="Abrir imagen a tamaño completo"><img alt="Zona cliente y entrada de artículos" loading="lazy" src="../assets/img/ventas/02_cliente_entrada_articulos.png"/></a><figcaption>Figura 5.2. Zona real de cliente y entrada de artículos.<span>Pulse la imagen para ampliarla.</span></figcaption></figure>
+<p>En ventas anónimas puede mantenerse el cliente de contado. Para facturas, albaranes, créditos, rectificativas o condiciones especiales debe seleccionarse la ficha correcta.</p>
+<div class="table-scroll"><table><thead><tr><th>Acción</th><th>Método</th><th>Resultado</th></tr></thead><tbody><tr><td>Código cliente</td><td><kbd>Ctrl+O</kbd></td><td>Lleva el foco al código.</td></tr><tr><td>Nombre o búsqueda</td><td><kbd>Ctrl+U</kbd></td><td>Permite localizar por nombre o criterio disponible.</td></tr><tr><td>Aceptar línea / Nuevo</td><td><kbd>Ctrl+N</kbd></td><td>Ejecuta la función validada de la pantalla principal.</td></tr><tr><td>NIF</td><td>Búsqueda de clientes</td><td>Si hay varias coincidencias, debe abrirse un selector.</td></tr></tbody></table></div>
+<aside class="callout callout-info"><span aria-hidden="true" class="callout-icon">i</span><div><strong>COMPROBACIÓN</strong><p>Antes de una factura completa revise razón social, NIF, dirección y serie. Para créditos y albaranes, confirme también la cuenta seleccionada.</p></div></aside>
+<h2 id="5-4-articulos">5.4 Introducción de artículos y control de líneas <a class="heading-link" href="#5-4-articulos">#</a></h2>
+<ol><li>Sitúe el foco en <b>CÓDIGO ART.</b> o lea el EAN.</li><li>Compruebe la descripción.</li><li>Revise unidades, PVP con IVA, precio sin IVA, descuento, importe, IVA y total.</li><li>Pulse Nuevo o el atajo correspondiente.</li><li>Repita hasta completar la operación.</li></ol>
+<figure class="manual-figure"><a href="../assets/img/ventas/03_lineas_y_resumen.png" target="_blank" title="Abrir imagen a tamaño completo"><img alt="Rejilla de líneas y resumen" loading="lazy" src="../assets/img/ventas/03_lineas_y_resumen.png"/></a><figcaption>Figura 5.3. Rejilla de líneas y resumen de la venta en curso.<span>Pulse la imagen para ampliarla.</span></figcaption></figure>
+<div class="table-scroll"><table><thead><tr><th>Columna</th><th>Interpretación</th></tr></thead><tbody><tr><td>UNID.</td><td>Cantidad vendida.</td></tr><tr><td>P.V.P.</td><td>Precio con IVA mostrado.</td></tr><tr><td>PRECIO</td><td>Precio sin IVA o base del circuito.</td></tr><tr><td>%DTO</td><td>Descuento aplicado.</td></tr><tr><td>IMPORTE</td><td>Importe neto o base de línea.</td></tr><tr><td>%IVA</td><td>Tipo de IVA.</td></tr><tr><td>TOTAL</td><td>Total final de la línea con IVA.</td></tr></tbody></table></div>
+<aside class="callout callout-success"><span aria-hidden="true" class="callout-icon">✓</span><div><strong>CALIDAD DEL DATO</strong><p>Las estadísticas deben utilizar el precio efectivo realmente vendido cuando existe descuento, no únicamente el PVP original.</p></div></aside>
+<h2 id="5-5-tickets">5.5 Tickets abiertos, aparcado y stock <a class="heading-link" href="#5-5-tickets">#</a></h2>
+<figure class="manual-figure figure-narrow"><a href="../assets/img/ventas/06_tickets_stock.png" target="_blank" title="Abrir imagen a tamaño completo"><img alt="Panel de tickets abiertos y stock" loading="lazy" src="../assets/img/ventas/06_tickets_stock.png"/></a><figcaption>Figura 5.4. Tickets abiertos y referencia de stock.<span>Pulse la imagen para ampliarla.</span></figcaption></figure>
+<ul><li>Aparque una venta para atender otra operación sin perder sus líneas.</li><li>Antes de recuperarla, compruebe cliente, total, puesto y estado.</li><li>No cree una venta nueva si la operación ya está aparcada.</li><li>El stock mostrado es una ayuda; no sustituye el inventario cuando las existencias no son fiables.</li></ul>
+<p><kbd>F1</kbd> abre la primera venta aparcada, <kbd>F2</kbd> la segunda, <kbd>F3</kbd> la tercera y <kbd>F4</kbd> la cuarta. Después de conmutar, revise cliente, líneas y total antes de continuar.</p>
+<h2 id="5-6-busquedas">5.6 Búsquedas, históricos y marcado <a class="heading-link" href="#5-6-busquedas">#</a></h2>
+<p>Ventas dispone de dos accesos históricos con finalidades diferentes. <b>Histórico + filtro</b> consulta antecedentes del artículo o cliente; el nuevo botón <b>Históricos</b> abre directamente el Histórico de operaciones realizadas.</p>
+<div class="table-scroll"><table><thead><tr><th>Acceso</th><th>Uso</th></tr></thead><tbody><tr><td>Buscar</td><td>Localizar artículos por descripción cuando no se conoce código o EAN.</td></tr><tr><td>Histórico + filtro</td><td>Consultar ventas o precios anteriores del artículo o cliente según el filtro.</td></tr><tr><td>Históricos</td><td>Abrir el Histórico de operaciones realizadas para localizar documentos y operaciones cerradas.</td></tr><tr><td>Buscar abono</td><td>Localizar documento o línea de origen.</td></tr><tr><td>Marcar</td><td>Aplicar la función de marcado configurada.</td></tr></tbody></table></div>
+<aside class="callout callout-warning"><span aria-hidden="true" class="callout-icon">!</span><div><strong>USO CONTROLADO</strong><p>Una devolución no debe localizarse solo por importe. Compruebe cliente, artículo, fecha, serie y documento de origen.</p></div></aside>
+<figure class="manual-figure figure-wide"><a href="../assets/img/ventas/03_flujo_boton_historicos.png" target="_blank" title="Abrir imagen a tamaño completo"><img alt="Flujo del botón Históricos al histórico de operaciones" loading="lazy" src="../assets/img/ventas/03_flujo_boton_historicos.png"/></a><figcaption>Figura 5.5. Flujo documental del nuevo botón Históricos al Histórico de operaciones realizadas.<span>Pulse la imagen para ampliarla.</span></figcaption></figure>
+<h2 id="5-7-teclados">5.7 Códigos varios, teclado virtual y teclado de productos <a class="heading-link" href="#5-7-teclados">#</a></h2>
+<p>El flujo validado de códigos varios es <b>Descripción → Cantidad → PVP</b>, compatible con ENTER y TAB. Cantidad y precio activan teclado numérico; descripción y búsquedas, alfanumérico. El teclado de productos organiza botones por grupos y orden configurado.</p>
+<aside class="callout callout-info"><span aria-hidden="true" class="callout-icon">i</span><div><strong>CAPTURAS PENDIENTES</strong><p>Se incorporarán capturas reales del teclado numérico, alfanumérico y del configurador cuando exista una revisión visual definitiva con datos de ejemplo.</p></div></aside>
+<h2 id="5-8-cobro">5.8 Totalización y cobro <a class="heading-link" href="#5-8-cobro">#</a></h2>
+<p>En la pantalla principal basta comprobar el <b>Total</b> de la venta. Al pulsar el botón verde Totalizar o <kbd>F8</kbd>, FacturLinEx genera el proceso de cobro correspondiente. La zona inferior no debe interpretarse como un resumen de cobro independiente y permanente.</p>
+<figure class="manual-figure figure-wide"><a href="../assets/img/ventas/02_total_acciones_historicos_horizontal.png" target="_blank" title="Abrir imagen a tamaño completo"><img alt="Total y acciones principales de Ventas con acceso Históricos" loading="lazy" src="../assets/img/ventas/02_total_acciones_historicos_horizontal.png"/></a><figcaption>Figura 5.6. Detalle del Total y de las acciones principales, incluido Históricos.<span>Pulse la imagen para ampliarla.</span></figcaption></figure>
+<ol><li>Compruebe el Total visible.</li><li>Pulse F8 o Totalizar para iniciar el cobro.</li><li>Confirme la forma de pago en el panel generado.</li><li>Introduzca la entrega y revise el cambio cuando corresponda.</li><li>Confirme el documento o salida.</li><li>Espere la confirmación final antes de iniciar otra venta.</li></ol>
+<aside class="callout callout-danger"><span aria-hidden="true" class="callout-icon">!</span><div><strong>TOTALIZACIÓN</strong><p>El dato principal de la pantalla de Ventas es el Total. Entrega y Cambio pertenecen al proceso generado al totalizar; antes de repetir una operación, compruebe si ya quedó registrada.</p></div></aside>
+<h2 id="5-9-documentos">5.9 Documentos de salida <a class="heading-link" href="#5-9-documentos">#</a></h2>
+<div class="table-scroll"><table><thead><tr><th>Documento</th><th>Uso</th><th>Comprobaciones</th></tr></thead><tbody><tr><td>Ticket / simplificada</td><td>Venta inmediata de mostrador.</td><td>Serie simplificada, total y forma de pago.</td></tr><tr><td>Albarán</td><td>Entrega pendiente de facturación.</td><td>Cliente, serie, número y posterior facturación.</td></tr><tr><td>Factura completa</td><td>Documento fiscal con destinatario.</td><td>Razón social, NIF, dirección, IVA y total.</td></tr><tr><td>Rectificativa</td><td>Corrección de documento anterior.</td><td>Origen, serie, número, cliente y motivo.</td></tr></tbody></table></div>
+<aside class="callout callout-warning"><span aria-hidden="true" class="callout-icon">!</span><div><strong>ALBARANES</strong><p>Un albarán debe anularse normalmente mediante otro albarán. Tratarlo como ticket puede pedir una serie o número que no corresponde.</p></div></aside>
+<h2 id="5-10-ejemplo">5.10 Ejemplo de una venta con líneas <a class="heading-link" href="#5-10-ejemplo">#</a></h2>
+<figure class="manual-figure figure-wide"><a href="../assets/img/ventas/07_ejemplo_venta_con_lineas.png" target="_blank" title="Abrir imagen a tamaño completo"><img alt="Ejemplo de venta con tres líneas" loading="lazy" src="../assets/img/ventas/07_ejemplo_venta_con_lineas.png"/></a><figcaption>Figura 5.7. Ejemplo real con tres líneas introducidas; revisión anterior compatible.<span>Pulse la imagen para ampliarla.</span></figcaption></figure>
+<p>El ejemplo permite identificar cliente, artículos, unidades, PVP, precio, descuento, importe, IVA y total. Aunque procede de una revisión anterior, el flujo funcional es compatible.</p>
+<h2 id="5-11-rectificativas">5.11 Devoluciones, anulaciones y rectificativas <a class="heading-link" href="#5-11-rectificativas">#</a></h2>
+<ul><li>Las líneas negativas pueden activar el circuito rectificativo.</li><li>Debe conservarse el origen, serie, número y motivo.</li><li>Las ventas mixtas pueden requerir separación documental.</li><li>Después de emitir, revise impresión, histórico, tablas rectificativas y cola VeriFactu.</li></ul>
+<aside class="callout callout-danger"><span aria-hidden="true" class="callout-icon">!</span><div><strong>CASO EXCEPCIONAL</strong><p>Si se intenta abonar como ticket un documento procedente de albarán, detenga la operación y utilice el circuito documental correcto.</p></div></aside>
+<h2 id="5-12-atajos">5.12 Atajos de teclado confirmados <a class="heading-link" href="#5-12-atajos">#</a></h2>
+<figure class="manual-figure figure-wide"><a href="../assets/img/ventas/05_barra_atajos.png" target="_blank" title="Abrir imagen a tamaño completo"><img alt="Barra de atajos de Ventas" loading="lazy" src="../assets/img/ventas/05_barra_atajos.png"/></a><figcaption>Figura 5.8. Barra inferior real de atajos de Ventas.<span>Pulse la imagen para ampliarla.</span></figcaption></figure>
+<div class="shortcut-grid"><span><kbd>Ctrl+O</kbd> Código cliente</span><span><kbd>Ctrl+U</kbd> Nombre cliente</span><span><kbd>Ctrl+N</kbd> Aceptar línea</span><span><kbd>F1</kbd> 1.ª aparcada</span><span><kbd>F2</kbd> 2.ª aparcada</span><span><kbd>F3</kbd> 3.ª aparcada</span><span><kbd>F4</kbd> 4.ª aparcada</span><span><kbd>F5</kbd> Unidades</span><span><kbd>F6</kbd> PVP+IVA</span><span><kbd>F7</kbd> Total línea</span><span><kbd>F8</kbd> Totalizar/cobrar</span><span><kbd>F9</kbd> Ticket</span><span><kbd>F10</kbd> Albarán</span><span><kbd>F11</kbd> Factura/Dto.</span><span><kbd>F12</kbd> Usuario</span><span><kbd>ESC</kbd> Salir/cancelar auxiliar</span></div>
+<h2 id="5-13-flujo">5.13 Flujo recomendado de una venta normal <a class="heading-link" href="#5-13-flujo">#</a></h2>
+<ol><li>Compruebe fecha, serie, puesto, usuario, impresora y conexión.</li><li>Seleccione el cliente cuando no sea contado genérico.</li><li>Introduzca artículos y confirme descripción, cantidad, precio, descuento e IVA.</li><li>Revise las líneas antes de cobrar.</li><li>Compruebe el total y pulse F8.</li><li>Seleccione forma de pago, Entrega y Cambio.</li><li>Emita ticket, albarán o factura.</li><li>Espere la confirmación y compruebe impresión, PDF, correo o VeriFactu.</li></ol>
+<h2 id="5-14-problemas">5.14 Problemas habituales <a class="heading-link" href="#5-14-problemas">#</a></h2>
+<div class="table-scroll"><table><thead><tr><th>Síntoma</th><th>Comprobación</th><th>Actuación segura</th></tr></thead><tbody><tr><td>No encuentra cliente</td><td>Código, nombre, NIF y filtros.</td><td>Abra la búsqueda y seleccione la coincidencia correcta.</td></tr><tr><td>No aparece artículo</td><td>Código/EAN, tienda y ficha.</td><td>Busque por descripción; evite código vario innecesario.</td></tr><tr><td>Precio inesperado</td><td>Tarifa, cliente, descuento, IVA y coste.</td><td>Detenga la venta antes de totalizar.</td></tr><tr><td>Atajo Ctrl no actúa</td><td>Foco y paneles auxiliares.</td><td>Cierre el auxiliar y pruebe en la pantalla principal.</td></tr><tr><td>Aviso de correo oculto</td><td>Estado y posible superposición.</td><td>No reenvíe hasta confirmar si ya salió.</td></tr><tr><td>Pide serie/número incorrectos</td><td>Documento de origen.</td><td>Use el circuito adecuado de albarán, ticket o factura.</td></tr></tbody></table></div>
+<h2 id="5-15-comprobacion">5.15 Lista final de comprobación <a class="heading-link" href="#5-15-comprobacion">#</a></h2>
+<ul class="checklist"><li><span class="checkbox"></span><span>Cliente y datos fiscales correctos.</span></li><li><span class="checkbox"></span><span>Artículos, cantidades, precios y descuentos correctos.</span></li><li><span class="checkbox"></span><span>IVA e importes coherentes.</span></li><li><span class="checkbox"></span><span>Forma de pago, entrega y cambio correctos.</span></li><li><span class="checkbox"></span><span>Serie, puesto, usuario y documento adecuados.</span></li><li><span class="checkbox"></span><span>Impresión/PDF legible y correo confirmado.</span></li><li><span class="checkbox"></span><span>Histórico, créditos y cola VeriFactu revisados cuando proceda.</span></li></ul>
+<aside class="callout callout-success"><span aria-hidden="true" class="callout-icon">✓</span><div><strong>CIERRE SEGURO</strong><p>En la pantalla principal, ESC debe actuar como Cerrar. Con un panel, diálogo, teclado o edición pendiente, debe cancelar primero ese elemento.</p></div></aside></div>
+<nav aria-label="Capítulos anterior y siguiente" class="chapter-navigation"><a class="chapter-nav-card previous" href="04-articulos-familias-y-tarifas.html"><small>Anterior</small><strong>← 4. Artículos, familias y tarifas</strong></a><a class="chapter-nav-card next" href="06-caja-cobros-y-creditos.html"><small>Siguiente</small><strong>6. Caja, cobros y créditos →</strong></a></nav>
+</article>
+<footer class="site-footer">
+<p><strong>Manual FacturLinEx v1.2</strong> · Mantenimiento y solución de problemas ilustrado · 25 de julio de 2026</p>
+<p>Documento vivo: los procedimientos se actualizarán cuando cambie una función validada.</p>
+<a href="../descargas/Manual_FacturLinEx_v1.2_Mantenimiento_Solucion_Problemas_Ilustrado.pdf">Descargar PDF</a>
+</footer>
+</main>
+</div>
+<dialog aria-label="Buscar en el manual" class="search-dialog" data-search-dialog="">
+<form class="search-panel" method="dialog">
+<div class="search-input-row">
+<span aria-hidden="true">⌕</span>
+<input aria-label="Texto de búsqueda" autocomplete="off" data-search-input="" placeholder="Buscar clientes, ventas, VeriFactu..." type="search"/>
+<button aria-label="Cerrar búsqueda" class="dialog-close" type="submit">Esc</button>
+</div>
+<div class="search-hint" data-search-hint="">Escribe al menos dos caracteres.</div>
+<div aria-live="polite" class="search-results" data-search-results=""></div>
+</form>
+</dialog>
+</body>
+</html>

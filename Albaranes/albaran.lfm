@@ -4576,13 +4576,13 @@ object FAlbaran: TFAlbaran
     object Panel3: TPanel
       AnchorSideRight.Control = Panel5
       AnchorSideRight.Side = asrBottom
-      Left = 385
-      Height = 52
-      Top = 5
-      Width = 974
+      Left = 630
+      Height = 86
+      Top = 10
+      Width = 729
       Anchors = [akTop, akLeft, akRight]
-      ClientHeight = 52
-      ClientWidth = 974
+      ClientHeight = 86
+      ClientWidth = 729
       ParentBackground = False
       ParentFont = False
       TabOrder = 8
@@ -4605,7 +4605,7 @@ object FAlbaran: TFAlbaran
         ParentColor = False
         ParentFont = False
       end
-      object Edit3: TEdit
+      object Edit3: TDateEdit
         Left = 5
         Height = 20
         Top = 24
@@ -4613,7 +4613,7 @@ object FAlbaran: TFAlbaran
         ParentFont = False
         TabOrder = 0
       end
-      object Edit4: TEdit
+      object Edit4: TDateEdit
         Left = 95
         Height = 20
         Top = 24
@@ -4700,13 +4700,13 @@ object FAlbaran: TFAlbaran
     object Panel2: TPanel
       AnchorSideRight.Control = Panel5
       AnchorSideRight.Side = asrBottom
-      Left = 338
-      Height = 100
-      Top = 0
-      Width = 1021
+      Left = 630
+      Height = 108
+      Top = 10
+      Width = 729
       Anchors = [akTop, akLeft, akRight]
-      ClientHeight = 100
-      ClientWidth = 1021
+      ClientHeight = 108
+      ClientWidth = 729
       ParentBackground = False
       ParentFont = False
       TabOrder = 7
@@ -4888,11 +4888,11 @@ object FAlbaran: TFAlbaran
       end
     end
     object RadioGroup2: TRadioGroup
-      Left = 185
-      Height = 58
+      Left = 410
+      Height = 108
       Hint = 'Selecciona los documentos a listar en la rejilla.'
-      Top = 32
-      Width = 140
+      Top = 10
+      Width = 200
       AutoFill = True
       Caption = '  Documentos a visualizar   '
       ChildSizing.LeftRightSpacing = 6
@@ -4903,8 +4903,8 @@ object FAlbaran: TFAlbaran
       ChildSizing.ShrinkVertical = crsScaleChilds
       ChildSizing.Layout = cclLeftToRightThenTopToBottom
       ChildSizing.ControlsPerLine = 1
-      ClientHeight = 44
-      ClientWidth = 136
+      ClientHeight = 94
+      ClientWidth = 196
       ItemIndex = 0
       Items.Strings = (
         'Todos'

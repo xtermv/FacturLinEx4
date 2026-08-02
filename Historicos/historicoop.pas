@@ -158,6 +158,7 @@ Type
     procedure edDescripcionPuestoKeyPress(Sender: TObject; var Key: char);
     Procedure Formcreate(Sender: Tobject);
     Procedure Formclose(Sender: Tobject; Var Closeaction: Tcloseaction);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure Colorea(Column: TColumn;Grid: TDBGrid;dbColor: TZQuery);
     procedure DBGrid1TitleClick(Column: TColumn);
     procedure DBGrid2TitleClick(Column: TColumn);
@@ -196,7 +197,25 @@ Type
 
   Private
     { Private Declarations }
+    FPanelPeriodo: TPanel;
+    FLabelPeriodo: TLabel;
+    FHeaderSubtitle: TLabel;
+    FFooterHint: TLabel;
+    FDetalleTitulo: TLabel;
+    FDisenoAplicado: Boolean;
+    FEnAjusteDiseno: Boolean;
     procedure dbOperacionesAfterOpen(DataSet: TDataSet);
+    procedure CrearControlesVisuales;
+    procedure AplicarDisenoModerno;
+    procedure AjustarDisenoModerno;
+    procedure ActualizarVistaSeleccion(ASeleccion: Boolean);
+    procedure FormResizeModerno(Sender: TObject);
+    procedure EstiloBoton(ABoton: TBitBtn; AColor: TColor;
+      ATextoClaro: Boolean = True);
+    procedure EstiloGrid(AGrid: TDBGrid);
+    procedure DBGridModernoDrawColumnCell(Sender: TObject;
+      const Rect: TRect; DataCol: Integer; Column: TColumn;
+      State: TGridDrawState);
   Public
     { Public Declarations }
   End;
@@ -257,6 +276,543 @@ begin
             '&importe=' + HOP_QRImporte(AImporte);
 end;
 
+//====================================================================
+// DISEÑO MODERNO CONSERVADOR
+// Solo modifica presentación y distribución. No altera consultas, eventos,
+// impresión, QR ni la generación de ventas/abonos.
+//====================================================================
+procedure TFLHistoop.EstiloBoton(ABoton: TBitBtn; AColor: TColor;
+  ATextoClaro: Boolean);
+begin
+  if not Assigned(ABoton) then
+    Exit;
+
+  ABoton.Color := AColor;
+  ABoton.Font.Style := [fsBold];
+  ABoton.Font.Height := -13;
+  if ATextoClaro then
+    ABoton.Font.Color := clWhite
+  else
+    ABoton.Font.Color := RGBToColor(30, 41, 59);
+end;
+
+procedure TFLHistoop.EstiloGrid(AGrid: TDBGrid);
+begin
+  if not Assigned(AGrid) then
+    Exit;
+
+  AGrid.Align := alNone;
+  AGrid.Color := clWhite;
+  AGrid.Font.Color := RGBToColor(30, 41, 59);
+  AGrid.Font.Height := -13;
+  AGrid.DefaultRowHeight := 25;
+  AGrid.GridLineColor := RGBToColor(203, 213, 225);
+  AGrid.TitleFont.Color := clWhite;
+  AGrid.TitleFont.Style := [fsBold];
+  AGrid.TitleFont.Height := -13;
+end;
+
+procedure TFLHistoop.DBGridModernoDrawColumnCell(Sender: TObject;
+  const Rect: TRect; DataCol: Integer; Column: TColumn;
+  State: TGridDrawState);
+var
+  Grid: TDBGrid;
+  EstadoPintado: TGridDrawState;
+begin
+  if not (Sender is TDBGrid) then
+    Exit;
+
+  Grid := TDBGrid(Sender);
+  EstadoPintado := State - [gdSelected, gdFocused];
+  Grid.Canvas.Font.Style := [];
+
+  if gdSelected in State then
+  begin
+    Grid.Canvas.Brush.Color := RGBToColor(219, 234, 254);
+    Grid.Canvas.Font.Color := RGBToColor(15, 23, 42);
+    Grid.Canvas.Font.Style := [fsBold];
+  end
+  else
+  begin
+    Grid.Canvas.Brush.Color := Column.Color;
+    Grid.Canvas.Font.Color := RGBToColor(30, 41, 59);
+  end;
+
+  Grid.Canvas.FillRect(Rect);
+  Grid.DefaultDrawColumnCell(Rect, DataCol, Column, EstadoPintado);
+end;
+
+procedure TFLHistoop.CrearControlesVisuales;
+begin
+  if Assigned(FPanelPeriodo) then
+    Exit;
+
+  // Las etiquetas que se distribuyen manualmente no deben recalcular su
+  // tamaño según el texto. AutoSize junto con SetBounds puede provocar un
+  // bucle de ChangeBounds en determinadas versiones de GTK/Lazarus.
+  LabelTituloDBGrid.AutoSize := False;
+  Label1.AutoSize := False;
+  Label2.AutoSize := False;
+  Label3.AutoSize := False;
+  Label4.AutoSize := False;
+  Label5.AutoSize := False;
+  Label6.AutoSize := False;
+  Label11.AutoSize := False;
+  Label12.AutoSize := False;
+  LabelCambiable.AutoSize := False;
+  lbPuesto.AutoSize := False;
+  lbCodigoPuesto.AutoSize := False;
+  lbDescripcionPuesto.AutoSize := False;
+
+  FHeaderSubtitle := TLabel.Create(Self);
+  FHeaderSubtitle.Parent := PanelTituloGrid;
+  FHeaderSubtitle.AutoSize := False;
+  FHeaderSubtitle.Caption :=
+    'Consulta, revisa, reimprime y recupera operaciones con total trazabilidad';
+
+  FPanelPeriodo := TPanel.Create(Self);
+  FPanelPeriodo.Parent := Self;
+  FPanelPeriodo.BevelOuter := bvNone;
+  FPanelPeriodo.BorderWidth := 1;
+  FPanelPeriodo.Color := clWhite;
+
+  FLabelPeriodo := TLabel.Create(Self);
+  FLabelPeriodo.Parent := FPanelPeriodo;
+  FLabelPeriodo.AutoSize := False;
+  FLabelPeriodo.Caption := 'Periodo y horario de consulta';
+
+  // Los controles conservan sus eventos; solo cambian de contenedor visual.
+  Label2.Parent := FPanelPeriodo;
+  Label1.Parent := FPanelPeriodo;
+  Label3.Parent := FPanelPeriodo;
+  Label4.Parent := FPanelPeriodo;
+  DateEditDesde.Parent := FPanelPeriodo;
+  DateEditHasta.Parent := FPanelPeriodo;
+  ComboBoxHoraDesde.Parent := FPanelPeriodo;
+  ComboBoxHoraHasta.Parent := FPanelPeriodo;
+
+  FFooterHint := TLabel.Create(Self);
+  FFooterHint.Parent := Panel1;
+  FFooterHint.AutoSize := False;
+  FFooterHint.Caption :=
+    'Doble clic: abrir detalle  ·  Cabeceras: ordenar  ·  Rojo: operación en crédito';
+
+  FDetalleTitulo := TLabel.Create(Self);
+  FDetalleTitulo.Parent := PanelDetalleOperacion;
+  FDetalleTitulo.AutoSize := False;
+  FDetalleTitulo.Caption := 'Detalle de la operación seleccionada';
+end;
+
+procedure TFLHistoop.AplicarDisenoModerno;
+var
+  I: Integer;
+  R: TRadioButton;
+begin
+  // Estos controles se distribuyen manualmente. Se eliminan Align,
+  // Anchors y AnchorSides heredados del LFM para que GTK/LCL no intente
+  // recalcular sus límites al mismo tiempo que AjustarDisenoModerno.
+  PanelCambiable.Align := alNone;
+  PanelCambiable.Anchors := [akTop, akLeft];
+
+  PanelPuesto.Align := alNone;
+  PanelPuesto.Anchors := [akTop, akLeft];
+  PanelPuesto.AnchorSideRight.Control := nil;
+  PanelPuesto.BorderSpacing.Right := 0;
+
+  PanelRadioButton.Align := alNone;
+  PanelRadioButton.Anchors := [akTop, akLeft];
+
+  PanelLeyenda.Align := alNone;
+  PanelLeyenda.Anchors := [akTop, akLeft];
+
+  PanelDetalleOperacion.Align := alNone;
+  PanelDetalleOperacion.Anchors := [akTop, akLeft];
+  PanelDetalleOperacion.AnchorSideRight.Control := nil;
+  PanelDetalleOperacion.AnchorSideBottom.Control := nil;
+  PanelDetalleOperacion.BorderSpacing.Bottom := 0;
+
+  DBGrid1.Align := alNone;
+  DBGrid1.Anchors := [akTop, akLeft];
+  DBGrid1.AnchorSideRight.Control := nil;
+  DBGrid1.AnchorSideBottom.Control := nil;
+
+  DBGrid2.Align := alNone;
+  DBGrid2.Anchors := [akTop, akLeft];
+  DBGrid2.AnchorSideRight.Control := nil;
+  DBGrid2.AnchorSideBottom.Control := nil;
+
+  DBGrid4.Align := alNone;
+  DBGrid4.Anchors := [akTop, akLeft];
+  DBGrid4.AnchorSideRight.Control := nil;
+  DBGrid4.AnchorSideBottom.Control := nil;
+
+  DBGrid5.Align := alNone;
+  DBGrid5.Anchors := [akTop, akLeft];
+  DBGrid5.AnchorSideRight.Control := nil;
+  DBGrid5.AnchorSideBottom.Control := nil;
+
+  DBGrid3.Align := alNone;
+  DBGrid3.Anchors := [akTop, akLeft];
+  DBGrid3.AnchorSideBottom.Control := nil;
+  DBGrid3.BorderSpacing.Bottom := 0;
+
+  BitBtn1.Anchors := [akTop, akLeft];
+  BitBtn2.Anchors := [akTop, akLeft];
+  BitBtn3.Anchors := [akTop, akLeft];
+  BitBtn4.Anchors := [akTop, akLeft];
+  BitBtn5.Anchors := [akTop, akLeft];
+
+  BitBtn26.Anchors := [akTop, akLeft];
+  BitBtn26.AnchorSideBottom.Control := nil;
+  BitBtn26.BorderSpacing.Bottom := 0;
+
+  BitBtn27.Anchors := [akTop, akLeft];
+  BitBtn27.AnchorSideBottom.Control := nil;
+  BitBtn27.BorderSpacing.Bottom := 0;
+
+  CheckBox1.Anchors := [akTop, akLeft];
+  CheckBox1.AnchorSideBottom.Control := nil;
+  CheckBox1.BorderSpacing.Bottom := 0;
+
+  ComboBox1.Anchors := [akTop, akLeft];
+  ComboBox1.AnchorSideBottom.Control := nil;
+  ComboBox1.BorderSpacing.Bottom := 0;
+
+  CheckBox2.Anchors := [akTop, akLeft];
+  CheckBox2.AnchorSideLeft.Control := nil;
+  CheckBox2.AnchorSideRight.Control := nil;
+
+  FEnAjusteDiseno := False;
+  Color := RGBToColor(241, 245, 249);
+  Font.Name := 'Sans';
+  Font.Height := -13;
+
+  PanelTituloGrid.BevelOuter := bvNone;
+  PanelTituloGrid.Color := RGBToColor(15, 76, 92);
+  LabelTituloDBGrid.Font.Color := clWhite;
+  LabelTituloDBGrid.Font.Style := [fsBold];
+  LabelTituloDBGrid.Font.Height := -20;
+  if Trim(LabelTituloDBGrid.Caption) = '' then
+    LabelTituloDBGrid.Caption := 'Histórico de operaciones';
+
+  FHeaderSubtitle.Font.Color := RGBToColor(204, 231, 236);
+  FHeaderSubtitle.Font.Height := -12;
+
+  FPanelPeriodo.Color := clWhite;
+  FLabelPeriodo.Font.Color := RGBToColor(15, 76, 92);
+  FLabelPeriodo.Font.Style := [fsBold];
+  FLabelPeriodo.Font.Height := -16;
+
+  Label2.Font.Color := RGBToColor(71, 85, 105);
+  Label1.Font.Color := RGBToColor(71, 85, 105);
+  Label3.Font.Color := RGBToColor(71, 85, 105);
+  Label4.Font.Color := RGBToColor(71, 85, 105);
+  Label2.Font.Style := [fsBold];
+  Label1.Font.Style := [fsBold];
+  Label3.Font.Style := [fsBold];
+  Label4.Font.Style := [fsBold];
+
+  DateEditDesde.Font.Height := -14;
+  DateEditHasta.Font.Height := -14;
+  ComboBoxHoraDesde.Font.Height := -14;
+  ComboBoxHoraHasta.Font.Height := -14;
+
+  PanelCambiable.BevelOuter := bvNone;
+  PanelCambiable.BorderWidth := 1;
+  PanelCambiable.Color := clWhite;
+  LabelCambiable.Font.Color := RGBToColor(15, 76, 92);
+  LabelCambiable.Font.Style := [fsBold];
+  EditCambiableCodigo.Font.Height := -14;
+  StaticTextCambiableNombre.Font.Color := RGBToColor(30, 41, 59);
+  StaticTextCambiableNombre.Font.Height := -14;
+  ComboCambiableNombre.Font.Height := -14;
+
+  PanelPuesto.BevelOuter := bvNone;
+  PanelPuesto.BorderWidth := 1;
+  PanelPuesto.Color := clWhite;
+  lbPuesto.Font.Color := RGBToColor(15, 76, 92);
+  lbPuesto.Font.Style := [fsBold];
+  lbPuesto.Font.Height := -16;
+  lbCodigoPuesto.Font.Color := RGBToColor(71, 85, 105);
+  lbDescripcionPuesto.Font.Color := RGBToColor(71, 85, 105);
+  edCodigoPuesto.Font.Height := -14;
+  edDescripcionPuesto.Font.Height := -14;
+
+  PanelRadioButton.BevelOuter := bvNone;
+  PanelRadioButton.BorderWidth := 1;
+  PanelRadioButton.Color := clWhite;
+  Label5.Font.Color := RGBToColor(15, 76, 92);
+  Label5.Font.Style := [fsBold];
+  Label5.Font.Height := -16;
+
+  for I := 0 to PanelRadioButton.ControlCount - 1 do
+    if PanelRadioButton.Controls[I] is TRadioButton then
+    begin
+      R := TRadioButton(PanelRadioButton.Controls[I]);
+      R.Font.Color := RGBToColor(30, 41, 59);
+      R.Font.Height := -13;
+    end;
+
+  Label11.Font.Color := RGBToColor(71, 85, 105);
+  Label12.Font.Color := RGBToColor(100, 116, 139);
+  Edit1.Font.Height := -14;
+
+  PanelLeyenda.BevelOuter := bvNone;
+  PanelLeyenda.BorderWidth := 1;
+  PanelLeyenda.Color := RGBToColor(255, 251, 235);
+  Label6.Font.Color := RGBToColor(146, 64, 14);
+  Label6.Font.Style := [fsBold];
+  for I := 0 to PanelLeyenda.ControlCount - 1 do
+    if PanelLeyenda.Controls[I] is TLabel then
+      TLabel(PanelLeyenda.Controls[I]).Font.Height := -12;
+  Label13.Font.Color := RGBToColor(185, 28, 28);
+  Label13.Font.Style := [fsBold];
+
+  Panel1.BevelOuter := bvNone;
+  Panel1.BorderWidth := 1;
+  Panel1.Color := clWhite;
+  FFooterHint.Font.Color := RGBToColor(100, 116, 139);
+  FFooterHint.Font.Height := -12;
+
+  EstiloBoton(BitBtn1, RGBToColor(15, 118, 110));
+  EstiloBoton(BitBtn2, RGBToColor(37, 99, 235));
+  EstiloBoton(BitBtn3, RGBToColor(71, 85, 105));
+  EstiloBoton(BitBtn5, RGBToColor(124, 58, 237));
+  EstiloBoton(BitBtn4, RGBToColor(185, 28, 28));
+  EstiloBoton(BitBtn26, RGBToColor(37, 99, 235));
+  EstiloBoton(BitBtn27, RGBToColor(71, 85, 105));
+  EstiloBoton(BitBtnCambiable, RGBToColor(15, 118, 110));
+  EstiloBoton(btPuesto, RGBToColor(15, 118, 110));
+
+  BitBtn1.Caption := 'Visualizar';
+  BitBtn2.Caption := 'Imprimir';
+  BitBtn3.Caption := 'Nueva selección';
+  BitBtn5.Caption := 'Generar venta/abono';
+  BitBtn4.Caption := 'Cerrar';
+
+  PanelDetalleOperacion.BevelOuter := bvNone;
+  PanelDetalleOperacion.BorderWidth := 1;
+  PanelDetalleOperacion.Color := clWhite;
+  FDetalleTitulo.Font.Color := RGBToColor(15, 76, 92);
+  FDetalleTitulo.Font.Style := [fsBold];
+  FDetalleTitulo.Font.Height := -16;
+
+  StaticTextLabNumOper.Font.Color := RGBToColor(100, 116, 139);
+  StaticTextLabCliente.Font.Color := RGBToColor(100, 116, 139);
+  StaticTextLabFecha.Font.Color := RGBToColor(100, 116, 139);
+  StaticTextLabHora.Font.Color := RGBToColor(100, 116, 139);
+  StaticTextLabVend.Font.Color := RGBToColor(100, 116, 139);
+  StaticTextLabTotal.Font.Color := RGBToColor(15, 76, 92);
+  StaticTextLabEntrega.Font.Color := RGBToColor(37, 99, 235);
+  StaticTextLabCambio.Font.Color := RGBToColor(5, 150, 105);
+
+  StaticTextNumOper.Font.Style := [fsBold];
+  StaticTextCliente.Font.Style := [fsBold];
+  StaticTextTipoPago.Font.Style := [fsBold];
+  StaticTextTotal.Font.Style := [fsBold];
+  StaticTextTotal.Font.Height := -23;
+  StaticTextTotal.Font.Color := RGBToColor(15, 76, 92);
+  StaticTextEntrega.Font.Style := [fsBold];
+  StaticTextEntrega.Font.Color := RGBToColor(37, 99, 235);
+  StaticTextCambio.Font.Style := [fsBold];
+  StaticTextCambio.Font.Color := RGBToColor(5, 150, 105);
+  StaticTextEntregaContado.Font.Style := [fsBold];
+  StaticTextEntregaContado.Font.Color := RGBToColor(37, 99, 235);
+
+  EstiloGrid(DBGrid1);
+  EstiloGrid(DBGrid2);
+  EstiloGrid(DBGrid3);
+  EstiloGrid(DBGrid4);
+  EstiloGrid(DBGrid5);
+
+  DBGrid2.OnDrawColumnCell := @DBGridModernoDrawColumnCell;
+  DBGrid3.OnDrawColumnCell := @DBGridModernoDrawColumnCell;
+  DBGrid4.OnDrawColumnCell := @DBGridModernoDrawColumnCell;
+  DBGrid5.OnDrawColumnCell := @DBGridModernoDrawColumnCell;
+
+  FDisenoAplicado := True;
+end;
+
+procedure TFLHistoop.ActualizarVistaSeleccion(ASeleccion: Boolean);
+begin
+  if Assigned(FPanelPeriodo) then
+    FPanelPeriodo.Visible := ASeleccion;
+  PanelPuesto.Visible := ASeleccion;
+  PanelRadioButton.Visible := ASeleccion;
+  PanelCambiable.Visible := ASeleccion;
+
+  if ASeleccion then
+  begin
+    PanelDetalleOperacion.Visible := False;
+    PanelLeyenda.Visible := False;
+    if Trim(LabelTituloDBGrid.Caption) = '' then
+      LabelTituloDBGrid.Caption := 'Histórico de operaciones';
+  end;
+
+  AjustarDisenoModerno;
+end;
+
+procedure TFLHistoop.AjustarDisenoModerno;
+var
+  Margen, AnchoFiltro, AnchoIzq, AltoDetalle, AltoGrid: Integer;
+  GridActivo: TDBGrid;
+begin
+  if (not FDisenoAplicado) or FEnAjusteDiseno then
+    Exit;
+
+  FEnAjusteDiseno := True;
+  DisableAlign;
+  Panel1.DisableAlign;
+  PanelDetalleOperacion.DisableAlign;
+  try
+    Margen := 18;
+  PanelTituloGrid.Height := 64;
+  LabelTituloDBGrid.SetBounds(18, 7, ClientWidth - 36, 28);
+  FHeaderSubtitle.SetBounds(19, 35, ClientWidth - 38, 20);
+
+  Panel1.Height := 78;
+  BitBtn1.SetBounds(16, 14, 116, 48);
+  BitBtn2.SetBounds(142, 14, 116, 48);
+  BitBtn3.SetBounds(268, 14, 148, 48);
+  BitBtn5.SetBounds(426, 14, 178, 48);
+  BitBtn4.SetBounds(Panel1.ClientWidth - 132, 14, 116, 48);
+  FFooterHint.SetBounds(620, 27, Panel1.ClientWidth - 770, 22);
+
+  AnchoFiltro := 304;
+  AnchoIzq := ClientWidth - AnchoFiltro - (Margen * 3);
+  if AnchoIzq < 560 then
+    AnchoIzq := 560;
+
+  FPanelPeriodo.SetBounds(Margen, 86, AnchoIzq, 116);
+  FLabelPeriodo.SetBounds(16, 10, AnchoIzq - 32, 24);
+  Label2.SetBounds(18, 42, 90, 20);
+  DateEditDesde.SetBounds(112, 36, 118, DateEditDesde.Height);
+  Label1.SetBounds(258, 42, 90, 20);
+  DateEditHasta.SetBounds(352, 36, 118, DateEditHasta.Height);
+  Label3.SetBounds(18, 80, 90, 20);
+  ComboBoxHoraDesde.SetBounds(112, 73, 118, ComboBoxHoraDesde.Height);
+  Label4.SetBounds(258, 80, 90, 20);
+  ComboBoxHoraHasta.SetBounds(352, 73, 118, ComboBoxHoraHasta.Height);
+
+  PanelCambiable.SetBounds(Margen, 216, AnchoIzq, 64);
+  LabelCambiable.SetBounds(16, 22, 98, 22);
+  EditCambiableCodigo.SetBounds(120, 16, 96, EditCambiableCodigo.Height);
+  BitBtnCambiable.SetBounds(222, 16, 34, 31);
+  StaticTextCambiableNombre.SetBounds(266, 16, AnchoIzq - 282, 31);
+  ComboCambiableNombre.SetBounds(266, 16, AnchoIzq - 282,
+    ComboCambiableNombre.Height);
+
+  // Los TCheckBox y TRadioButton conservan su tamaño nativo GTK.
+  // Solo se cambia su posición para evitar bucles ChangeBounds.
+  PanelPuesto.SetBounds(Margen, 294, AnchoIzq, 126);
+  lbPuesto.SetBounds(16, 10, AnchoIzq - 32, 24);
+  lbCodigoPuesto.SetBounds(18, 47, 60, 20);
+  edCodigoPuesto.SetBounds(82, 40, 66, edCodigoPuesto.Height);
+  btPuesto.SetBounds(154, 40, 34, 30);
+  lbDescripcionPuesto.SetBounds(204, 47, 80, 20);
+  edDescripcionPuesto.SetBounds(290, 40, AnchoIzq - 306,
+    edDescripcionPuesto.Height);
+  cbTodosPuestos.Left := 18;
+  cbTodosPuestos.Top := 86;
+
+  PanelRadioButton.SetBounds(ClientWidth - AnchoFiltro - Margen,
+    86, AnchoFiltro, 396);
+  Label5.SetBounds(18, 12, AnchoFiltro - 36, 24);
+  RadioButton1.Left := 18; RadioButton1.Top := 43;
+  RadioButton2.Left := 18; RadioButton2.Top := 72;
+  RadioButton3.Left := 18; RadioButton3.Top := 101;
+  RadioButton4.Left := 18; RadioButton4.Top := 130;
+  RadioButton5.Left := 18; RadioButton5.Top := 159;
+  RadioButton9.Left := 18; RadioButton9.Top := 188;
+  RadioButton7.Left := 18; RadioButton7.Top := 217;
+  RadioButton8.Left := 18; RadioButton8.Top := 246;
+  RadioButton6.Left := 18; RadioButton6.Top := 275;
+  Label11.SetBounds(18, 306, 260, 20);
+  Edit1.SetBounds(18, 327, 268, Edit1.Height);
+  Label12.SetBounds(18, 361, 268, 20);
+
+  PanelLeyenda.SetBounds(ClientWidth - 314, 88, 286, 270);
+  Label6.SetBounds(12, 8, 260, 23);
+
+  GridActivo := nil;
+  if DBGrid1.Visible then GridActivo := DBGrid1
+  else if DBGrid2.Visible then GridActivo := DBGrid2
+  else if DBGrid4.Visible then GridActivo := DBGrid4
+  else if DBGrid5.Visible then GridActivo := DBGrid5;
+
+  if Assigned(GridActivo) then
+  begin
+    AltoDetalle := 0;
+    if PanelDetalleOperacion.Visible and (GridActivo = DBGrid1) then
+      AltoDetalle := 294;
+
+    AltoGrid := ClientHeight - PanelTituloGrid.Height - Panel1.Height -
+      AltoDetalle - (Margen * 2);
+    if AltoGrid < 180 then
+      AltoGrid := 180;
+
+    GridActivo.Align := alNone;
+    GridActivo.SetBounds(Margen, PanelTituloGrid.Height + 10,
+      ClientWidth - (Margen * 2), AltoGrid);
+
+    if PanelDetalleOperacion.Visible and (GridActivo = DBGrid1) then
+    begin
+      PanelDetalleOperacion.SetBounds(Margen, GridActivo.Top + GridActivo.Height + 8,
+        ClientWidth - (Margen * 2), 286);
+      FDetalleTitulo.SetBounds(14, 8, PanelDetalleOperacion.ClientWidth - 28, 24);
+
+      StaticTextLabNumOper.SetBounds(16, 38, 98, 22);
+      StaticTextNumOper.SetBounds(118, 38, 96, 22);
+      StaticTextTipoPago.SetBounds(226, 38, 150, 22);
+      StaticTextLabCliente.SetBounds(390, 38, 62, 22);
+      StaticTextCliente.SetBounds(456, 38,
+        PanelDetalleOperacion.ClientWidth - 760, 22);
+      StaticTextLabTotal.SetBounds(PanelDetalleOperacion.ClientWidth - 260,
+        35, 62, 24);
+      StaticTextTotal.SetBounds(PanelDetalleOperacion.ClientWidth - 194,
+        30, 174, 34);
+
+      StaticTextLabFecha.SetBounds(16, 70, 50, 22);
+      StaticTextFecha.SetBounds(70, 70, 96, 22);
+      StaticTextLabHora.SetBounds(176, 70, 42, 22);
+      StaticTextHora.SetBounds(222, 70, 82, 22);
+      StaticTextLabVend.SetBounds(316, 70, 62, 22);
+      StaticTextVend.SetBounds(382, 70, 180, 22);
+      StaticTextLabEntrega.SetBounds(PanelDetalleOperacion.ClientWidth - 472,
+        70, 68, 22);
+      StaticTextEntrega.SetBounds(PanelDetalleOperacion.ClientWidth - 400,
+        70, 76, 22);
+      StaticTextLabEntrega1.SetBounds(PanelDetalleOperacion.ClientWidth - 320,
+        70, 16, 22);
+      StaticTextEntregaContado.SetBounds(PanelDetalleOperacion.ClientWidth - 302,
+        70, 76, 22);
+      StaticTextLabCambio.SetBounds(PanelDetalleOperacion.ClientWidth - 218,
+        70, 60, 22);
+      StaticTextCambio.SetBounds(PanelDetalleOperacion.ClientWidth - 154,
+        70, 134, 22);
+
+      DBGrid3.SetBounds(12, 101, PanelDetalleOperacion.ClientWidth - 24, 134);
+      CheckBox1.Left := 16; CheckBox1.Top := 247;
+      ComboBox1.SetBounds(302, 244, 250, ComboBox1.Height);
+      BitBtn27.SetBounds(568, 244, 126, 32);
+      CheckBox2.Left := 710; CheckBox2.Top := 247;
+      BitBtn26.SetBounds(PanelDetalleOperacion.ClientWidth - 132,
+        244, 116, 32);
+    end;
+  end;
+  finally
+    PanelDetalleOperacion.EnableAlign;
+    Panel1.EnableAlign;
+    EnableAlign;
+    FEnAjusteDiseno := False;
+  end;
+end;
+
+procedure TFLHistoop.FormResizeModerno(Sender: TObject);
+begin
+  AjustarDisenoModerno;
+end;
+
 //=============== Crea el formulario ================
 procedure ShowFormHistoop;
 begin
@@ -287,6 +843,11 @@ Begin
   // Ocultamos todos los DBGrid
   DimensionarColocarBDGrid();
   OcultarBDGrid();
+
+  CrearControlesVisuales;
+  AplicarDisenoModerno;
+  OnResize := @FormResizeModerno;
+  ActualizarVistaSeleccion(True);
 End;
 
 //-- Mantener compatibilidad al añadir campos nuevos en hisopcc (p.ej. HO20_RECT)
@@ -503,6 +1064,47 @@ Procedure TFLHistoop.Formclose(Sender: Tobject; Var Closeaction: Tcloseaction);
 Begin
   Closeaction:=CaFree;
 End;
+
+//==================== NAVEGACION CON ESC ======================
+procedure TFLHistoop.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key <> VK_ESCAPE then
+    Exit;
+
+  // Si hay una lista desplegable abierta, dejamos que el propio control
+  // procese ESC y cierre solo la lista, sin cambiar de pantalla.
+  if (ActiveControl is TComboBox) and
+     TComboBox(ActiveControl).DroppedDown then
+    Exit;
+
+  Key := 0;
+
+  // Cierra primero la leyenda auxiliar, manteniendo el estado del listado.
+  if PanelLeyenda.Visible then
+  begin
+    BitBtn27Click(Self);
+    Exit;
+  end;
+
+  // Cierra primero el detalle de la operación y conserva el listado.
+  if PanelDetalleOperacion.Visible then
+  begin
+    PanelDetalleOperacion.Visible := False;
+    AjustarDisenoModerno;
+    Exit;
+  end;
+
+  // Desde cualquier listado vuelve a la pantalla de selección.
+  if not PanelRadioButton.Visible then
+  begin
+    BitBtn3Click(Self);
+    Exit;
+  end;
+
+  // En la pantalla principal ejecuta exactamente la acción del botón Cerrar.
+  BitBtn4Click(Self);
+end;
 
 //==================== VISUALIZAR ===================
 procedure TFLHistoop.BitBtn1Click(Sender: TObject);
@@ -762,6 +1364,8 @@ begin
      Label12.Visible:=False;
     end;
   LabelTituloDBGrid.Caption:=TituloGrid;
+  ActualizarVistaSeleccion(False);
+  AjustarDisenoModerno;
   //WriteLn(TxtQuery);
 end;
 
@@ -1211,6 +1815,7 @@ begin
   LabelTituloDBGrid.Caption:='';
   DBGrid1.SendToBack;
   OcultarBDGrid();
+  ActualizarVistaSeleccion(True);
 end;
 
 //==================== IMPRIMIR ===================
@@ -1266,6 +1871,7 @@ begin
   CheckBox1Click(Self);
 
   PanelDetalleOperacion.Visible:=True;
+  AjustarDisenoModerno;
 end;
 
 
@@ -1296,6 +1902,9 @@ end;
 //=============== PONER LINEAS DE CREDITO EN ROJO============
 procedure TFLHistoop.DBGrid1DrawColumnCell(Sender: TObject; const Rect: TRect;
   DataCol: Integer; Column: TColumn; State: TGridDrawState);
+var
+  EsCredito: Boolean;
+  EstadoPintado: TGridDrawState;
 begin
   dbCreditos.SQL.Text:='SELECT * FROM creditos'+Tienda+' WHERE CRE0='+
                     dbOperaciones.FieldByName('HO8').AsString+' AND CRE1="'+
@@ -1305,13 +1914,35 @@ begin
                     ' AND CRE4="'+dbOperaciones.FieldByName('HO4').AsString+'"'+
                     ' AND CRE5='+dbOperaciones.FieldByName('HO3').AsString;
   dbCreditos.Active:=True;
-  if dbCreditos.RecordCount<>0 then
-    begin
-      DBGrid1.Canvas.Font.Color := clRed;
-      //DBGrid2.Canvas.Brush.Color := $00CDDAF1;
-      DBGrid1.DefaultDrawColumnCell(Rect, DataCol, Column, State);
-    end;
+  EsCredito := dbCreditos.RecordCount<>0;
   dbCreditos.Active:=False;
+
+  EstadoPintado := State - [gdSelected, gdFocused];
+  DBGrid1.Canvas.Font.Style := [];
+
+  if EsCredito then
+  begin
+    if gdSelected in State then
+      DBGrid1.Canvas.Brush.Color := RGBToColor(254, 242, 242)
+    else
+      DBGrid1.Canvas.Brush.Color := RGBToColor(254, 226, 226);
+    DBGrid1.Canvas.Font.Color := RGBToColor(185, 28, 28);
+    DBGrid1.Canvas.Font.Style := [fsBold];
+  end
+  else if gdSelected in State then
+  begin
+    DBGrid1.Canvas.Brush.Color := RGBToColor(219, 234, 254);
+    DBGrid1.Canvas.Font.Color := RGBToColor(15, 23, 42);
+    DBGrid1.Canvas.Font.Style := [fsBold];
+  end
+  else
+  begin
+    DBGrid1.Canvas.Brush.Color := Column.Color;
+    DBGrid1.Canvas.Font.Color := RGBToColor(30, 41, 59);
+  end;
+
+  DBGrid1.Canvas.FillRect(Rect);
+  DBGrid1.DefaultDrawColumnCell(Rect, DataCol, Column, EstadoPintado);
 end;
 
 procedure TFLHistoop.DBGrid1KeyUp(Sender: TObject; var Key: Word;
@@ -1498,11 +2129,16 @@ procedure TFLHistoop.OcultarBDGrid();
 // formulario, con esta funcion los adapto al Panel donde se encuentran
 procedure TFLHistoop.DimensionarColocarBDGrid();
   begin
-    //DBGrid1 ocupa media pantalla, dejando espacio para la leyenda y el Panel de detalle de operaciones
+    if FDisenoAplicado then
+    begin
+      AjustarDisenoModerno;
+      Exit;
+    end;
+
+    // Distribución original durante la carga inicial del formulario.
     DBGrid1.Top:=40;DBGrid1.Left:=0;DBGrid1.Width:=1000;DBGrid1.Height:=264;
     DBGrid4.Top:=45;DBGrid4.Left:=8;DBGrid4.Width:=554;DBGrid4.Height:=544;
     DBGrid5.Top:=45;DBGrid5.Left:=8;DBGrid5.Width:=554;DBGrid5.Height:=544;
-    //DBGrid2 no semuy bien lo que hace, la dejo que ocupe toda la pantalla, como estaba
     DBGrid2.Align:=alClient;
   end;
 
