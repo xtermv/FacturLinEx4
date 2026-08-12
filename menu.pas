@@ -100,6 +100,7 @@ Type
     BitBtn60: TBitBtn;
     BitBtn61: TBitBtn;
     BitBtnMonitor: TBitBtn;
+    BitBtnVFMonitorRapido: TBitBtn;
     btnEnviarAhora: TBitBtn;
     BitBtnAbout: TBitBtn;
     BitBtnManual: TBitBtn;
@@ -289,6 +290,7 @@ Type
     procedure BitBtnAboutClick(Sender: TObject);
     procedure BitBtnManualClick(Sender: TObject);
     procedure BitBtnMonitorClick(Sender: TObject);
+    procedure BitBtnVFMonitorRapidoClick(Sender: TObject);
     procedure PedidoProvVentasClick(Sender: TObject);
     procedure AddPedidoProvVentasButton;
     procedure PedidoProveedorAutoClick(Sender: TObject);
@@ -299,6 +301,8 @@ Type
     procedure AddDashboardProductividadButton;
     procedure DoctorFacturLinExClick(Sender: TObject);
     procedure AddDoctorFacturLinExButton;
+    procedure AuditoriaEANFacturLinExClick(Sender: TObject);
+    procedure AddAuditoriaEANFacturLinExButton;
     procedure AlertasFacturLinExClick(Sender: TObject);
     procedure AddAlertasFacturLinExButton;
     procedure AsistenteFacturLinExClick(Sender: TObject);
@@ -469,10 +473,10 @@ uses
    CopiaSeg, ActAutArt, unirpedido, generarped, actualizapedi, envioclientes,
    envioarti, roles, promociones, facturaped, histofaprov, copiasegauto, Modelo347,
    uVeriFactu, uVeriFactuDispatcher, uVeriFactuHTTPSender, uVFServer, uVF_Sender,
-   uVF_Integration, uVeriChain, uVeriChainCheck, uVF_QueueResult, uvfqueuemonitor,
+   uVF_Integration, uVeriChain, uVeriChainCheck, uVF_QueueResult, uvfqueuemonitor, uVFMonitorRapido, uVFCentroControl,
    uVF_Stub, uVFSenderAEAT, uVeriSIFForm, uFLX_Log, uFLX_Backup, uFLX_CryptoIni,
    uBackupFTPConfig, uRestoreBackup, uBackupUnpackHelper, uFLXRestoreRemote,
-   uFLX_PedidoProveedorVentasPDF, uPedidoProveedorAuto, uPedidoTemporadaAuto, uDashboardProductividad, uDoctorFacturLinEx, uAlertasFacturLinEx, uAsistenteFacturLinEx, uHistoricoPreciosFacturLinEx, uRentabilidadFacturLinEx, uComparadorProveedoresFacturLinEx, uAsesorComprasFacturLinEx, uCentroInteligenciaFacturLinEx, uCentroMantenimientoFacturLinEx, uTendenciasFacturLinEx, uPrediccionesFacturLinEx, uAccionesRecomendadasFacturLinEx, uFLXUpdater, uFLXUpdateConfig, Types, BaseUnix,
+   uFLX_PedidoProveedorVentasPDF, uPedidoProveedorAuto, uPedidoTemporadaAuto, uDashboardProductividad, uDoctorFacturLinEx, uAlertasFacturLinEx, uAsistenteFacturLinEx, uHistoricoPreciosFacturLinEx, uRentabilidadFacturLinEx, uComparadorProveedoresFacturLinEx, uAsesorComprasFacturLinEx, uCentroInteligenciaFacturLinEx, uCentroMantenimientoFacturLinEx, uTendenciasFacturLinEx, uPrediccionesFacturLinEx, uAccionesRecomendadasFacturLinEx, uAuditoriaEANFacturLinEx, uFLXUpdater, uFLXUpdateConfig, Types, BaseUnix,
   uFLXInformacionVentas, uFLXPermisos, uFLXManualViewer,
   uFLXRemoteBackup, uFLXTemaVisual;
 
@@ -2854,6 +2858,7 @@ Begin
      AddPedidoTemporadaAutoButton;
      AddDashboardProductividadButton;
      AddDoctorFacturLinExButton;
+     AddAuditoriaEANFacturLinExButton;
      AddAlertasFacturLinExButton;
      AddAsistenteFacturLinExButton;
      AddHistoricoPreciosFacturLinExButton;
@@ -3881,6 +3886,126 @@ begin
 end;
 
 
+procedure TFMenu.AddAuditoriaEANFacturLinExButton;
+var
+  TS: TTabSheet;
+  B: TBitBtn;
+  Png: TPortableNetworkGraphic;
+  Icono: string;
+  I: Integer;
+  Rutas: TStringList;
+
+  procedure AddIconPath(const APath: string);
+  var
+    S: string;
+  begin
+    S := Trim(APath);
+    if (S <> '') and (Rutas.IndexOf(S) < 0) then
+      Rutas.Add(S);
+  end;
+
+  procedure AddIconPathsFromBase(const ABase: string);
+  var
+    BDir: string;
+  begin
+    if Trim(ABase) = '' then Exit;
+    BDir := IncludeTrailingPathDelimiter(ABase);
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'icono_auditoria_ean_64.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'icono_auditoria_ean.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + 'inteligencia_auditoria_ean.png');
+    AddIconPath(BDir + 'Imagenes' + DirectorySeparator + '30x30' + DirectorySeparator + 'icono_auditoria_ean_64.png');
+    AddIconPath(BDir + 'icono_auditoria_ean_64.png');
+  end;
+
+begin
+  if FindComponent('BitBtnAuditoriaEANFacturLinEx') <> nil then Exit;
+
+  TS := TTabSheet(FindComponent('TabSheetInteligenciaFLX'));
+  if TS = nil then
+  begin
+    TS := TTabSheet.Create(Self);
+    TS.Name := 'TabSheetInteligenciaFLX';
+    TS.PageControl := PageControl1;
+    TS.Caption := 'Inteligencia';
+    try
+      TS.PageIndex := TabSheet9.PageIndex;
+    except
+    end;
+  end;
+
+  B := TBitBtn.Create(Self);
+  B.Name := 'BitBtnAuditoriaEANFacturLinEx';
+  B.Parent := TS;
+  B.Left := 150;
+  B.Top := 16;
+  B.Width := 125;
+  B.Height := 84;
+  B.Caption := 'Auditoría EAN';
+  B.Hint := 'Comprobar EAN locales y compararlos de forma asistida con fuentes de Internet y GS1';
+  B.ShowHint := True;
+  B.Layout := blGlyphTop;
+  B.Spacing := 4;
+  B.NumGlyphs := 1;
+  B.OnClick := @AuditoriaEANFacturLinExClick;
+
+  if ColorBotones <> '' then
+    B.Color := StringToColor(ColorBotones);
+
+  Icono := '';
+  Rutas := TStringList.Create;
+  try
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'icono_auditoria_ean_64.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'icono_auditoria_ean.png');
+    AddIconPath(IncludeTrailingPathDelimiter(RutaIconos) + 'inteligencia_auditoria_ean.png');
+    AddIconPathsFromBase(RutaBin);
+    AddIconPathsFromBase(RutaIni);
+    AddIconPathsFromBase(RutaSql);
+    AddIconPathsFromBase(ExtractFilePath(ParamStr(0)));
+    AddIconPathsFromBase(ExtractFilePath(Application.ExeName));
+    AddIconPathsFromBase(GetCurrentDir);
+    AddIconPathsFromBase(ExpandFileName(ExtractFilePath(ParamStr(0)) + '..' + DirectorySeparator));
+    AddIconPathsFromBase(ExpandFileName(GetCurrentDir + DirectorySeparator + '..' + DirectorySeparator));
+    for I := 0 to Rutas.Count - 1 do
+      if FileExists(Rutas[I]) then
+      begin
+        Icono := Rutas[I];
+        Break;
+      end;
+  finally
+    Rutas.Free;
+  end;
+
+  if FileExists(Icono) then
+  begin
+    Png := TPortableNetworkGraphic.Create;
+    try
+      Png.LoadFromFile(Icono);
+      B.Glyph.Assign(Png);
+      B.NumGlyphs := 1;
+      B.Invalidate;
+    finally
+      Png.Free;
+    end;
+  end
+  else
+    B.Hint := B.Hint + ' (icono no encontrado: icono_auditoria_ean_64.png)';
+
+  B.Visible := True;
+  B.BringToFront;
+  B.Repaint;
+end;
+
+procedure TFMenu.AuditoriaEANFacturLinExClick(Sender: TObject);
+begin
+  Timer1.Enabled := False;
+  try
+    MostrarAuditoriaEANFacturLinEx;
+  finally
+    Timer1Timer(nil);
+  end;
+end;
+
+
 procedure TFMenu.CompactarBotonesInteligenciaFLX;
 const
   BTN_W = 104;
@@ -3891,8 +4016,8 @@ const
   START_Y = 10;
 var
   TS: TTabSheet;
-  Names: array[0..11] of string;
-  IconFiles: array[0..11] of string;
+  Names: array[0..12] of string;
+  IconFiles: array[0..12] of string;
   I, N, Cols, X, Y, WArea: Integer;
   B: TBitBtn;
 
@@ -3965,30 +4090,32 @@ begin
   if TS = nil then Exit;
 
   Names[0]  := 'BitBtnDoctorFacturLinEx';
-  Names[1]  := 'BitBtnAlertasFacturLinEx';
-  Names[2]  := 'BitBtnAsistenteFacturLinEx';
-  Names[3]  := 'BitBtnHistoricoPreciosFacturLinEx';
-  Names[4]  := 'BitBtnRentabilidadFacturLinEx';
-  Names[5]  := 'BitBtnComparadorProveedoresFacturLinEx';
-  Names[6]  := 'BitBtnAsesorComprasFacturLinEx';
-  Names[7]  := 'BitBtnCentroInteligenciaFacturLinEx';
-  Names[8]  := 'BitBtnCentroMantenimientoFacturLinEx';
-  Names[9]  := 'BitBtnTendenciasFacturLinEx';
-  Names[10] := 'BitBtnPrediccionesFacturLinEx';
-  Names[11] := 'BitBtnAccionesRecomendadasFacturLinEx';
+  Names[1]  := 'BitBtnAuditoriaEANFacturLinEx';
+  Names[2]  := 'BitBtnAlertasFacturLinEx';
+  Names[3]  := 'BitBtnAsistenteFacturLinEx';
+  Names[4]  := 'BitBtnHistoricoPreciosFacturLinEx';
+  Names[5]  := 'BitBtnRentabilidadFacturLinEx';
+  Names[6]  := 'BitBtnComparadorProveedoresFacturLinEx';
+  Names[7]  := 'BitBtnAsesorComprasFacturLinEx';
+  Names[8]  := 'BitBtnCentroInteligenciaFacturLinEx';
+  Names[9]  := 'BitBtnCentroMantenimientoFacturLinEx';
+  Names[10] := 'BitBtnTendenciasFacturLinEx';
+  Names[11] := 'BitBtnPrediccionesFacturLinEx';
+  Names[12] := 'BitBtnAccionesRecomendadasFacturLinEx';
 
   IconFiles[0]  := 'inteligencia_doctor.png';
-  IconFiles[1]  := 'inteligencia_alertas.png';
-  IconFiles[2]  := 'inteligencia_asistente.png';
-  IconFiles[3]  := 'inteligencia_historico_precios.png';
-  IconFiles[4]  := 'inteligencia_rentabilidad.png';
-  IconFiles[5]  := 'inteligencia_proveedores.png';
-  IconFiles[6]  := 'inteligencia_asesor_compras.png';
-  IconFiles[7]  := 'inteligencia_centro.png';
-  IconFiles[8]  := 'inteligencia_mantenimiento.png';
-  IconFiles[9]  := 'inteligencia_tendencias.png';
-  IconFiles[10] := 'inteligencia_predicciones.png';
-  IconFiles[11] := 'inteligencia_acciones.png';
+  IconFiles[1]  := 'icono_auditoria_ean_64.png';
+  IconFiles[2]  := 'inteligencia_alertas.png';
+  IconFiles[3]  := 'inteligencia_asistente.png';
+  IconFiles[4]  := 'inteligencia_historico_precios.png';
+  IconFiles[5]  := 'inteligencia_rentabilidad.png';
+  IconFiles[6]  := 'inteligencia_proveedores.png';
+  IconFiles[7]  := 'inteligencia_asesor_compras.png';
+  IconFiles[8]  := 'inteligencia_centro.png';
+  IconFiles[9]  := 'inteligencia_mantenimiento.png';
+  IconFiles[10] := 'inteligencia_tendencias.png';
+  IconFiles[11] := 'inteligencia_predicciones.png';
+  IconFiles[12] := 'inteligencia_acciones.png';
 
   WArea := TS.ClientWidth;
   if WArea < 300 then
@@ -6351,9 +6478,11 @@ begin
   Aplicar('btnVFReenviarErrores', 'VERIFACTU');
   Aplicar('BitBtn61', 'VERIFACTU');
   Aplicar('BitBtnMonitor', 'VERIFACTU');
+  Aplicar('BitBtnVFMonitorRapido', 'VERIFACTU');
 
   { Inteligencia, auditoría y mantenimiento. }
   Aplicar('BitBtnDoctorFacturLinEx', 'AUDITORIA');
+  Aplicar('BitBtnAuditoriaEANFacturLinEx', 'AUDITORIA');
   Aplicar('BitBtnAlertasFacturLinEx', 'INTELIGENCIA');
   Aplicar('BitBtnAsistenteFacturLinEx', 'INTELIGENCIA');
   Aplicar('BitBtnCentroInteligenciaFacturLinEx', 'INTELIGENCIA');
@@ -6378,7 +6507,12 @@ end;
 
 procedure TFMenu.BitBtnMonitorClick(Sender: TObject);
 begin
-  VFQ_OpenMonitor(TZConnection(dbQuery.Connection), tienda);
+  VFC_OpenControl(TZConnection(dbQuery.Connection), tienda);
+end;
+
+procedure TFMenu.BitBtnVFMonitorRapidoClick(Sender: TObject);
+begin
+  VFQR_OpenMonitor(TZConnection(dbQuery.Connection), tienda);
 end;
 
 //===========================================================
@@ -6490,20 +6624,26 @@ procedure TFMenu.btnVFReenviarErroresClick(Sender: TObject);
     requeued: Integer;
     Conn: TZConnection;
   begin
-    // 1) Usamos la misma conexión que ya utiliza la app
+    // Usamos la misma conexión que ya utiliza la aplicación.
     Conn := TZConnection(dbQuery.Connection);
 
-    // 2) Reencolar todas las líneas con estado = 'ERROR'
+    // SOLO errores técnicos reintentables del ejercicio actual.
+    // Los rechazos fiscales, errores de datos e incidencias hash no se tocan.
     requeued := VF_RequeueAllErrors(Conn);
 
-    // 3) Informar al usuario
     if requeued > 0 then
-      ShowMessage('Reencoladas ' + IntToStr(requeued) +
-                  ' facturas con estado ERROR. Ahora están en PENDIENTE.')
+      ShowMessage(
+        'Reencolados ' + IntToStr(requeued) +
+        ' registro(s) con error técnico del ejercicio actual.' + LineEnding +
+        'Ahora están en PENDIENTE.' + LineEnding + LineEnding +
+        'No se han reencolado errores fiscales/de contenido, incidencias de hash ' +
+        'ni registros de ejercicios anteriores.')
     else
-      ShowMessage('No hay facturas en estado ERROR para reencolar.');
+      ShowMessage(
+        'No hay errores técnicos reintentables del ejercicio actual para reencolar.' +
+        LineEnding + LineEnding +
+        'Los errores fiscales/de contenido y de integridad/hash permanecen protegidos.');
 
-    // 4) Refrescar barra de estado Veri*Factu (cola)
     UpdateVFStatusBar;
   end;
 

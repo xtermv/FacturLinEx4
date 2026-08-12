@@ -1,0 +1,17 @@
+PRUEBA DINÁMICA RECOMENDADA
+===========================
+
+Instalar strace:
+  sudo apt install strace
+
+Ejecutar FacturLinEx con una BASE DE DATOS DE PRUEBA y recorrer sus funciones:
+  strace -f -o "/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/inventario_facturlinex_20260802_233849/facturlinex.strace" -e trace=file,process "/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/FacturLinEx"
+
+Extraer procesos externos y archivos/librerías que no se encontraron:
+  grep -E 'execve\(|ENOENT' "/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/inventario_facturlinex_20260802_233849/facturlinex.strace" > "/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/inventario_facturlinex_20260802_233849/13_strace_execve_enoent.txt"
+
+IMPORTANTE:
+- No use credenciales reales si FacturLinEx las pasa como argumentos a comandos externos.
+- Revise y oculte contraseñas, usuarios, direcciones y datos de clientes antes de compartir el trace.
+- Hay que probar impresión, PDF, correo, copias, restauración, importación/exportación,
+  conexión MariaDB y cualquier módulo opcional.

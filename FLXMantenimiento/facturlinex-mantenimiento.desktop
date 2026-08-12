@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=FacturLinEx Mantenimiento
+Comment=Diagnóstico y reparaciones de FacturLinEx
+Exec=/usr/bin/FLXMantenimiento
+Icon=facturlinex2
+Terminal=false
+Categories=Office;Utility;
+StartupNotify=true

@@ -1,0 +1,108 @@
+--- ANTES
++++ DESPUES
+@@ -60,6 +60,10 @@
+ 
+ // Hacemos pública la función para obtener el número de id
+ function GetMachineUUIDFromFile: string;
++
++
++function VeriFactu_GetRecordIdentityByHash(const AHash: string;
++  out ASerie: string; out ANumero: Integer; out AFecha: TDateTime): Boolean;
+ 
+ implementation
+ 
+@@ -2286,23 +2290,8 @@
+ //       registros usen el mismo hash_prev. Se usa GET_LOCK/RELEASE_LOCK (MySQL/MariaDB).
+ 
+ function VF_MakeChainLockName(const Serie: string): string;
+-var
+-  S: string;
+-  k: Integer;
+-  ch: Char;
+-begin
+-  S := Trim(Serie);
+-  // Normalizamos: solo [A-Za-z0-9_-] para nombre de lock estable
+-  for k := 1 to Length(S) do
+-  begin
+-    ch := S[k];
+-    if not (ch in ['A'..'Z','a'..'z','0'..'9','_','-']) then
+-      S[k] := '_';
+-  end;
+-  Result := 'VF_CHAIN_' + S;
+-  // MySQL limita el nombre del lock a 64 caracteres
+-  if Length(Result) > 64 then
+-    SetLength(Result, 64);
++begin
++  Result := 'VF_CHAIN_GLOBAL';
+ end;
+ 
+ function VF_DB_GetLock(Conn: TZConnection; const LockName: string; TimeoutSec: Integer): Boolean;
+@@ -2339,6 +2328,50 @@
+     q.Open;
+   finally
+     q.Free;
++  end;
++end;
++
++function VeriFactu_GetRecordIdentityByHash(const AHash: string;
++  out ASerie: string; out ANumero: Integer; out AFecha: TDateTime): Boolean;
++var
++  OwnTemp: Boolean;
++  Conn: TZConnection;
++  Q: TZQuery;
++begin
++  Result := False;
++  ASerie := '';
++  ANumero := 0;
++  AFecha := 0;
++  OwnTemp := False;
++
++  if Trim(AHash) = '' then Exit;
++  if not GetConnForOps(Conn) then Exit;
++  if Conn <> GConn then OwnTemp := True;
++
++  Q := TZQuery.Create(nil);
++  try
++    Q.Connection := Conn;
++    Q.SQL.Text :=
++      'SELECT serie,numero,fecha FROM verifactu_queue ' +
++      'WHERE hash=:h ORDER BY id DESC LIMIT 1';
++    Q.ParamByName('h').AsString := Trim(AHash);
++    Q.Open;
++    if Q.EOF then Exit;
++
++    ASerie := Trim(Q.FieldByName('serie').AsString);
++    ANumero := Q.FieldByName('numero').AsInteger;
++    AFecha := Q.FieldByName('fecha').AsDateTime;
++    Result := (ASerie <> '') and (ANumero > 0) and (AFecha > 0);
++  finally
++    Q.Free;
++    if OwnTemp then
++    begin
++      try
++        if Conn.Connected then Conn.Disconnect;
++      except
++      end;
++      Conn.Free;
++    end;
+   end;
+ end;
+ 
+@@ -2496,7 +2529,7 @@
+       Exit(False);
+     end;
+     try
+-      VF_AttachHashToQueue(Conn, Serie, Numero, PayloadJSON, 'ALTA');
++      VF_AttachHashToQueue(Conn, Serie, Numero, PayloadJSON, 'ALTA', RowId);
+     finally
+       VF_DB_ReleaseLock(Conn, LockName);
+     end;
+@@ -2630,7 +2663,7 @@
+     end;
+ 
+     try
+-      VF_AttachHashToQueue(Conn, SerieIn, NumeroIn, PayloadJSON, 'ALTA');
++      VF_AttachHashToQueue(Conn, SerieIn, NumeroIn, PayloadJSON, 'ALTA', RowId);
+     finally
+       VF_DB_ReleaseLock(Conn, LockName);
+     end;

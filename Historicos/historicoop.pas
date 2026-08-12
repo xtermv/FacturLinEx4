@@ -28,7 +28,7 @@ Unit historicoop;
 Interface
 
 Uses
-  Classes, Sysutils, Lresources, Forms, Controls, Graphics, Dialogs,
+  Classes, Sysutils, Variants, Lresources, Forms, Controls, Graphics, Dialogs,
   LCLType, ExtCtrls, Process, Buttons, ZConnection, ZDataset, DBGrids,
   StdCtrls, db, EditBtn, MaskEdit, Grids, LR_Class, LR_DBSet, lr_e_pdf;
 
@@ -152,6 +152,8 @@ Type
     procedure DBGrid1DrawColumnCell(Sender: TObject; const Rect: TRect;
       DataCol: Integer; Column: TColumn; State: TGridDrawState);
     procedure DBGrid1KeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure DBGrid1MouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
     procedure edCodigoPuestoEnter(Sender: TObject);
     procedure edCodigoPuestoExit(Sender: TObject);
     procedure edDescripcionPuestoExit(Sender: TObject);
@@ -202,9 +204,22 @@ Type
     FHeaderSubtitle: TLabel;
     FFooterHint: TLabel;
     FDetalleTitulo: TLabel;
+    FBtnRepasada: TBitBtn;
+    FPanelContadorRepaso: TPanel;
+    FDbRepaso: TZQuery;
+    FRepasoDisponible: Boolean;
+    FContandoRepasadas: Boolean;
     FDisenoAplicado: Boolean;
     FEnAjusteDiseno: Boolean;
     procedure dbOperacionesAfterOpen(DataSet: TDataSet);
+    procedure dbOperacionesAfterScroll(DataSet: TDataSet);
+    procedure BtnRepasadaClick(Sender: TObject);
+    function NombreTablaRepaso: string;
+    function CampoRepasoSQL: string;
+    procedure AsegurarTablaRepaso;
+    function EsOperacionRepasada: Boolean;
+    procedure ActualizarEstadoBotonRepaso;
+    procedure ActualizarContadorRepaso;
     procedure CrearControlesVisuales;
     procedure AplicarDisenoModerno;
     procedure AjustarDisenoModerno;
@@ -395,7 +410,32 @@ begin
   FFooterHint.Parent := Panel1;
   FFooterHint.AutoSize := False;
   FFooterHint.Caption :=
-    'Doble clic: abrir detalle  ·  Cabeceras: ordenar  ·  Rojo: operación en crédito';
+    'Doble clic: abrir detalle  ·  Espacio o clic derecho: marcar/desmarcar  ·  Rojo: crédito  ·  Verde: repasada';
+
+  FBtnRepasada := TBitBtn.Create(Self);
+  FBtnRepasada.Parent := Panel1;
+  FBtnRepasada.Caption := 'Marcar repasada';
+  FBtnRepasada.Hint := 'Marca o desmarca la operación seleccionada; también puede usar espacio o clic derecho';
+  FBtnRepasada.ShowHint := True;
+  FBtnRepasada.Enabled := False;
+  FBtnRepasada.Visible := False;
+  FBtnRepasada.OnClick := @BtnRepasadaClick;
+
+  FPanelContadorRepaso := TPanel.Create(Self);
+  FPanelContadorRepaso.Parent := Panel1;
+  FPanelContadorRepaso.Caption := 'Repasadas: 0 / 0';
+  FPanelContadorRepaso.Hint :=
+    'Número de operaciones repasadas respecto al total del listado actual';
+  FPanelContadorRepaso.ShowHint := True;
+  FPanelContadorRepaso.BevelOuter := bvNone;
+  FPanelContadorRepaso.BorderWidth := 1;
+  FPanelContadorRepaso.ParentColor := False;
+  FPanelContadorRepaso.Color := RGBToColor(220, 252, 231);
+  FPanelContadorRepaso.ParentFont := False;
+  FPanelContadorRepaso.Font.Color := RGBToColor(21, 128, 61);
+  FPanelContadorRepaso.Font.Style := [fsBold];
+  FPanelContadorRepaso.Font.Size := 10;
+  FPanelContadorRepaso.Visible := False;
 
   FDetalleTitulo := TLabel.Create(Self);
   FDetalleTitulo.Parent := PanelDetalleOperacion;
@@ -583,6 +623,7 @@ begin
   EstiloBoton(BitBtn27, RGBToColor(71, 85, 105));
   EstiloBoton(BitBtnCambiable, RGBToColor(15, 118, 110));
   EstiloBoton(btPuesto, RGBToColor(15, 118, 110));
+  EstiloBoton(FBtnRepasada, RGBToColor(22, 163, 74));
 
   BitBtn1.Caption := 'Visualizar';
   BitBtn2.Caption := 'Imprimir';
@@ -645,6 +686,8 @@ begin
   begin
     PanelDetalleOperacion.Visible := False;
     PanelLeyenda.Visible := False;
+    if Assigned(FPanelContadorRepaso) then
+      FPanelContadorRepaso.Visible := False;
     if Trim(LabelTituloDBGrid.Caption) = '' then
       LabelTituloDBGrid.Caption := 'Histórico de operaciones';
   end;
@@ -670,13 +713,17 @@ begin
   LabelTituloDBGrid.SetBounds(18, 7, ClientWidth - 36, 28);
   FHeaderSubtitle.SetBounds(19, 35, ClientWidth - 38, 20);
 
-  Panel1.Height := 78;
-  BitBtn1.SetBounds(16, 14, 116, 48);
-  BitBtn2.SetBounds(142, 14, 116, 48);
-  BitBtn3.SetBounds(268, 14, 148, 48);
-  BitBtn5.SetBounds(426, 14, 178, 48);
-  BitBtn4.SetBounds(Panel1.ClientWidth - 132, 14, 116, 48);
-  FFooterHint.SetBounds(620, 27, Panel1.ClientWidth - 770, 22);
+  Panel1.Height := 98;
+  BitBtn1.SetBounds(16, 8, 116, 48);
+  BitBtn2.SetBounds(142, 8, 116, 48);
+  BitBtn3.SetBounds(268, 8, 148, 48);
+  BitBtn5.SetBounds(426, 8, 178, 48);
+  if Assigned(FPanelContadorRepaso) then
+    FPanelContadorRepaso.SetBounds(Panel1.ClientWidth - 438, 8, 130, 48);
+  if Assigned(FBtnRepasada) then
+    FBtnRepasada.SetBounds(Panel1.ClientWidth - 298, 8, 150, 48);
+  BitBtn4.SetBounds(Panel1.ClientWidth - 132, 8, 116, 48);
+  FFooterHint.SetBounds(16, 68, Panel1.ClientWidth - 32, 22);
 
   AnchoFiltro := 304;
   AnchoIzq := ClientWidth - AnchoFiltro - (Margen * 3);
@@ -840,6 +887,18 @@ Begin
   EditCambiableCodigo.Text:= '';
   nPuestoDetalles:=''; nPuestoCabeceras:='';
 
+  // Permite que el clic derecho cambie primero la fila activa del TDBGrid.
+  // Así OnMouseUp puede marcar exactamente la operación situada bajo el ratón.
+  DBGrid1.Options := DBGrid1.Options + [dgAnyButtonCanSelect];
+
+  FRepasoDisponible := False;
+  FContandoRepasadas := False;
+  FDbRepaso := TZQuery.Create(Self);
+  FDbRepaso.Connection := dbOperaciones.Connection;
+  dbOperaciones.AfterOpen := @dbOperacionesAfterOpen;
+  dbOperaciones.AfterScroll := @dbOperacionesAfterScroll;
+  AsegurarTablaRepaso;
+
   // Ocultamos todos los DBGrid
   DimensionarColocarBDGrid();
   OcultarBDGrid();
@@ -849,6 +908,205 @@ Begin
   OnResize := @FormResizeModerno;
   ActualizarVistaSeleccion(True);
 End;
+
+//================ MARCAS PERSISTENTES DE REPASO =========================
+function TFLHistoop.NombreTablaRepaso: string;
+begin
+  Result := 'flx_repaso_op' + Tienda;
+end;
+
+function TFLHistoop.CampoRepasoSQL: string;
+begin
+  if not FRepasoDisponible then
+  begin
+    Result := ', '''' AS FLX_REPASADA';
+    Exit;
+  end;
+
+  Result :=
+    ', CASE WHEN EXISTS (SELECT 1 FROM `' + NombreTablaRepaso + '` R' +
+    ' WHERE R.`fecha`=HO0 AND R.`hora`=HO1 AND R.`puesto`=HO2' +
+    ' AND R.`numero`=HO3 AND R.`serie`=HO4 AND R.`tipo`=HO5)' +
+    ' THEN ''SÍ'' ELSE '''' END AS FLX_REPASADA';
+end;
+
+procedure TFLHistoop.AsegurarTablaRepaso;
+begin
+  FRepasoDisponible := False;
+  try
+    FDbRepaso.Close;
+    FDbRepaso.SQL.Text :=
+      'CREATE TABLE IF NOT EXISTS `' + NombreTablaRepaso + '` (' +
+      '`fecha` DATE NOT NULL,' +
+      '`hora` TIME NOT NULL,' +
+      '`puesto` VARCHAR(20) NOT NULL,' +
+      '`numero` BIGINT NOT NULL,' +
+      '`serie` VARCHAR(20) NOT NULL,' +
+      '`tipo` VARCHAR(4) NOT NULL,' +
+      '`fecha_marca` DATETIME NOT NULL,' +
+      'PRIMARY KEY (`fecha`,`hora`,`puesto`,`numero`,`serie`,`tipo`)' +
+      ') ENGINE=MyISAM DEFAULT CHARSET=utf8';
+    FDbRepaso.ExecSQL;
+    FRepasoDisponible := True;
+  except
+    on E: Exception do
+    begin
+      FRepasoDisponible := False;
+      ShowMessage('No se ha podido activar el marcado de operaciones repasadas.' +
+        LineEnding + LineEnding + E.Message + LineEnding + LineEnding +
+        'El histórico seguirá funcionando normalmente, pero sin marcas.');
+    end;
+  end;
+end;
+
+function TFLHistoop.EsOperacionRepasada: Boolean;
+begin
+  Result := FRepasoDisponible and dbOperaciones.Active and
+    (dbOperaciones.FindField('FLX_REPASADA') <> nil) and
+    (Trim(dbOperaciones.FieldByName('FLX_REPASADA').AsString) <> '');
+end;
+
+procedure TFLHistoop.ActualizarEstadoBotonRepaso;
+var
+  Disponible: Boolean;
+begin
+  if not Assigned(FBtnRepasada) then
+    Exit;
+
+  Disponible := FRepasoDisponible and DBGrid1.Visible and
+    dbOperaciones.Active and (not dbOperaciones.IsEmpty) and
+    (dbOperaciones.FindField('HO0') <> nil) and
+    (dbOperaciones.FindField('HO1') <> nil) and
+    (dbOperaciones.FindField('HO2') <> nil) and
+    (dbOperaciones.FindField('HO3') <> nil) and
+    (dbOperaciones.FindField('HO4') <> nil) and
+    (dbOperaciones.FindField('HO5') <> nil);
+
+  FBtnRepasada.Visible := DBGrid1.Visible and FRepasoDisponible;
+  FBtnRepasada.Enabled := Disponible;
+
+  if Disponible and EsOperacionRepasada then
+  begin
+    FBtnRepasada.Caption := 'Quitar marca';
+    EstiloBoton(FBtnRepasada, RGBToColor(217, 119, 6));
+  end
+  else
+  begin
+    FBtnRepasada.Caption := 'Marcar repasada';
+    EstiloBoton(FBtnRepasada, RGBToColor(22, 163, 74));
+  end;
+end;
+
+procedure TFLHistoop.ActualizarContadorRepaso;
+var
+  Marcadas, Total: Integer;
+  PosicionActual: TBookmark;
+begin
+  if not Assigned(FPanelContadorRepaso) then
+    Exit;
+
+  FPanelContadorRepaso.Visible := False;
+  FPanelContadorRepaso.Caption := 'Repasadas: 0 / 0';
+
+  if FContandoRepasadas or (not FRepasoDisponible) or
+     (not DBGrid1.Visible) or (not dbOperaciones.Active) or
+     dbOperaciones.IsEmpty or
+     (dbOperaciones.FindField('FLX_REPASADA') = nil) then
+    Exit;
+
+  Marcadas := 0;
+  Total := 0;
+  FContandoRepasadas := True;
+  PosicionActual := dbOperaciones.GetBookmark;
+  dbOperaciones.DisableControls;
+  try
+    dbOperaciones.First;
+    while not dbOperaciones.EOF do
+    begin
+      Inc(Total);
+      if Trim(dbOperaciones.FieldByName('FLX_REPASADA').AsString) <> '' then
+        Inc(Marcadas);
+      dbOperaciones.Next;
+    end;
+
+    if dbOperaciones.BookmarkValid(PosicionActual) then
+      dbOperaciones.GotoBookmark(PosicionActual);
+  finally
+    dbOperaciones.FreeBookmark(PosicionActual);
+    dbOperaciones.EnableControls;
+    FContandoRepasadas := False;
+  end;
+
+  FPanelContadorRepaso.Caption :=
+    Format('Repasadas: %d / %d', [Marcadas, Total]);
+  FPanelContadorRepaso.Visible := True;
+end;
+
+procedure TFLHistoop.BtnRepasadaClick(Sender: TObject);
+var
+  VFecha, VHora: TDateTime;
+  VPuesto, VSerie, VTipo: string;
+  VNumero: Integer;
+  Quitar: Boolean;
+begin
+  if not FRepasoDisponible or (not dbOperaciones.Active) or
+     dbOperaciones.IsEmpty then
+    Exit;
+
+  VFecha := dbOperaciones.FieldByName('HO0').AsDateTime;
+  VHora := dbOperaciones.FieldByName('HO1').AsDateTime;
+  VPuesto := dbOperaciones.FieldByName('HO2').AsString;
+  VNumero := dbOperaciones.FieldByName('HO3').AsInteger;
+  VSerie := dbOperaciones.FieldByName('HO4').AsString;
+  VTipo := dbOperaciones.FieldByName('HO5').AsString;
+  Quitar := EsOperacionRepasada;
+
+  try
+    FDbRepaso.Close;
+    if Quitar then
+      FDbRepaso.SQL.Text :=
+        'DELETE FROM `' + NombreTablaRepaso + '` WHERE ' +
+        '`fecha`=DATE(:fecha) AND `hora`=TIME(:hora) AND `puesto`=:puesto AND ' +
+        '`numero`=:numero AND `serie`=:serie AND `tipo`=:tipo'
+    else
+      FDbRepaso.SQL.Text :=
+        'INSERT IGNORE INTO `' + NombreTablaRepaso + '` ' +
+        '(`fecha`,`hora`,`puesto`,`numero`,`serie`,`tipo`,`fecha_marca`) ' +
+        'VALUES (DATE(:fecha),TIME(:hora),:puesto,:numero,:serie,:tipo,NOW())';
+
+    // Normalizar los parámetros evita que un campo TIME se compare con
+    // un TDateTime que contiene también una fecha interna (30/12/1899).
+    FDbRepaso.ParamByName('fecha').AsString := FormatDateTime('yyyy-mm-dd', VFecha);
+    FDbRepaso.ParamByName('hora').AsString := FormatDateTime('hh:nn:ss', VHora);
+    FDbRepaso.ParamByName('puesto').AsString := VPuesto;
+    FDbRepaso.ParamByName('numero').AsInteger := VNumero;
+    FDbRepaso.ParamByName('serie').AsString := VSerie;
+    FDbRepaso.ParamByName('tipo').AsString := VTipo;
+    FDbRepaso.ExecSQL;
+
+    dbOperaciones.DisableControls;
+    try
+      dbOperaciones.Close;
+      dbOperaciones.Open;
+      dbOperaciones.Locate('HO0;HO1;HO2;HO3;HO4;HO5',
+        VarArrayOf([VFecha, VHora, VPuesto, VNumero, VSerie, VTipo]), []);
+    finally
+      dbOperaciones.EnableControls;
+    end;
+    DBGrid1.Invalidate;
+    ActualizarEstadoBotonRepaso;
+  except
+    on E: Exception do
+      ShowMessage('No se ha podido guardar la marca de repaso.' +
+        LineEnding + LineEnding + E.Message);
+  end;
+end;
+
+procedure TFLHistoop.dbOperacionesAfterScroll(DataSet: TDataSet);
+begin
+  if not FContandoRepasadas then
+    ActualizarEstadoBotonRepaso;
+end;
 
 //-- Mantener compatibilidad al añadir campos nuevos en hisopcc (p.ej. HO20_RECT)
 //   Si el TZQuery tiene campos persistentes antiguos, el nuevo campo no aparece.
@@ -885,6 +1143,32 @@ begin
       Col.Width:=120;
     end;
   end;
+
+  if (DBGrid1<>nil) and (DBGrid1.Columns.Count>0) and
+     (dbOperaciones.FindField('FLX_REPASADA')<>nil) then
+  begin
+    HasCol:=False;
+    for i:=0 to DBGrid1.Columns.Count-1 do
+      if SameText(DBGrid1.Columns[i].FieldName,'FLX_REPASADA') then
+      begin
+        HasCol:=True;
+        Break;
+      end;
+
+    if not HasCol then
+    begin
+      Col:=DBGrid1.Columns.Add;
+      Col.Index:=0;
+      Col.FieldName:='FLX_REPASADA';
+      Col.Title.Caption:='REPASADA';
+      Col.Alignment:=taCenter;
+      Col.Title.Alignment:=taCenter;
+      Col.Width:=82;
+    end;
+  end;
+
+  ActualizarEstadoBotonRepaso;
+  ActualizarContadorRepaso;
 end;
 
 
@@ -903,38 +1187,57 @@ procedure TFLHistoop.BitBtn5Click(Sender: TObject);
 var
   multiplicador: string;
   nMultiplicador: Double;
+  VentasPrincipal, VentasAux: TFVentas;
 begin
   multiplicador:='-1';
   // Confirma la grabación de una nueva venta y solicita el multiplicador
   if Application.MessageBox('PROCESO PARA GENERAR NUEVA VENTA'+#13 + '¿DESEA CONTINUAR?',
-                            'FacturLinEx 2', MB_ICONQUESTION + MB_YESNO) = idYes then begin
-     InputQuery('FacturLinEx 2','Introducir multiplicador (-1 para abono)',multiplicador);
-     nMultiplicador:=StrToFloat(multiplicador);
-     fVentas:=TfVentas.Create(Application);    // Creamos el formulario para acceder a su contenido
-     fVentas.WindowState:=wsMinimized;
-     fVentas.Show;
-     fVentas.BitBtn24.Click;    // Ejecutamos aparcar ticket para asignar Numero de Ticket
-     fVentas.dbVentas.Open;
-     dbHistodd.First;
-     while not dbHistodd.EOF do begin
-       if dbHistodd.FieldByName('HOD17').AsString='' then begin;
-          fVentas.Edit1.Text:=dbOperaciones.FieldByName('HO8').AsString; // Asignamos el valor de CODIGO CLIENTE
-          fVentas.Edit3.Text:=dbHistodd.FieldByName('HOD6').AsString;  // Asignamos el valor de CODIGO ARTICULO
-          fVentas.Edit4.Text:=dbHistodd.FieldByName('HOD7').AsString;  // Asignamos el valor de DESCRIPCION
-          fVentas.Edit5.Text:=FloatToStr(dbHistodd.FieldByName('HOD8').asFloat*nMultiplicador);  // Asignamos el valor de CANTIDAD
-          fVentas.Edit6.Text:=dbHistodd.FieldByName('HOD9').AsString;   // Asignamos el valor de PVP
-          fVentas.Edit7.Text:=dbHistodd.FieldByName('HOD10').AsString;  // Asignamos el valor de PRECIO SIN IVA
-          fVentas.Edit8.Text:=dbHistodd.FieldByName('HOD11').AsString;  // Asignamos el valor de DESCUENTO LINEAL
-          fVentas.Edit9.Text:=FloatToStr(dbHistodd.FieldByName('HOD12').asFloat*nMultiplicador);  // CALCULARLO - Asignamos el valor de IMPORTE SIN IVA
-          fVentas.Edit10.Text:=IntToStr(dbHistodd.FieldByName('HOD13').AsInteger);  // Asignamos el valor de TIPO DE IVA
-          fVentas.Edit11.Text:=FloatToStr(dbHistodd.FieldByName('HOD14').asFloat*nMultiplicador); // CALCULARLO - Asignamos el valor de IMPORTE CON IVA
+                            'FacturLinEx 2', MB_ICONQUESTION + MB_YESNO) = idYes then
+  begin
+    if not InputQuery('FacturLinEx 2',
+      'Introducir multiplicador (-1 para abono)', multiplicador) then
+      Exit;
+
+    if not TryStrToFloat(Trim(multiplicador), nMultiplicador) then
+    begin
+      ShowMessage('Multiplicador no válido.');
+      Exit;
+    end;
+
+    { El código legacy de Ventas utiliza la variable global FVentas en algunos
+      procesos internos. Durante la recuperación debe apuntar temporalmente a
+      la instancia auxiliar, pero SIEMPRE se restaura al formulario principal. }
+    VentasPrincipal := fVentas;
+    VentasAux := TfVentas.Create(Application);
+    fVentas := VentasAux;
+    try
+      { Flujo ORIGINAL conservado. }
+      fVentas.WindowState:=wsMinimized;
+      fVentas.Show;
+      fVentas.BitBtn24.Click;    // Ejecutamos aparcar ticket para asignar Numero de Ticket
+      fVentas.dbVentas.Open;
+
+      dbHistodd.First;
+      while not dbHistodd.EOF do
+      begin
+        if dbHistodd.FieldByName('HOD17').AsString='' then
+        begin
+          fVentas.Edit1.Text:=dbOperaciones.FieldByName('HO8').AsString;
+          fVentas.Edit3.Text:=dbHistodd.FieldByName('HOD6').AsString;
+          fVentas.Edit4.Text:=dbHistodd.FieldByName('HOD7').AsString;
+          fVentas.Edit5.Text:=FloatToStr(dbHistodd.FieldByName('HOD8').AsFloat*nMultiplicador);
+          fVentas.Edit6.Text:=dbHistodd.FieldByName('HOD9').AsString;
+          fVentas.Edit7.Text:=dbHistodd.FieldByName('HOD10').AsString;
+          fVentas.Edit8.Text:=dbHistodd.FieldByName('HOD11').AsString;
+          fVentas.Edit9.Text:=FloatToStr(dbHistodd.FieldByName('HOD12').AsFloat*nMultiplicador);
+          fVentas.Edit10.Text:=IntToStr(dbHistodd.FieldByName('HOD13').AsInteger);
+          fVentas.Edit11.Text:=FloatToStr(dbHistodd.FieldByName('HOD14').AsFloat*nMultiplicador);
+
           fVentas.WindowState:=wsMinimized;
           fVentas.Show;
-          fVentas.BitBtn14.Click;  // Simulamos el CLIC para la inserción de linea de venta
+          fVentas.BitBtn14.Click;
 
-          // Rectificativas paso 4:
-          // Si se recupera desde histórico con multiplicador negativo, guardamos el origen
-          // real de la línea en ventasrectif+Tienda+Puesto. No afecta a recuperaciones normales.
+          // ÚNICAMENTE las cantidades negativas son rectificativas.
           if nMultiplicador < 0 then
             fVentas.VF_RegistrarLineaRectifTemporal(
               dbOperaciones.FieldByName('HO5').AsString,
@@ -948,12 +1251,28 @@ begin
               dbHistodd.FieldByName('HOD8').AsFloat*nMultiplicador,
               dbHistodd.FieldByName('HOD14').AsFloat,
               dbHistodd.FieldByName('HOD14').AsFloat*nMultiplicador);
-       end;
-       dbHistodd.Next;
-     end;
-     fVentas.dbVentas.Close;
-     fVentas.Free;
-     ShowMessage('PROCESO FINALIZADO')
+        end;
+        dbHistodd.Next;
+      end;
+
+      if fVentas.dbVentas.Active then
+        fVentas.dbVentas.Close;
+
+    finally
+      { FormShow del auxiliar ha podido encolar llamadas asíncronas y activar
+        hooks. Se retiran ANTES de Free para que nada vuelva a ejecutar métodos
+        sobre una instancia destruida. }
+      if Assigned(VentasAux) then
+      begin
+        VentasAux.VF_PrepararLiberacionAuxiliar;
+        VentasAux.Free;
+        VentasAux := nil;
+      end;
+
+      fVentas := VentasPrincipal;
+    end;
+
+    ShowMessage('PROCESO FINALIZADO');
   end;
 end;
 
@@ -1047,6 +1366,34 @@ end;
 procedure TFLHistoop.DBGrid1CellClick(Column: TColumn);
 begin
   RecuperaOperacion();
+  ActualizarEstadoBotonRepaso;
+end;
+
+// Clic derecho: marca o desmarca directamente la operación bajo el puntero.
+procedure TFLHistoop.DBGrid1MouseUp(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+var
+  Columna, Fila: LongInt;
+begin
+  if (Button <> mbRight) or (not DBGrid1.Visible) or
+     (not dbOperaciones.Active) or dbOperaciones.IsEmpty then
+    Exit;
+
+  DBGrid1.MouseToCell(X, Y, Columna, Fila);
+
+  // En este TDBGrid la fila 0 corresponde a los títulos. Los valores
+  // negativos indican que el clic se produjo fuera de una celda válida.
+  if (Columna < 0) or (Fila <= 0) then
+    Exit;
+
+  // dgAnyButtonCanSelect hace que el propio TDBGrid haya situado ya el
+  // registro activo en la fila pulsada durante MouseDown. En MouseUp solo
+  // reutilizamos la misma rutina que emplean el botón y la barra espaciadora.
+  if DBGrid1.CanFocus then
+    DBGrid1.SetFocus;
+
+  RecuperaOperacion();
+  BtnRepasadaClick(DBGrid1);
 end;
 
 
@@ -1069,6 +1416,13 @@ End;
 procedure TFLHistoop.FormKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
+  if (Key = VK_SPACE) and (ActiveControl = DBGrid1) and DBGrid1.Visible then
+  begin
+    BtnRepasadaClick(Self);
+    Key := 0;
+    Exit;
+  end;
+
   if Key <> VK_ESCAPE then
     Exit;
 
@@ -1087,11 +1441,11 @@ begin
     Exit;
   end;
 
-  // Cierra primero el detalle de la operación y conserva el listado.
+  // Desde el detalle de líneas vuelve directamente a la pantalla principal.
+  // No dejamos el listado intermedio visible: el siguiente ESC cerrará el formulario.
   if PanelDetalleOperacion.Visible then
   begin
-    PanelDetalleOperacion.Visible := False;
-    AjustarDisenoModerno;
+    BitBtn3Click(Self);
     Exit;
   end;
 
@@ -1119,7 +1473,7 @@ begin
   if FiltroVisual<>'' then
    begin
      DbGrid1.DataSource:=Nil;
-     TxtQuery:='SELECT *,HO12+HO14 As ENTRETOTAL from hisopcc'+Tienda+' WHERE '+copy(FiltroVisual,5,10)+nPuestoCabeceras;
+     TxtQuery:='SELECT *'+CampoRepasoSQL+',HO12+HO14 As ENTRETOTAL from hisopcc'+Tienda+' WHERE '+copy(FiltroVisual,5,10)+nPuestoCabeceras;
      TxtQuery:=TxtQuery + ' ORDER BY HO0,HO1,HO2,HO4,HO3 DESC';
      dbOperaciones.Active:=False; dbOperaciones.Sql.Text:=TxtQuery; dbOperaciones.Active:=True;
      if dbOperaciones.RecordCount=0 then
@@ -1139,7 +1493,7 @@ begin
     begin
      TituloGrid:='LISTADO DE OPERACIONES';
      //-- MID(HO18,1,250)
-     TxtQuery:='SELECT *, CONVERT(HO18 USING UTF8) as NOTAS,HO12+HO14 As ENTRETOTAL from hisopcc'+Tienda+' WHERE';
+     TxtQuery:='SELECT *'+CampoRepasoSQL+', CONVERT(HO18 USING UTF8) as NOTAS,HO12+HO14 As ENTRETOTAL from hisopcc'+Tienda+' WHERE';
      TxtQuery:=TxtQuery +' HO0>="'+FormatDateTime('YYYY-MM-DD',DateEditDesde.Date)+'"'+
                           ' AND HO0<="'+FormatDateTime('YYYY-MM-DD',DateEditHasta.Date)+'"'+
                           FiltroVisual+ nPuestoCabeceras;
@@ -1161,7 +1515,7 @@ begin
     begin
      TituloGrid:='LISTADO DE OPERACIONES SIN TICKET';
      //-- MID(HO18,1,250)
-     TxtQuery:='SELECT *, CONVERT(HO18 USING UTF8) as NOTAS, HO12+HO14 As ENTRETOTAL from hisopcc'+Tienda+' WHERE';
+     TxtQuery:='SELECT *'+CampoRepasoSQL+', CONVERT(HO18 USING UTF8) as NOTAS, HO12+HO14 As ENTRETOTAL from hisopcc'+Tienda+' WHERE';
      TxtQuery:=TxtQuery + ' HO0>="'+FormatDateTime('YYYY-MM-DD',DateEditDesde.Date)+'"'+
                           ' AND HO0<="'+FormatDateTime('YYYY-MM-DD',DateEditHasta.Date)+'"'+
                           ' AND HO5="NS"'+FiltroVisual+ nPuestoCabeceras;
@@ -1182,7 +1536,7 @@ begin
     begin
      TituloGrid:='LISTADO DE OPERACIONES CON TICKET';
      //-- MID(HO18,1,250)
-     TxtQuery:='SELECT *, CONVERT(HO18 USING UTF8) as NOTAS, HO12+HO14 As ENTRETOTAL from hisopcc'+Tienda+' WHERE';
+     TxtQuery:='SELECT *'+CampoRepasoSQL+', CONVERT(HO18 USING UTF8) as NOTAS, HO12+HO14 As ENTRETOTAL from hisopcc'+Tienda+' WHERE';
      TxtQuery:=TxtQuery + ' HO0>="'+FormatDateTime('YYYY-MM-DD',DateEditDesde.Date)+'"'+
                           ' AND HO0<="'+FormatDateTime('YYYY-MM-DD',DateEditHasta.Date)+'"'+
                           ' AND HO5="NT"'+FiltroVisual + nPuestoCabeceras;
@@ -1203,7 +1557,7 @@ begin
     begin
      TituloGrid:='LISTADO DE OPERACIONES CON ALBARANES';
      //-- MID(HO18,1,250)
-     TxtQuery:='SELECT *, CONVERT(HO18 USING UTF8) as NOTAS, HO12+HO14 As ENTRETOTAL from hisopcc'+Tienda+' WHERE';
+     TxtQuery:='SELECT *'+CampoRepasoSQL+', CONVERT(HO18 USING UTF8) as NOTAS, HO12+HO14 As ENTRETOTAL from hisopcc'+Tienda+' WHERE';
      TxtQuery:=TxtQuery + ' HO0>="'+FormatDateTime('YYYY-MM-DD',DateEditDesde.Date)+'"'+
                           ' AND HO0<="'+FormatDateTime('YYYY-MM-DD',DateEditHasta.Date)+'"'+
                           ' AND HO5="AL"'+FiltroVisual + nPuestoCabeceras;
@@ -1224,7 +1578,7 @@ begin
     begin
      TituloGrid:='LISTADO DE OPERACIONES CON FACTURA';
      //-- MID(HO18,1,250)
-     TxtQuery:='SELECT *, CONVERT(HO18 USING UTF8) as NOTAS, HO12+HO14 As ENTRETOTAL from hisopcc'+Tienda+' WHERE';
+     TxtQuery:='SELECT *'+CampoRepasoSQL+', CONVERT(HO18 USING UTF8) as NOTAS, HO12+HO14 As ENTRETOTAL from hisopcc'+Tienda+' WHERE';
      TxtQuery:=TxtQuery + ' HO0>="'+FormatDateTime('YYYY-MM-DD',DateEditDesde.Date)+'"'+
                           ' AND HO0<="'+FormatDateTime('YYYY-MM-DD',DateEditHasta.Date)+'"'+
                           ' AND HO5="FA"'+FiltroVisual + nPuestoCabeceras;
@@ -1342,7 +1696,7 @@ begin
     begin
      TituloGrid:='LISTADO DE OPERACIONES DE CRÉDITO';
 //     TxtQuery:='SELECT HO0,HO1,HO2,HO3,HO4,HO5,HO8,HO11,HO12,HO13,HO14 from hisopcc'+Tienda+', creditos'+Tienda+' WHERE'; //--- Generaba un error, no encontraba HO7
-     TxtQuery:='SELECT *, HO12+HO14 As ENTRETOTAL from hisopcc'+Tienda+', creditos'+Tienda+' WHERE';
+     TxtQuery:='SELECT *'+CampoRepasoSQL+', HO12+HO14 As ENTRETOTAL from hisopcc'+Tienda+', creditos'+Tienda+' WHERE';
      TxtQuery:=TxtQuery + ' CRE0=HO8 AND CRE1=HO0 AND CRE2=HO1 AND CRE3=HO5 AND CRE4=HO4 AND CRE5=HO3 AND';
      TxtQuery:=TxtQuery + ' HO0>="'+FormatDateTime('YYYY-MM-DD',DateEditDesde.Date)+'"'+
                           ' AND HO0<="'+FormatDateTime('YYYY-MM-DD',DateEditHasta.Date)+'"'+ nPuestoCabeceras;
@@ -1366,6 +1720,8 @@ begin
   LabelTituloDBGrid.Caption:=TituloGrid;
   ActualizarVistaSeleccion(False);
   AjustarDisenoModerno;
+  ActualizarEstadoBotonRepaso;
+  ActualizarContadorRepaso;
   //WriteLn(TxtQuery);
 end;
 
@@ -1904,6 +2260,7 @@ procedure TFLHistoop.DBGrid1DrawColumnCell(Sender: TObject; const Rect: TRect;
   DataCol: Integer; Column: TColumn; State: TGridDrawState);
 var
   EsCredito: Boolean;
+  EsRepasada: Boolean;
   EstadoPintado: TGridDrawState;
 begin
   dbCreditos.SQL.Text:='SELECT * FROM creditos'+Tienda+' WHERE CRE0='+
@@ -1916,11 +2273,24 @@ begin
   dbCreditos.Active:=True;
   EsCredito := dbCreditos.RecordCount<>0;
   dbCreditos.Active:=False;
+  EsRepasada := EsOperacionRepasada;
 
   EstadoPintado := State - [gdSelected, gdFocused];
   DBGrid1.Canvas.Font.Style := [];
 
-  if EsCredito then
+  if EsRepasada then
+  begin
+    if gdSelected in State then
+      DBGrid1.Canvas.Brush.Color := RGBToColor(187, 247, 208)
+    else
+      DBGrid1.Canvas.Brush.Color := RGBToColor(220, 252, 231);
+    if EsCredito then
+      DBGrid1.Canvas.Font.Color := RGBToColor(185, 28, 28)
+    else
+      DBGrid1.Canvas.Font.Color := RGBToColor(20, 83, 45);
+    DBGrid1.Canvas.Font.Style := [fsBold];
+  end
+  else if EsCredito then
   begin
     if gdSelected in State then
       DBGrid1.Canvas.Brush.Color := RGBToColor(254, 242, 242)
@@ -1948,7 +2318,8 @@ end;
 procedure TFLHistoop.DBGrid1KeyUp(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
-  DBGrid1CellClick( DBGrid1.SelectedColumn );
+  DBGrid1CellClick(DBGrid1.SelectedColumn);
+  ActualizarEstadoBotonRepaso;
 end;
 
 
@@ -2122,6 +2493,10 @@ procedure TFLHistoop.OcultarBDGrid();
     DBGrid2.Visible:=False;
     DBGrid4.Visible:=False;
     DBGrid5.Visible:=False;
+    if Assigned(FBtnRepasada) then
+      FBtnRepasada.Visible:=False;
+    if Assigned(FPanelContadorRepaso) then
+      FPanelContadorRepaso.Visible:=False;
     DimensionarColocarBDGrid();
   end;
 //======================= DIMENSIONA LOS DBGrid

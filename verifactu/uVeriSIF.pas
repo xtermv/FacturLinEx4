@@ -5,7 +5,7 @@ unit uVeriSIF;
 interface
 
 uses
-  Classes, SysUtils, IniFiles, Global;
+  Classes, SysUtils, IniFiles, Global, uFLXCertificationProfile;
 
 type
   TVeriSIFConfig = record
@@ -63,19 +63,16 @@ end;
 
 procedure VF_SIF_ApplyDefaults(var Cfg: TVeriSIFConfig);
 begin
-  // Nombre y NIF del emisor desde tu configuración global
-  Cfg.NombreRazon       := Trim(Empresa);
-  Cfg.NIF               := Trim(Nif);
-
-  // Valores recomendados por defecto para FacturLinEx (software libre)
-  Cfg.NombreSistema     := 'FacturLinEx 2.0 (SIF Libre)';
-  Cfg.IdSistema         := 'FL';
-  Cfg.Version           := '2.0.0';
+  { Identidad certificada del PRODUCTOR/SIF: fija para esta compilación. }
+  Cfg.NombreRazon       := FLX_CERT_PRODUCER_NAME;
+  Cfg.NIF               := FLX_CERT_PRODUCER_NIF;
+  Cfg.NombreSistema     := FLX_CERT_SIF_NAME;
+  Cfg.IdSistema         := FLX_CERT_SIF_ID;
+  Cfg.Version           := FLXCertVersion;
   Cfg.NumeroInstalacion := '1';
-
-  Cfg.SoloVerifactu     := 'N';  // No es solo para VeriFactu
-  Cfg.MultiOT           := 'N';  // No es multi-OT
-  Cfg.MultiplesOT       := 'N';  // Esta instalación no tiene varios OT
+  Cfg.SoloVerifactu     := FLX_CERT_ONLY_VERIFACTU;
+  Cfg.MultiOT           := FLX_CERT_MULTI_OT;
+  Cfg.MultiplesOT       := FLX_CERT_MULTIPLES_OT
 end;
 
 procedure VF_SIF_Load(var Cfg: TVeriSIFConfig);
@@ -95,16 +92,10 @@ begin
 
   ini := TIniFile.Create(fn);
   try
-    // Sección propia para VeriFactu SIF
-    Cfg.NombreRazon       := ini.ReadString('SIFVeriFactu', 'NombreRazon',       Cfg.NombreRazon);
-    Cfg.NIF               := ini.ReadString('SIFVeriFactu', 'NIF',               Cfg.NIF);
-    Cfg.NombreSistema     := ini.ReadString('SIFVeriFactu', 'NombreSistema',     Cfg.NombreSistema);
-    Cfg.IdSistema         := ini.ReadString('SIFVeriFactu', 'IdSistema',         Cfg.IdSistema);
-    Cfg.Version           := ini.ReadString('SIFVeriFactu', 'Version',           Cfg.Version);
-    Cfg.NumeroInstalacion := ini.ReadString('SIFVeriFactu', 'NumeroInstalacion', Cfg.NumeroInstalacion);
-    Cfg.SoloVerifactu     := ini.ReadString('SIFVeriFactu', 'SoloVerifactu',     Cfg.SoloVerifactu);
-    Cfg.MultiOT           := ini.ReadString('SIFVeriFactu', 'MultiOT',           Cfg.MultiOT);
-    Cfg.MultiplesOT       := ini.ReadString('SIFVeriFactu', 'MultiplesOT',       Cfg.MultiplesOT);
+    { Solo NumeroInstalacion es propio de la instalación.
+      La identidad certificada NO se lee del INI. }
+    Cfg.NumeroInstalacion := ini.ReadString('SIFVeriFactu', 'NumeroInstalacion',
+                                            Cfg.NumeroInstalacion);
   finally
     ini.Free;
   end;
@@ -118,15 +109,16 @@ begin
   fn := VF_SIF_GetIniPath;
   ini := TIniFile.Create(fn);
   try
-    ini.WriteString('SIFVeriFactu', 'NombreRazon',       Cfg.NombreRazon);
-    ini.WriteString('SIFVeriFactu', 'NIF',               Cfg.NIF);
-    ini.WriteString('SIFVeriFactu', 'NombreSistema',     Cfg.NombreSistema);
-    ini.WriteString('SIFVeriFactu', 'IdSistema',         Cfg.IdSistema);
-    ini.WriteString('SIFVeriFactu', 'Version',           Cfg.Version);
+    { Eliminar valores históricos que ya no deben gobernar la identidad SIF. }
+    ini.DeleteKey('SIFVeriFactu', 'NombreRazon');
+    ini.DeleteKey('SIFVeriFactu', 'NIF');
+    ini.DeleteKey('SIFVeriFactu', 'NombreSistema');
+    ini.DeleteKey('SIFVeriFactu', 'IdSistema');
+    ini.DeleteKey('SIFVeriFactu', 'Version');
+    ini.DeleteKey('SIFVeriFactu', 'SoloVerifactu');
+    ini.DeleteKey('SIFVeriFactu', 'MultiOT');
+    ini.DeleteKey('SIFVeriFactu', 'MultiplesOT');
     ini.WriteString('SIFVeriFactu', 'NumeroInstalacion', Cfg.NumeroInstalacion);
-    ini.WriteString('SIFVeriFactu', 'SoloVerifactu',     UpperCase(Trim(Cfg.SoloVerifactu)));
-    ini.WriteString('SIFVeriFactu', 'MultiOT',           UpperCase(Trim(Cfg.MultiOT)));
-    ini.WriteString('SIFVeriFactu', 'MultiplesOT',       UpperCase(Trim(Cfg.MultiplesOT)));
   finally
     ini.Free;
   end;

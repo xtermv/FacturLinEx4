@@ -1,0 +1,857 @@
+FACTURLINEX 2
+GUÍA COMPLETA PARA INSTALAR EL BACKUP FÍSICO REMOTO EN UN SERVIDOR MARIADB
+===============================================================================
+
+Documento preparado para recrear desde cero la configuración del servidor de
+copias físicas remotas de FacturLinEx.
+
+Funciones cubiertas:
+  - Backup físico remoto mediante mariadb-backup.
+  - Descarga al ordenador cliente mediante SSH/SCP.
+  - Backup remoto + envío FTP desde FacturLinEx.
+  - Backup remoto automático al cerrar FacturLinEx.
+  - Restauración física remota protegida.
+  - Autenticación SSH mediante clave privada o contraseña.
+  - Verificación SHA-256.
+  - Permisos sudo limitados exclusivamente al script de backup.
+
+IMPORTANTE
+----------
+1. Los comandos de este documento se ejecutan en el SERVIDOR MariaDB, salvo
+   cuando se indique expresamente "ORDENADOR CLIENTE".
+
+2. Sustituir estos valores por los reales:
+
+     USUARIO_SSH       Usuario Linux utilizado por FacturLinEx para SSH.
+                       Ejemplo utilizado durante las pruebas: drogueria
+
+     IP_SERVIDOR       Dirección IP o nombre DNS del servidor MariaDB.
+
+     ETIQUETA          Nombre corto utilizado para identificar las copias.
+                       Ejemplo: facturlinex
+
+3. La contraseña del usuario Linux/SSH y la contraseña del usuario MariaDB
+   facturlinex_backup son dos contraseñas distintas.
+
+4. No hay que reiniciar ni "refrescar" sudoers. Los cambios se leen en cada
+   ejecución de sudo. Siempre se debe validar con:
+
+     sudo visudo -c
+
+5. No copiar directamente /var/lib/mysql mientras MariaDB está funcionando.
+   La copia física debe hacerse mediante mariadb-backup.
+
+
+===============================================================================
+1. INSTALAR LOS PAQUETES NECESARIOS EN EL SERVIDOR
+===============================================================================
+
+Actualizar la información de paquetes:
+
+  sudo apt update
+
+Instalar MariaDB, mariadb-backup, SSH y utilidades necesarias:
+
+  sudo apt install mariadb-server mariadb-backup openssh-server sudo \
+    tar coreutils openssl
+
+Activar y arrancar los servicios:
+
+  sudo systemctl enable --now mariadb
+  sudo systemctl enable --now ssh
+
+Comprobar su estado:
+
+  sudo systemctl status mariadb --no-pager
+  sudo systemctl status ssh --no-pager
+
+Comprobar que mariadb-backup existe:
+
+  command -v mariadb-backup
+  mariadb-backup --version
+
+La primera orden debe mostrar normalmente:
+
+  /usr/bin/mariadb-backup
+
+
+===============================================================================
+2. CREAR O PREPARAR EL USUARIO LINUX PARA SSH
+===============================================================================
+
+Se recomienda usar un usuario Linux específico o un usuario normal ya existente.
+Ese usuario NO necesita pertenecer al grupo sudo, porque se le concederá
+únicamente permiso para ejecutar el script controlado de FacturLinEx.
+
+Para crear un usuario nuevo:
+
+  sudo adduser USUARIO_SSH
+
+Ejemplo:
+
+  sudo adduser drogueria
+
+Durante el proceso se solicitará su contraseña Linux/SSH.
+
+Comprobar que existe:
+
+  id USUARIO_SSH
+
+Ejemplo:
+
+  id drogueria
+
+
+-------------------------------------------------------------------------------
+2.1. OPCIÓN A: AUTENTICACIÓN SSH MEDIANTE CONTRASEÑA
+-------------------------------------------------------------------------------
+
+La contraseña es la contraseña del usuario Linux creado anteriormente.
+
+Comprobar que el servidor SSH permite contraseña:
+
+  sudo sshd -T | grep -i '^passwordauthentication'
+
+Debe mostrar:
+
+  passwordauthentication yes
+
+Si muestra "no", editar la configuración mediante un archivo independiente:
+
+  sudo nano /etc/ssh/sshd_config.d/facturlinex.conf
+
+Introducir:
+
+  PasswordAuthentication yes
+
+Validar y recargar SSH:
+
+  sudo sshd -t
+  sudo systemctl reload ssh
+
+Desde el ORDENADOR CLIENTE, probar:
+
+  ssh USUARIO_SSH@IP_SERVIDOR
+
+Ejemplo:
+
+  ssh drogueria@192.168.1.10
+
+En el ordenador cliente, FacturLinEx necesita sshpass para trabajar de forma
+automática mediante contraseña:
+
+  sudo apt update
+  sudo apt install sshpass
+
+La contraseña SSH se introduce desde:
+
+  Configuración > Aplicaciones extra > Copias remotas
+
+Seleccionar:
+
+  Autenticación SSH: Contraseña
+
+FacturLinEx guarda esa contraseña cifrada mediante uFLX_CryptoIni. No se debe
+escribir manualmente en texto claro dentro de FacturConf.ini.
+
+
+-------------------------------------------------------------------------------
+2.2. OPCIÓN B: AUTENTICACIÓN SSH MEDIANTE CLAVE PRIVADA
+-------------------------------------------------------------------------------
+
+En el ORDENADOR CLIENTE, crear una clave si todavía no existe:
+
+  ssh-keygen -t ed25519 -a 100
+
+La ubicación normal será:
+
+  ~/.ssh/id_ed25519
+  ~/.ssh/id_ed25519.pub
+
+Copiar la clave pública al servidor:
+
+  ssh-copy-id USUARIO_SSH@IP_SERVIDOR
+
+Ejemplo:
+
+  ssh-copy-id drogueria@192.168.1.10
+
+Probar:
+
+  ssh USUARIO_SSH@IP_SERVIDOR
+
+Debe entrar sin solicitar la contraseña del usuario.
+
+En FacturLinEx seleccionar:
+
+  Autenticación SSH: Clave privada
+
+E indicar la ruta de la clave privada, por ejemplo:
+
+  /home/usuario/.ssh/id_ed25519
+
+Proteger la clave privada en el ordenador cliente:
+
+  chmod 700 ~/.ssh
+  chmod 600 ~/.ssh/id_ed25519
+
+
+===============================================================================
+3. CREAR EL USUARIO MARIADB PARA LAS COPIAS
+===============================================================================
+
+Generar una contraseña segura y fácil de escribir en un archivo INI:
+
+  openssl rand -hex 24
+
+Guardar temporalmente el resultado. Será una cadena parecida a:
+
+  8ae63fd65a342c23a642f63b856c44a8cb909541a34d27e6
+
+Entrar en MariaDB como administrador:
+
+  sudo mariadb
+
+Ejecutar dentro de MariaDB, sustituyendo CONTRASEÑA_GENERADA:
+
+  CREATE USER 'facturlinex_backup'@'localhost'
+    IDENTIFIED BY 'CONTRASEÑA_GENERADA';
+
+  GRANT RELOAD, PROCESS, LOCK TABLES, BINLOG MONITOR
+    ON *.* TO 'facturlinex_backup'@'localhost';
+
+  FLUSH PRIVILEGES;
+
+Comprobar los permisos:
+
+  SHOW GRANTS FOR 'facturlinex_backup'@'localhost';
+
+Salir:
+
+  EXIT;
+
+ATENCIÓN:
+La palabra correcta es BINLOG MONITOR, no BINLONG MONITOR.
+
+Si la versión de MariaDB no reconociese BINLOG MONITOR, utilizar:
+
+  GRANT RELOAD, PROCESS, LOCK TABLES, REPLICATION CLIENT
+    ON *.* TO 'facturlinex_backup'@'localhost';
+
+No conceder ALL PRIVILEGES. El usuario de backup no necesita permisos para
+modificar datos, crear usuarios o eliminar tablas.
+
+
+-------------------------------------------------------------------------------
+3.1. CAMBIAR LA CONTRASEÑA SI EL USUARIO YA EXISTE
+-------------------------------------------------------------------------------
+
+Entrar en MariaDB:
+
+  sudo mariadb
+
+Ejecutar:
+
+  ALTER USER 'facturlinex_backup'@'localhost'
+    IDENTIFIED BY 'NUEVA_CONTRASEÑA';
+
+  FLUSH PRIVILEGES;
+  EXIT;
+
+Después debe escribirse exactamente la misma contraseña en:
+
+  /etc/facturlinex/backup.cnf
+
+
+===============================================================================
+4. CREAR EL ARCHIVO PRIVADO DE CREDENCIALES MARIADB
+===============================================================================
+
+Este archivo pertenece al servidor, se utiliza como root y no debe guardarse en
+el directorio personal del usuario SSH.
+
+Crear el directorio protegido:
+
+  sudo install -d -o root -g root -m 0700 /etc/facturlinex
+
+Crear el archivo vacío con permisos seguros:
+
+  sudo install -o root -g root -m 0600 /dev/null \
+    /etc/facturlinex/backup.cnf
+
+Consultar el socket real de MariaDB:
+
+  sudo mariadb -NBe "SELECT @@socket;"
+
+En Debian normalmente devuelve:
+
+  /run/mysqld/mysqld.sock
+
+Editar el archivo:
+
+  sudo nano /etc/facturlinex/backup.cnf
+
+Contenido, sustituyendo la contraseña y el socket cuando corresponda:
+
+  [client]
+  user=facturlinex_backup
+  password=CONTRASEÑA_GENERADA
+  socket=/run/mysqld/mysqld.sock
+
+Recomendaciones:
+  - No dejar espacios alrededor del signo "=".
+  - Usar preferiblemente una contraseña hexadecimal generada con openssl.
+  - No compartir este archivo.
+  - Es normal que la contraseña esté en texto legible dentro del archivo:
+    la protección se realiza mediante propietario root y permisos 0600.
+
+Asegurar propietario y permisos:
+
+  sudo chown root:root /etc/facturlinex/backup.cnf
+  sudo chmod 0600 /etc/facturlinex/backup.cnf
+  sudo chmod 0700 /etc/facturlinex
+
+Comprobar:
+
+  sudo ls -ld /etc/facturlinex
+  sudo ls -l /etc/facturlinex/backup.cnf
+
+El resultado debe ser parecido a:
+
+  drwx------ root root /etc/facturlinex
+  -rw------- root root /etc/facturlinex/backup.cnf
+
+
+-------------------------------------------------------------------------------
+4.1. PROBAR DIRECTAMENTE LAS CREDENCIALES
+-------------------------------------------------------------------------------
+
+Ejecutar:
+
+  sudo mariadb \
+    --defaults-extra-file=/etc/facturlinex/backup.cnf \
+    --batch --skip-column-names \
+    -e 'SELECT CURRENT_USER(), 1'
+
+Debe devolver algo parecido a:
+
+  facturlinex_backup@localhost    1
+
+Si aparece "Access denied":
+  1. Comprobar que la contraseña del usuario MariaDB y backup.cnf coinciden.
+  2. Comprobar que el usuario es facturlinex_backup@localhost.
+  3. Comprobar el socket.
+  4. Volver a ejecutar ALTER USER si fuera necesario.
+
+
+===============================================================================
+5. INSTALAR EL SCRIPT DEL SERVIDOR
+===============================================================================
+
+El paquete de FacturLinEx incluye este archivo:
+
+  servidor/flx_remote_backup_server
+
+Situarse en la carpeta en la que se encuentre el directorio "servidor".
+
+Normalizar posibles finales de línea Windows:
+
+  sed 's/\r$//' servidor/flx_remote_backup_server \
+    | sudo tee /usr/local/sbin/flx_remote_backup_server >/dev/null
+
+Asignar propietario y permisos:
+
+  sudo chown root:root /usr/local/sbin/flx_remote_backup_server
+  sudo chmod 0755 /usr/local/sbin/flx_remote_backup_server
+
+Comprobar la primera línea:
+
+  sudo head -n 1 /usr/local/sbin/flx_remote_backup_server
+
+Debe ser:
+
+  #!/bin/bash
+
+Validar la sintaxis:
+
+  sudo /bin/bash -n /usr/local/sbin/flx_remote_backup_server
+
+Comprobar el archivo:
+
+  sudo ls -l /usr/local/sbin/flx_remote_backup_server
+  sudo test -x /usr/local/sbin/flx_remote_backup_server && echo EJECUTABLE_OK
+
+La ruta debe ser exactamente:
+
+  /usr/local/sbin/flx_remote_backup_server
+
+
+===============================================================================
+6. CONFIGURAR SUDOERS
+===============================================================================
+
+El nombre del archivo dentro de /etc/sudoers.d no es obligatorio. Puede existir
+más de un archivo. Lo importante es:
+
+  - Propietario root:root.
+  - Permisos 0440.
+  - Sintaxis validada con visudo.
+  - Usuario SSH correcto.
+  - Ruta exacta del script.
+
+Se recomienda crear un archivo independiente para FacturLinEx:
+
+  sudo visudo -f /etc/sudoers.d/facturlinex-backup
+
+Introducir, sustituyendo USUARIO_SSH:
+
+  # FacturLinEx: permiso limitado al script controlado de copia/restauración.
+  USUARIO_SSH ALL=(root) NOPASSWD: \
+    /usr/local/sbin/flx_remote_backup_server test, \
+    /usr/local/sbin/flx_remote_backup_server backup *, \
+    /usr/local/sbin/flx_remote_backup_server restore-slot *, \
+    /usr/local/sbin/flx_remote_backup_server restore-check *, \
+    /usr/local/sbin/flx_remote_backup_server restore *
+
+Ejemplo para el usuario drogueria:
+
+  drogueria ALL=(root) NOPASSWD: \
+    /usr/local/sbin/flx_remote_backup_server test, \
+    /usr/local/sbin/flx_remote_backup_server backup *, \
+    /usr/local/sbin/flx_remote_backup_server restore-slot *, \
+    /usr/local/sbin/flx_remote_backup_server restore-check *, \
+    /usr/local/sbin/flx_remote_backup_server restore *
+
+Asegurar propietario y permisos:
+
+  sudo chown root:root /etc/sudoers.d/facturlinex-backup
+  sudo chmod 0440 /etc/sudoers.d/facturlinex-backup
+
+Validar únicamente ese archivo:
+
+  sudo visudo -cf /etc/sudoers.d/facturlinex-backup
+
+Validar toda la configuración:
+
+  sudo visudo -c
+
+Todos los archivos deben mostrar:
+
+  parsed OK
+
+No hay que reiniciar sudo ni ningún servicio.
+
+
+-------------------------------------------------------------------------------
+6.1. USAR UN ARCHIVO SUDOERS YA EXISTENTE
+-------------------------------------------------------------------------------
+
+También se pueden añadir las líneas anteriores a un archivo existente, por
+ejemplo:
+
+  /etc/sudoers.d/flx-backup
+
+Editar siempre mediante:
+
+  sudo visudo -f /etc/sudoers.d/flx-backup
+
+Después:
+
+  sudo chown root:root /etc/sudoers.d/flx-backup
+  sudo chmod 0440 /etc/sudoers.d/flx-backup
+  sudo visudo -c
+
+No es necesario que se llame "facturlinex-backup".
+
+Evitar mantener la misma regla duplicada en dos archivos diferentes.
+
+
+===============================================================================
+7. PRUEBAS COMPLETAS EN EL SERVIDOR
+===============================================================================
+
+Sustituir USUARIO_SSH.
+
+Probar como si el comando lo hubiese solicitado el usuario SSH:
+
+  sudo runuser -u USUARIO_SSH -- sudo -n \
+    /usr/local/sbin/flx_remote_backup_server test
+
+Ejemplo:
+
+  sudo runuser -u drogueria -- sudo -n \
+    /usr/local/sbin/flx_remote_backup_server test
+
+La respuesta correcta es:
+
+  FLX_SERVER_OK
+
+Esta prueba confirma al mismo tiempo:
+  - El script existe y es ejecutable.
+  - sudoers permite la acción "test".
+  - mariadb-backup está instalado.
+  - El cliente mariadb está instalado.
+  - backup.cnf puede leerse como root.
+  - Las credenciales permiten conectar.
+  - Existe el servicio systemd "mariadb".
+
+
+-------------------------------------------------------------------------------
+7.1. PROBAR DESDE EL ORDENADOR CLIENTE
+-------------------------------------------------------------------------------
+
+Con clave privada:
+
+  ssh -i /RUTA/CLAVE_PRIVADA USUARIO_SSH@IP_SERVIDOR \
+    'sudo -n /usr/local/sbin/flx_remote_backup_server test'
+
+Con contraseña:
+
+  ssh USUARIO_SSH@IP_SERVIDOR \
+    'sudo -n /usr/local/sbin/flx_remote_backup_server test'
+
+Puede pedir la contraseña SSH, pero no debe pedir una segunda contraseña para
+sudo.
+
+Debe responder:
+
+  FLX_SERVER_OK
+
+
+-------------------------------------------------------------------------------
+7.2. REALIZAR UNA COPIA DE PRUEBA DESDE EL SERVIDOR
+-------------------------------------------------------------------------------
+
+ATENCIÓN: esta orden crea una copia física real y puede tardar y ocupar bastante
+espacio.
+
+  sudo runuser -u USUARIO_SSH -- sudo -n \
+    /usr/local/sbin/flx_remote_backup_server backup ETIQUETA 3
+
+Ejemplo:
+
+  sudo runuser -u drogueria -- sudo -n \
+    /usr/local/sbin/flx_remote_backup_server backup facturlinex 3
+
+Al finalizar debe mostrar:
+
+  FLX_BACKUP_FILE=/var/backups/facturlinex/mariadb_fisica_...
+  FLX_BACKUP_SHA256=...
+
+Comprobar los archivos:
+
+  sudo ls -lh /var/backups/facturlinex
+
+La copia tendrá extensión:
+
+  .tar.gz
+
+Y su firma:
+
+  .tar.gz.sha256
+
+El número 3 indica conservar las tres copias más recientes de esa etiqueta.
+
+
+===============================================================================
+8. CONFIGURAR FACTURLINEX EN EL ORDENADOR CLIENTE
+===============================================================================
+
+Abrir:
+
+  Configuración > Aplicaciones extra > Copias remotas
+
+Introducir o revisar:
+
+  - Activar copia física remota.
+  - Dirección IP o nombre del servidor.
+  - Puerto SSH, normalmente 22.
+  - Usuario SSH.
+  - Tipo de autenticación:
+      * Clave privada.
+      * Contraseña.
+  - Ruta de la clave privada, si se usa clave.
+  - Contraseña SSH, si se usa contraseña.
+  - Ruta del script remoto:
+      /usr/local/sbin/flx_remote_backup_server
+  - Etiqueta de la copia, por ejemplo:
+      facturlinex
+  - Carpeta local en la que descargar las copias.
+  - Número de copias que se conservarán en el servidor.
+  - Ejecutar automáticamente al cerrar, cuando se desee.
+  - Enviar también por FTP, cuando se desee.
+
+La copia remota automática es independiente del modo monousuario.
+
+Si están activas al mismo tiempo:
+  - La copia local antigua.
+  - La copia física remota al cerrar.
+
+Se ejecutarán ambas.
+
+La opción "Backup físico remoto + FTP":
+  1. Genera la copia en el servidor.
+  2. La prepara con mariadb-backup.
+  3. La comprime.
+  4. Genera SHA-256.
+  5. La descarga por SCP.
+  6. Verifica su firma.
+  7. Envía al FTP el .tar.gz y el .sha256.
+
+
+===============================================================================
+9. RESTAURACIÓN REMOTA
+===============================================================================
+
+La restauración debe realizarse únicamente cuando:
+
+  - Todos los demás puestos de FacturLinEx estén cerrados.
+  - No haya procesos externos utilizando MariaDB.
+  - Se haya seleccionado conscientemente la copia correcta.
+  - Exista espacio suficiente en disco.
+
+La restauración desde FacturLinEx incluye:
+
+  - Selección manual del archivo.
+  - Confirmación Sí/No.
+  - Escritura literal de RESTAURAR.
+  - Verificación SHA-256.
+  - Validación del contenido del tar.gz.
+  - Copia preventiva del estado actual.
+  - Parada controlada de MariaDB.
+  - Restauración mediante mariadb-backup --copy-back.
+  - Arranque y comprobación de MariaDB.
+  - Recuperación automática del directorio anterior si falla el proceso.
+
+No se recomienda probar una restauración sobre un servidor de producción solo
+para comprobar el botón. La primera prueba debe hacerse en un servidor de ensayo
+o con una copia completa adicional disponible.
+
+
+===============================================================================
+10. PERMISOS Y RUTAS RESULTANTES
+===============================================================================
+
+Credenciales MariaDB:
+
+  /etc/facturlinex
+    Propietario: root:root
+    Permisos:    0700
+
+  /etc/facturlinex/backup.cnf
+    Propietario: root:root
+    Permisos:    0600
+
+Script:
+
+  /usr/local/sbin/flx_remote_backup_server
+    Propietario: root:root
+    Permisos:    0755
+
+Sudoers recomendado:
+
+  /etc/sudoers.d/facturlinex-backup
+    Propietario: root:root
+    Permisos:    0440
+
+Copias:
+
+  /var/backups/facturlinex
+    Creado automáticamente por el script.
+
+No modificar manualmente los propietarios de los archivos de copia mientras
+FacturLinEx esté descargándolos.
+
+
+===============================================================================
+11. DIAGNÓSTICO DE ERRORES HABITUALES
+===============================================================================
+
+ERROR:
+  sudo: a password is required
+
+CAUSA:
+  SSH funciona, pero falta la regla NOPASSWD o no coincide con el usuario/ruta.
+
+SOLUCIÓN:
+  Revisar sudoers y ejecutar:
+
+    sudo visudo -c
+    sudo -l -U USUARIO_SSH
+
+
+-------------------------------------------------------------------------------
+
+ERROR:
+  sudo: /usr/local/sbin/flx_remote_backup_server: command not found
+
+CAUSAS POSIBLES:
+  - El archivo no está en esa ruta.
+  - No es ejecutable.
+  - Tiene finales de línea CRLF.
+  - La primera línea no es #!/bin/bash.
+
+COMPROBAR:
+
+  sudo ls -l /usr/local/sbin/flx_remote_backup_server
+  sudo head -n 1 /usr/local/sbin/flx_remote_backup_server
+  sudo /bin/bash -n /usr/local/sbin/flx_remote_backup_server
+
+REINSTALAR:
+
+  sed 's/\r$//' servidor/flx_remote_backup_server \
+    | sudo tee /usr/local/sbin/flx_remote_backup_server >/dev/null
+
+  sudo chown root:root /usr/local/sbin/flx_remote_backup_server
+  sudo chmod 0755 /usr/local/sbin/flx_remote_backup_server
+
+
+-------------------------------------------------------------------------------
+
+ERROR:
+  ERROR: No se puede leer /etc/facturlinex/backup.cnf
+
+CAUSA:
+  El archivo no existe o root no puede leerlo.
+
+SOLUCIÓN:
+
+  sudo ls -l /etc/facturlinex/backup.cnf
+  sudo chown root:root /etc/facturlinex/backup.cnf
+  sudo chmod 0600 /etc/facturlinex/backup.cnf
+
+
+-------------------------------------------------------------------------------
+
+ERROR:
+  Las credenciales de /etc/facturlinex/backup.cnf no permiten conectar
+
+COMPROBAR:
+
+  sudo mariadb \
+    --defaults-extra-file=/etc/facturlinex/backup.cnf \
+    --batch --skip-column-names \
+    -e 'SELECT CURRENT_USER(), 1'
+
+Si falla, revisar contraseña, usuario y socket.
+
+
+-------------------------------------------------------------------------------
+
+ERROR:
+  /etc/sudoers.d/ARCHIVO: bad permissions, should be mode 0440
+
+SOLUCIÓN:
+
+  sudo chown root:root /etc/sudoers.d/ARCHIVO
+  sudo chmod 0440 /etc/sudoers.d/ARCHIVO
+  sudo visudo -c
+
+
+-------------------------------------------------------------------------------
+
+ERROR:
+  sshpass no está instalado
+
+Solo afecta al modo SSH mediante contraseña.
+
+En el ORDENADOR CLIENTE:
+
+  sudo apt update
+  sudo apt install sshpass
+
+
+-------------------------------------------------------------------------------
+
+ERROR:
+  REMOTE HOST IDENTIFICATION HAS CHANGED
+
+Ocurre al sustituir el servidor conservando la misma IP.
+
+En el ORDENADOR CLIENTE, verificar primero que realmente es el servidor nuevo y
+después eliminar la clave antigua:
+
+  ssh-keygen -R IP_SERVIDOR
+
+Volver a conectar manualmente para aceptar la nueva huella:
+
+  ssh USUARIO_SSH@IP_SERVIDOR
+
+
+-------------------------------------------------------------------------------
+
+ERROR:
+  No está instalado mariadb-backup
+
+SOLUCIÓN:
+
+  sudo apt update
+  sudo apt install mariadb-backup
+
+Comprobar que su versión sea compatible con la versión del servidor MariaDB:
+
+  mariadb --version
+  mariadb-backup --version
+
+
+===============================================================================
+12. COMPROBACIÓN RÁPIDA FINAL
+===============================================================================
+
+Ejecutar en el servidor, sustituyendo USUARIO_SSH:
+
+  command -v mariadb-backup
+  sudo systemctl is-active mariadb
+  sudo systemctl is-active ssh
+  sudo ls -l /etc/facturlinex/backup.cnf
+  sudo ls -l /usr/local/sbin/flx_remote_backup_server
+  sudo visudo -c
+  sudo mariadb \
+    --defaults-extra-file=/etc/facturlinex/backup.cnf \
+    --batch --skip-column-names \
+    -e 'SELECT CURRENT_USER(), 1'
+  sudo runuser -u USUARIO_SSH -- sudo -n \
+    /usr/local/sbin/flx_remote_backup_server test
+
+Resultados esperados:
+
+  - mariadb-backup muestra una ruta.
+  - MariaDB: active.
+  - SSH: active.
+  - backup.cnf: root root y modo -rw-------.
+  - flx_remote_backup_server: root root y ejecutable.
+  - Todos los sudoers: parsed OK.
+  - La consulta MariaDB devuelve facturlinex_backup@localhost y 1.
+  - La última prueba devuelve FLX_SERVER_OK.
+
+
+===============================================================================
+13. COPIA DE SEGURIDAD DE LA CONFIGURACIÓN DEL PROPIO SERVIDOR
+===============================================================================
+
+Para poder reconstruir con rapidez otro servidor, conservar en un lugar seguro:
+
+  - El paquete de FacturLinEx que contiene:
+      servidor/flx_remote_backup_server
+
+  - Una copia protegida de:
+      /etc/facturlinex/backup.cnf
+
+  - Una copia de la regla:
+      /etc/sudoers.d/facturlinex-backup
+    o del archivo sudoers utilizado.
+
+  - El nombre del usuario SSH.
+
+  - La clave pública autorizada, si se usa autenticación por clave.
+
+  - La configuración FTP utilizada por FacturLinEx.
+
+ATENCIÓN:
+La copia de backup.cnf contiene una contraseña. Debe almacenarse cifrada o en
+un soporte seguro, nunca en una carpeta pública ni dentro de un repositorio Git.
+
+
+===============================================================================
+FIN DEL DOCUMENTO
+===============================================================================

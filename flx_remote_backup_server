@@ -1,0 +1,778 @@
+#!/bin/bash
+set -Eeuo pipefail
+
+ACTION="${1:-}"
+DB_LABEL="${2:-facturlinex}"
+ARG3="${3:-}"
+ARG4="${4:-}"
+BACKUP_ROOT="${FLX_BACKUP_ROOT:-/var/backups/facturlinex}"
+BACKUP_CNF="${FLX_BACKUP_CNF:-/etc/facturlinex/backup.cnf}"
+MARIADB_SERVICE="${FLX_MARIADB_SERVICE:-mariadb}"
+KEEP_PRE_RESTORE="${FLX_KEEP_PRE_RESTORE:-3}"
+OPEN_FILES_LIMIT="${FLX_OPEN_FILES_LIMIT:-65535}"
+ERROR_LOG="$BACKUP_ROOT/ultimo_error_backup.log"
+
+fail() {
+  echo "ERROR: $*" >&2
+  exit 1
+}
+
+safe_token() {
+  [[ "$1" =~ ^[A-Za-z0-9._-]+$ ]]
+}
+
+safe_hash() {
+  [[ "$1" =~ ^[A-Fa-f0-9]{64}$ ]]
+}
+
+require_common_tools() {
+  command -v mariadb-backup >/dev/null 2>&1 || fail "No está instalado mariadb-backup."
+  command -v mariadb >/dev/null 2>&1 || fail "No está instalado el cliente mariadb."
+  command -v tar >/dev/null 2>&1 || fail "No está instalado tar."
+  command -v sha256sum >/dev/null 2>&1 || fail "No está instalado sha256sum."
+  command -v systemctl >/dev/null 2>&1 || fail "No está disponible systemctl."
+  [[ -r "$BACKUP_CNF" ]] || fail "No se puede leer $BACKUP_CNF."
+}
+
+check_database_access() {
+  [[ "$(mariadb --defaults-extra-file="$BACKUP_CNF" --batch --skip-column-names \
+      -e 'SELECT 1' 2>/dev/null)" == "1" ]] || \
+    fail "Las credenciales de $BACKUP_CNF no permiten conectar a MariaDB."
+}
+
+get_server_datadir() {
+  local datadir
+  datadir="$(mariadb --defaults-extra-file="$BACKUP_CNF" --batch \
+    --skip-column-names -e 'SELECT @@datadir' 2>/dev/null | head -n 1)"
+  datadir="${datadir%/}"
+  [[ -n "$datadir" && "$datadir" == /* && -d "$datadir" ]] || \
+    fail "No se pudo determinar el @@datadir real de MariaDB."
+  [[ -r "$datadir" ]] || fail "No se puede leer el @@datadir real: $datadir"
+  printf '%s\n' "$datadir"
+}
+
+check_no_partial_defaults() {
+  local defaults
+  defaults="$(mariadb-backup --defaults-extra-file="$BACKUP_CNF" \
+    --print-defaults 2>/dev/null || true)"
+
+  if grep -Eq -- '(^|[[:space:]])--(databases|databases-file|databases-exclude|tables|tables-file|tables-exclude|include|incremental|incremental-basedir|incremental-lsn)(=|[[:space:]])' \
+      <<<"$defaults"; then
+    fail "La configuración global de mariadb-backup contiene filtros de copia parcial o incremental: $defaults"
+  fi
+}
+
+database_dirs_from_datadir() {
+  local datadir="$1"
+  local entry name
+
+  while IFS= read -r -d '' entry; do
+    name="${entry##*/}"
+    case "$name" in
+      lost+found|\#innodb_temp*|\#sql*|.tmp|tmp) continue ;;
+    esac
+
+    # Solo consideramos directorio de base si contiene al menos un fichero.
+    if find -P "$entry" -maxdepth 1 -type f -print -quit | grep -q .; then
+      printf '%s\n' "$name"
+    fi
+  done < <(find -P "$datadir" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z)
+}
+
+check_external_database_symlinks() {
+  local datadir="$1"
+  local links
+  links="$(find -P "$datadir" -mindepth 1 -maxdepth 1 -type l -printf '%f -> %l\n' || true)"
+  [[ -z "$links" ]] || fail \
+    "El datadir contiene bases o directorios enlazados simbólicamente. Se cancela para no crear una copia incompleta. Enlaces detectados: $links"
+}
+
+validate_full_backup_metadata() {
+  local target="$1"
+  local info="$target/xtrabackup_info"
+
+  [[ -f "$info" ]] || fail "No aparece xtrabackup_info en la copia."
+  grep -Eqi '^partial[[:space:]]*=[[:space:]]*N[[:space:]]*$' "$info" || \
+    fail "mariadb-backup ha marcado la copia como parcial."
+  grep -Eqi '^incremental[[:space:]]*=[[:space:]]*N[[:space:]]*$' "$info" || \
+    fail "mariadb-backup ha marcado la copia como incremental."
+}
+
+validate_database_directories() {
+  local datadir="$1"
+  local target="$2"
+  local inventory_file="$3"
+  local db source_bytes target_bytes source_files target_files
+  local total=0
+
+  : > "$inventory_file"
+  printf 'BASE_DATOS\tORIGEN_BYTES\tCOPIA_BYTES\tORIGEN_FICHEROS\tCOPIA_FICHEROS\n' \
+    >> "$inventory_file"
+
+  while IFS= read -r db; do
+    [[ -n "$db" ]] || continue
+    (( total += 1 ))
+    [[ -d "$target/$db" ]] || \
+      fail "Falta en la copia el directorio de base de datos: $db"
+
+    source_bytes="$(du -sb -- "$datadir/$db" | awk '{print $1}')"
+    target_bytes="$(du -sb -- "$target/$db" | awk '{print $1}')"
+    source_files="$(find -P "$datadir/$db" -type f | wc -l)"
+    target_files="$(find -P "$target/$db" -type f | wc -l)"
+
+    (( target_files > 0 )) || \
+      fail "El directorio $db aparece vacío en la copia."
+
+    printf '%s\t%s\t%s\t%s\t%s\n' \
+      "$db" "$source_bytes" "$target_bytes" "$source_files" "$target_files" \
+      >> "$inventory_file"
+  done < <(database_dirs_from_datadir "$datadir")
+
+  (( total > 0 )) || fail \
+    "No se detectó ningún directorio físico de base de datos dentro de $datadir."
+  printf 'TOTAL_BASES_FISICAS=%s\n' "$total" >> "$inventory_file"
+}
+
+
+check_database_exists() {
+  local database="$1"
+  local count
+
+  safe_token "$database" || fail "Nombre de base de datos no válido."
+  count="$(mariadb --defaults-extra-file="$BACKUP_CNF" --batch \
+    --skip-column-names -e "SELECT COUNT(*) FROM information_schema.SCHEMATA WHERE SCHEMA_NAME='${database}'" 2>/dev/null | head -n 1)"
+  [[ "$count" == "1" ]] || fail "La base de datos $database no existe en el servidor MariaDB."
+}
+
+validate_database_backup_metadata() {
+  local target="$1"
+  local database="$2"
+  local info="$target/xtrabackup_info"
+
+  [[ -f "$info" ]] || fail "No aparece xtrabackup_info en la copia de la base de datos."
+  grep -Eqi '^partial[[:space:]]*=[[:space:]]*Y[[:space:]]*$' "$info" || \
+    fail "mariadb-backup no ha marcado la copia de la base de datos como parcial."
+  grep -Eqi '^incremental[[:space:]]*=[[:space:]]*N[[:space:]]*$' "$info" || \
+    fail "La copia de la base de datos aparece marcada como incremental."
+  [[ -d "$target/$database" ]] || \
+    fail "No aparece el directorio de la base de datos $database en la copia."
+  find -P "$target/$database" -type f -print -quit | grep -q . || \
+    fail "El directorio de la base de datos $database aparece vacío en la copia."
+}
+
+create_database_inventory() {
+  local source_datadir="$1"
+  local target="$2"
+  local database="$3"
+  local inventory_file="$4"
+  local source_bytes target_bytes source_files target_files
+
+  source_bytes="$(du -sb -- "$source_datadir/$database" | awk '{print $1}')"
+  target_bytes="$(du -sb -- "$target/$database" | awk '{print $1}')"
+  source_files="$(find -P "$source_datadir/$database" -type f | wc -l)"
+  target_files="$(find -P "$target/$database" -type f | wc -l)"
+
+  {
+    printf 'BASE_DATOS\tORIGEN_BYTES\tCOPIA_BYTES\tORIGEN_FICHEROS\tCOPIA_FICHEROS\n'
+    printf '%s\t%s\t%s\t%s\t%s\n' \
+      "$database" "$source_bytes" "$target_bytes" "$source_files" "$target_files"
+    printf 'TOTAL_BASES_FISICAS=1\n'
+  } > "$inventory_file"
+}
+
+create_database_manifest() {
+  local target="$1"
+  local database="$2"
+  local datadir="$3"
+  local source_bytes="$4"
+  local source_files="$5"
+  local backup_bytes="$6"
+  local backup_files="$7"
+  local effective_open_files="$8"
+
+  {
+    echo "Formato=FacturLinEx-Backup-BBDD-v1"
+    echo "Tipo=BaseDatos"
+    echo "Fecha=$(date --iso-8601=seconds)"
+    echo "Servidor=$(hostname)"
+    echo "BaseDatos=$database"
+    echo "DatadirOrigen=$datadir"
+    echo "BaseDatosOrigenBytes=$source_bytes"
+    echo "BaseDatosOrigenFicheros=$source_files"
+    echo "BackupPreparadoBytes=$backup_bytes"
+    echo "BackupPreparadoFicheros=$backup_files"
+    echo "OpenFilesLimit=$effective_open_files"
+    echo "CopiaCompletaServidor=NO"
+    echo "CopiaCompletaBaseDatos=SI"
+    echo "CopiaParcialMariaDB=SI"
+    echo "CopiaIncremental=NO"
+    echo "RestauracionDirectaCopyBack=NO"
+    echo "MariaDB=$(mariadb --version | head -n 1)"
+    echo "MariaDBBackup=$(mariadb-backup --version 2>&1 | head -n 1)"
+  } > "$target/FLX_BACKUP_INFO.txt"
+}
+
+check_database_free_space() {
+  local datadir="$1"
+  local database="$2"
+  local database_bytes shared_bytes available_bytes minimum_bytes
+
+  database_bytes="$(du -sb -- "$datadir/$database" | awk '{print $1}')"
+  shared_bytes="$(find -P "$datadir" -maxdepth 1 -type f \
+    \( -name 'ibdata*' -o -name 'undo*' \) -printf '%s\n' 2>/dev/null \
+    | awk '{s+=$1} END {print s+0}')"
+  available_bytes="$(df -PB1 "$BACKUP_ROOT" | awk 'NR==2 {print $4}')"
+  minimum_bytes=$(( database_bytes + shared_bytes + 536870912 ))
+  [[ "$available_bytes" =~ ^[0-9]+$ ]] || fail "No se pudo calcular el espacio libre."
+  (( available_bytes >= minimum_bytes )) || fail \
+    "Espacio insuficiente en $BACKUP_ROOT. Libres=$available_bytes; mínimo para la BBDD $database=$minimum_bytes."
+}
+
+make_database_archive() {
+  local database="$1"
+  local keep="$2"
+  local owner_user="${3:-}"
+  local stamp work archive sha_file hash_value success=0
+  local source_datadir source_bytes source_files backup_bytes backup_files
+  local inventory_file backup_log archive_bytes open_files_limit prefix filter_file
+
+  safe_token "$database" || fail "Nombre de base de datos no válido."
+  prefix="mariadb_bbdd_${database}"
+  stamp="$(date +%Y%m%d_%H%M%S_%N)"
+  work="$BACKUP_ROOT/.trabajo_${prefix}_${stamp}_$$"
+  archive="$BACKUP_ROOT/${prefix}_${stamp}.tar.gz"
+  sha_file="$archive.sha256"
+  backup_log="$BACKUP_ROOT/.mariadb_backup_bbdd_${stamp}_$$.log"
+  filter_file="$BACKUP_ROOT/.mariadb_databases_${stamp}_$$.txt"
+
+  cleanup_make_database_archive() {
+    rm -rf -- "$work"
+    rm -f -- "$backup_log" "$filter_file"
+    if (( success == 0 )); then
+      rm -f -- "$archive" "$sha_file"
+    fi
+  }
+  trap cleanup_make_database_archive RETURN
+
+  source_datadir="$(get_server_datadir)"
+  check_no_partial_defaults
+  check_database_exists "$database"
+  [[ -d "$source_datadir/$database" ]] || \
+    fail "No aparece el directorio físico $source_datadir/$database."
+  [[ ! -L "$source_datadir/$database" ]] || \
+    fail "La base de datos $database está enlazada simbólicamente y se cancela para evitar una copia incompleta."
+
+  source_bytes="$(du -sb -- "$source_datadir/$database" | awk '{print $1}')"
+  source_files="$(find -P "$source_datadir/$database" -type f | wc -l)"
+  (( source_files > 0 )) || fail "La base de datos $database no contiene ficheros físicos."
+  check_database_free_space "$source_datadir" "$database"
+  open_files_limit="$(effective_open_files_limit)"
+
+  mkdir -m 0700 "$work"
+  printf '%s\n' "$database" > "$filter_file"
+  chmod 0600 "$filter_file"
+
+  if ! mariadb-backup --defaults-extra-file="$BACKUP_CNF" \
+      --backup --datadir="$source_datadir" --target-dir="$work" \
+      --databases-file="$filter_file" --open-files-limit="$open_files_limit" \
+      >"$backup_log" 2>&1; then
+    show_backup_failure "$backup_log"
+    fail "mariadb-backup no pudo completar el backup físico de la base de datos $database."
+  fi
+
+  if ! grep -Fqi 'completed OK!' "$backup_log"; then
+    show_backup_failure "$backup_log"
+    fail "El backup de la base de datos terminó sin confirmar 'completed OK!'."
+  fi
+
+  validate_database_backup_metadata "$work" "$database"
+  inventory_file="$work/FLX_DATABASES.txt"
+  create_database_inventory "$source_datadir" "$work" "$database" "$inventory_file"
+
+  : > "$backup_log"
+  if ! mariadb-backup --defaults-extra-file="$BACKUP_CNF" \
+      --prepare --export --target-dir="$work" >"$backup_log" 2>&1; then
+    show_backup_failure "$backup_log"
+    fail "mariadb-backup no pudo preparar/exportar la copia de la base de datos $database."
+  fi
+  if ! grep -Fqi 'completed OK!' "$backup_log"; then
+    show_backup_failure "$backup_log"
+    fail "La preparación de la base de datos terminó sin confirmar 'completed OK!'."
+  fi
+
+  validate_database_backup_metadata "$work" "$database"
+  create_database_inventory "$source_datadir" "$work" "$database" "$inventory_file"
+
+  backup_bytes="$(du -sb -- "$work" | awk '{print $1}')"
+  backup_files="$(find -P "$work" -type f | wc -l)"
+  create_database_manifest "$work" "$database" "$source_datadir" \
+    "$source_bytes" "$source_files" "$backup_bytes" "$backup_files" \
+    "$open_files_limit"
+
+  tar -C "$work" -czf "$archive" .
+  tar -tzf "$archive" >/dev/null || fail "El archivo tar.gz de la base de datos no es legible."
+  archive_bytes="$(stat -c %s "$archive")"
+
+  sha256sum "$archive" > "$sha_file"
+  chmod 0600 "$archive" "$sha_file"
+
+  if [[ -n "$owner_user" && "$owner_user" != "root" ]]; then
+    local owner_group
+    owner_group="$(id -gn "$owner_user")"
+    chown "$owner_user:$owner_group" "$archive" "$sha_file"
+  fi
+
+  shopt -s nullglob
+  local files=("$BACKUP_ROOT"/"${prefix}"_*.tar.gz)
+  if (( ${#files[@]} > keep )); then
+    while IFS= read -r old_file; do
+      rm -f -- "$old_file" "$old_file.sha256"
+    done < <(printf '%s\n' "${files[@]}" | xargs -r ls -1t | tail -n +$((keep + 1)))
+  fi
+  shopt -u nullglob
+
+  hash_value="$(cut -d' ' -f1 "$sha_file")"
+  success=1
+  trap - RETURN
+  rm -rf -- "$work"
+  rm -f -- "$backup_log" "$filter_file"
+
+  printf '%s\n' "$archive|$hash_value|$source_datadir|$database|$backup_bytes|$archive_bytes"
+}
+
+create_manifest() {
+  local target="$1"
+  local kind="$2"
+  local datadir="$3"
+  local source_bytes="$4"
+  local source_files="$5"
+  local backup_bytes="$6"
+  local backup_files="$7"
+  local physical_databases="$8"
+  local effective_open_files="$9"
+
+  {
+    echo "Formato=FacturLinEx-Backup-Fisico-v3"
+    echo "Tipo=$kind"
+    echo "Fecha=$(date --iso-8601=seconds)"
+    echo "Servidor=$(hostname)"
+    echo "Etiqueta=$DB_LABEL"
+    echo "DatadirOrigen=$datadir"
+    echo "BasesFisicasVerificadas=$physical_databases"
+    echo "DatadirOrigenBytes=$source_bytes"
+    echo "DatadirOrigenFicheros=$source_files"
+    echo "BackupPreparadoBytes=$backup_bytes"
+    echo "BackupPreparadoFicheros=$backup_files"
+    echo "OpenFilesLimit=$effective_open_files"
+    echo "CopiaParcial=NO"
+    echo "CopiaIncremental=NO"
+    echo "MariaDB=$(mariadb --version | head -n 1)"
+    echo "MariaDBBackup=$(mariadb-backup --version 2>&1 | head -n 1)"
+  } > "$target/FLX_BACKUP_INFO.txt"
+}
+
+effective_open_files_limit() {
+  local requested="$OPEN_FILES_LIMIT"
+  local hard_limit target
+
+  [[ "$requested" =~ ^[0-9]+$ ]] || fail "FLX_OPEN_FILES_LIMIT no es numérico."
+  (( requested >= 1024 )) || fail "FLX_OPEN_FILES_LIMIT debe ser al menos 1024."
+
+  hard_limit="$(ulimit -Hn)"
+  target="$requested"
+  if [[ "$hard_limit" != "unlimited" ]] && (( target > hard_limit )); then
+    target="$hard_limit"
+  fi
+
+  ulimit -Sn "$target" 2>/dev/null || true
+  target="$(ulimit -Sn)"
+  [[ "$target" =~ ^[0-9]+$ ]] || fail "No se pudo determinar el límite de archivos abiertos."
+  printf '%s\n' "$target"
+}
+
+show_backup_failure() {
+  local log_file="$1"
+  install -m 0600 -o root -g root /dev/null "$ERROR_LOG"
+  cp -- "$log_file" "$ERROR_LOG"
+  chmod 0600 "$ERROR_LOG"
+
+  echo "ERROR: mariadb-backup terminó con error." >&2
+  echo "Registro completo guardado en: $ERROR_LOG" >&2
+  echo "Últimas líneas del registro:" >&2
+  tail -n 120 "$log_file" >&2
+}
+
+check_minimum_free_space() {
+  local datadir_bytes="$1"
+  local available_bytes minimum_bytes
+  available_bytes="$(df -PB1 "$BACKUP_ROOT" | awk 'NR==2 {print $4}')"
+  minimum_bytes=$(( datadir_bytes + 536870912 ))
+  [[ "$available_bytes" =~ ^[0-9]+$ ]] || fail "No se pudo calcular el espacio libre."
+  (( available_bytes >= minimum_bytes )) || fail \
+    "Espacio insuficiente en $BACKUP_ROOT. Libres=$available_bytes; mínimo para iniciar=$minimum_bytes."
+}
+
+make_physical_archive() {
+  local prefix="$1"
+  local keep="$2"
+  local owner_user="${3:-}"
+  local stamp work archive sha_file hash_value success=0
+  local source_datadir source_bytes source_files backup_bytes backup_files
+  local inventory_file physical_databases backup_log archive_bytes open_files_limit
+
+  stamp="$(date +%Y%m%d_%H%M%S_%N)"
+  work="$BACKUP_ROOT/.trabajo_${prefix}_${stamp}_$$"
+  archive="$BACKUP_ROOT/${prefix}_${stamp}.tar.gz"
+  sha_file="$archive.sha256"
+  backup_log="$BACKUP_ROOT/.mariadb_backup_${stamp}_$$.log"
+
+  cleanup_make_archive() {
+    rm -rf -- "$work"
+    rm -f -- "$backup_log"
+    if (( success == 0 )); then
+      rm -f -- "$archive" "$sha_file"
+    fi
+  }
+  trap cleanup_make_archive RETURN
+
+  source_datadir="$(get_server_datadir)"
+  check_no_partial_defaults
+  check_external_database_symlinks "$source_datadir"
+
+  source_bytes="$(du -sb -- "$source_datadir" | awk '{print $1}')"
+  source_files="$(find -P "$source_datadir" -xdev -type f | wc -l)"
+  check_minimum_free_space "$source_bytes"
+  open_files_limit="$(effective_open_files_limit)"
+
+  mkdir -m 0700 "$work"
+
+  # Se pasa expresamente el @@datadir del servidor conectado. Esto evita que
+  # mariadb-backup utilice una ruta predeterminada distinta de la real.
+  if ! mariadb-backup --defaults-extra-file="$BACKUP_CNF" \
+      --backup --datadir="$source_datadir" --target-dir="$work" \
+      --open-files-limit="$open_files_limit" \
+      >"$backup_log" 2>&1; then
+    show_backup_failure "$backup_log"
+    fail "mariadb-backup no pudo completar la copia física."
+  fi
+
+  if ! grep -Fqi 'completed OK!' "$backup_log"; then
+    show_backup_failure "$backup_log"
+    fail "mariadb-backup terminó sin confirmar 'completed OK!'."
+  fi
+
+  echo "FLX_BACKUP_PROGRESS=Copia de datos finalizada; preparando copia." >&2
+  echo "FLX_BACKUP_OPEN_FILES_LIMIT=$open_files_limit" >&2
+
+  validate_full_backup_metadata "$work"
+
+  inventory_file="$work/FLX_DATABASES.txt"
+  validate_database_directories "$source_datadir" "$work" "$inventory_file"
+  physical_databases="$(sed -n 's/^TOTAL_BASES_FISICAS=//p' "$inventory_file" | tail -n 1)"
+
+  : > "$backup_log"
+  if ! mariadb-backup --defaults-extra-file="$BACKUP_CNF" \
+      --prepare --target-dir="$work" >"$backup_log" 2>&1; then
+    show_backup_failure "$backup_log"
+    fail "mariadb-backup no pudo preparar la copia física."
+  fi
+  if ! grep -Fqi 'completed OK!' "$backup_log"; then
+    show_backup_failure "$backup_log"
+    fail "La preparación terminó sin confirmar 'completed OK!'."
+  fi
+
+  # Después de preparar, vuelve a comprobarse que sigue siendo una copia
+  # completa y que conserva los directorios físicos detectados.
+  validate_full_backup_metadata "$work"
+  validate_database_directories "$source_datadir" "$work" "$inventory_file"
+
+  backup_bytes="$(du -sb -- "$work" | awk '{print $1}')"
+  backup_files="$(find -P "$work" -type f | wc -l)"
+  create_manifest "$work" "$prefix" "$source_datadir" \
+    "$source_bytes" "$source_files" "$backup_bytes" "$backup_files" \
+    "$physical_databases" "$open_files_limit"
+
+  tar -C "$work" -czf "$archive" .
+  tar -tzf "$archive" >/dev/null || fail "El archivo tar.gz generado no es legible."
+  archive_bytes="$(stat -c %s "$archive")"
+
+  sha256sum "$archive" > "$sha_file"
+  chmod 0600 "$archive" "$sha_file"
+
+  if [[ -n "$owner_user" && "$owner_user" != "root" ]]; then
+    local owner_group
+    owner_group="$(id -gn "$owner_user")"
+    chown "$owner_user:$owner_group" "$archive" "$sha_file"
+  fi
+
+  shopt -s nullglob
+  local files=("$BACKUP_ROOT"/"${prefix}"_*.tar.gz)
+  if (( ${#files[@]} > keep )); then
+    while IFS= read -r old_file; do
+      rm -f -- "$old_file" "$old_file.sha256"
+    done < <(printf '%s\n' "${files[@]}" | xargs -r ls -1t | tail -n +$((keep + 1)))
+  fi
+  shopt -u nullglob
+
+  hash_value="$(cut -d' ' -f1 "$sha_file")"
+  success=1
+  trap - RETURN
+  rm -rf -- "$work"
+  rm -f -- "$backup_log"
+
+  printf '%s\n' "$archive|$hash_value|$source_datadir|$physical_databases|$backup_bytes|$archive_bytes"
+}
+
+incoming_root() {
+  printf '%s\n' "$BACKUP_ROOT/entradas_restore"
+}
+
+validate_restore_path() {
+  local archive="$1"
+  local incoming incoming_real archive_real
+  incoming="$(incoming_root)"
+  [[ -f "$archive" ]] || fail "No existe el archivo temporal de restauración."
+  incoming_real="$(readlink -f -- "$incoming")"
+  archive_real="$(readlink -f -- "$archive")"
+  case "$archive_real" in
+    "$incoming_real"/*) ;;
+    *) fail "La copia no está dentro del área temporal autorizada." ;;
+  esac
+}
+
+validate_tar_entries() {
+  local archive="$1"
+  local entry clean first
+
+  while IFS= read -r entry; do
+    clean="${entry#./}"
+    [[ -n "$clean" ]] || continue
+    case "$clean" in
+      /*|../*|*/../*|*/..|..) fail "La copia contiene una ruta no permitida: $entry" ;;
+    esac
+  done < <(tar -tzf "$archive")
+
+  while IFS= read -r entry; do
+    first="${entry:0:1}"
+    if [[ "$first" == "l" || "$first" == "h" ]]; then
+      fail "La copia contiene enlaces simbólicos o duros y se rechaza por seguridad."
+    fi
+  done < <(tar -tvzf "$archive")
+}
+
+extract_and_validate_archive() {
+  local archive="$1"
+  local hash_expected="$2"
+  local target="$3"
+  local hash_actual
+
+  validate_restore_path "$archive"
+  safe_hash "$hash_expected" || fail "La firma SHA-256 recibida no es válida."
+  hash_actual="$(sha256sum "$archive" | cut -d' ' -f1)"
+  [[ "${hash_actual,,}" == "${hash_expected,,}" ]] || \
+    fail "La firma SHA-256 de la copia no coincide."
+
+  tar -tzf "$archive" >/dev/null || fail "El archivo tar.gz está dañado."
+  validate_tar_entries "$archive"
+
+  mkdir -m 0700 "$target"
+  tar --extract --gzip --file "$archive" --directory "$target" \
+    --no-same-owner --no-same-permissions
+
+  [[ -f "$target/FLX_BACKUP_INFO.txt" ]] || \
+    fail "No aparece FLX_BACKUP_INFO.txt. No parece una copia física de FacturLinEx."
+  grep -Eq '^Formato=FacturLinEx-Backup-Fisico-v[123]$' \
+    "$target/FLX_BACKUP_INFO.txt" || fail "Formato de copia no reconocido."
+  [[ -f "$target/xtrabackup_checkpoints" ]] || \
+    fail "No aparece xtrabackup_checkpoints. La copia física está incompleta."
+  [[ -f "$target/backup-my.cnf" ]] || \
+    fail "No aparece backup-my.cnf. La copia física está incompleta."
+}
+
+wait_mariadb_ready() {
+  local count
+  for count in $(seq 1 60); do
+    if mariadb --defaults-extra-file="$BACKUP_CNF" --batch --skip-column-names \
+      -e 'SELECT 1' 2>/dev/null | grep -qx '1'; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+rollback_datadir() {
+  local datadir="$1"
+  local old_datadir="$2"
+  systemctl stop "$MARIADB_SERVICE" >/dev/null 2>&1 || true
+  rm -rf -- "$datadir"
+  if [[ -d "$old_datadir" ]]; then
+    mv -- "$old_datadir" "$datadir"
+  fi
+  systemctl start "$MARIADB_SERVICE" >/dev/null 2>&1 || true
+}
+
+if [[ "$ACTION" == "test" ]]; then
+  require_common_tools
+  check_database_access
+  systemctl cat "$MARIADB_SERVICE" >/dev/null 2>&1 || \
+    fail "No existe el servicio systemd $MARIADB_SERVICE."
+  echo "FLX_SERVER_OK"
+  exit 0
+fi
+
+install -d -m 0755 -o root -g root "$BACKUP_ROOT"
+
+if [[ "$ACTION" == "backup" ]]; then
+  require_common_tools
+  check_database_access
+
+  if [[ "$DB_LABEL" == "database" ]]; then
+    DATABASE_NAME="$ARG3"
+    KEEP="$ARG4"
+    safe_token "$DATABASE_NAME" || fail "Nombre de base de datos no válido."
+    [[ "$KEEP" =~ ^[0-9]+$ ]] || fail "Número de copias no válido."
+    (( KEEP >= 1 && KEEP <= 365 )) || fail "El número de copias debe estar entre 1 y 365."
+
+    RESULT="$(make_database_archive "$DATABASE_NAME" "$KEEP" "${SUDO_USER:-}")"
+    IFS='|' read -r ARCHIVE HASH_VALUE SOURCE_DATADIR DATABASE_BACKED_UP \
+      BACKUP_BYTES ARCHIVE_BYTES <<< "$RESULT"
+    echo "FLX_BACKUP_FILE=$ARCHIVE"
+    echo "FLX_BACKUP_SHA256=$HASH_VALUE"
+    echo "FLX_BACKUP_TYPE=DATABASE"
+    echo "FLX_BACKUP_DATADIR=$SOURCE_DATADIR"
+    echo "FLX_BACKUP_DATABASE=$DATABASE_BACKED_UP"
+    echo "FLX_BACKUP_UNCOMPRESSED_BYTES=$BACKUP_BYTES"
+    echo "FLX_BACKUP_ARCHIVE_BYTES=$ARCHIVE_BYTES"
+    exit 0
+  fi
+
+  KEEP="${3:-7}"
+  safe_token "$DB_LABEL" || fail "Etiqueta de base de datos no válida."
+  [[ "$KEEP" =~ ^[0-9]+$ ]] || fail "Número de copias no válido."
+  (( KEEP >= 1 && KEEP <= 365 )) || fail "El número de copias debe estar entre 1 y 365."
+
+  RESULT="$(make_physical_archive "mariadb_fisica_${DB_LABEL}" "$KEEP" "${SUDO_USER:-}")"
+  IFS='|' read -r ARCHIVE HASH_VALUE SOURCE_DATADIR PHYSICAL_DATABASES \
+    BACKUP_BYTES ARCHIVE_BYTES <<< "$RESULT"
+  echo "FLX_BACKUP_FILE=$ARCHIVE"
+  echo "FLX_BACKUP_SHA256=$HASH_VALUE"
+  echo "FLX_BACKUP_TYPE=SERVER"
+  echo "FLX_BACKUP_DATADIR=$SOURCE_DATADIR"
+  echo "FLX_BACKUP_DATABASES=$PHYSICAL_DATABASES"
+  echo "FLX_BACKUP_UNCOMPRESSED_BYTES=$BACKUP_BYTES"
+  echo "FLX_BACKUP_ARCHIVE_BYTES=$ARCHIVE_BYTES"
+  exit 0
+fi
+
+if [[ "$ACTION" == "restore-slot" ]]; then
+  safe_token "$DB_LABEL" || fail "Etiqueta de base de datos no válida."
+  [[ -n "${SUDO_USER:-}" && "$SUDO_USER" != "root" ]] || \
+    fail "La reserva de restauración debe solicitarse desde un usuario SSH autorizado."
+  INCOMING="$(incoming_root)"
+  USER_GROUP="$(id -gn "$SUDO_USER")"
+  install -d -m 0750 -o root -g "$USER_GROUP" "$INCOMING"
+  STAMP="$(date +%Y%m%d_%H%M%S_%N)"
+  RESTORE_FILE="$INCOMING/restaurar_${DB_LABEL}_${STAMP}.tar.gz"
+  : > "$RESTORE_FILE"
+  chown "$SUDO_USER:$USER_GROUP" "$RESTORE_FILE"
+  chmod 0600 "$RESTORE_FILE"
+  echo "FLX_RESTORE_FILE=$RESTORE_FILE"
+  exit 0
+fi
+
+if [[ "$ACTION" == "restore-check" ]]; then
+  ARCHIVE="$DB_LABEL"
+  HASH_EXPECTED="$ARG3"
+  require_common_tools
+  CHECK_DIR="$BACKUP_ROOT/.comprobar_restore_$(date +%Y%m%d_%H%M%S_%N)_$$"
+  trap 'rm -rf -- "$CHECK_DIR"' EXIT INT TERM
+  extract_and_validate_archive "$ARCHIVE" "$HASH_EXPECTED" "$CHECK_DIR"
+  echo "FLX_RESTORE_CHECK_OK"
+  sed -n '1,12p' "$CHECK_DIR/FLX_BACKUP_INFO.txt"
+  exit 0
+fi
+
+if [[ "$ACTION" == "restore" ]]; then
+  ARCHIVE="$DB_LABEL"
+  HASH_EXPECTED="$ARG3"
+  CONFIRM="$ARG4"
+  [[ "$CONFIRM" == "RESTAURAR" ]] || fail "Falta la confirmación literal RESTAURAR."
+  require_common_tools
+  check_database_access
+
+  RESTORE_DIR="$BACKUP_ROOT/.restaurar_$(date +%Y%m%d_%H%M%S_%N)_$$"
+  RESTORE_MOVED=0
+  DATADIR=""
+  OLD_DATADIR=""
+  restore_cleanup() {
+    local rc=$?
+    trap - EXIT INT TERM HUP
+    if (( rc != 0 && RESTORE_MOVED == 1 )); then
+      echo "AVISO: se intentará recuperar automáticamente el directorio de datos anterior." >&2
+      rollback_datadir "$DATADIR" "$OLD_DATADIR"
+      RESTORE_MOVED=0
+    fi
+    rm -rf -- "$RESTORE_DIR"
+    exit "$rc"
+  }
+  trap restore_cleanup EXIT INT TERM HUP
+  extract_and_validate_archive "$ARCHIVE" "$HASH_EXPECTED" "$RESTORE_DIR"
+
+  RESTORE_LABEL="$(sed -n 's/^Etiqueta=//p' "$RESTORE_DIR/FLX_BACKUP_INFO.txt" | head -n 1)"
+  safe_token "$RESTORE_LABEL" || fail "La etiqueta incluida en la copia no es válida."
+  DB_LABEL="$RESTORE_LABEL"
+
+  DATADIR="$(mariadb --defaults-extra-file="$BACKUP_CNF" --batch \
+    --skip-column-names -e 'SELECT @@datadir' | head -n 1)"
+  DATADIR="${DATADIR%/}"
+  [[ -n "$DATADIR" && "$DATADIR" == /* && -d "$DATADIR" ]] || \
+    fail "No se pudo determinar el directorio de datos actual de MariaDB."
+
+  OWNER_UID="$(stat -c %u "$DATADIR")"
+  OWNER_GID="$(stat -c %g "$DATADIR")"
+  ROOT_MODE="$(stat -c %a "$DATADIR")"
+
+  PRE_RESULT="$(make_physical_archive "mariadb_pre_restore_${DB_LABEL}" \
+    "$KEEP_PRE_RESTORE" "")"
+  PRE_ARCHIVE="${PRE_RESULT%%|*}"
+
+  STAMP="$(date +%Y%m%d_%H%M%S_%N)"
+  OLD_DATADIR="${DATADIR}.flx_anterior_${STAMP}"
+  [[ ! -e "$OLD_DATADIR" ]] || fail "Ya existe el directorio de seguridad $OLD_DATADIR."
+
+  systemctl stop "$MARIADB_SERVICE"
+  if systemctl is-active --quiet "$MARIADB_SERVICE"; then
+    fail "MariaDB continúa activo; se cancela la restauración."
+  fi
+
+  mv -- "$DATADIR" "$OLD_DATADIR"
+  RESTORE_MOVED=1
+  mkdir -p -- "$DATADIR"
+  chown "$OWNER_UID:$OWNER_GID" "$DATADIR"
+  chmod "$ROOT_MODE" "$DATADIR"
+
+  if ! mariadb-backup --copy-back --target-dir="$RESTORE_DIR" --datadir="$DATADIR"; then
+    fail "mariadb-backup --copy-back falló."
+  fi
+
+  chown -R "$OWNER_UID:$OWNER_GID" "$DATADIR"
+  chmod "$ROOT_MODE" "$DATADIR"
+
+  if ! systemctl start "$MARIADB_SERVICE"; then
+    fail "MariaDB no pudo arrancar después de restaurar."
+  fi
+
+  if ! wait_mariadb_ready; then
+    fail "MariaDB no respondió después de restaurar."
+  fi
+
+  rm -rf -- "$OLD_DATADIR"
+  RESTORE_MOVED=0
+  rm -f -- "$ARCHIVE"
+  echo "FLX_PRE_RESTORE_BACKUP=$PRE_ARCHIVE"
+  echo "FLX_RESTORE_OK"
+  exit 0
+fi
+
+fail "Uso: $0 test | backup ETIQUETA COPIAS | backup database BBDD COPIAS | restore-slot ETIQUETA | restore-check ARCHIVO SHA256 | restore ARCHIVO SHA256 RESTAURAR"

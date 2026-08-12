@@ -1,0 +1,28 @@
+FACTURLINEX 4.2.6J — BLOQUE 1
+ENCADENAMIENTO GLOBAL + IDENTIFICACIÓN SIF
+
+Archivos modificados:
+- verifactu/uVF_HashChain.pas
+- Ventas/uVeriFactu.pas
+- verifactu/uVFSenderAEAT.pas
+- verifactu/uVeriSIF.pas
+
+Cambios:
+1. hash_prev se toma del último registro con huella e id menor al actual,
+   sin filtrar por serie.
+2. El lock de cadena pasa a ser global: VF_CHAIN_GLOBAL.
+3. El flujo normal pasa el id exacto de la fila reclamada a uVF_HashChain.
+4. RegistroAnterior del XML ya no se deduce con Numero-1.
+   Se resuelve por la huella hash_prev y recupera serie/número/fecha reales.
+5. Valores SIF defensivos y defaults:
+   FacturLinEx / FL / 4.2.6J / 1 / S / N / N.
+
+IMPORTANTE:
+- No recalcular ni reencadenar históricos ya enviados.
+- Este cambio aplica a registros nuevos.
+- SUB mantiene su identidad explícita cuando ya la proporciona.
+
+Prueba recomendada en LOCAL/PRUEBAS:
+F1 A -> F2 FS-A -> F1 B/A -> rectificativa.
+Comprobar que cada hash_prev sea exactamente el hash de la fila anterior
+por id y que RegistroAnterior muestre la serie/número/fecha reales.

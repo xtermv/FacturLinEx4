@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Package Version="5">
+    <PathDelim Value="/"/>
+    <Name Value="FLXRepair"/>
+    <Type Value="RunAndDesignTime"/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <PathDelim Value="/"/>
+      <SearchPaths>
+        <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
+      </SearchPaths>
+      <Parsing><SyntaxOptions><SyntaxMode Value="ObjFPC"/></SyntaxOptions></Parsing>
+    </CompilerOptions>
+    <Files Count="7">
+      <Item1><Filename Value="uFLXRepairTypes.pas"/><UnitName Value="uFLXRepairTypes"/></Item1>
+      <Item2><Filename Value="uFLXRepairBase.pas"/><UnitName Value="uFLXRepairBase"/></Item2>
+      <Item3><Filename Value="uFLXRepairLog.pas"/><UnitName Value="uFLXRepairLog"/></Item3>
+      <Item4><Filename Value="uFLXRepairEngine.pas"/><UnitName Value="uFLXRepairEngine"/></Item4>
+      <Item5><Filename Value="uFLXRepairOpenSSL.pas"/><UnitName Value="uFLXRepairOpenSSL"/></Item5>
+      <Item6><Filename Value="uFLXRepairDesktop.pas"/><UnitName Value="uFLXRepairDesktop"/></Item6>
+      <Item7><Filename Value="uFLXRepairPaths.pas"/><UnitName Value="uFLXRepairPaths"/></Item7>
+    </Files>
+    <RequiredPkgs Count="1">
+      <Item1><PackageName Value="FCL"/></Item1>
+    </RequiredPkgs>
+  </Package>
+</CONFIG>

@@ -2823,6 +2823,15 @@ object FPedido: TFPedido
       Color = clWindow
       Columns = <      
         item
+          Alignment = taCenter
+          MinSize = 10
+          MaxSize = 80
+          Title.Alignment = taCenter
+          Title.Caption = 'LÍNEA'
+          Width = 48
+          FieldName = 'PD5'
+        end      
+        item
           MinSize = 10
           MaxSize = 200
           Title.Caption = 'CODIGO.'
@@ -2863,6 +2872,14 @@ object FPedido: TFPedido
           Width = 57
           FieldName = 'PD10'
           DisplayFormat = '###,###,##0.000'
+        end      
+        item
+          Alignment = taCenter
+          MinSize = 70
+          MaxSize = 140
+          Title.Alignment = taCenter
+          Title.Caption = 'VAR. COSTE'
+          Width = 95
         end      
         item
           Alignment = taRightJustify

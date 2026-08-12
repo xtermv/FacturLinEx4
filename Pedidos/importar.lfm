@@ -3439,7 +3439,8 @@ object fImportar: TfImportar
       Height = 33
       Top = 216
       Width = 290
-      Caption = 'Usar artículo existente'
+      Caption = 'Aceptar coincidencia BD'
+      Visible = False
       Font.Height = -12
       Font.Name = 'Sans'
       Glyph.Data = {
@@ -3668,7 +3669,7 @@ object fImportar: TfImportar
     object BitBtn6: TBitBtn
       Left = 312
       Height = 33
-      Top = 304
+      Top = 216
       Width = 103
       Caption = 'Cerrar edición'
       Glyph.Data = {

@@ -1,0 +1,47 @@
+MANUAL FACTURLINEX - INFORME DE VALIDACIÓN
+PRIMERA EDICIÓN 1.0 FINAL - 25/07/2026
+============================================================
+
+DOCUMENTOS
+----------
+- DOCX editable: Manual_FacturLinEx_Edicion_1.0_Final.docx
+- PDF: Manual_FacturLinEx_Edicion_1.0_Final.pdf
+- Web: Manual_FacturLinEx_Web_Edicion_1.0_Final.zip
+
+MAQUETACIÓN IMPRESA
+-------------------
+- 92 páginas.
+- 14 capítulos completos, más control del documento e índice.
+- Portada sin cabecera ni pie.
+- Páginas interiores numeradas: Página X de 92.
+- Encabezados, pies, tablas, imágenes y saltos revisados visualmente.
+- PDF abierto correctamente, no cifrado y con texto seleccionable.
+
+AUDITORÍA VISUAL
+----------------
+- Revisadas las 92 páginas renderizadas.
+- Restaurados en Ventas los ocho cuadros y los ocho números de la figura principal.
+- Cada referencia 1-8 de Ventas vuelve a señalar una zona visible.
+- Añadida referencia visual numerada para teclado numérico, alfanumérico y teclado de productos.
+- Eliminadas referencias obsoletas como CAPTURA PENDIENTE o auditoría pendiente.
+- Gráficas, tablas y figuras revisadas para evitar cortes y superposiciones.
+
+VERSIÓN WEB
+-----------
+- 17 páginas HTML.
+- 159 entradas en el buscador.
+- 0 referencias locales rotas.
+- Descargas DOCX y PDF idénticas a los documentos finales.
+- ZIP comprobado sin errores de integridad.
+- Capítulo 14 actualizado a Mantenimiento del manual y próximas revisiones.
+
+ACCESIBILIDAD Y ESTRUCTURA
+--------------------------
+- 0 incidencias de accesibilidad de severidad alta en el DOCX.
+- 69 imágenes integradas y auditadas estructuralmente.
+- Jerarquía de títulos: 16 títulos de nivel 1, 134 de nivel 2 y 8 de nivel 3.
+- Única sección en formato Carta, orientación vertical, con primera página diferenciada.
+
+RESULTADO
+---------
+Primera edición completa preparada para la prueba definitiva y para futuras revisiones trazables.

@@ -263,9 +263,11 @@ type
     FSortColDatos: Integer;
     FSortColProcesados: Integer;
     FSortColPendientes: Integer;
+    FSortColBusqueda: Integer;
     FSortAscDatos: Boolean;
     FSortAscProcesados: Boolean;
     FSortAscPendientes: Boolean;
+    FSortAscBusqueda: Boolean;
     FMoviendoPanelEdicion: Boolean;
     FPanelEdicionMovidoPorUsuario: Boolean;
     FPanelEdicionDragOffset: TPoint;
@@ -303,6 +305,8 @@ type
     procedure PanelEdicionDragMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure LimitarPanelEdicionAlAreaVisible;
+    procedure BusquedaGridHeaderMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
   public
     { public declarations }
     procedure LlenarLineaGrid(
@@ -917,6 +921,35 @@ begin
   Result := Trim(S);
   Result := StringReplace(Result, '\', '\\', [rfReplaceAll]);
   Result := StringReplace(Result, '"', '\"', [rfReplaceAll]);
+end;
+
+function FLX_PatronLikePrefijo(const S: string): string;
+var
+  T: string;
+begin
+  { Búsqueda por comienzo, siempre en mayúsculas.
+    ABC y ABC% producen el mismo patrón: ABC%.
+    No se permite comodín inicial ni intermedio. }
+  T:=UpperCase(Trim(S));
+  T:=StringReplace(T, '%', '', [rfReplaceAll]);
+  T:=StringReplace(T, '_', '', [rfReplaceAll]);
+  Result:=FLX_SQLTexto(T)+'%';
+end;
+
+function FLX_TextoCampoFecha(AField: TField): string;
+begin
+  if (AField=nil) or AField.IsNull then
+    Result:=''
+  else
+    Result:=AField.AsString;
+end;
+
+function FLX_TextoImporte(AField: TField): string;
+begin
+  if (AField=nil) or AField.IsNull then
+    Result:=''
+  else
+    Result:=FormatFloat('0.000', AField.AsFloat);
 end;
 
 function FLX_TextoValidoEAN(const S: string): Boolean;
@@ -2423,12 +2456,11 @@ end;
 
 function TfImportar.SeleccionarArticuloExistentePorDescripcion(const TextoBusqueda: string; out ACodigo, ANombre: string): Boolean;
 var
-  Busqueda: string;
+  Busqueda, Patron: string;
   FormSel: TForm;
-  Lista: TListBox;
+  Grid: TStringGrid;
   BtnOK, BtnCancel: TButton;
-  Codigos, Nombres: TStringList;
-  Num: Integer;
+  Fila: Integer;
 begin
   Result:=False;
   ACodigo:='';
@@ -2441,7 +2473,9 @@ begin
 
     if not InputQuery(
       'Buscar artículo existente',
-      'Indique parte de la descripción o código del artículo existente:' + LineEnding + LineEnding +
+      'Indique cómo COMIENZA la descripción o el código:' + LineEnding +
+      'Ejemplo: ABC o ABC%  →  busca ABC%' + LineEnding +
+      'La búsqueda no distingue mayúsculas/minúsculas.' + LineEnding + LineEnding +
       'Línea importada: ' + Trim(EditPenNombre.Text),
       Busqueda) then Exit;
 
@@ -2452,18 +2486,20 @@ begin
       Continue;
     end;
 
+    Patron:=FLX_PatronLikePrefijo(Busqueda);
+
     dbArti.Active:=False;
     dbArti.SQL.Text:=
-      'SELECT A0,A1 FROM artitien'+Tienda+
-      ' WHERE A1 LIKE "%'+FLX_SQLTexto(Busqueda)+'%"'+
-      ' OR A0 LIKE "%'+FLX_SQLTexto(Busqueda)+'%"'+
-      ' ORDER BY A1 LIMIT 50';
+      'SELECT A0,A1,A12,A13,A24,A2 FROM artitien'+Tienda+
+      ' WHERE UPPER(A1) LIKE "'+Patron+'"'+
+      ' OR UPPER(A0) LIKE "'+Patron+'"'+
+      ' ORDER BY A1 LIMIT 100';
     dbArti.Active:=True;
 
     if dbArti.RecordCount=0 then
     begin
       if MessageDlg(
-           'No se ha encontrado ningún artículo con:' + LineEnding + LineEnding +
+           'No se ha encontrado ningún artículo que empiece por:' + LineEnding + LineEnding +
            Busqueda + LineEnding + LineEnding +
            '¿Desea realizar otra búsqueda?',
            mtConfirmation, [mbYes, mbNo], 0) = mrNo then Exit;
@@ -2476,7 +2512,12 @@ begin
       ANombre:=dbArti.FieldByName('A1').AsString;
       if MessageDlg(
            'Se ha encontrado este artículo:' + LineEnding + LineEnding +
-           ACodigo + ' - ' + ANombre + LineEnding + LineEnding +
+           'Código: ' + ACodigo + LineEnding +
+           'Descripción: ' + ANombre + LineEnding +
+           'Últ. compra: ' + FLX_TextoCampoFecha(dbArti.FieldByName('A12')) + LineEnding +
+           'Últ. venta: ' + FLX_TextoCampoFecha(dbArti.FieldByName('A13')) + LineEnding +
+           'Coste: ' + FLX_TextoImporte(dbArti.FieldByName('A24')) + LineEnding +
+           'PVP: ' + FLX_TextoImporte(dbArti.FieldByName('A2')) + LineEnding + LineEnding +
            '¿Usarlo para añadir el código auxiliar?',
            mtConfirmation, [mbYes, mbNo], 0) = mrYes then
       begin
@@ -2486,59 +2527,83 @@ begin
       Continue;
     end;
 
-    Codigos:=TStringList.Create;
-    Nombres:=TStringList.Create;
     FormSel:=TForm.Create(Self);
     try
       FormSel.Caption:='Seleccione artículo existente';
       FormSel.Position:=poScreenCenter;
-      FormSel.BorderStyle:=bsDialog;
-      FormSel.Width:=760;
-      FormSel.Height:=420;
+      FormSel.BorderStyle:=bsSizeable;
+      FormSel.Width:=1040;
+      FormSel.Height:=500;
 
-      Lista:=TListBox.Create(FormSel);
-      Lista.Parent:=FormSel;
-      Lista.Left:=8;
-      Lista.Top:=8;
-      Lista.Width:=FormSel.ClientWidth-16;
-      Lista.Height:=FormSel.ClientHeight-56;
-      Lista.Anchors:=[akLeft, akTop, akRight, akBottom];
+      Grid:=TStringGrid.Create(FormSel);
+      Grid.Parent:=FormSel;
+      Grid.Left:=8;
+      Grid.Top:=8;
+      Grid.Width:=FormSel.ClientWidth-16;
+      Grid.Height:=FormSel.ClientHeight-60;
+      Grid.Anchors:=[akLeft, akTop, akRight, akBottom];
+      Grid.FixedRows:=1;
+      Grid.FixedCols:=0;
+      Grid.ColCount:=6;
+      Grid.RowCount:=1;
+      Grid.Options:=Grid.Options+[goRowSelect,goFixedVertLine,goFixedHorzLine,goVertLine,goHorzLine];
+      FSortColBusqueda:=-1;
+      FSortAscBusqueda:=True;
+      Grid.OnMouseDown:=@BusquedaGridHeaderMouseDown;
+      Grid.Cursor:=crHandPoint;
+      Grid.Cells[0,0]:='Código';
+      Grid.Cells[1,0]:='Descripción';
+      Grid.Cells[2,0]:='Últ. compra';
+      Grid.Cells[3,0]:='Últ. venta';
+      Grid.Cells[4,0]:='Coste';
+      Grid.Cells[5,0]:='PVP';
+      Grid.ColWidths[0]:=145;
+      Grid.ColWidths[1]:=390;
+      Grid.ColWidths[2]:=110;
+      Grid.ColWidths[3]:=110;
+      Grid.ColWidths[4]:=95;
+      Grid.ColWidths[5]:=95;
+
+      Fila:=1;
+      dbArti.First;
+      while not dbArti.EOF do
+      begin
+        Grid.RowCount:=Fila+1;
+        Grid.Cells[0,Fila]:=dbArti.FieldByName('A0').AsString;
+        Grid.Cells[1,Fila]:=dbArti.FieldByName('A1').AsString;
+        Grid.Cells[2,Fila]:=FLX_TextoCampoFecha(dbArti.FieldByName('A12'));
+        Grid.Cells[3,Fila]:=FLX_TextoCampoFecha(dbArti.FieldByName('A13'));
+        Grid.Cells[4,Fila]:=FLX_TextoImporte(dbArti.FieldByName('A24'));
+        Grid.Cells[5,Fila]:=FLX_TextoImporte(dbArti.FieldByName('A2'));
+        Inc(Fila);
+        dbArti.Next;
+      end;
+      if Grid.RowCount>1 then Grid.Row:=1;
 
       BtnOK:=TButton.Create(FormSel);
       BtnOK.Parent:=FormSel;
       BtnOK.Caption:='Aceptar';
       BtnOK.ModalResult:=mrOk;
-      BtnOK.Left:=FormSel.ClientWidth-180;
-      BtnOK.Top:=FormSel.ClientHeight-40;
-      BtnOK.Width:=80;
+      BtnOK.Left:=FormSel.ClientWidth-190;
+      BtnOK.Top:=FormSel.ClientHeight-44;
+      BtnOK.Width:=88;
       BtnOK.Anchors:=[akRight, akBottom];
 
       BtnCancel:=TButton.Create(FormSel);
       BtnCancel.Parent:=FormSel;
       BtnCancel.Caption:='Cancelar';
       BtnCancel.ModalResult:=mrCancel;
-      BtnCancel.Left:=FormSel.ClientWidth-92;
-      BtnCancel.Top:=FormSel.ClientHeight-40;
-      BtnCancel.Width:=84;
+      BtnCancel.Left:=FormSel.ClientWidth-96;
+      BtnCancel.Top:=FormSel.ClientHeight-44;
+      BtnCancel.Width:=88;
       BtnCancel.Anchors:=[akRight, akBottom];
-
-      dbArti.First;
-      while not dbArti.EOF do
-      begin
-        Codigos.Add(dbArti.FieldByName('A0').AsString);
-        Nombres.Add(dbArti.FieldByName('A1').AsString);
-        Lista.Items.Add(dbArti.FieldByName('A0').AsString + '  -  ' + dbArti.FieldByName('A1').AsString);
-        dbArti.Next;
-      end;
-      if Lista.Items.Count>0 then Lista.ItemIndex:=0;
 
       if FormSel.ShowModal=mrOk then
       begin
-        Num:=Lista.ItemIndex;
-        if (Num>=0) and (Num<Codigos.Count) then
+        if (Grid.Row>0) and (Grid.Row<Grid.RowCount) then
         begin
-          ACodigo:=Codigos[Num];
-          ANombre:=Nombres[Num];
+          ACodigo:=Grid.Cells[0,Grid.Row];
+          ANombre:=Grid.Cells[1,Grid.Row];
           Result:=True;
           Exit;
         end;
@@ -2547,21 +2612,20 @@ begin
         Exit;
     finally
       FormSel.Free;
-      Codigos.Free;
-      Nombres.Free;
     end;
   until False;
 end;
 
+
 function TfImportar.SeleccionarArticuloSimilarOAltaNueva(const TextoBusqueda: string; out ACodigo, ANombre: string; out ACrearNuevo: Boolean): Boolean;
 var
   FormSel: TForm;
-  Lista: TListBox;
+  Grid: TStringGrid;
   LInfo: TLabel;
   BtnUsar, BtnNuevo, BtnCancel: TButton;
   Codigos, Nombres, Lineas, Palabras: TStringList;
-  Condicion, Busqueda: string;
-  I, Modal: Integer;
+  Condicion, Busqueda, Patron: string;
+  I, Modal, Fila: Integer;
   Score: Integer;
 begin
   Result:=False;
@@ -2584,20 +2648,26 @@ begin
   try
     FLX_ExtraerPalabrasSimilares(Busqueda, Palabras);
 
+    { Para no hacer búsquedas "%texto%" sobre toda la tabla, usamos siempre
+      prefijo. Se prueban las primeras palabras útiles como inicios posibles. }
     Condicion:='';
     for I:=0 to Palabras.Count-1 do
     begin
-      if I>=6 then Break; // No saturar la consulta en bases grandes.
+      if I>=6 then Break;
+      Patron:=FLX_PatronLikePrefijo(Palabras[I]);
       if Condicion<>'' then Condicion:=Condicion+' OR ';
-      Condicion:=Condicion+'A1 LIKE "%'+FLX_SQLTexto(Palabras[I])+'%"';
+      Condicion:=Condicion+'UPPER(A1) LIKE "'+Patron+'"';
     end;
 
     if Condicion='' then
-      Condicion:='A1 LIKE "%'+FLX_SQLTexto(FLX_NormalizaParaSimilitud(Busqueda))+'%"';
+    begin
+      Patron:=FLX_PatronLikePrefijo(Busqueda);
+      Condicion:='UPPER(A1) LIKE "'+Patron+'" OR UPPER(A0) LIKE "'+Patron+'"';
+    end;
 
     dbArti.Active:=False;
     dbArti.SQL.Text:=
-      'SELECT A0,A1 FROM artitien'+Tienda+
+      'SELECT A0,A1,A12,A13,A24,A2 FROM artitien'+Tienda+
       ' WHERE '+Condicion+
       ' ORDER BY A1 LIMIT 200';
     dbArti.Active:=True;
@@ -2614,7 +2684,6 @@ begin
       dbArti.Next;
     end;
 
-    // Si no hay candidatos razonables, no molestamos: se continúa con el alta nueva.
     if Lineas.Count=0 then
     begin
       ACrearNuevo:=True;
@@ -2627,37 +2696,78 @@ begin
       FormSel.Caption:='Artículos similares encontrados';
       FormSel.Position:=poScreenCenter;
       FormSel.BorderStyle:=bsSizeable;
-      FormSel.Width:=850;
-      FormSel.Height:=480;
+      FormSel.Width:=1080;
+      FormSel.Height:=520;
 
       LInfo:=TLabel.Create(FormSel);
       LInfo.Parent:=FormSel;
       LInfo.Left:=8;
       LInfo.Top:=8;
       LInfo.Width:=FormSel.ClientWidth-16;
-      LInfo.Height:=48;
+      LInfo.Height:=50;
       LInfo.Anchors:=[akLeft, akTop, akRight];
       LInfo.Caption:=
         'Antes de crear un artículo nuevo, se han encontrado posibles coincidencias.' + LineEnding +
         'Línea importada: ' + Busqueda + LineEnding +
         'Puede usar uno de estos artículos o continuar con el alta nueva.';
 
-      Lista:=TListBox.Create(FormSel);
-      Lista.Parent:=FormSel;
-      Lista.Left:=8;
-      Lista.Top:=64;
-      Lista.Width:=FormSel.ClientWidth-16;
-      Lista.Height:=FormSel.ClientHeight-112;
-      Lista.Anchors:=[akLeft, akTop, akRight, akBottom];
-      Lista.Items.Assign(Lineas);
-      if Lista.Items.Count>0 then Lista.ItemIndex:=0;
+      Grid:=TStringGrid.Create(FormSel);
+      Grid.Parent:=FormSel;
+      Grid.Left:=8;
+      Grid.Top:=66;
+      Grid.Width:=FormSel.ClientWidth-16;
+      Grid.Height:=FormSel.ClientHeight-120;
+      Grid.Anchors:=[akLeft, akTop, akRight, akBottom];
+      Grid.FixedRows:=1;
+      Grid.FixedCols:=0;
+      Grid.ColCount:=6;
+      Grid.RowCount:=1;
+      Grid.Options:=Grid.Options+[goRowSelect,goFixedVertLine,goFixedHorzLine,goVertLine,goHorzLine];
+      FSortColBusqueda:=-1;
+      FSortAscBusqueda:=True;
+      Grid.OnMouseDown:=@BusquedaGridHeaderMouseDown;
+      Grid.Cursor:=crHandPoint;
+      Grid.Cells[0,0]:='Código';
+      Grid.Cells[1,0]:='Descripción';
+      Grid.Cells[2,0]:='Últ. compra';
+      Grid.Cells[3,0]:='Últ. venta';
+      Grid.Cells[4,0]:='Coste';
+      Grid.Cells[5,0]:='PVP';
+      Grid.ColWidths[0]:=145;
+      Grid.ColWidths[1]:=410;
+      Grid.ColWidths[2]:=110;
+      Grid.ColWidths[3]:=110;
+      Grid.ColWidths[4]:=95;
+      Grid.ColWidths[5]:=95;
+
+      for I:=0 to Codigos.Count-1 do
+      begin
+        dbArti.Active:=False;
+        dbArti.SQL.Text:=
+          'SELECT A0,A1,A12,A13,A24,A2 FROM artitien'+Tienda+
+          ' WHERE A0="'+FLX_SQLTexto(Codigos[I])+'" LIMIT 1';
+        dbArti.Active:=True;
+
+        if dbArti.RecordCount>0 then
+        begin
+          Fila:=Grid.RowCount;
+          Grid.RowCount:=Fila+1;
+          Grid.Cells[0,Fila]:=dbArti.FieldByName('A0').AsString;
+          Grid.Cells[1,Fila]:=dbArti.FieldByName('A1').AsString;
+          Grid.Cells[2,Fila]:=FLX_TextoCampoFecha(dbArti.FieldByName('A12'));
+          Grid.Cells[3,Fila]:=FLX_TextoCampoFecha(dbArti.FieldByName('A13'));
+          Grid.Cells[4,Fila]:=FLX_TextoImporte(dbArti.FieldByName('A24'));
+          Grid.Cells[5,Fila]:=FLX_TextoImporte(dbArti.FieldByName('A2'));
+        end;
+      end;
+      if Grid.RowCount>1 then Grid.Row:=1;
 
       BtnUsar:=TButton.Create(FormSel);
       BtnUsar.Parent:=FormSel;
       BtnUsar.Caption:='Usar seleccionado';
       BtnUsar.ModalResult:=mrOk;
       BtnUsar.Left:=FormSel.ClientWidth-370;
-      BtnUsar.Top:=FormSel.ClientHeight-40;
+      BtnUsar.Top:=FormSel.ClientHeight-44;
       BtnUsar.Width:=130;
       BtnUsar.Anchors:=[akRight, akBottom];
 
@@ -2666,7 +2776,7 @@ begin
       BtnNuevo.Caption:='Alta nueva';
       BtnNuevo.ModalResult:=mrYes;
       BtnNuevo.Left:=FormSel.ClientWidth-232;
-      BtnNuevo.Top:=FormSel.ClientHeight-40;
+      BtnNuevo.Top:=FormSel.ClientHeight-44;
       BtnNuevo.Width:=100;
       BtnNuevo.Anchors:=[akRight, akBottom];
 
@@ -2675,18 +2785,17 @@ begin
       BtnCancel.Caption:='Cancelar';
       BtnCancel.ModalResult:=mrCancel;
       BtnCancel.Left:=FormSel.ClientWidth-124;
-      BtnCancel.Top:=FormSel.ClientHeight-40;
+      BtnCancel.Top:=FormSel.ClientHeight-44;
       BtnCancel.Width:=116;
       BtnCancel.Anchors:=[akRight, akBottom];
 
       Modal:=FormSel.ShowModal;
       if Modal=mrOk then
       begin
-        I:=Lista.ItemIndex;
-        if (I>=0) and (I<Codigos.Count) then
+        if (Grid.Row>0) and (Grid.Row<Grid.RowCount) then
         begin
-          ACodigo:=Codigos[I];
-          ANombre:=Nombres[I];
+          ACodigo:=Grid.Cells[0,Grid.Row];
+          ANombre:=Grid.Cells[1,Grid.Row];
           ACrearNuevo:=False;
           Result:=True;
         end;
@@ -2706,6 +2815,7 @@ begin
     Palabras.Free;
   end;
 end;
+
 
 function TfImportar.IntentarVincularArticuloSimilarAntesAlta(var Linea: RLineaPedido; const CodigoNuevo, NombreNuevo, EanNuevo: string): Boolean;
 var
@@ -2775,7 +2885,7 @@ begin
 
   BitBtnDAltaCod.Enabled:=False;
   BitBtnAltaEan.Enabled:=False;
-  BitBtnAceptarDatosBD.Enabled:=False;
+  BitBtnAceptarDatosBD.Enabled:=False; BitBtnAceptarDatosBD.Visible:=False;
   PanelEdicion.Visible:=False;
 
   Result:=True;
@@ -3122,7 +3232,7 @@ Conocido: Boolean;
 begin
 TxtQuery:=''; Conocido:=False;
   BitBtnAltaEan.Enabled:=False;
-  BitBtnAceptarDatosBD.Enabled:=False;
+  BitBtnAceptarDatosBD.Enabled:=False; BitBtnAceptarDatosBD.Visible:=False;
   BitBtnDAltaCod.Enabled:=False;
 
 EditBDCodigo.Text:='';
@@ -3146,7 +3256,7 @@ EditPenEan.Text:=dbgPendientes.Cells[0,fila];
   //Conocidos por el código, nombre o ean aparecen en la tabla de eans
   IF ((linea.CoinCod=2) or (linea.CoinEan=2) or (linea.CoinDes=2)) then
   begin
-    BitBtnAceptarDatosBD.Enabled:=True;
+    BitBtnAceptarDatosBD.Enabled:=True; BitBtnAceptarDatosBD.Visible:=True;
     Conocido:=True;
 
     TxtQuery:='SELECT * FROM eans WHERE EAN2="'+Linea.Descripcion+'"';
@@ -3164,7 +3274,7 @@ EditPenEan.Text:=dbgPendientes.Cells[0,fila];
   //Conocidos que no están en la tabla de eans y que si lo estan en la de artitien
   else if ((linea.CoinCod=1) or (linea.CoinDes=1)) then
   begin
-    BitBtnAceptarDatosBD.Enabled:=True;
+    BitBtnAceptarDatosBD.Enabled:=True; BitBtnAceptarDatosBD.Visible:=True;
     Conocido:=True;
 
     TxtQuery:='SELECT * FROM artitien'+Tienda+' WHERE A1="'+Linea.Descripcion+'"';
@@ -3271,7 +3381,7 @@ EditPenEan.Text:=dbgPendientes.Cells[0,fila];
 
     if dbArti.RecordCount<>0 then
     begin
-      BitBtnAceptarDatosBD.Enabled:=True;
+      BitBtnAceptarDatosBD.Enabled:=True; BitBtnAceptarDatosBD.Visible:=True;
       if FLX_TextoValidoEAN(EditPenEan.Text) or (Trim(EditPenCodigo.Text) <> '') then
         BitBtnAltaEan.Enabled:=True;
       Conocido:=True;
@@ -3299,7 +3409,7 @@ EditPenEan.Text:=dbgPendientes.Cells[0,fila];
 
       if dbArti.RecordCount<>0 then
       begin
-        BitBtnAceptarDatosBD.Enabled:=True;
+        BitBtnAceptarDatosBD.Enabled:=True; BitBtnAceptarDatosBD.Visible:=True;
         if FLX_TextoValidoEAN(EditPenEan.Text) or (Trim(EditPenCodigo.Text) <> '') then
           BitBtnAltaEan.Enabled:=True;
         Conocido:=True;
@@ -3538,7 +3648,7 @@ begin
   ArrayDeLineasPedido[linea.Pos-1]:=linea;
 
   DistribuirLineasPedido(ArrayDeLineasPedido);
-  BitBtnAceptarDatosBD.Enabled:=False;
+  BitBtnAceptarDatosBD.Enabled:=False; BitBtnAceptarDatosBD.Visible:=False;
   PanelEdicion.Visible:=False;
 end;
 
@@ -3686,7 +3796,7 @@ begin
       linea.CoinDes:=2;
       ArrayDeLineasPedido[linea.Pos-1]:=linea;
 
-      BitBtnAceptarDatosBD.Enabled:=True;
+      BitBtnAceptarDatosBD.Enabled:=True; BitBtnAceptarDatosBD.Visible:=True;
       BitBtnAltaEan.Enabled:=False;
       BitBtnDAltaCod.Enabled:=False;
 
@@ -3720,7 +3830,7 @@ begin
       linea.CoinDes:=2;
       ArrayDeLineasPedido[linea.Pos-1]:=linea;
 
-      BitBtnAceptarDatosBD.Enabled:=True;
+      BitBtnAceptarDatosBD.Enabled:=True; BitBtnAceptarDatosBD.Visible:=True;
       BitBtnAltaEan.Enabled:=False;
       BitBtnDAltaCod.Enabled:=False;
 
@@ -3841,7 +3951,7 @@ begin
   //writeLinea(ArrayDeLineasPedido[linea.Pos-1]);
 
   DistribuirLineasPedido(ArrayDeLineasPedido);
-  BitBtnAceptarDatosBD.Enabled:=False;
+  BitBtnAceptarDatosBD.Enabled:=False; BitBtnAceptarDatosBD.Visible:=False;
   BitBtnAltaEan.Enabled:=False;
   BitBtnDAltaCod.Enabled:=False;
   PanelEdicion.Visible:=False;
@@ -4074,9 +4184,11 @@ begin
   FSortColDatos:=-1;
   FSortColProcesados:=-1;
   FSortColPendientes:=-1;
+  FSortColBusqueda:=-1;
   FSortAscDatos:=True;
   FSortAscProcesados:=True;
   FSortAscPendientes:=True;
+  FSortAscBusqueda:=True;
   FMoviendoPanelEdicion:=False;
   FPanelEdicionMovidoPorUsuario:=False;
   FPanelPasoSeleccionar:=nil;
@@ -4165,6 +4277,17 @@ begin
     OrdenarStringGrid(dbgProcesados,ACol,FSortColProcesados,FSortAscProcesados)
   else if Sender=dbgPendientes then
     OrdenarStringGrid(dbgPendientes,ACol,FSortColPendientes,FSortAscPendientes);
+end;
+
+procedure TfImportar.BusquedaGridHeaderMouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  ACol, ARow: Integer;
+begin
+  if (Button<>mbLeft) or not (Sender is TStringGrid) then Exit;
+  TStringGrid(Sender).MouseToCell(X,Y,ACol,ARow);
+  if (ARow<>0) or (ACol<0) or (ACol>=TStringGrid(Sender).ColCount) then Exit;
+  OrdenarStringGrid(TStringGrid(Sender),ACol,FSortColBusqueda,FSortAscBusqueda);
 end;
 
 procedure TfImportar.CrearCabeceraPrincipal;
@@ -4492,8 +4615,8 @@ begin
   BitBtnDAltaCod.Hint:='Da de alta un artículo nuevo con los datos de la línea pendiente.';
   BitBtnAltaEan.Caption:='Crear EAN / auxiliar';
   BitBtnAltaEan.Hint:='Asocia el EAN o código auxiliar de la línea al artículo seleccionado.';
-  BitBtnAceptarDatosBD.Caption:='Usar artículo existente';
-  BitBtnAceptarDatosBD.Hint:='Resuelve la línea utilizando el código y descripción existentes en la base de datos.';
+  BitBtnAceptarDatosBD.Caption:='Aceptar coincidencia BD';
+  BitBtnAceptarDatosBD.Hint:='Solo aparece cuando FacturLinEx ya ha encontrado automáticamente un artículo existente para esta línea.';
   BitBtn6.Caption:='Cerrar edición';
   BitBtn6.Hint:='Cierra este panel sin aceptar otra acción.';
   BitBtnDAltaCod.ShowHint:=True;
@@ -4662,9 +4785,10 @@ begin
   Label39.SetBounds(28,226,110,24); EditPenNombre.SetBounds(150,224,PanelEdicion.Width-180,29);
   BitBtnDAltaCod.SetBounds(28,278,160,38);
   BitBtnAltaEan.SetBounds(204,278,160,38);
-  BitBtnAceptarDatosBD.SetBounds(380,278,PanelEdicion.Width-408,38);
+  BitBtn6.SetBounds(PanelEdicion.Width-148,278,120,38);
+  BitBtnAceptarDatosBD.SetBounds(380,278,BitBtn6.Left-392,38);
+  if BitBtnAceptarDatosBD.Width<120 then BitBtnAceptarDatosBD.Width:=120;
   cbCodtxtAEan.SetBounds(30,334,PanelEdicion.Width-60,24);
-  BitBtn6.SetBounds((PanelEdicion.Width-120) div 2,378,120,38);
 
   if not FPanelEdicionMovidoPorUsuario then
   begin
@@ -4720,18 +4844,38 @@ var
   S: String;
 begin
   if not Assigned(AGrid) then Exit;
-  for I:=0 to AGrid.Columns.Count-1 do
+
+  if AGrid.Columns.Count>0 then
   begin
-    S:=AGrid.Columns[I].Title.Caption;
-    S:=StringReplace(S,' ▲','',[rfReplaceAll]);
-    S:=StringReplace(S,' ▼','',[rfReplaceAll]);
-    AGrid.Columns[I].Title.Caption:=S;
-  end;
-  if (ACol<0) or (ACol>=AGrid.Columns.Count) then Exit;
-  if AAscendente then
-    AGrid.Columns[ACol].Title.Caption:=AGrid.Columns[ACol].Title.Caption+' ▲'
+    for I:=0 to AGrid.Columns.Count-1 do
+    begin
+      S:=AGrid.Columns[I].Title.Caption;
+      S:=StringReplace(S,' ▲','',[rfReplaceAll]);
+      S:=StringReplace(S,' ▼','',[rfReplaceAll]);
+      AGrid.Columns[I].Title.Caption:=S;
+    end;
+    if (ACol<0) or (ACol>=AGrid.Columns.Count) then Exit;
+    if AAscendente then
+      AGrid.Columns[ACol].Title.Caption:=AGrid.Columns[ACol].Title.Caption+' ▲'
+    else
+      AGrid.Columns[ACol].Title.Caption:=AGrid.Columns[ACol].Title.Caption+' ▼';
+  end
   else
-    AGrid.Columns[ACol].Title.Caption:=AGrid.Columns[ACol].Title.Caption+' ▼';
+  begin
+    { Rejillas dinámicas de búsqueda: la cabecera está en Cells[,0]. }
+    for I:=0 to AGrid.ColCount-1 do
+    begin
+      S:=AGrid.Cells[I,0];
+      S:=StringReplace(S,' ▲','',[rfReplaceAll]);
+      S:=StringReplace(S,' ▼','',[rfReplaceAll]);
+      AGrid.Cells[I,0]:=S;
+    end;
+    if (ACol<0) or (ACol>=AGrid.ColCount) then Exit;
+    if AAscendente then
+      AGrid.Cells[ACol,0]:=AGrid.Cells[ACol,0]+' ▲'
+    else
+      AGrid.Cells[ACol,0]:=AGrid.Cells[ACol,0]+' ▼';
+  end;
 end;
 
 procedure TfImportar.OrdenarStringGrid(AGrid: TStringGrid; ACol: Integer;
@@ -4775,7 +4919,7 @@ var
   end;
 begin
   if (not Assigned(AGrid)) or (AGrid.RowCount<=AGrid.FixedRows+1) or
-     (ACol<0) or (ACol>=AGrid.ColCount-1) then Exit;
+     (ACol<0) or (ACol>=AGrid.ColCount) then Exit;
 
   if AColOrdenada=ACol then
     AAscendente:=not AAscendente

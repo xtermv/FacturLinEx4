@@ -1,0 +1,15 @@
+FACTURLINEX 4.2.6 - UNIDADES PROTEGIDAS
+=======================================
+
+Facturar/facturar.pas
+Ventas/ventas.pas
+Ventas/uVeriFactu.pas
+verifactu/uVF_HashChain.pas
+verifactu/uVF_Integration.pas
+verifactu/uVF_Sender.pas
+verifactu/uVFSenderAEAT.pas
+verifactu/uVeriFactuHTTPSender.pas
+VFMonitor/uvfqueuemonitor.pas
+VFMonitor/uVFCentroControl.pas
+
+Cualquier modificación en estas unidades requiere registrar el cambio y ejecutar las pruebas de regresión relacionadas antes de declarar estable la revisión.

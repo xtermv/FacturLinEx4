@@ -1,0 +1,9 @@
+Inventario generado en:
+/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/inventario_facturlinex_20260802_233126
+
+Archivos más importantes:
+  05_bibliotecas_y_paquetes.txt
+  06_paquetes_binario.txt
+  10_referencias_externas_codigo.txt
+  11_recursos_para_empaquetar.txt
+  12_prueba_dinamica.txt

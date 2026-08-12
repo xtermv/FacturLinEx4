@@ -1,0 +1,31 @@
+FACTURLINEX INSTALLER GUI - FIX NAVEGACIÓN v2
+
+Problema observado:
+- Solo se veía la pantalla de bienvenida.
+- Los botones inferiores no aparecían.
+
+Correcciones:
+1. Los botones ya no se posicionan usando Width del formulario.
+2. Se crea pnlNav alineado a la derecha dentro del pie.
+3. Anterior / Siguiente / Cancelar tienen posiciones fijas dentro de pnlNav.
+4. Se fuerza BringToFront del pie y navegación para evitar solapamiento GTK/LCL.
+5. El cuerpo pasa a TScrollBox para que la página de datos de tienda pueda
+   desplazarse en pantallas de menor altura.
+6. Se aumenta ligeramente la altura inicial del asistente.
+
+No se modifica:
+- instalador maestro shell;
+- MariaDB;
+- datos mínimos;
+- lógica de instalación;
+- VeriFactu;
+- sudoers.
+
+Prueba:
+lazbuild -B InstaladorGUI/FLXInstaller.lpi
+./Bin/FLXInstaller
+
+En la bienvenida deben verse abajo:
+[Anterior] [Siguiente] [Cancelar]
+
+Anterior aparece deshabilitado en el paso 1, que es correcto.

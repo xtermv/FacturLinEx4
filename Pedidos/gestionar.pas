@@ -493,8 +493,11 @@ private
     procedure Panel6DragMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure LimitarPanel6AlAreaVisible;
+    function CosteActualArticulo(const ACodigo: String; out AEncontrado: Boolean): Double;
+    procedure LimpiarCacheCostes;
 
   private
+    FCostesActuales: TStringList;
     //--- STOCK informativo (solo lectura)
     FLabelStock: TLabel;
     FEditStock: TEdit;
@@ -535,6 +538,8 @@ begin
 end;
 procedure TFPedido.FormCreate(Sender: TObject);
 begin
+  FCostesActuales:=TStringList.Create;
+  FCostesActuales.NameValueSeparator:='=';
   //--------- Conectar con la bbdd
   //Conectate(dbConnect);   // Utilizamos datamodule1.dbConexión para toda la aplicación.
   //--------- Pedidos
@@ -632,6 +637,7 @@ begin
 end;
 procedure TFPedido.FormClose(Sender: TObject; var CloseAction: TCloseAction);
 begin
+  FreeAndNil(FCostesActuales);
   CloseAction:=CaFree;
 end;
 
@@ -962,6 +968,7 @@ begin
                      ' AND PD3="'+dbPedic.FieldByName('PC3').AsString+'"'+
                      ' AND PD4='+dbPedic.FieldByName('PC4').AsString;
   dbPedid.Active:=True;
+  LimpiarCacheCostes;
   Stock_EnsureGridColumn;
 
   PintaProveedor();
@@ -1102,6 +1109,7 @@ end;
 
 procedure TFPedido.DBGrid2TitleClick(Column: TColumn);
 begin
+  if (Column<>nil) and SameText(Column.Title.Caption,'VAR. COSTE') then Exit;
   AplicarOrdenGrid(DBGrid2, dbPedid, Column, sOrden);
   Stock_EnsureGridColumn;
 end;
@@ -1149,27 +1157,117 @@ begin
 end;
 
 //---------------- PINTAR LINEAS MARCADAS EN ROJO ----------------
+procedure TFPedido.LimpiarCacheCostes;
+begin
+  if Assigned(FCostesActuales) then
+    FCostesActuales.Clear;
+end;
+
+function TFPedido.CosteActualArticulo(const ACodigo: String;
+  out AEncontrado: Boolean): Double;
+var
+  I: Integer;
+  Q: TZQuery;
+  S: String;
+begin
+  Result:=0;
+  AEncontrado:=False;
+  if Trim(ACodigo)='' then Exit;
+
+  if Assigned(FCostesActuales) then
+  begin
+    I:=FCostesActuales.IndexOfName(ACodigo);
+    if I>=0 then
+    begin
+      S:=FCostesActuales.ValueFromIndex[I];
+      AEncontrado:=TryStrToFloat(S,Result);
+      Exit;
+    end;
+  end;
+
+  Q:=TZQuery.Create(nil);
+  try
+    Q.Connection:=dbPedid.Connection;
+    Q.SQL.Text:='SELECT A24 FROM artitien'+Tienda+
+                ' WHERE A0=:CODIGO LIMIT 1';
+    Q.ParamByName('CODIGO').AsString:=ACodigo;
+    Q.Open;
+    if not Q.EOF then
+    begin
+      Result:=Q.FieldByName('A24').AsFloat;
+      AEncontrado:=True;
+      if Assigned(FCostesActuales) then
+        FCostesActuales.Values[ACodigo]:=FloatToStr(Result);
+    end;
+  finally
+    Q.Free;
+  end;
+end;
+
 procedure TFPedido.DBGrid2DrawColumnCell(Sender: TObject; const Rect: TRect;
   DataCol: Integer; Column: TColumn; State: TGridDrawState);
 var
-  vStock: Double;
+  vStock, CostePedido, CosteActual, Dif: Double;
   s: string;
+  Encontrado: Boolean;
+  EsVariacion: Boolean;
 begin
-  // Color por defecto
   DBGrid2.Canvas.Font.Color := clBlack;
+  EsVariacion := (Column<>nil) and SameText(Column.Title.Caption,'VAR. COSTE');
 
-  // Líneas marcadas en rojo (tu lógica existente)
-  if (dbPedid.Active) and (dbPedid.FindField('PD23')<>nil) and (dbPedid.FieldByName('PD23').AsString='N') then
+  // Líneas marcadas en rojo (lógica existente)
+  if (dbPedid.Active) and (dbPedid.FindField('PD23')<>nil) and
+     (dbPedid.FieldByName('PD23').AsString='N') then
     DBGrid2.Canvas.Font.Color := clRed;
 
   // Stock negativo (PD20): el número en rojo
   if (dbPedid.Active) and (Column<>nil) and SameText(Column.FieldName,'PD20') and
      (dbPedid.FindField('PD20')<>nil) and
-     TryStrToFloat(StringReplace(dbPedid.FieldByName('PD20').AsString, ',', '.', [rfReplaceAll]), vStock) and
-     (vStock < 0) then
+     TryStrToFloat(StringReplace(dbPedid.FieldByName('PD20').AsString, ',', '.',
+       [rfReplaceAll]), vStock) and (vStock < 0) then
     DBGrid2.Canvas.Font.Color := clRed;
 
-  // Selección en amarillo suave (sin azul de selección del sistema)
+  // Columna informativa: coste del pedido frente al coste actual de la ficha.
+  if EsVariacion then
+  begin
+    s:='';
+    if dbPedid.Active and (dbPedid.RecordCount>0) and
+       (dbPedid.FindField('PD6')<>nil) and (dbPedid.FindField('PD10')<>nil) then
+    begin
+      CostePedido:=dbPedid.FieldByName('PD10').AsFloat;
+      CosteActual:=CosteActualArticulo(dbPedid.FieldByName('PD6').AsString,Encontrado);
+      if Encontrado then
+      begin
+        Dif:=CostePedido-CosteActual;
+        if Abs(Dif)<0.000005 then
+          s:='=  '+FormatFloat('0.000',0)
+        else if Dif>0 then
+          s:='↑  +'+FormatFloat('0.000',Dif)
+        else
+          s:='↓  '+FormatFloat('0.000',Dif);
+      end
+      else
+        s:='—';
+    end;
+
+    if gdSelected in State then
+      DBGrid2.Canvas.Brush.Color:=clInfoBk
+    else
+      DBGrid2.Canvas.Brush.Color:=DBGrid2.Color;
+    DBGrid2.Canvas.FillRect(Rect);
+
+    if Pos('↑',s)=1 then
+      DBGrid2.Canvas.Font.Color:=clRed
+    else if Pos('↓',s)=1 then
+      DBGrid2.Canvas.Font.Color:=clGreen
+    else if Pos('=',s)=1 then
+      DBGrid2.Canvas.Font.Color:=clBlack;
+
+    DBGrid2.Canvas.TextRect(Rect,Rect.Left+4,Rect.Top+2,s);
+    Exit;
+  end;
+
+  // Selección en amarillo suave
   if gdSelected in State then
   begin
     DBGrid2.Canvas.Brush.Color := clInfoBk;
@@ -1399,8 +1497,10 @@ begin
   if Edit6.Text='' then
      begin ShowMessage('DEBE TECLEAR EL COMIENZO DEL TEXTO A BUSCAR'); Edit6.SetFocus; Exit; end;
 
-  Edit5.Text := FBusquedas.IniciaBusquedas('SELECT A0, A1, A2, A4 FROM artitien'+Tienda+' WHERE A1 LIKE "'+Edit6.Text+'%"',
-           ['codigo', ' Descripción ', ' Precio ', ' Stock ' ], 'A0' );
+  Edit5.Text := FBusquedas.IniciaBusquedas(
+           'SELECT A0, A1, A12, A13, A24, A2 FROM artitien'+Tienda+
+           ' WHERE A1 LIKE "'+Edit6.Text+'%"',
+           ['Código', 'Descripción', 'Últ. compra', 'Últ. venta', 'Coste', 'PVP'], 'A0' );
 
   if Edit5.Text<>'' then begin Edit5Exit(Edit5); Edit7.SetFocus; end;
 end;
@@ -2640,10 +2740,26 @@ begin
       dbEan.Post;
 
     end else
-      ShowMessage('   Ya existe ese valor :' + #13 + #13 +
-                   ' Código :      ' + dbEan.FieldByName('ean1').AsString + #13 +
-                   ' Descripción : ' + dbEan.FieldByName('ean2').AsString + #13 + #13 +
-                   'No se crea ningún registro nuevo en la tabla de EAN');
+      begin
+        dbArti.Active:=False;
+        dbArti.SQL.Text:='SELECT A0,A1,A12,A13,A24,A2 FROM artitien'+Tienda+
+                         ' WHERE A0="'+dbEan.FieldByName('EAN1').AsString+'"';
+        dbArti.Active:=True;
+        if dbArti.RecordCount<>0 then
+          ShowMessage('   Ya existe ese valor :' + #13 + #13 +
+                       ' Código :       ' + dbArti.FieldByName('A0').AsString + #13 +
+                       ' Descripción :  ' + dbArti.FieldByName('A1').AsString + #13 +
+                       ' Últ. compra :  ' + dbArti.FieldByName('A12').AsString + #13 +
+                       ' Últ. venta :   ' + dbArti.FieldByName('A13').AsString + #13 +
+                       ' Coste :        ' + FormatFloat('0.000',dbArti.FieldByName('A24').AsFloat) + #13 +
+                       ' PVP :          ' + FormatFloat('0.00',dbArti.FieldByName('A2').AsFloat) + #13 + #13 +
+                       'No se crea ningún registro nuevo en la tabla de EAN')
+        else
+          ShowMessage('   Ya existe ese valor :' + #13 + #13 +
+                       ' Código :      ' + dbEan.FieldByName('EAN1').AsString + #13 +
+                       ' Descripción : ' + dbEan.FieldByName('EAN2').AsString + #13 + #13 +
+                       'No se crea ningún registro nuevo en la tabla de EAN');
+      end;
 
     Edit38.Text:='';
 end;

@@ -1,0 +1,10 @@
+# Recomendado: usar instalar_sudoers_backup.sh para generar esta regla.
+# Sustituir USUARIO_SSH por el usuario Linux empleado desde FacturLinEx.
+# El script valida estrictamente acciones, rutas, etiquetas, firmas y confirmación.
+# Validar después con: sudo visudo -cf /etc/sudoers.d/facturlinex-backup
+USUARIO_SSH ALL=(root) NOPASSWD: \
+  /usr/local/sbin/flx_remote_backup_server test, \
+  /usr/local/sbin/flx_remote_backup_server backup *, \
+  /usr/local/sbin/flx_remote_backup_server restore-slot *, \
+  /usr/local/sbin/flx_remote_backup_server restore-check *, \
+  /usr/local/sbin/flx_remote_backup_server restore *

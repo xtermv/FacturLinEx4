@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectOptions>
+    <Version Value="12"/>
+    <General>
+      <SessionStorage Value="InProjectDir"/>
+      <Title Value="FLXTools"/>
+      <UseAppBundle Value="False"/>
+      <ResourceType Value="res"/>
+    </General>
+    <RequiredPackages Count="1">
+      <Item1><PackageName Value="LCL"/></Item1>
+    </RequiredPackages>
+    <Units Count="2">
+      <Unit0><Filename Value="FLXTools.lpr"/><IsPartOfProject Value="True"/></Unit0>
+      <Unit1><Filename Value="uFLXToolsMain.pas"/><IsPartOfProject Value="True"/><UnitName Value="uFLXToolsMain"/></Unit1>
+    </Units>
+  </ProjectOptions>
+  <CompilerOptions>
+    <Version Value="11"/>
+    <PathDelim Value="/"/>
+    <Target><Filename Value="../Bin/FLXTools"/></Target>
+    <SearchPaths><UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/></SearchPaths>
+    <Parsing><SyntaxOptions><SyntaxMode Value="ObjFPC"/></SyntaxOptions></Parsing>
+  </CompilerOptions>
+</CONFIG>

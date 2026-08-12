@@ -361,6 +361,33 @@ type
     procedure frReport1GetValue(const ParName: String; var ParValue: Variant);
     procedure frReport1EnterRect(Memo: TStringList; View: TfrView);
   private
+    { Accesos de revisión de Caja }
+    FBtnHistoricoOperaciones: TBitBtn;
+    FTabVentasAbiertas: TTabSheet;
+    FGridVentasAbiertas: TDBGrid;
+    FGridLineasVentaAbierta: TDBGrid;
+    FQVentasAbiertas: TZQuery;
+    FQLineasVentaAbierta: TZQuery;
+    FDSVentasAbiertas: TDataSource;
+    FDSLineasVentaAbierta: TDataSource;
+    FLabelVentasAbiertasTitulo: TLabel;
+    FLabelVentasAbiertasResumen: TLabel;
+    FLabelDetalleVentaAbierta: TLabel;
+    FBtnActualizarVentasAbiertas: TBitBtn;
+    FActualizandoVentasAbiertas: Boolean;
+    procedure CrearAccesosRevisionCaja;
+    procedure BtnHistoricoOperacionesClick(Sender: TObject);
+    procedure BtnActualizarVentasAbiertasClick(Sender: TObject);
+    procedure TabVentasAbiertasEnter(Sender: TObject);
+    procedure DSVentasAbiertasDataChange(Sender: TObject; Field: TField);
+    procedure CargarVentasAbiertas;
+    procedure CargarDetalleVentaAbierta;
+    procedure ActualizarResumenVentasAbiertas;
+    function NombreTablaVentasPuestoActual: String;
+
+  private
+    { Se abre una nueva sección de visibilidad porque FPC no permite declarar
+      campos después de métodos dentro de la misma sección. }
     FPanelDiagnostico: TPanel;
     FDiagTitulo: TLabel;
     FDiagEfectivo: TLabel;
@@ -403,7 +430,8 @@ Var
 Implementation
 
 uses
-  Global, Funciones, pagos, uFLXInformeIVAPeriodos;
+  Global, Funciones, pagos, uFLXInformeIVAPeriodos, historicoop,
+  uFLXTemaVisual;
 
 { TFCaja }
 
@@ -454,6 +482,10 @@ end;
 
 procedure TFCaja.FormActivate(Sender: TObject);
 begin
+  { Reaplicar el nivel Normal/Reforzado/Alto al recuperar Caja, también tras
+    cerrar el Histórico o cambiar la preferencia visual. }
+  FLXAplicarTemaVisual(Self);
+
 //--- Al iniciar el Formulario comprueba si ya se ha realizado algun arqueo de este dia, y de ser asi, lo muestra en pantalla
    dbCajas.Sql.Text:='SELECT * FROM arqueos'+Tienda+' WHERE fecha="'+  FormatDateTime('YYYY/MM/DD',StrToDate(DateEdit2.Text)) +'" and CAJA="'+StaticText95.Caption+'"';
    dbCajas.Active := True;
@@ -608,6 +640,523 @@ Begin
   // Informe independiente por mes, trimestre, año o periodo personalizado.
   // La pestaña y todos sus controles se crean en tiempo de ejecución.
   FLXInstalarInformeIVAPeriodos(Self, PageControl1, dbCajas.Connection, Tienda);
+
+  { Acceso modal al Histórico y pestaña de ventas abiertas del puesto actual. }
+  CrearAccesosRevisionCaja;
+
+  { Se aplica después de crear todos los controles dinámicos para incluir la
+    pestaña Ventas abiertas, el acceso al Histórico y el panel diagnóstico. }
+  FLXAplicarTemaVisual(Self);
+end;
+
+
+//====================================================================
+// ACCESOS DE REVISIÓN DESDE CAJA
+// - Histórico se abre modal: al cerrarlo se vuelve al mismo formulario Caja.
+// - Ventas abiertas consulta solo la tabla del puesto mostrado en el arqueo.
+//====================================================================
+function TFCaja.NombreTablaVentasPuestoActual: String;
+var
+  S: String;
+  I: Integer;
+begin
+  S := Trim(Tienda) + Trim(StaticText95.Caption);
+  if S = '' then
+    raise Exception.Create('No se ha podido identificar la tienda o el puesto actual.');
+
+  { El nombre de tabla se construye a partir de variables internas, pero se
+    valida igualmente para impedir caracteres no válidos en un identificador. }
+  for I := 1 to Length(S) do
+    if not (S[I] in ['A'..'Z', 'a'..'z', '0'..'9', '_']) then
+      raise Exception.Create('La tienda o el puesto contienen caracteres no válidos.');
+
+  Result := 'ventas' + S;
+end;
+
+procedure TFCaja.CrearAccesosRevisionCaja;
+var
+  PanelCabecera, PanelContenido, PanelDetalle, PanelResumen, PanelLista: TPanel;
+  Col: TColumn;
+begin
+  if Assigned(FTabVentasAbiertas) then
+    Exit;
+
+  FActualizandoVentasAbiertas := False;
+
+  { Botón directo en la cabecera. Se sitúa en los 64 px superiores, por encima
+    del panel de diagnóstico, y permanece anclado a la derecha. }
+  FBtnHistoricoOperaciones := TBitBtn.Create(Self);
+  FBtnHistoricoOperaciones.Name := 'btHistoricoOperacionesCaja';
+  FBtnHistoricoOperaciones.Parent := Panel2;
+  FBtnHistoricoOperaciones.Caption := 'Histórico operaciones';
+  FBtnHistoricoOperaciones.SetBounds(Panel2.ClientWidth - 205, 14, 190, 36);
+  FBtnHistoricoOperaciones.Anchors := [akTop, akRight];
+  FBtnHistoricoOperaciones.TabStop := False;
+  FBtnHistoricoOperaciones.ShowHint := True;
+  FBtnHistoricoOperaciones.Hint :=
+    'Abrir el Histórico para repasar las operaciones; al cerrarlo volverá a Caja';
+  FBtnHistoricoOperaciones.ParentFont := False;
+  FBtnHistoricoOperaciones.Font.Name := 'Sans';
+  FBtnHistoricoOperaciones.Font.Height := -11;
+  FBtnHistoricoOperaciones.Font.Style := [fsBold];
+  FBtnHistoricoOperaciones.Font.Color := clWhite;
+  FBtnHistoricoOperaciones.Color := $00A36318;
+  FBtnHistoricoOperaciones.OnClick := @BtnHistoricoOperacionesClick;
+  FBtnHistoricoOperaciones.BringToFront;
+
+  { Pestaña nueva: se coloca inmediatamente después de Información. }
+  FTabVentasAbiertas := TTabSheet.Create(Self);
+  FTabVentasAbiertas.Name := 'tsVentasAbiertasCaja';
+  FTabVentasAbiertas.Caption := 'Ventas abiertas';
+  FTabVentasAbiertas.PageControl := PageControl1;
+  FTabVentasAbiertas.PageIndex := 1;
+  FTabVentasAbiertas.ParentFont := False;
+  FTabVentasAbiertas.Font.Name := 'Sans';
+  FTabVentasAbiertas.OnEnter := @TabVentasAbiertasEnter;
+
+  PanelCabecera := TPanel.Create(Self);
+  PanelCabecera.Name := 'pnlCabeceraVentasAbiertasCaja';
+  PanelCabecera.Parent := FTabVentasAbiertas;
+  PanelCabecera.Align := alTop;
+  PanelCabecera.Height := 78;
+  PanelCabecera.Caption := '';
+  PanelCabecera.BevelOuter := bvNone;
+  PanelCabecera.Color := $00E7DFD6;
+  PanelCabecera.ParentColor := False;
+
+  FLabelVentasAbiertasTitulo := TLabel.Create(Self);
+  FLabelVentasAbiertasTitulo.Name := 'lblTituloVentasAbiertasCaja';
+  FLabelVentasAbiertasTitulo.Parent := PanelCabecera;
+  FLabelVentasAbiertasTitulo.SetBounds(16, 10, 650, 24);
+  FLabelVentasAbiertasTitulo.AutoSize := False;
+  FLabelVentasAbiertasTitulo.Caption := 'VENTAS ABIERTAS DEL PUESTO';
+  FLabelVentasAbiertasTitulo.ParentFont := False;
+  FLabelVentasAbiertasTitulo.Font.Name := 'Sans';
+  FLabelVentasAbiertasTitulo.Font.Height := -15;
+  FLabelVentasAbiertasTitulo.Font.Style := [fsBold];
+  FLabelVentasAbiertasTitulo.Font.Color := clNavy;
+  FLabelVentasAbiertasTitulo.Transparent := True;
+
+  with TLabel.Create(Self) do
+  begin
+    Name := 'lblAyudaVentasAbiertasCaja';
+    Parent := PanelCabecera;
+    SetBounds(16, 38, PanelCabecera.ClientWidth - 230, 32);
+    Anchors := [akLeft, akTop, akRight];
+    AutoSize := False;
+    WordWrap := True;
+    Caption := 'Ventas todavía no cerradas o aparcadas. Seleccione una venta ' +
+      'en la tabla superior para consultar todas sus líneas.';
+    ParentFont := False;
+    Font.Name := 'Sans';
+    Font.Height := -11;
+    Font.Color := $00404040;
+    Transparent := True;
+  end;
+
+  FBtnActualizarVentasAbiertas := TBitBtn.Create(Self);
+  FBtnActualizarVentasAbiertas.Name := 'btActualizarVentasAbiertasCaja';
+  FBtnActualizarVentasAbiertas.Parent := PanelCabecera;
+  FBtnActualizarVentasAbiertas.Caption := 'Actualizar';
+  FBtnActualizarVentasAbiertas.SetBounds(PanelCabecera.ClientWidth - 150,
+    21, 132, 36);
+  FBtnActualizarVentasAbiertas.Anchors := [akTop, akRight];
+  FBtnActualizarVentasAbiertas.ParentFont := False;
+  FBtnActualizarVentasAbiertas.Font.Name := 'Sans';
+  FBtnActualizarVentasAbiertas.Font.Height := -11;
+  FBtnActualizarVentasAbiertas.Font.Style := [fsBold];
+  FBtnActualizarVentasAbiertas.Color := $00D5E7F5;
+  FBtnActualizarVentasAbiertas.OnClick := @BtnActualizarVentasAbiertasClick;
+
+  PanelResumen := TPanel.Create(Self);
+  PanelResumen.Name := 'pnlResumenVentasAbiertasCaja';
+  PanelResumen.Parent := FTabVentasAbiertas;
+  PanelResumen.Align := alBottom;
+  PanelResumen.Height := 42;
+  PanelResumen.Caption := '';
+  PanelResumen.BevelOuter := bvNone;
+  PanelResumen.Color := $00E8F2E5;
+  PanelResumen.ParentColor := False;
+
+  FLabelVentasAbiertasResumen := TLabel.Create(Self);
+  FLabelVentasAbiertasResumen.Name := 'lblResumenVentasAbiertasCaja';
+  FLabelVentasAbiertasResumen.Parent := PanelResumen;
+  FLabelVentasAbiertasResumen.Align := alClient;
+  FLabelVentasAbiertasResumen.Alignment := taCenter;
+  FLabelVentasAbiertasResumen.Layout := tlCenter;
+  FLabelVentasAbiertasResumen.Caption := 'Pendiente de actualizar';
+  FLabelVentasAbiertasResumen.ParentFont := False;
+  FLabelVentasAbiertasResumen.Font.Name := 'Sans';
+  FLabelVentasAbiertasResumen.Font.Height := -12;
+  FLabelVentasAbiertasResumen.Font.Style := [fsBold];
+  FLabelVentasAbiertasResumen.Font.Color := clNavy;
+  FLabelVentasAbiertasResumen.Transparent := True;
+
+  PanelContenido := TPanel.Create(Self);
+  PanelContenido.Name := 'pnlContenidoVentasAbiertasCaja';
+  PanelContenido.Parent := FTabVentasAbiertas;
+  PanelContenido.Align := alClient;
+  PanelContenido.Caption := '';
+  PanelContenido.BevelOuter := bvNone;
+  PanelContenido.Color := $00F4EEE5;
+  PanelContenido.ParentColor := False;
+
+  PanelLista := TPanel.Create(Self);
+  PanelLista.Name := 'pnlListaVentasAbiertasCaja';
+  PanelLista.Parent := PanelContenido;
+  PanelLista.Align := alTop;
+  PanelLista.Height := 226;
+  PanelLista.Caption := '';
+  PanelLista.BevelOuter := bvNone;
+  PanelLista.Color := $00F4EEE5;
+  PanelLista.ParentColor := False;
+
+  FQVentasAbiertas := TZQuery.Create(Self);
+  FQVentasAbiertas.Connection := dbCajas.Connection;
+  FQLineasVentaAbierta := TZQuery.Create(Self);
+  FQLineasVentaAbierta.Connection := dbCajas.Connection;
+
+  FDSVentasAbiertas := TDataSource.Create(Self);
+  FDSVentasAbiertas.DataSet := FQVentasAbiertas;
+  FDSVentasAbiertas.OnDataChange := @DSVentasAbiertasDataChange;
+  FDSLineasVentaAbierta := TDataSource.Create(Self);
+  FDSLineasVentaAbierta.DataSet := FQLineasVentaAbierta;
+
+  FGridVentasAbiertas := TDBGrid.Create(Self);
+  FGridVentasAbiertas.Name := 'grdVentasAbiertasCaja';
+  FGridVentasAbiertas.Parent := PanelLista;
+  FGridVentasAbiertas.Align := alClient;
+  FGridVentasAbiertas.DataSource := FDSVentasAbiertas;
+  FGridVentasAbiertas.ReadOnly := True;
+  FGridVentasAbiertas.Options := FGridVentasAbiertas.Options +
+    [dgTitles, dgIndicator, dgColumnResize, dgRowLines, dgColLines, dgRowSelect];
+  FGridVentasAbiertas.Color := clWhite;
+  FGridVentasAbiertas.FixedColor := $00DDD3C9;
+  FGridVentasAbiertas.TitleFont.Style := [fsBold];
+  FGridVentasAbiertas.ParentFont := False;
+  FGridVentasAbiertas.Font.Name := 'Sans';
+  FGridVentasAbiertas.Font.Height := -11;
+
+  Col := FGridVentasAbiertas.Columns.Add;
+  Col.FieldName := 'TICKET';
+  Col.Title.Caption := 'Venta';
+  Col.Alignment := taCenter;
+  Col.Title.Alignment := taCenter;
+  Col.Width := 75;
+
+  Col := FGridVentasAbiertas.Columns.Add;
+  Col.FieldName := 'FECHA';
+  Col.Title.Caption := 'Fecha';
+  Col.Alignment := taCenter;
+  Col.Title.Alignment := taCenter;
+  Col.Width := 95;
+
+  Col := FGridVentasAbiertas.Columns.Add;
+  Col.FieldName := 'HORA';
+  Col.Title.Caption := 'Hora';
+  Col.Alignment := taCenter;
+  Col.Title.Alignment := taCenter;
+  Col.Width := 82;
+
+  Col := FGridVentasAbiertas.Columns.Add;
+  Col.FieldName := 'CLIENTE';
+  Col.Title.Caption := 'Cliente';
+  Col.Alignment := taCenter;
+  Col.Title.Alignment := taCenter;
+  Col.Width := 92;
+
+  Col := FGridVentasAbiertas.Columns.Add;
+  Col.FieldName := 'LINEAS';
+  Col.Title.Caption := 'Líneas';
+  Col.Alignment := taCenter;
+  Col.Title.Alignment := taCenter;
+  Col.Width := 75;
+
+  Col := FGridVentasAbiertas.Columns.Add;
+  Col.FieldName := 'TOTAL';
+  Col.Title.Caption := 'Total';
+  Col.Alignment := taRightJustify;
+  Col.Title.Alignment := taCenter;
+  Col.Width := 105;
+
+  PanelDetalle := TPanel.Create(Self);
+  PanelDetalle.Name := 'pnlTituloDetalleVentaAbiertaCaja';
+  PanelDetalle.Parent := PanelLista;
+  PanelDetalle.Align := alBottom;
+  PanelDetalle.Height := 36;
+  PanelDetalle.Caption := '';
+  PanelDetalle.BevelOuter := bvNone;
+  PanelDetalle.Color := $00E1D8CD;
+  PanelDetalle.ParentColor := False;
+
+  FLabelDetalleVentaAbierta := TLabel.Create(Self);
+  FLabelDetalleVentaAbierta.Name := 'lblDetalleVentaAbiertaCaja';
+  FLabelDetalleVentaAbierta.Parent := PanelDetalle;
+  FLabelDetalleVentaAbierta.Align := alClient;
+  FLabelDetalleVentaAbierta.Layout := tlCenter;
+  FLabelDetalleVentaAbierta.Caption := '  Detalle de la venta seleccionada';
+  FLabelDetalleVentaAbierta.ParentFont := False;
+  FLabelDetalleVentaAbierta.Font.Name := 'Sans';
+  FLabelDetalleVentaAbierta.Font.Height := -11;
+  FLabelDetalleVentaAbierta.Font.Style := [fsBold];
+  FLabelDetalleVentaAbierta.Font.Color := clNavy;
+  FLabelDetalleVentaAbierta.Transparent := True;
+
+  FGridLineasVentaAbierta := TDBGrid.Create(Self);
+  FGridLineasVentaAbierta.Name := 'grdLineasVentaAbiertaCaja';
+  FGridLineasVentaAbierta.Parent := PanelContenido;
+  FGridLineasVentaAbierta.Align := alClient;
+  FGridLineasVentaAbierta.DataSource := FDSLineasVentaAbierta;
+  FGridLineasVentaAbierta.ReadOnly := True;
+  FGridLineasVentaAbierta.Options := FGridLineasVentaAbierta.Options +
+    [dgTitles, dgIndicator, dgColumnResize, dgRowLines, dgColLines, dgRowSelect];
+  FGridLineasVentaAbierta.Color := clWhite;
+  FGridLineasVentaAbierta.FixedColor := $00DDD3C9;
+  FGridLineasVentaAbierta.TitleFont.Style := [fsBold];
+  FGridLineasVentaAbierta.ParentFont := False;
+  FGridLineasVentaAbierta.Font.Name := 'Sans';
+  FGridLineasVentaAbierta.Font.Height := -11;
+
+  Col := FGridLineasVentaAbierta.Columns.Add;
+  Col.FieldName := 'LINEA';
+  Col.Title.Caption := 'Línea';
+  Col.Alignment := taCenter;
+  Col.Title.Alignment := taCenter;
+  Col.Width := 62;
+
+  Col := FGridLineasVentaAbierta.Columns.Add;
+  Col.FieldName := 'CODIGO';
+  Col.Title.Caption := 'Código';
+  Col.Width := 125;
+
+  Col := FGridLineasVentaAbierta.Columns.Add;
+  Col.FieldName := 'DESCRIPCION';
+  Col.Title.Caption := 'Descripción';
+  Col.Width := 310;
+
+  Col := FGridLineasVentaAbierta.Columns.Add;
+  Col.FieldName := 'CANTIDAD';
+  Col.Title.Caption := 'Cantidad';
+  Col.Alignment := taRightJustify;
+  Col.Title.Alignment := taCenter;
+  Col.Width := 82;
+
+  Col := FGridLineasVentaAbierta.Columns.Add;
+  Col.FieldName := 'PRECIO';
+  Col.Title.Caption := 'Precio';
+  Col.Alignment := taRightJustify;
+  Col.Title.Alignment := taCenter;
+  Col.Width := 90;
+
+  Col := FGridLineasVentaAbierta.Columns.Add;
+  Col.FieldName := 'IVA';
+  Col.Title.Caption := 'IVA %';
+  Col.Alignment := taCenter;
+  Col.Title.Alignment := taCenter;
+  Col.Width := 65;
+
+  Col := FGridLineasVentaAbierta.Columns.Add;
+  Col.FieldName := 'TOTAL';
+  Col.Title.Caption := 'Total línea';
+  Col.Alignment := taRightJustify;
+  Col.Title.Alignment := taCenter;
+  Col.Width := 105;
+end;
+
+procedure TFCaja.BtnHistoricoOperacionesClick(Sender: TObject);
+begin
+  try
+    { ShowFormHistoop utiliza ShowModal. Caja queda abierta debajo y recupera
+      automáticamente el foco cuando se cierra el Histórico. }
+    ShowFormHistoop;
+
+    if Assigned(FTabVentasAbiertas) and
+       (PageControl1.ActivePage = FTabVentasAbiertas) then
+      CargarVentasAbiertas;
+  except
+    on E: Exception do
+      ShowMessage('No se pudo abrir el Histórico de operaciones:' +
+        LineEnding + E.Message);
+  end;
+end;
+
+procedure TFCaja.BtnActualizarVentasAbiertasClick(Sender: TObject);
+begin
+  CargarVentasAbiertas;
+end;
+
+procedure TFCaja.TabVentasAbiertasEnter(Sender: TObject);
+begin
+  CargarVentasAbiertas;
+end;
+
+procedure TFCaja.DSVentasAbiertasDataChange(Sender: TObject; Field: TField);
+begin
+  if not FActualizandoVentasAbiertas then
+    CargarDetalleVentaAbierta;
+end;
+
+procedure TFCaja.CargarVentasAbiertas;
+var
+  Tabla: String;
+begin
+  if (not Assigned(FQVentasAbiertas)) or
+     (not Assigned(FQLineasVentaAbierta)) then
+    Exit;
+
+  FActualizandoVentasAbiertas := True;
+  try
+    Tabla := NombreTablaVentasPuestoActual;
+
+    FLabelVentasAbiertasTitulo.Caption :=
+      'VENTAS ABIERTAS DEL PUESTO ' + Trim(StaticText95.Caption);
+
+    FQLineasVentaAbierta.Close;
+    FQVentasAbiertas.Close;
+    FQVentasAbiertas.SQL.Text :=
+      'SELECT V1 AS TICKET,' +
+      ' DATE_FORMAT(MIN(V14), ''%d/%m/%Y'') AS FECHA,' +
+      ' TIME_FORMAT(MIN(V15), ''%H:%i:%s'') AS HORA,' +
+      ' CASE WHEN COALESCE(MAX(V12),0)=0 THEN ''VARIOS''' +
+      ' ELSE CAST(MAX(V12) AS CHAR) END AS CLIENTE,' +
+      ' COUNT(*) AS LINEAS,' +
+      ' ROUND(COALESCE(SUM(V11),0),2) AS TOTAL' +
+      ' FROM `' + Tabla + '`' +
+      ' WHERE V0=0' +
+      ' GROUP BY V1' +
+      ' ORDER BY V1';
+    FQVentasAbiertas.Open;
+
+    if FQVentasAbiertas.FindField('TOTAL') is TNumericField then
+      TNumericField(FQVentasAbiertas.FieldByName('TOTAL')).DisplayFormat :=
+        '#,##0.00';
+
+    if FQVentasAbiertas.RecordCount > 0 then
+      FQVentasAbiertas.First;
+  except
+    on E: Exception do
+    begin
+      FQVentasAbiertas.Close;
+      FQLineasVentaAbierta.Close;
+      FTabVentasAbiertas.Caption := 'Ventas abiertas';
+      FLabelVentasAbiertasResumen.Caption :=
+        'No se pudieron consultar las ventas abiertas: ' + E.Message;
+      FLabelDetalleVentaAbierta.Caption :=
+        '  No hay detalle disponible';
+      FActualizandoVentasAbiertas := False;
+      Exit;
+    end;
+  end;
+  try
+    ActualizarResumenVentasAbiertas;
+  finally
+    FActualizandoVentasAbiertas := False;
+  end;
+  CargarDetalleVentaAbierta;
+end;
+
+procedure TFCaja.ActualizarResumenVentasAbiertas;
+var
+  TicketSeleccionado: String;
+  TotalVentas, TotalLineas: Integer;
+  TotalImporte: Double;
+begin
+  if (not Assigned(FQVentasAbiertas)) or
+     (not FQVentasAbiertas.Active) then
+    Exit;
+
+  TotalVentas := FQVentasAbiertas.RecordCount;
+  TotalLineas := 0;
+  TotalImporte := 0;
+  TicketSeleccionado := '';
+
+  if TotalVentas > 0 then
+  begin
+    TicketSeleccionado := FQVentasAbiertas.FieldByName('TICKET').AsString;
+    FQVentasAbiertas.DisableControls;
+    try
+      FQVentasAbiertas.First;
+      while not FQVentasAbiertas.EOF do
+      begin
+        TotalLineas := TotalLineas +
+          FQVentasAbiertas.FieldByName('LINEAS').AsInteger;
+        TotalImporte := TotalImporte +
+          FQVentasAbiertas.FieldByName('TOTAL').AsFloat;
+        FQVentasAbiertas.Next;
+      end;
+      if TicketSeleccionado <> '' then
+        FQVentasAbiertas.Locate('TICKET', TicketSeleccionado, []);
+    finally
+      FQVentasAbiertas.EnableControls;
+    end;
+  end;
+
+  FTabVentasAbiertas.Caption :=
+    'Ventas abiertas (' + IntToStr(TotalVentas) + ')';
+
+  if TotalVentas = 0 then
+    FLabelVentasAbiertasResumen.Caption :=
+      'No hay ventas abiertas en el puesto ' + Trim(StaticText95.Caption)
+  else
+    FLabelVentasAbiertasResumen.Caption :=
+      'Ventas abiertas: ' + IntToStr(TotalVentas) +
+      '   |   Líneas pendientes: ' + IntToStr(TotalLineas) +
+      '   |   Importe total abierto: ' + FormatFloat('#,##0.00', TotalImporte) +
+      ' ' + txtMoneda;
+end;
+
+procedure TFCaja.CargarDetalleVentaAbierta;
+var
+  Tabla, Ticket: String;
+begin
+  if FActualizandoVentasAbiertas or
+     (not Assigned(FQVentasAbiertas)) or
+     (not Assigned(FQLineasVentaAbierta)) then
+    Exit;
+
+  FQLineasVentaAbierta.Close;
+
+  if (not FQVentasAbiertas.Active) or FQVentasAbiertas.IsEmpty then
+  begin
+    FLabelDetalleVentaAbierta.Caption :=
+      '  No hay ninguna venta abierta para mostrar';
+    Exit;
+  end;
+
+  try
+    Tabla := NombreTablaVentasPuestoActual;
+    Ticket := FQVentasAbiertas.FieldByName('TICKET').AsString;
+
+    FQLineasVentaAbierta.SQL.Text :=
+      'SELECT V2 AS LINEA, V3 AS CODIGO, V4 AS DESCRIPCION,' +
+      ' V5 AS CANTIDAD, V6 AS PRECIO, V10 AS IVA, V11 AS TOTAL' +
+      ' FROM `' + Tabla + '`' +
+      ' WHERE V0=0 AND V1=:VENTA' +
+      ' ORDER BY V2';
+    FQLineasVentaAbierta.ParamByName('VENTA').AsString := Ticket;
+    FQLineasVentaAbierta.Open;
+
+    if FQLineasVentaAbierta.FindField('CANTIDAD') is TNumericField then
+      TNumericField(FQLineasVentaAbierta.FieldByName('CANTIDAD')).DisplayFormat :=
+        '#,##0.###';
+    if FQLineasVentaAbierta.FindField('PRECIO') is TNumericField then
+      TNumericField(FQLineasVentaAbierta.FieldByName('PRECIO')).DisplayFormat :=
+        '#,##0.00';
+    if FQLineasVentaAbierta.FindField('TOTAL') is TNumericField then
+      TNumericField(FQLineasVentaAbierta.FieldByName('TOTAL')).DisplayFormat :=
+        '#,##0.00';
+
+    FLabelDetalleVentaAbierta.Caption :=
+      '  Detalle de la venta abierta ' + Ticket +
+      '  ·  ' + IntToStr(FQLineasVentaAbierta.RecordCount) + ' líneas';
+  except
+    on E: Exception do
+    begin
+      FQLineasVentaAbierta.Close;
+      FLabelDetalleVentaAbierta.Caption :=
+        '  No se pudo cargar el detalle: ' + E.Message;
+    end;
+  end;
 end;
 
 function TFCaja.ValorNumericoSeguro(const ATexto: String): Double;

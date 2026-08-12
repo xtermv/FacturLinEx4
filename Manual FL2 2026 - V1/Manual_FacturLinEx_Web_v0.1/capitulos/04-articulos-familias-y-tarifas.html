@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Manual de uso y configuración de FacturLinEx">
+  <meta name="theme-color" content="#155eef">
+  <title>4. Artículos, familias y tarifas | Manual FacturLinEx</title>
+  <link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/styles.css">
+  <script defer src="../assets/js/search-index.js"></script>
+  <script defer src="../assets/js/app.js"></script>
+</head>
+<body>
+
+<a class="skip-link" href="#contenido">Saltar al contenido</a>
+<header class="topbar">
+  <button class="icon-button menu-button" type="button" aria-label="Abrir menú" aria-expanded="false" data-menu-button>☰</button>
+  <a class="brand" href="../index.html" aria-label="Inicio del manual FacturLinEx">
+    <span class="brand-mark">FLX</span><span><strong>FacturLinEx</strong><small>Manual de uso y configuración</small></span>
+  </a>
+  <div class="top-actions">
+    <button class="search-button" type="button" data-search-open aria-label="Buscar en el manual"><span aria-hidden="true">⌕</span><span>Buscar</span><kbd>Ctrl K</kbd></button>
+    <button class="icon-button" type="button" data-theme-toggle aria-label="Cambiar modo de color">◐</button>
+  </div>
+</header>
+<div class="menu-overlay" data-menu-overlay></div>
+
+<div class="app-shell">
+  <aside class="sidebar" data-sidebar>
+    <div class="sidebar-inner">
+      <a class="sidebar-home" href="../index.html">⌂ Página principal</a>
+      <nav aria-label="Capítulos del manual"><a href="../capitulos/control-del-documento.html"><span class="nav-number">i</span><span>Control del documento</span></a>
+<a href="../capitulos/01-primeros-pasos-y-navegacion.html"><span class="nav-number">1</span><span>Primeros pasos y navegación</span></a>
+<a href="../capitulos/02-configuracion-inicial.html"><span class="nav-number">2</span><span>Configuración inicial</span></a>
+<a href="../capitulos/03-clientes.html"><span class="nav-number">3</span><span>Clientes</span></a>
+<a href="../capitulos/04-articulos-familias-y-tarifas.html" class="active" aria-current="page"><span class="nav-number">4</span><span>Artículos, familias y tarifas</span></a>
+<a href="../capitulos/05-ventas-y-tpv.html"><span class="nav-number">5</span><span>Ventas y TPV</span></a>
+<a href="../capitulos/06-caja-cobros-y-creditos.html"><span class="nav-number">6</span><span>Caja, cobros y créditos</span></a>
+<a href="../capitulos/07-compras-pedidos-y-existencias.html"><span class="nav-number">7</span><span>Compras, pedidos y existencias</span></a>
+<a href="../capitulos/08-facturacion-impresion-pdf-y-correo.html"><span class="nav-number">8</span><span>Facturación, impresión, PDF y correo</span></a>
+<a href="../capitulos/09-verifactu-y-documentos-rectificativos.html"><span class="nav-number">9</span><span>VeriFactu y documentos rectificativos</span></a>
+<a href="../capitulos/10-dashboard-consultas-y-estadisticas.html"><span class="nav-number">10</span><span>Dashboard, consultas y estadísticas</span></a>
+<a href="../capitulos/11-copias-de-seguridad-y-mantenimiento.html"><span class="nav-number">11</span><span>Copias de seguridad y mantenimiento</span></a>
+<a href="../capitulos/12-solucion-de-problemas.html"><span class="nav-number">12</span><span>Solución de problemas</span></a>
+<a href="../capitulos/13-anexos-y-referencia-rapida.html"><span class="nav-number">13</span><span>Anexos y referencia rápida</span></a>
+<a href="../capitulos/14-plan-de-ampliacion-del-manual.html"><span class="nav-number">14</span><span>Plan de ampliación del manual</span></a></nav>
+      <div class="sidebar-downloads"><strong>Descargas</strong>
+        <a href="../descargas/Manual_FacturLinEx_v0.1_Base_Funcional.pdf">Manual PDF</a>
+        <a href="../descargas/Manual_FacturLinEx_v0.1_Base_Funcional.docx">Manual DOCX</a>
+      </div>
+    </div>
+  </aside>
+  <main id="contenido" class="main-content">
+    <article class="manual-page">
+      <header class="chapter-header"><span class="eyebrow">Capítulo 4</span><h1>Artículos, familias y tarifas</h1><p class="chapter-version">Edición v0.1 · Base funcional</p></header>
+      <nav class="page-toc" aria-label="En esta página"><strong>En esta página</strong><a href="#4-1-ficha-de-articulos">4.1 Ficha de artículos</a><a href="#4-2-distribucion-de-costes-y-tarifas">4.2 Distribución de costes y tarifas</a><a href="#4-3-codigos-ean">4.3 Códigos EAN</a><a href="#4-4-familias-y-proveedores">4.4 Familias y proveedores</a><a href="#4-5-actualizacion-automatica-de-precios">4.5 Actualización automática de precios</a><a href="#4-6-historial-de-precios-y-existencias">4.6 Historial de precios y existencias</a><a href="#4-7-sistema-de-puntos">4.7 Sistema de puntos</a></nav>
+      <div class="chapter-content"><aside class="callout callout-info"><span class="callout-icon" aria-hidden="true">i</span><div><strong>ESTADO</strong><p>Capítulo funcional. La modernización visual de Artículos se considera finalizada de momento, pendiente de capturas definitivas.</p></div></aside>
+<h2 id="4-1-ficha-de-articulos">4.1 Ficha de artículos <a class="heading-link" href="#4-1-ficha-de-articulos" aria-label="Enlace a esta sección">#</a></h2>
+<p>El formulario de Artículos centraliza descripción, códigos, precios, costes, impuestos, familia, proveedor, EAN, existencias y opciones comerciales. Al abrirlo, el foco debe situarse en el campo Código.</p>
+<div class="table-scroll"><table><thead><tr><th scope="col">Dato</th><th scope="col">Referencia técnica</th><th scope="col">Uso</th></tr></thead><tbody><tr><td>Código</td><td>A0</td><td>Identificación principal del artículo.</td></tr><tr><td>Descripción</td><td>A1</td><td>Texto comercial del artículo.</td></tr><tr><td>PVP con IVA</td><td>A2</td><td>Precio de venta final con impuestos.</td></tr><tr><td>PVP sin IVA</td><td>A21</td><td>Precio de venta antes de impuestos.</td></tr><tr><td>Precio de coste</td><td>A24</td><td>Coste utilizado en márgenes y procesos internos.</td></tr><tr><td>Familia</td><td>A14</td><td>Clasificación para filtros, estadísticas y teclado.</td></tr><tr><td>Proveedor</td><td>A32</td><td>Proveedor principal o de referencia.</td></tr></tbody></table></div>
+<h2 id="4-2-distribucion-de-costes-y-tarifas">4.2 Distribución de costes y tarifas <a class="heading-link" href="#4-2-distribucion-de-costes-y-tarifas" aria-label="Enlace a esta sección">#</a></h2>
+<p>El campo Precio de coste debe aparecer en la pestaña Costes y Tarifas, dentro del bloque Datos de compras, después de % Descuento 2. Los bloques Datos de compras y Datos de ventas deben disponer de anchura suficiente para trabajar sin amontonamientos.</p>
+<ul>
+<li>Revisar que el PVP con IVA y sin IVA sean coherentes con el tipo de IVA.</li>
+<li>Comprobar el coste antes de aplicar actualizaciones automáticas o márgenes mínimos.</li>
+<li>Verificar las tarifas especiales y sus redondeos.</li>
+<li>No confundir el precio estadístico vendido con el PVP de tarifa cuando existe descuento.</li>
+</ul>
+<h2 id="4-3-codigos-ean">4.3 Códigos EAN <a class="heading-link" href="#4-3-codigos-ean" aria-label="Enlace a esta sección">#</a></h2>
+<p>Los códigos EAN permiten localizar artículos desde lectores y procesos de compra o venta. Las tablas de EAN relacionan el código leído con el artículo correspondiente.</p>
+<ul>
+<li>Evitar EAN duplicados salvo que exista una razón controlada.</li>
+<li>Comprobar que la búsqueda por EAN encuentra el artículo correcto.</li>
+<li>Cuando se lea un EAN inexistente, debe estudiarse la opción de asociarlo al artículo adecuado sin interrumpir el flujo de trabajo.</li>
+</ul>
+<h2 id="4-4-familias-y-proveedores">4.4 Familias y proveedores <a class="heading-link" href="#4-4-familias-y-proveedores" aria-label="Enlace a esta sección">#</a></h2>
+<p>Las familias facilitan búsquedas, estadísticas, organización del teclado táctil y análisis de ventas. El proveedor principal se utiliza en pedidos automáticos y procesos de reposición.</p>
+<aside class="callout callout-info"><span class="callout-icon" aria-hidden="true">i</span><div><strong>CALIDAD DE DATOS</strong><p>Una familia o proveedor incorrectos afectan a pedidos, estadísticas y filtros. Es preferible corregirlos desde la ficha de Artículos y registrar el cambio.</p></div></aside>
+<h2 id="4-5-actualizacion-automatica-de-precios">4.5 Actualización automática de precios <a class="heading-link" href="#4-5-actualizacion-automatica-de-precios" aria-label="Enlace a esta sección">#</a></h2>
+<p>El actualizador de tarifas permite modificar precios aplicando reglas y terminaciones. Puede utilizar terminaciones 5, 9 o 0 y controlar un margen mínimo configurable.</p>
+<ol>
+<li>Seleccionar el conjunto de artículos.</li>
+<li>Definir el criterio de actualización.</li>
+<li>Configurar la terminación deseada.</li>
+<li>Revisar el margen mínimo y los avisos.</li>
+<li>Previsualizar o comprobar una muestra antes de aplicar.</li>
+<li>Registrar o consultar el histórico de cambios de precios.</li>
+</ol>
+<aside class="callout callout-danger"><span class="callout-icon" aria-hidden="true">!</span><div><strong>CRÍTICO</strong><p>Una actualización masiva puede afectar cientos de artículos. Realizar copia previa y revisar especialmente coste, IVA y redondeos.</p></div></aside>
+<h2 id="4-6-historial-de-precios-y-existencias">4.6 Historial de precios y existencias <a class="heading-link" href="#4-6-historial-de-precios-y-existencias" aria-label="Enlace a esta sección">#</a></h2>
+<p>Los cambios de tarifas y existencias deben quedar registrados en los módulos de histórico correspondientes. En Actualización de stocks, Ver historial sin código debe mostrar todos los cambios; al indicar un código, debe filtrar correctamente.</p>
+<ul>
+<li>Las columnas del historial deben poder ordenarse.</li>
+<li>La consulta sin filtro no debe limitarse a un único registro.</li>
+<li>Las fechas, usuarios y valores anterior/nuevo deben ser legibles.</li>
+</ul>
+<h2 id="4-7-sistema-de-puntos">4.7 Sistema de puntos <a class="heading-link" href="#4-7-sistema-de-puntos" aria-label="Enlace a esta sección">#</a></h2>
+<p>La zona Nivel de puntos debe tener anchura suficiente para mostrar el texto explicativo completo. Antes de utilizarla, comprobar la configuración comercial y el efecto en clientes y ventas.</p>
+<figure class="capture-placeholder" role="img" aria-label="Captura pendiente: Ficha de artículo: Datos de compras, Datos de ventas, coste y tarifas"><div class="capture-icon" aria-hidden="true">▧</div><figcaption><strong>Captura pendiente</strong><span>Ficha de artículo: Datos de compras, Datos de ventas, coste y tarifas</span></figcaption></figure></div>
+      <nav class="chapter-navigation" aria-label="Capítulos anterior y siguiente"><a class="chapter-nav-card previous" href="03-clientes.html"><small>Anterior</small><strong>← 3. Clientes</strong></a><a class="chapter-nav-card next" href="05-ventas-y-tpv.html"><small>Siguiente</small><strong>5. Ventas y TPV →</strong></a></nav>
+    </article>
+    
+<footer class="site-footer">
+  <p><strong>Manual FacturLinEx v0.1</strong> · Base funcional · 24 de julio de 2026</p>
+  <p>Documento vivo: los procedimientos se actualizarán cuando cambie una función validada.</p>
+  <a href="../descargas/Manual_FacturLinEx_v0.1_Base_Funcional.pdf">Descargar PDF</a>
+</footer>
+
+  </main>
+</div>
+
+<dialog class="search-dialog" data-search-dialog aria-label="Buscar en el manual">
+  <form method="dialog" class="search-panel">
+    <div class="search-input-row">
+      <span aria-hidden="true">⌕</span>
+      <input type="search" data-search-input placeholder="Buscar clientes, ventas, VeriFactu..." autocomplete="off" aria-label="Texto de búsqueda">
+      <button type="submit" class="dialog-close" aria-label="Cerrar búsqueda">Esc</button>
+    </div>
+    <div class="search-hint" data-search-hint>Escribe al menos dos caracteres.</div>
+    <div class="search-results" data-search-results aria-live="polite"></div>
+  </form>
+</dialog>
+</body>
+</html>

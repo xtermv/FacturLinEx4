@@ -16,4 +16,4 @@ Nuestros principios:
 
 6. Comunidad y continuidad. Cada prueba, corrección, traducción, idea y aportación ayuda a mantener vivo el proyecto.
 
-FacturLinEx 4.2.2 mantiene estos principios y continúa su desarrollo bajo la licencia GNU GPL versión 3.
+FacturLinEx 4.2.6J mantiene estos principios y continúa su desarrollo bajo la licencia GNU GPL versión 3.

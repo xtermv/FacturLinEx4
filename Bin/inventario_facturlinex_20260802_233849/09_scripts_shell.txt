@@ -1,0 +1,9 @@
+=== SCRIPTS SHELL ===
+644	xterm:xterm	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/backfl.sh
+644	xterm:xterm	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/flx_backup_run_ftp.sh
+644	xterm:xterm	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/flx_backup.sh
+644	xterm:xterm	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/flx_restore_run.sh
+644	xterm:xterm	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/flx_restore.sh
+664	xterm:xterm	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Documents/Compresion_ejecutables.sh
+775	xterm:xterm	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/identificar_paquetes_facturlinex.sh
+775	xterm:xterm	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/inventario_requisitos_facturlinex.sh

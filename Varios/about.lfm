@@ -5,7 +5,7 @@ object AboutBox: TAboutBox
   Width = 901
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
-  Caption = 'Acerca de FacturLinEx 4.2.2'
+  Caption = 'Información del sistema - FacturLinEx 4.2.6J'
   ClientHeight = 313
   ClientWidth = 901
   KeyPreview = True
@@ -52,7 +52,7 @@ object AboutBox: TAboutBox
       Width = 322
       Alignment = taCenter
       AutoSize = False
-      Caption = 'Versión 4.2.2'
+      Caption = 'Versión 4.2.6J'
       Font.CharSet = ANSI_CHARSET
       Font.Color = clBlack
       Font.Height = -12

@@ -551,6 +551,9 @@ type
     FClientePrecioCoste: Boolean;
     FAbonoACredito: Boolean;
     FCampoClienteCosteDisponible: Boolean;
+    // Línea concreta cargada con doble clic para su modificación. No debemos
+    // depender de que el cursor de dbVentas permanezca sobre el mismo registro.
+    FLineaVentaEnEdicion: Integer;
     pnlTicketsAparcadosInfo: TPanel;
     pnlCabeceraModerna: TPanel;
     pnlCabeceraEstado: TPanel;
@@ -675,6 +678,10 @@ type
       const AOrigNumero, AOrigLinea: Integer; const AQtyOriginal, AQtyARectificar,
       AImpOriginalConIVA, AImpARectificarConIVA: Double);
     procedure VF_RegistrarLineasRectifTemporalBulk(const AValuesSQL: string);
+    { Limpieza específica para instancias auxiliares creadas desde Histórico.
+      No cierra ni modifica la venta; solo retira referencias/callbacks que
+      no pueden sobrevivir a Free. }
+    procedure VF_PrepararLiberacionAuxiliar;
   end;
 
   const
@@ -4755,23 +4762,49 @@ var
     Result.SendToBack;
   end;
 
-  procedure CrearAtajo(const AIndice: Integer; const ACaption: string);
+  procedure CrearAtajo(const AIndice: Integer; const ATecla, AFuncion: string);
+  var
+    LTecla, LFuncion: TLabel;
   begin
     P := TPanel.Create(Self);
     P.Parent := pnlPieModerno;
     P.Tag := AIndice;
-    P.Caption := ACaption;
+    P.Caption := '';
     P.BevelOuter := bvNone;
     P.BevelInner := bvNone;
     P.BorderStyle := bsNone;
     P.ParentBackground := False;
     P.ParentColor := False;
     P.Color := CTarjeta;
-    P.ParentFont := False;
-    P.Font.Name := 'Sans';
-    P.Font.Height := -12;
-    P.Font.Color := RGBToColor(30, 64, 105);
-    P.Font.Style := [fsBold];
+
+    LTecla := TLabel.Create(Self);
+    LTecla.Parent := P;
+    LTecla.Align := alTop;
+    LTecla.AutoSize := False;
+    LTecla.Height := 21;
+    LTecla.Caption := ATecla;
+    LTecla.Alignment := taCenter;
+    LTecla.Layout := tlCenter;
+    LTecla.Transparent := True;
+    LTecla.ParentFont := False;
+    LTecla.Font.Name := 'Sans';
+    LTecla.Font.Height := -12;
+    LTecla.Font.Color := RGBToColor(30, 64, 105);
+    LTecla.Font.Style := [fsBold];
+
+    LFuncion := TLabel.Create(Self);
+    LFuncion.Parent := P;
+    LFuncion.Align := alClient;
+    LFuncion.AutoSize := False;
+    LFuncion.Caption := AFuncion;
+    LFuncion.Alignment := taCenter;
+    LFuncion.Layout := tlCenter;
+    LFuncion.Transparent := True;
+    LFuncion.ParentFont := False;
+    LFuncion.Font.Name := 'Sans';
+    LFuncion.Font.Height := -11;
+    LFuncion.Font.Color := RGBToColor(74, 91, 112);
+    LFuncion.Font.Style := [];
   end;
 
 begin
@@ -4849,18 +4882,19 @@ begin
   LiberarAnclajes(pnlPieModerno, False);
 
   // Atajos del panel principal, visibles antes de las teclas de función.
-  CrearAtajo(0, 'Ctrl+O  Código cliente');
-  CrearAtajo(1, 'Ctrl+U  Nombre cliente');
-  CrearAtajo(2, 'Ctrl+N  Aceptar línea');
-  CrearAtajo(3, 'F5  Unidades');
-  CrearAtajo(4, 'F6  PVP+IVA');
-  CrearAtajo(5, 'F7  Total línea');
-  CrearAtajo(6, 'F8  Totalizar');
-  CrearAtajo(7, 'F9  Ticket');
-  CrearAtajo(8, 'F10  Albarán');
-  CrearAtajo(9, 'F11  Factura / Dto.');
-  CrearAtajo(10, 'F12  Usuario');
-  CrearAtajo(11, 'ESC  Salir');
+  CrearAtajo(0, 'Ctrl+O', 'Código cliente');
+  CrearAtajo(1, 'Ctrl+U', 'Nombre cliente');
+  CrearAtajo(2, 'Ctrl+L', 'Código artículo');
+  CrearAtajo(3, 'Ctrl+N', 'Aceptar línea');
+  CrearAtajo(4, 'F5', 'Unidades');
+  CrearAtajo(5, 'F6', 'PVP+IVA');
+  CrearAtajo(6, 'F7', 'Total línea');
+  CrearAtajo(7, 'F8', 'Totalizar');
+  CrearAtajo(8, 'F9', 'Ticket');
+  CrearAtajo(9, 'F10', 'Albarán');
+  CrearAtajo(10, 'F11', 'Factura / Dto.');
+  CrearAtajo(11, 'F12', 'Usuario');
+  CrearAtajo(12, 'ESC', 'Salir');
 
   pnlResumenVentaModerno := TPanel.Create(Self);
   pnlResumenVentaModerno.Parent := Self;
@@ -5582,6 +5616,32 @@ LblPromoActiva.Top := Edit6.Top + 4;
   txtQR := BarcodeQR1.Text;
   FLXAplicarTemaVisual(Self);
 
+end;
+
+// Limpieza segura de una instancia auxiliar de Ventas.
+// Histórico crea temporalmente un TFVentas y lo muestra para reutilizar la
+// lógica legacy. FormShow programa QueueAsyncCall y activa hooks GTK/diagnóstico.
+// Si el formulario se libera directamente sin retirar esos recursos, pueden
+// ejecutarse después contra memoria ya liberada.
+procedure TFVentas.VF_PrepararLiberacionAuxiliar;
+begin
+  try
+    Application.RemoveAsyncCalls(Self);
+  except
+    // La limpieza nunca debe impedir finalizar la recuperación histórica.
+  end;
+
+  {$IFDEF LCLGTK2}
+  try
+    VF_DesinstalarCapturaCtrlGTK2;
+  except
+  end;
+  {$ENDIF}
+
+  try
+    VF_DiagDesinstalarApp(Self);
+  except
+  end;
 end;
 
 //============ CERRAR FORMULARIO Y LIBERAR MEMORIA =============
@@ -6436,7 +6496,10 @@ end;
 procedure TFVentas.Edit3Enter(Sender: TObject);
 begin
   if (Edit5.Text='0') and (Edit6.Text='0') then LimpiaEntrada();
-  BitBtn4.Enabled:=False;
+
+  // Mientras haya una línea cargada expresamente para modificar, conservar
+  // activo el botón aunque el foco pase momentáneamente por Código.
+  BitBtn4.Enabled := FLineaVentaEnEdicion > 0;
 end;
 
 //-------- Si sale con TAB solo pinto articulo
@@ -6765,6 +6828,7 @@ begin
   if not VF_PrepararLineaAntesDeGrabar then exit;
   if (Edit3.Text='') or (Edit4.Text='') then exit;//---- Si no hay articulo o unidades
   HayStock;//---- Comprobamos si hay stock suficiente.
+  FLineaVentaEnEdicion := 0;
   Modificando:=0;
   dbVentas.Append; GrabaEntrada(); 
 
@@ -6827,23 +6891,65 @@ end;
 //================= MODIFICAR LINEAS DE VENTA =============
 procedure TFVentas.BitBtn4Click(Sender: TObject);
 begin
-  if (dbVentas.RecordCount=0) or (dbVentas.Eof) then exit;
-  boxstyle :=  MB_ICONQUESTION + MB_YESNO;
-  If Application.MessageBox('CONFIRME LA MODIFICACION DE LA LINEA','FacturLinEx', boxstyle) = IDNO Then
-      Exit;
-  Modificando:=1;
-  dbVentas.Edit; GrabaEntrada(); 
-  
+  // La línea a modificar se fija al hacer doble clic. De este modo el botón no
+  // depende de la posición circunstancial del cursor del dataset.
+  if FLineaVentaEnEdicion <= 0 then
+  begin
+    DataModule1.Mensaje('Información',
+      'Seleccione primero una línea con doble clic para modificarla', 2200, clGray);
+    Exit;
+  end;
+
+  if (not dbVentas.Active) or (dbVentas.RecordCount = 0) then
+  begin
+    DataModule1.Mensaje('Información',
+      'No hay ninguna línea de venta disponible para modificar', 2200, clGray);
+    FLineaVentaEnEdicion := 0;
+    BitBtn4.Enabled := False;
+    Exit;
+  end;
+
+  // Si alguna consulta o refresco ha desplazado el cursor, recuperamos la línea
+  // exacta por V2 antes de entrar en modo Edit.
+  if not dbVentas.Locate('V2', FLineaVentaEnEdicion, []) then
+  begin
+    DataModule1.Mensaje('Información',
+      'La línea seleccionada ya no existe o ha cambiado. Vuelva a seleccionarla',
+      2600, clGray);
+    FLineaVentaEnEdicion := 0;
+    BitBtn4.Enabled := False;
+    Exit;
+  end;
+
+  // Garantía adicional: aunque el último OnExit no hubiese terminado por un
+  // cambio de foco, grabamos importes y total con los valores actuales.
+  VerImporteEntra;
+  VerTotalEntra;
+
+  boxstyle := MB_ICONQUESTION + MB_YESNO;
+  if Application.MessageBox('CONFIRME LA MODIFICACION DE LA LINEA',
+       'FacturLinEx', boxstyle) = IDNO then
+    Exit;
+
+  Modificando := 1;
   try
+    dbVentas.Edit;
+    GrabaEntrada();
     dbVentas.Post; //----- Grabar datos.
   except
     on EDB: EDatabaseError do
     begin
-     Showmessage('Error : ' + EDB.Message);
+      if (dbVentas.State = dsEdit) or (dbVentas.State = dsInsert) then
+        dbVentas.Cancel;
+      ShowMessage('Error : ' + EDB.Message);
+      Exit;
     end;
   end;
-  
+
+  FLineaVentaEnEdicion := 0;
+  Modificando := 0;
   LimpiaEntrada();//----- Limpiar la entrada de datos
+  BitBtn4.Enabled := False;
   PintarTotalGeneral();//----- Pintar Total general
   RefrescaTicketsAbiertos();//----- Refrescar total tickets abiertos
   Edit3.SetFocus;
@@ -10407,7 +10513,13 @@ end;
 //============ DOBLE CLICK EN EL GRID DE VENTAS ===========
 procedure TFVentas.DBGrid1DblClick(Sender: TObject);
 begin
-  if dbVentas.RecordCount=0 then exit;
+  if (not dbVentas.Active) or (dbVentas.RecordCount=0) or dbVentas.IsEmpty then exit;
+
+  // Guardamos la clave de la línea antes de mover el foco o ejecutar consultas
+  // auxiliares. Es la referencia estable que utilizará el botón Modificar.
+  FLineaVentaEnEdicion := dbVentas.FieldByName('V2').AsInteger;
+  Modificando := 1;
+
   Edit3.Text:=dbVentas.FieldByName('V3').AsString;//----------------- Codigo
   Edit4.Text:=FLX_LimpiarDescripcionVenta(dbVentas.FieldByName('V4').AsString, FLX_FieldTextMax(dbVentas, 'V4', 100));//----------------- Descripcion
   Edit5.Text:=dbVentas.FieldByName('V5').AsString;//----------------- Unidades
@@ -10418,8 +10530,9 @@ begin
   Edit10.Text:=dbVentas.FieldByName('V10').AsString;//--------------- Iva
   Edit11.Text:=dbVentas.FieldByName('V11').AsString;//--------------- Total Linea
 
-  Edit4.SetFocus;
   BitBtn4.Enabled:=True;
+  Edit4.SetFocus;
+  Edit4.SelectAll;
 end;
 //================= VER STOCK AL PASAR POR LAS LINEAS ================
 procedure TFVentas.Datasource1DataChange(Sender: TObject; Field: TField);
@@ -10780,6 +10893,9 @@ end;
 //================== LIMPIAR ENTRADA DE DATOS ===========
 procedure TFVentas.LimpiaEntrada();
 begin
+  FLineaVentaEnEdicion := 0;
+  Modificando := 0;
+  BitBtn4.Enabled := False;
   Edit3.Text:='';Edit4.Text:='';Edit5.Text:='0';Edit6.Text:='0';Edit7.Text:='0';
   Edit8.Text:='0';Edit9.Text:='0';Edit10.Text:='0';Edit11.Text:='0';
 
@@ -13323,6 +13439,17 @@ begin
         end;
       end;
 
+    VK_L:
+      begin
+        // Ctrl+L: ir directamente al código de artículo de la nueva línea.
+        Result := True;
+        if Edit3.CanFocus then
+        begin
+          Edit3.SetFocus;
+          Edit3.SelectAll;
+        end;
+      end;
+
     VK_N:
       begin
         // Ctrl+N: aceptar/grabar la línea, igual que el botón Nuevo.
@@ -13474,6 +13601,7 @@ begin
     Exit;
 
   case Ord(UTF8Key[1]) of
+    12: VirtualKey := VK_L;
     14: VirtualKey := VK_N;
     15: VirtualKey := VK_O;
     21: VirtualKey := VK_U;

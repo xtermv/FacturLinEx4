@@ -26,8 +26,9 @@ type
                              const ResponseText: string;
                              const ErrorSummary: string);
 
-  // Reencolar todas las líneas en estado ERROR (a PENDIENTE)
-  // Devuelve cuántos registros ha modificado
+  // Reencolar SOLO errores técnicos reintentables del ejercicio actual.
+  // No toca errores AEAT de contenido, integridad/hash ni ejercicios anteriores.
+  // Conserva last_error/respuesta_text como evidencia del fallo original.
   function VF_RequeueAllErrors(const Conn: TZConnection): Integer;
 
 implementation
@@ -109,6 +110,26 @@ begin
   Q := TZQuery.Create(nil);
   try
     Q.Connection := Conn;
+
+    { IMPORTANTE:
+      Esta acción manual NO debe convertir indiscriminadamente todos los
+      errores fiscales en PENDIENTE.
+
+      El dispatcher marca como reintentables técnicos estas familias:
+        RESPUESTA_NO_RECONOCIDA
+        RESPUESTA_INVALIDA
+        SOAP_FAULT
+        PARSE_XML
+        ENVIO_FALLIDO
+        EXCEPTION
+
+      Los errores AEAT de contenido (NIF, destinatario, tipo, fechas, etc.)
+      se marcan por su código AEAT y NO coinciden con esta lista.
+      Tampoco se reencolan incidencias de HASH/encadenamiento.
+
+      Además se limita al ejercicio actual según verifactu_queue.fecha.
+      Se conserva last_error, respuesta_text y last_attempt_at como evidencia. }
+
     Q.SQL.Text :=
       'UPDATE verifactu_queue ' +
       'SET estado = ''PENDIENTE'', ' +
@@ -117,10 +138,21 @@ begin
       '    token = NULL, ' +
       '    claimed_at = NULL, ' +
       '    claimed_until = NULL, ' +
-      '    last_attempt_at = NULL, ' +
-      '    last_error = '''', ' +      // limpiamos el texto de error
       '    updated_at = NOW() ' +
-      'WHERE estado = ''ERROR''';
+      'WHERE estado = ''ERROR'' ' +
+      '  AND YEAR(fecha) = YEAR(CURDATE()) ' +
+      '  AND ( ' +
+      '       UPPER(COALESCE(last_error,'''')) LIKE ''RESPUESTA_NO_RECONOCIDA:%'' ' +
+      '    OR UPPER(COALESCE(last_error,'''')) LIKE ''RESPUESTA_INVALIDA:%'' ' +
+      '    OR UPPER(COALESCE(last_error,'''')) LIKE ''SOAP_FAULT:%'' ' +
+      '    OR UPPER(COALESCE(last_error,'''')) LIKE ''PARSE_XML:%'' ' +
+      '    OR UPPER(COALESCE(last_error,'''')) = ''ENVIO_FALLIDO'' ' +
+      '    OR UPPER(COALESCE(last_error,'''')) LIKE ''EXCEPTION:%'' ' +
+      '      ) ' +
+      '  AND UPPER(COALESCE(last_error,'''')) NOT LIKE ''%HASH%'' ' +
+      '  AND UPPER(COALESCE(last_error,'''')) NOT LIKE ''%HUELLA%'' ' +
+      '  AND UPPER(COALESCE(last_error,'''')) NOT LIKE ''%ENCADEN%''';
+
     try
       Q.ExecSQL;
       Result := Q.RowsAffected;

@@ -1,0 +1,143 @@
+--- ANTES
++++ DESPUES
+@@ -15,7 +15,8 @@
+ 
+ procedure VF_AttachHashToQueue(const Conn: TZConnection;
+   const Serie: string; const Numero: Integer;
+-  const PayloadJSON: string; const TipoEvento: string = 'ALTA');
++  const PayloadJSON: string; const TipoEvento: string = 'ALTA';
++  const AQueueID: Int64 = 0);
+ 
+ implementation
+ 
+@@ -196,27 +197,64 @@
+ end;
+ 
+ function GetPrevHash(const Conn: TZConnection; const Serie: string;
+-  const Numero: Integer): string;
++  const Numero: Integer; const AQueueID: Int64): string;
+ var
+   q: TZQuery;
++  CurrentID: Int64;
+ begin
+   Result := '';
+   if Conn = nil then Exit;
+ 
++  CurrentID := AQueueID;
+   q := TZQuery.Create(nil);
+   try
+     q.Connection := Conn;
++
++    if CurrentID <= 0 then
++    begin
++      q.SQL.Text :=
++        'SELECT id FROM verifactu_queue ' +
++        'WHERE serie=:s AND numero=:n ' +
++        '  AND COALESCE(registro_uid,''ORIG'')=''ORIG'' ' +
++        'ORDER BY id DESC LIMIT 1';
++      q.ParamByName('s').AsString := Serie;
++      q.ParamByName('n').AsInteger := Numero;
++      q.Open;
++      if not q.EOF then
++        CurrentID := q.FieldByName('id').AsLargeInt;
++      q.Close;
++    end;
++
++    if CurrentID <= 0 then
++    begin
++      HC_WriteDiag(Format(
++        'GetPrevHash: no se pudo resolver id actual serie=%s num=%d',
++        [Serie, Numero]));
++      Exit;
++    end;
++
+     q.SQL.Text :=
+-      'SELECT hash FROM verifactu_queue ' +
+-      'WHERE serie=:s AND numero<:n AND IFNULL(hash,"")<>"" ' +
+-      'ORDER BY numero DESC LIMIT 1';
+-    q.ParamByName('s').AsString  := Serie;
+-    q.ParamByName('n').AsInteger := Numero;
++      'SELECT id,serie,numero,hash FROM verifactu_queue ' +
++      'WHERE id<:id AND COALESCE(hash,'''')<>'''' ' +
++      'ORDER BY id DESC LIMIT 1';
++    q.ParamByName('id').AsLargeInt := CurrentID;
+     q.Open;
++
+     if not q.EOF then
+-      Result := Trim(q.Fields[0].AsString);
+-    HC_WriteDiag(Format('GetPrevHash: serie=%s num=%d prevHash=%s',
+-      [Serie, Numero, Result]));
++    begin
++      Result := Trim(q.FieldByName('hash').AsString);
++      HC_WriteDiag(Format(
++        'GetPrevHash GLOBAL: actual_id=%d anterior_id=%d anterior=%s-%s hash=%s',
++        [CurrentID,
++         q.FieldByName('id').AsLargeInt,
++         q.FieldByName('serie').AsString,
++         q.FieldByName('numero').AsString,
++         Result]));
++    end
++    else
++      HC_WriteDiag(Format(
++        'GetPrevHash GLOBAL: actual_id=%d sin registro anterior con huella',
++        [CurrentID]));
+   finally
+     q.Free;
+   end;
+@@ -228,7 +266,8 @@
+ 
+ procedure VF_AttachHashToQueue(const Conn: TZConnection;
+   const Serie: string; const Numero: Integer;
+-  const PayloadJSON: string; const TipoEvento: string);
++  const PayloadJSON: string; const TipoEvento: string;
++  const AQueueID: Int64);
+ var
+   em: TEmisorInfo;
+   fechaZ, prevH, canonical, hash: string;
+@@ -255,7 +294,7 @@
+   HC_WriteDiag('VF_AttachHashToQueue: fechaZ=' + fechaZ);
+ 
+   // 3) Hash previo: ahora será SIEMPRE el valor del campo hash de la factura anterior
+-  prevH := GetPrevHash(Conn, Serie, Numero);
++  prevH := GetPrevHash(Conn, Serie, Numero, AQueueID);
+   HC_WriteDiag('VF_AttachHashToQueue: prevH=' + prevH);
+ 
+   // 4) Podemos seguir construyendo una canónica interna si quieres conservarla
+@@ -274,17 +313,29 @@
+   q := TZQuery.Create(nil);
+   try
+     q.Connection := Conn;
+-    q.SQL.Text :=
+-      'UPDATE verifactu_queue SET ' +
+-      '  fecha_isoz = :f, ' +
+-      '  canonical  = :c, ' +
+-      '  hash_prev  = :p ' +     // <- YA NO tocamos hash
+-      'WHERE serie=:s AND numero=:n LIMIT 1';
++    if AQueueID > 0 then
++      q.SQL.Text :=
++        'UPDATE verifactu_queue SET ' +
++        '  fecha_isoz = :f, canonical = :c, hash_prev = :p ' +
++        'WHERE id=:id'
++    else
++      q.SQL.Text :=
++        'UPDATE verifactu_queue SET ' +
++        '  fecha_isoz = :f, canonical = :c, hash_prev = :p ' +
++        'WHERE serie=:s AND numero=:n ' +
++        '  AND COALESCE(registro_uid,''ORIG'')=''ORIG'' ' +
++        'ORDER BY id DESC LIMIT 1';
++
+     q.ParamByName('f').AsString := fechaZ;
+     q.ParamByName('c').AsString := canonical;
+     q.ParamByName('p').AsString := prevH;
+-    q.ParamByName('s').AsString := Serie;
+-    q.ParamByName('n').AsInteger := Numero;
++    if AQueueID > 0 then
++      q.ParamByName('id').AsLargeInt := AQueueID
++    else
++    begin
++      q.ParamByName('s').AsString := Serie;
++      q.ParamByName('n').AsInteger := Numero;
++    end;
+ 
+     try
+       q.ExecSQL;

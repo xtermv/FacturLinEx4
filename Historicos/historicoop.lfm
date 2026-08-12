@@ -6027,6 +6027,7 @@ object FLHistoop: TFLHistoop
     OnDrawColumnCell = DBGrid1DrawColumnCell
     OnDblClick = DBGrid1DblClick
     OnKeyUp = DBGrid1KeyUp
+    OnMouseUp = DBGrid1MouseUp
     OnTitleClick = DBGrid1TitleClick
   end
   object DBGrid2: TDBGrid

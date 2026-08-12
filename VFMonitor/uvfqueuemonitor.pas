@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Dialogs, StdCtrls, ExtCtrls, Buttons, EditBtn,
-  DBGrids, DB, Graphics, Grids, LCLType, // RGBToColor + Canvas
+  DBGrids, DB, Graphics, Grids, LCLType, ComCtrls, Clipbrd, // RGBToColor + Canvas
   ZConnection, ZDataset;
 
 procedure VFQ_OpenMonitor(const Conn: TZConnection; const Tienda: string);
@@ -25,9 +25,10 @@ type
     FSortField: string;
     FSortDesc: Boolean;
 
-    TopPanel, HeaderPanel, ActionPanel, GridHeaderPanel: TPanel;
+    TopPanel, HeaderPanel, ActionPanel, GridHeaderPanel, SummaryPanel: TPanel;
     FilterGroup: TGroupBox;
     LbTitle, LbSubtitle, LbGridTitle, LbGridHint: TLabel;
+    LbTotal, LbPending, LbSent, LbIncidents: TLabel;
     BtnRefresh, BtnRetry, BtnDetail, BtnClose: TBitBtn;
     CbEstado: TComboBox;
     EdSerie, EdNumero, EdCliente: TEdit;
@@ -45,6 +46,10 @@ type
     procedure PopulateEstado;
     procedure RefreshData;
     procedure SetupGridColumns;
+    procedure UpdateSummary;
+    procedure UpdateActionState;
+    function CurrentResult: string;
+    function IsTechnicalRetryAllowed(out AReason: string): Boolean;
 
     // Mostrar detalle resumido de respuesta AEAT (columna 'Respuesta')
     procedure VFRespuestaGetText(Sender: TField; var aText: string; DisplayText: Boolean);
@@ -59,6 +64,7 @@ type
     procedure CbEstadoChange(Sender: TObject);
 
     procedure GridDblClick(Sender: TObject);
+    procedure GridCellClick(Column: TColumn);
     procedure GridTitleClick(Column: TColumn);
     procedure GridDrawColumnCell(Sender: TObject; const Rect: TRect;
       DataCol: Integer; Column: TColumn; State: TGridDrawState);
@@ -101,7 +107,7 @@ begin
   // Form sin .lfm -> CreateNew
   inherited CreateNew(nil, 1);
 
-  Caption := 'Monitor VeriFactu (cola)';
+  Caption := 'Centro de Control VeriFactu';
   Position := poScreenCenter;
   Width := 1450;
   Height := 780;
@@ -206,7 +212,7 @@ begin
   TopPanel := TPanel.Create(Self);
   TopPanel.Parent := Self;
   TopPanel.Align := alTop;
-  TopPanel.Height := 276;
+  TopPanel.Height := 334;
   TopPanel.BevelOuter := bvNone;
   TopPanel.Color := clWhite;
 
@@ -221,7 +227,7 @@ begin
   LbTitle.Parent := HeaderPanel;
   LbTitle.Left := 18;
   LbTitle.Top := 11;
-  LbTitle.Caption := 'MONITOR VERIFACTU';
+  LbTitle.Caption := 'CENTRO DE CONTROL VERIFACTU';
   LbTitle.ParentFont := False;
   LbTitle.Font.Name := 'Sans';
   LbTitle.Font.Height := -22;
@@ -232,7 +238,7 @@ begin
   LbSubtitle.Parent := HeaderPanel;
   LbSubtitle.Left := 18;
   LbSubtitle.Top := 43;
-  LbSubtitle.Caption := 'Consulta la cola, revisa el resultado de AEAT y gestiona reintentos de forma controlada.';
+  LbSubtitle.Caption := 'Supervisa envíos, diagnostica incidencias y separa reintentos técnicos de correcciones fiscales.';
   LbSubtitle.ParentFont := False;
   LbSubtitle.Font.Name := 'Sans';
   LbSubtitle.Font.Height := -12;
@@ -252,9 +258,47 @@ begin
   BtnClose.OnClick := @BtnCloseClick;
   AssignButtonGlyph(BtnClose, 4);
 
+  SummaryPanel := TPanel.Create(Self);
+  SummaryPanel.Parent := TopPanel;
+  SummaryPanel.SetBounds(14, 88, TopPanel.ClientWidth - 28, 48);
+  SummaryPanel.Anchors := [akLeft, akTop, akRight];
+  SummaryPanel.BevelOuter := bvNone;
+  SummaryPanel.Color := RGBToColor(240, 244, 248);
+
+  LbTotal := TLabel.Create(Self);
+  LbTotal.Parent := SummaryPanel;
+  LbTotal.SetBounds(16, 13, 205, 24);
+  LbTotal.ParentFont := False;
+  LbTotal.Font.Style := [fsBold];
+  LbTotal.Caption := 'Registros: 0';
+
+  LbPending := TLabel.Create(Self);
+  LbPending.Parent := SummaryPanel;
+  LbPending.SetBounds(230, 13, 205, 24);
+  LbPending.ParentFont := False;
+  LbPending.Font.Style := [fsBold];
+  LbPending.Font.Color := RGBToColor(145, 95, 0);
+  LbPending.Caption := 'Pendientes: 0';
+
+  LbSent := TLabel.Create(Self);
+  LbSent.Parent := SummaryPanel;
+  LbSent.SetBounds(444, 13, 205, 24);
+  LbSent.ParentFont := False;
+  LbSent.Font.Style := [fsBold];
+  LbSent.Font.Color := RGBToColor(20, 115, 55);
+  LbSent.Caption := 'Enviados: 0';
+
+  LbIncidents := TLabel.Create(Self);
+  LbIncidents.Parent := SummaryPanel;
+  LbIncidents.SetBounds(658, 13, 300, 24);
+  LbIncidents.ParentFont := False;
+  LbIncidents.Font.Style := [fsBold];
+  LbIncidents.Font.Color := RGBToColor(170, 35, 35);
+  LbIncidents.Caption := 'Incidencias: 0';
+
   FilterGroup := TGroupBox.Create(Self);
   FilterGroup.Parent := TopPanel;
-  FilterGroup.SetBounds(14, 88, TopPanel.ClientWidth - 28, 104);
+  FilterGroup.SetBounds(14, 146, TopPanel.ClientWidth - 28, 104);
   FilterGroup.Anchors := [akLeft, akTop, akRight];
   FilterGroup.Caption := ' FILTROS DE CONSULTA ';
   FilterGroup.ParentFont := False;
@@ -358,7 +402,7 @@ begin
 
   ActionPanel := TPanel.Create(Self);
   ActionPanel.Parent := TopPanel;
-  ActionPanel.SetBounds(14, 200, TopPanel.ClientWidth - 28, 40);
+  ActionPanel.SetBounds(14, 258, TopPanel.ClientWidth - 28, 40);
   ActionPanel.Anchors := [akLeft, akTop, akRight];
   ActionPanel.BevelOuter := bvNone;
   ActionPanel.Color := clWhite;
@@ -372,8 +416,8 @@ begin
 
   BtnRetry := TBitBtn.Create(Self);
   BtnRetry.Parent := ActionPanel;
-  BtnRetry.Caption := 'Reintentar / reenviar';
-  BtnRetry.SetBounds(130, 4, 180, 32);
+  BtnRetry.Caption := 'Reintento técnico';
+  BtnRetry.SetBounds(130, 4, 170, 32);
   BtnRetry.ParentFont := False;
   BtnRetry.Font.Style := [fsBold];
   BtnRetry.OnClick := @BtnRetryClick;
@@ -381,14 +425,14 @@ begin
 
   BtnDetail := TBitBtn.Create(Self);
   BtnDetail.Parent := ActionPanel;
-  BtnDetail.Caption := 'Ver detalle';
-  BtnDetail.SetBounds(320, 4, 125, 32);
+  BtnDetail.Caption := 'Diagnóstico completo';
+  BtnDetail.SetBounds(310, 4, 155, 32);
   BtnDetail.OnClick := @BtnDetailClick;
   AssignButtonGlyph(BtnDetail, 3);
 
   LbGridHint := TLabel.Create(Self);
   LbGridHint.Parent := ActionPanel;
-  LbGridHint.Left := 470;
+  LbGridHint.Left := 490;
   LbGridHint.Top := 12;
   LbGridHint.Caption := 'Doble clic para abrir el detalle. Pulsa una cabecera para ordenar.';
   LbGridHint.ParentFont := False;
@@ -427,6 +471,7 @@ begin
   Grid.TitleFont.Height := -12;
   Grid.TitleFont.Style := [fsBold];
   Grid.OnDblClick := @GridDblClick;
+  Grid.OnCellClick := @GridCellClick;
   Grid.OnTitleClick := @GridTitleClick;
 
   Grid.DefaultDrawing := False;
@@ -669,6 +714,8 @@ if HaveEstado then Q.ParamByName('ESTADO').AsString := EstadoStr;
   try
     Q.Open;
     SetupGridColumns;
+    UpdateSummary;
+    UpdateActionState;
   except
     on E: Exception do
       ShowMessage('VF Monitor: error al refrescar: ' + E.Message);
@@ -926,54 +973,152 @@ begin
 end;
 
 function TfrmVFQMonitor.PromptReason(out ReasonText: string): Boolean;
-var
-  S: string;
 begin
-  S := '';
-  Result := InputQuery('Reenviar a AEAT', 'Motivo subsanación (interno):', S);
-  ReasonText := Trim(S);
-  if Result and (ReasonText = '') then
+  ReasonText := '';
+  Result := False;
+  ShowMessage('La subsanación no se realiza mediante un reenvío ciego. Usa Diagnóstico completo para determinar la actuación correcta.');
+end;
+
+function TfrmVFQMonitor.CurrentResult: string;
+begin
+  Result := '';
+  if (Q <> nil) and Q.Active and (not Q.IsEmpty) then
   begin
-    ShowMessage('Debes indicar un motivo (aunque sea breve).');
-    Result := False;
+    if Q.FindField('vf_resultado') <> nil then
+      Result := Q.FieldByName('vf_resultado').AsString
+    else
+      Result := Q.FieldByName('estado').AsString;
   end;
+end;
+
+function TfrmVFQMonitor.IsTechnicalRetryAllowed(out AReason: string): Boolean;
+var
+  Estado, Resultado, LastErr, Resp, U: string;
+begin
+  Result := False;
+  AReason := '';
+  if (Q = nil) or (not Q.Active) or Q.IsEmpty then
+  begin
+    AReason := 'No hay ningún registro seleccionado.';
+    Exit;
+  end;
+  Estado := UpperCase(Trim(Q.FieldByName('estado').AsString));
+  Resultado := UpperCase(Trim(CurrentResult));
+  LastErr := UpperCase(Q.FieldByName('last_error').AsString);
+  Resp := UpperCase(Q.FieldByName('respuesta_text').AsString);
+  U := Resultado + ' ' + LastErr + ' ' + Resp;
+
+  if (Estado = 'ENVIADO') or SameText(Resultado, 'CORRECTO') then
+  begin
+    AReason := 'El registro ya consta enviado/correcto y no debe reenviarse.';
+    Exit;
+  end;
+  if Estado = 'EN_PROCESO' then
+  begin
+    AReason := 'El registro está siendo procesado. Refresca antes de actuar.';
+    Exit;
+  end;
+  if (Pos('ESTADOREGISTRO>INCORRECTO', U) > 0) or
+     (Pos('ACEPTADO CON ERRORES', U) > 0) or
+     (Pos('INCORRECTO AEAT', U) > 0) then
+  begin
+    AReason := 'La AEAT ha respondido con una incidencia de contenido. No se permite el reenvío automático: revisa el diagnóstico y decide si procede corrección, anulación o rectificativa.';
+    Exit;
+  end;
+  if (Pos('SOCKERR', U) > 0) or (Pos('SSLERR', U) > 0) or
+     (Pos('HTTPMETHOD', U) > 0) or (Pos('SIN RESPUESTA HTTP', U) > 0) or
+     (Pos('KEY VALUES MISMATCH', U) > 0) or (Pos('PEM ROUTINES', U) > 0) or
+     (Pos('NO START LINE', U) > 0) or
+     (Pos('ERROR SOAP', U) > 0) or
+     (Pos('<ENV:FAULT', U) > 0) or (Pos('<SOAP:FAULT', U) > 0) or
+     (Pos('FAULTSTRING', U) > 0) or
+     (Pos('<WSDL:DEFINITIONS', U) > 0) or
+     (Pos('SISTEMAFACTURACION.WSDL', U) > 0) or
+     (Pos('CODIGO[404]', U) > 0) or (Pos('HTTP 404', U) > 0) or
+     (Pos('NOT FOUND', U) > 0) or (Pos('ENDPOINT', U) > 0) or
+     (Pos('SOAPAction', U) > 0) or (Pos('WEB SERVICE', U) > 0) or
+     ((Estado = 'PENDIENTE') and (Q.FieldByName('intentos').AsInteger > 0)) then
+  begin
+    AReason := 'Incidencia técnica o de comunicación: el reintento controlado está permitido.';
+    Result := True;
+    Exit;
+  end;
+  if (Estado = 'PENDIENTE') and (Q.FieldByName('intentos').AsInteger = 0) then
+  begin
+    AReason := 'Pendiente de primer envío. Puedes forzar un intento inmediato.';
+    Result := True;
+    Exit;
+  end;
+  AReason := 'No se puede clasificar con seguridad como fallo técnico. Abre el diagnóstico antes de actuar.';
+end;
+
+procedure TfrmVFQMonitor.UpdateActionState;
+var
+  R: string;
+begin
+  if BtnRetry = nil then Exit;
+  BtnRetry.Enabled := IsTechnicalRetryAllowed(R);
+  BtnRetry.Hint := R;
+  BtnRetry.ShowHint := True;
+end;
+
+procedure TfrmVFQMonitor.UpdateSummary;
+var
+  QS: TZQuery;
+  Total, Pend, Sent, Incid: Integer;
+begin
+  Total := 0; Pend := 0; Sent := 0; Incid := 0;
+  QS := TZQuery.Create(nil);
+  try
+    QS.Connection := FConn;
+    QS.SQL.Text :=
+      'SELECT COUNT(*) total, ' +
+      'SUM(CASE WHEN estado IN (''PENDIENTE'',''EN_PROCESO'') THEN 1 ELSE 0 END) pendientes, ' +
+      'SUM(CASE WHEN estado=''ENVIADO'' THEN 1 ELSE 0 END) enviados, ' +
+      'SUM(CASE WHEN estado=''ERROR'' OR COALESCE(respuesta_text,'''') LIKE ''%EstadoRegistro>Incorrecto%'' ' +
+      'OR COALESCE(respuesta_text,'''') LIKE ''%EstadoRegistro>AceptadoConErrores%'' THEN 1 ELSE 0 END) incidencias ' +
+      'FROM verifactu_queue';
+    QS.Open;
+    Total := QS.FieldByName('total').AsInteger;
+    Pend := QS.FieldByName('pendientes').AsInteger;
+    Sent := QS.FieldByName('enviados').AsInteger;
+    Incid := QS.FieldByName('incidencias').AsInteger;
+  except
+    // El resumen es informativo y no debe impedir abrir el centro de control.
+  end;
+  QS.Free;
+  LbTotal.Caption := 'Registros: ' + IntToStr(Total);
+  LbPending.Caption := 'Pendientes: ' + IntToStr(Pend);
+  LbSent.Caption := 'Enviados: ' + IntToStr(Sent);
+  LbIncidents.Caption := 'Incidencias: ' + IntToStr(Incid);
 end;
 
 procedure TfrmVFQMonitor.BtnRetryClick(Sender: TObject);
 var
-  Serie: string;
+  Serie, Reason: string;
   Numero: Integer;
-  Estado: string;
-  Reason: string;
   Ok: Boolean;
 begin
-  if (Q = nil) or (not Q.Active) or (Q.RecordCount = 0) then Exit;
-
+  if not IsTechnicalRetryAllowed(Reason) then
+  begin
+    ShowMessage(Reason);
+    Exit;
+  end;
+  if MessageDlg('Reintento técnico', Reason + LineEnding + LineEnding +
+    '¿Deseas devolver el registro a PENDIENTE y ejecutar ahora un intento controlado?',
+    mtConfirmation, [mbYes, mbNo], 0) <> mrYes then Exit;
   Serie := Q.FieldByName('serie').AsString;
   Numero := Q.FieldByName('numero').AsInteger;
-  Estado := Q.FieldByName('estado').AsString;
-
-  Reason := '';
-  if SameText(Estado, 'ERROR') then
-    if not PromptReason(Reason) then Exit;
-
   try
     VeriFactu_ResetToPending(Serie, Numero);
+    Ok := VF_DispatchSpecific(Serie, Numero);
+    if not Ok then
+      ShowMessage('El registro queda disponible para la cola, pero no pudo enviarse ahora mismo. Revisa la conexión y refresca.');
   except
-    on E: Exception do
-    begin
-      ShowMessage('ResetToPending ERROR: ' + E.Message);
-      Exit;
-    end;
+    on E: Exception do ShowMessage('Reintento técnico: ' + E.Message);
   end;
-
-  Ok := VF_DispatchSpecific(Serie, Numero);
-  if not Ok then
-    ShowMessage('No se pudo enviar ahora mismo (revisa sender/estado).');
-
   FSortField := 'fecha';
   FSortDesc := True;
-
   RefreshData;
 end;
 
@@ -982,6 +1127,10 @@ var
   Id: Int64;
   QD: TZQuery;
   Msg: string;
+  DetailForm: TForm;
+  DetailMemo: TMemo;
+  BottomPanel: TPanel;
+  BtnCloseDetail: TBitBtn;
 begin
   if (Q = nil) or (not Q.Active) or (Q.RecordCount = 0) then Exit;
   Id := Q.FieldByName('id').AsLargeInt;
@@ -990,7 +1139,7 @@ begin
   try
     QD.Connection := FConn;
     QD.SQL.Text :=
-      'SELECT estado, intentos, claimed_by, claimed_at, claimed_until, last_attempt_at, last_error, token, hash, hash_prev, respuesta_text '+
+      'SELECT estado, intentos, claimed_by, claimed_at, claimed_until, last_attempt_at, last_error, token, hash, hash_prev, respuesta_text, payload_json, canonical, fecha_isoz '+
       'FROM verifactu_queue WHERE id=:ID';
     QD.ParamByName('ID').AsLargeInt := Id;
     QD.Open;
@@ -1003,14 +1152,63 @@ begin
       'Claimed until: ' + QD.FieldByName('claimed_until').AsString + LineEnding +
       'Intentos: ' + QD.FieldByName('intentos').AsString + LineEnding +
       'Último intento: ' + QD.FieldByName('last_attempt_at').AsString + LineEnding +
+      'Fecha ISOZ: ' + QD.FieldByName('fecha_isoz').AsString + LineEnding +
       'Token: ' + QD.FieldByName('token').AsString + LineEnding +
       'HashPrev: ' + QD.FieldByName('hash_prev').AsString + LineEnding +
       'Hash: ' + QD.FieldByName('hash').AsString + LineEnding + LineEnding +
-      'LastError: ' + QD.FieldByName('last_error').AsString + LineEnding + LineEnding +
-      'Respuesta (primeros 2000 caracteres):' + LineEnding +
-      Copy(QD.FieldByName('respuesta_text').AsString, 1, 2000);
+      'LastError:' + LineEnding + QD.FieldByName('last_error').AsString + LineEnding + LineEnding +
+      'ACCIÓN ORIENTATIVA:' + LineEnding +
+      'Los errores técnicos permiten reintento. Las respuestas Incorrecto/AceptadoConErrores requieren diagnóstico antes de reenviar.' + LineEnding + LineEnding +
+      'CANONICAL:' + LineEnding +
+      QD.FieldByName('canonical').AsString + LineEnding + LineEnding +
+      'PAYLOAD JSON:' + LineEnding +
+      QD.FieldByName('payload_json').AsString + LineEnding + LineEnding +
+      'RESPUESTA AEAT:' + LineEnding +
+      QD.FieldByName('respuesta_text').AsString;
 
-    ShowMessage(Msg);
+    DetailForm := TForm.Create(Self);
+    try
+      DetailForm.Caption := 'Detalle completo VeriFactu - ID ' + IntToStr(Id);
+      DetailForm.Position := poScreenCenter;
+      DetailForm.Width := 980;
+      DetailForm.Height := 720;
+      DetailForm.Constraints.MinWidth := 700;
+      DetailForm.Constraints.MinHeight := 480;
+      DetailForm.BorderStyle := bsSizeable;
+      DetailForm.KeyPreview := True;
+
+      BottomPanel := TPanel.Create(DetailForm);
+      BottomPanel.Parent := DetailForm;
+      BottomPanel.Align := alBottom;
+      BottomPanel.Height := 52;
+      BottomPanel.BevelOuter := bvNone;
+      BottomPanel.Caption := '';
+
+      BtnCloseDetail := TBitBtn.Create(DetailForm);
+      BtnCloseDetail.Parent := BottomPanel;
+      BtnCloseDetail.Caption := 'Cerrar';
+      BtnCloseDetail.ModalResult := mrClose;
+      BtnCloseDetail.Cancel := True;
+      BtnCloseDetail.SetBounds(BottomPanel.Width - 120, 10, 105, 32);
+      BtnCloseDetail.Anchors := [akTop, akRight];
+
+      DetailMemo := TMemo.Create(DetailForm);
+      DetailMemo.Parent := DetailForm;
+      DetailMemo.Align := alClient;
+      DetailMemo.ReadOnly := True;
+      DetailMemo.WordWrap := False;
+      DetailMemo.ScrollBars := ssAutoBoth;
+      DetailMemo.Font.Name := 'Monospace';
+      DetailMemo.Font.Size := 10;
+      DetailMemo.Lines.Text := Msg;
+      DetailMemo.SelStart := 0;
+      DetailMemo.TabStop := True;
+
+      DetailForm.ActiveControl := DetailMemo;
+      DetailForm.ShowModal;
+    finally
+      DetailForm.Free;
+    end;
   except
     on E: Exception do
       ShowMessage('Detalle ERROR: ' + E.Message);
@@ -1026,6 +1224,11 @@ end;
 procedure TfrmVFQMonitor.GridDblClick(Sender: TObject);
 begin
   BtnDetailClick(Sender);
+end;
+
+procedure TfrmVFQMonitor.GridCellClick(Column: TColumn);
+begin
+  UpdateActionState;
 end;
 
 procedure TfrmVFQMonitor.GridTitleClick(Column: TColumn);

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Manual de uso y configuración de FacturLinEx">
+  <meta name="theme-color" content="#155eef">
+  <title>12. Solución de problemas | Manual FacturLinEx</title>
+  <link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/styles.css">
+  <script defer src="../assets/js/search-index.js"></script>
+  <script defer src="../assets/js/app.js"></script>
+</head>
+<body>
+
+<a class="skip-link" href="#contenido">Saltar al contenido</a>
+<header class="topbar">
+  <button class="icon-button menu-button" type="button" aria-label="Abrir menú" aria-expanded="false" data-menu-button>☰</button>
+  <a class="brand" href="../index.html" aria-label="Inicio del manual FacturLinEx">
+    <span class="brand-mark">FLX</span><span><strong>FacturLinEx</strong><small>Manual de uso y configuración</small></span>
+  </a>
+  <div class="top-actions">
+    <button class="search-button" type="button" data-search-open aria-label="Buscar en el manual"><span aria-hidden="true">⌕</span><span>Buscar</span><kbd>Ctrl K</kbd></button>
+    <button class="icon-button" type="button" data-theme-toggle aria-label="Cambiar modo de color">◐</button>
+  </div>
+</header>
+<div class="menu-overlay" data-menu-overlay></div>
+
+<div class="app-shell">
+  <aside class="sidebar" data-sidebar>
+    <div class="sidebar-inner">
+      <a class="sidebar-home" href="../index.html">⌂ Página principal</a>
+      <nav aria-label="Capítulos del manual"><a href="../capitulos/control-del-documento.html"><span class="nav-number">i</span><span>Control del documento</span></a>
+<a href="../capitulos/01-primeros-pasos-y-navegacion.html"><span class="nav-number">1</span><span>Primeros pasos y navegación</span></a>
+<a href="../capitulos/02-configuracion-inicial.html"><span class="nav-number">2</span><span>Configuración inicial</span></a>
+<a href="../capitulos/03-clientes.html"><span class="nav-number">3</span><span>Clientes</span></a>
+<a href="../capitulos/04-articulos-familias-y-tarifas.html"><span class="nav-number">4</span><span>Artículos, familias y tarifas</span></a>
+<a href="../capitulos/05-ventas-y-tpv.html"><span class="nav-number">5</span><span>Ventas y TPV</span></a>
+<a href="../capitulos/06-caja-cobros-y-creditos.html"><span class="nav-number">6</span><span>Caja, cobros y créditos</span></a>
+<a href="../capitulos/07-compras-pedidos-y-existencias.html"><span class="nav-number">7</span><span>Compras, pedidos y existencias</span></a>
+<a href="../capitulos/08-facturacion-impresion-pdf-y-correo.html"><span class="nav-number">8</span><span>Facturación, impresión, PDF y correo</span></a>
+<a href="../capitulos/09-verifactu-y-documentos-rectificativos.html"><span class="nav-number">9</span><span>VeriFactu y documentos rectificativos</span></a>
+<a href="../capitulos/10-dashboard-consultas-y-estadisticas.html"><span class="nav-number">10</span><span>Dashboard, consultas y estadísticas</span></a>
+<a href="../capitulos/11-copias-de-seguridad-y-mantenimiento.html"><span class="nav-number">11</span><span>Copias de seguridad y mantenimiento</span></a>
+<a href="../capitulos/12-solucion-de-problemas.html" class="active" aria-current="page"><span class="nav-number">12</span><span>Solución de problemas</span></a>
+<a href="../capitulos/13-anexos-y-referencia-rapida.html"><span class="nav-number">13</span><span>Anexos y referencia rápida</span></a>
+<a href="../capitulos/14-plan-de-ampliacion-del-manual.html"><span class="nav-number">14</span><span>Plan de ampliación del manual</span></a></nav>
+      <div class="sidebar-downloads"><strong>Descargas</strong>
+        <a href="../descargas/Manual_FacturLinEx_v0.1_Base_Funcional.pdf">Manual PDF</a>
+        <a href="../descargas/Manual_FacturLinEx_v0.1_Base_Funcional.docx">Manual DOCX</a>
+      </div>
+    </div>
+  </aside>
+  <main id="contenido" class="main-content">
+    <article class="manual-page">
+      <header class="chapter-header"><span class="eyebrow">Capítulo 12</span><h1>Solución de problemas</h1><p class="chapter-version">Edición v0.1 · Base funcional</p></header>
+      <nav class="page-toc" aria-label="En esta página"><strong>En esta página</strong><a href="#12-1-el-formulario-abre-pero-no-muestra-datos">12.1 El formulario abre, pero no muestra datos</a><a href="#12-2-un-boton-no-hace-nada">12.2 Un botón no hace nada</a><a href="#12-3-problemas-de-foco-o-atajos">12.3 Problemas de foco o atajos</a><a href="#12-4-texto-oculto-negro-o-superpuesto">12.4 Texto oculto, negro o superpuesto</a><a href="#12-5-errores-sql">12.5 Errores SQL</a><a href="#12-6-errores-de-compilacion-frecuentes">12.6 Errores de compilación frecuentes</a><a href="#12-7-informacion-que-debe-recopilarse">12.7 Información que debe recopilarse</a></nav>
+      <div class="chapter-content"><aside class="callout callout-info"><span class="callout-icon" aria-hidden="true">i</span><div><strong>USO</strong><p>Este capítulo ofrece un diagnóstico inicial. No sustituye la revisión de la unidad, formulario, SQL o datos implicados.</p></div></aside>
+<h2 id="12-1-el-formulario-abre-pero-no-muestra-datos">12.1 El formulario abre, pero no muestra datos <a class="heading-link" href="#12-1-el-formulario-abre-pero-no-muestra-datos" aria-label="Enlace a esta sección">#</a></h2>
+<ol>
+<li>Comprobar que la conexión está activa.</li>
+<li>Revisar filtros, código introducido y período.</li>
+<li>Probar la consulta sin filtro cuando el módulo lo permita.</li>
+<li>Verificar que los campos del dataset coinciden con los nombres utilizados.</li>
+<li>Revisar eventos OnShow, OnActivate, OnClick y métodos de consulta.</li>
+<li>Comprobar si una excepción se está ocultando.</li>
+</ol>
+<h2 id="12-2-un-boton-no-hace-nada">12.2 Un botón no hace nada <a class="heading-link" href="#12-2-un-boton-no-hace-nada" aria-label="Enlace a esta sección">#</a></h2>
+<ul>
+<li>Comprobar que tiene evento OnClick asignado en el .lfm.</li>
+<li>Verificar que no existe otro control superpuesto.</li>
+<li>Revisar Enabled, Visible y permisos.</li>
+<li>Añadir trazas o mensajes temporales al inicio del procedimiento.</li>
+<li>Confirmar que se está compilando y ejecutando la unidad modificada.</li>
+</ul>
+<h2 id="12-3-problemas-de-foco-o-atajos">12.3 Problemas de foco o atajos <a class="heading-link" href="#12-3-problemas-de-foco-o-atajos" aria-label="Enlace a esta sección">#</a></h2>
+<ul>
+<li>Comprobar KeyPreview del formulario.</li>
+<li>Revisar OnKeyDown, OnUTF8KeyPress y mensajes de aplicación.</li>
+<li>Evitar que un control consuma la combinación antes del formulario.</li>
+<li>Comprobar que el atajo funciona en el panel principal y no solo al totalizar.</li>
+<li>No modificar los atajos F(x) existentes al añadir combinaciones Ctrl.</li>
+</ul>
+<h2 id="12-4-texto-oculto-negro-o-superpuesto">12.4 Texto oculto, negro o superpuesto <a class="heading-link" href="#12-4-texto-oculto-negro-o-superpuesto" aria-label="Enlace a esta sección">#</a></h2>
+<ul>
+<li>Revisar Font.Color y ParentColor.</li>
+<li>Comprobar Z-order con BringToFront o SendToBack cuando sea apropiado.</li>
+<li>Evitar crear repetidamente labels o mensajes sin destruir los anteriores.</li>
+<li>Revisar AutoSize, Anchors y Align.</li>
+<li>Comprobar el resultado en la resolución real del usuario.</li>
+</ul>
+<h2 id="12-5-errores-sql">12.5 Errores SQL <a class="heading-link" href="#12-5-errores-sql" aria-label="Enlace a esta sección">#</a></h2>
+<div class="table-scroll"><table><thead><tr><th scope="col">Mensaje</th><th scope="col">Revisión inicial</th></tr></thead><tbody><tr><td>Error cerca de AND</td><td>Comprobar WHERE, parámetros vacíos y concatenación de condiciones.</td></tr><tr><td>Unknown column</td><td>Revisar nombre de campo, alias y estructura real de la tabla.</td></tr><tr><td>Illegal mix of collations</td><td>Revisar charset y collation de las columnas comparadas.</td></tr><tr><td>No devuelve filas</td><td>Mostrar la SQL final y ejecutar con los mismos parámetros.</td></tr><tr><td>Duplicidad</td><td>Revisar clave primaria, serie/número y operaciones repetidas.</td></tr></tbody></table></div>
+<h2 id="12-6-errores-de-compilacion-frecuentes">12.6 Errores de compilación frecuentes <a class="heading-link" href="#12-6-errores-de-compilacion-frecuentes" aria-label="Enlace a esta sección">#</a></h2>
+<div class="table-scroll"><table><thead><tr><th scope="col">Error</th><th scope="col">Causa habitual</th></tr></thead><tbody><tr><td>Identifier not found Self</td><td>Código situado fuera de un método de instancia o referencia incorrecta.</td></tr><tr><td>Identifier idents no member ParentColor</td><td>Propiedad no disponible para ese componente o clase.</td></tr><tr><td>Fields cannot appear after a method</td><td>Declaración de campos colocada después de métodos en la clase.</td></tr><tr><td>Redeclaration en Kotlin</td><td>Clase o archivo duplicado en el proyecto Android.</td></tr><tr><td>Unidad no encontrada</td><td>Ruta no incluida en el proyecto o en las opciones de compilación.</td></tr></tbody></table></div>
+<h2 id="12-7-informacion-que-debe-recopilarse">12.7 Información que debe recopilarse <a class="heading-link" href="#12-7-informacion-que-debe-recopilarse" aria-label="Enlace a esta sección">#</a></h2>
+<ul class="checklist"><li><span class="checkbox" aria-hidden="true"></span><span>Mensaje completo del error.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Acción exacta que lo provoca.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Unidad .pas implicada.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Formulario .lfm correspondiente.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>SQL final y valores de parámetros cuando exista consulta.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Captura de pantalla si es un problema visual.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Versión estable de referencia y revisión que falla.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Resultado de compilación con ruta y número de línea.</span></li></ul></div>
+      <nav class="chapter-navigation" aria-label="Capítulos anterior y siguiente"><a class="chapter-nav-card previous" href="11-copias-de-seguridad-y-mantenimiento.html"><small>Anterior</small><strong>← 11. Copias de seguridad y mantenimiento</strong></a><a class="chapter-nav-card next" href="13-anexos-y-referencia-rapida.html"><small>Siguiente</small><strong>13. Anexos y referencia rápida →</strong></a></nav>
+    </article>
+    
+<footer class="site-footer">
+  <p><strong>Manual FacturLinEx v0.1</strong> · Base funcional · 24 de julio de 2026</p>
+  <p>Documento vivo: los procedimientos se actualizarán cuando cambie una función validada.</p>
+  <a href="../descargas/Manual_FacturLinEx_v0.1_Base_Funcional.pdf">Descargar PDF</a>
+</footer>
+
+  </main>
+</div>
+
+<dialog class="search-dialog" data-search-dialog aria-label="Buscar en el manual">
+  <form method="dialog" class="search-panel">
+    <div class="search-input-row">
+      <span aria-hidden="true">⌕</span>
+      <input type="search" data-search-input placeholder="Buscar clientes, ventas, VeriFactu..." autocomplete="off" aria-label="Texto de búsqueda">
+      <button type="submit" class="dialog-close" aria-label="Cerrar búsqueda">Esc</button>
+    </div>
+    <div class="search-hint" data-search-hint>Escribe al menos dos caracteres.</div>
+    <div class="search-results" data-search-results aria-live="polite"></div>
+  </form>
+</dialog>
+</body>
+</html>

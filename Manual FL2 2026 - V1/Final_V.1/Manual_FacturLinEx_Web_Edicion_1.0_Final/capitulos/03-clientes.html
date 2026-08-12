@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="Manual de uso y configuración de FacturLinEx" name="description"/>
+<meta content="#155eef" name="theme-color"/>
+<title>3. Clientes | Manual FacturLinEx</title>
+<link href="../assets/img/favicon.svg" rel="icon" type="image/svg+xml"/>
+<link href="../assets/css/styles.css" rel="stylesheet"/>
+<script defer="" src="../assets/js/search-index.js"></script>
+<script defer="" src="../assets/js/app.js"></script>
+</head>
+<body>
+<a class="skip-link" href="#contenido">Saltar al contenido</a>
+<header class="topbar">
+<button aria-expanded="false" aria-label="Abrir menú" class="icon-button menu-button" data-menu-button="" type="button">☰</button>
+<a aria-label="Inicio del manual FacturLinEx" class="brand" href="../index.html">
+<span class="brand-mark">FLX</span><span><strong>FacturLinEx</strong><small>Manual de uso y configuración</small></span>
+</a>
+<div class="top-actions">
+<button aria-label="Buscar en el manual" class="search-button" data-search-open="" type="button"><span aria-hidden="true">⌕</span><span>Buscar</span><kbd>Ctrl K</kbd></button>
+<button aria-label="Cambiar modo de color" class="icon-button" data-theme-toggle="" type="button">◐</button>
+</div>
+</header>
+<div class="menu-overlay" data-menu-overlay=""></div>
+<div class="app-shell">
+<aside class="sidebar" data-sidebar="">
+<div class="sidebar-inner">
+<a class="sidebar-home" href="../index.html">⌂ Página principal</a>
+<nav aria-label="Capítulos del manual"><a href="../capitulos/control-del-documento.html"><span class="nav-number">i</span><span>Control del documento</span></a>
+<a href="../capitulos/01-primeros-pasos-y-navegacion.html"><span class="nav-number">1</span><span>Primeros pasos y navegación</span></a>
+<a href="../capitulos/02-configuracion-inicial.html"><span class="nav-number">2</span><span>Configuración inicial</span></a>
+<a aria-current="page" class="active" href="../capitulos/03-clientes.html"><span class="nav-number">3</span><span>Clientes</span></a>
+<a href="../capitulos/04-articulos-familias-y-tarifas.html"><span class="nav-number">4</span><span>Artículos, familias y tarifas</span></a>
+<a href="../capitulos/05-ventas-y-tpv.html"><span class="nav-number">5</span><span>Ventas y TPV</span></a>
+<a href="../capitulos/06-caja-cobros-y-creditos.html"><span class="nav-number">6</span><span>Caja, cobros y créditos</span></a>
+<a href="../capitulos/07-compras-pedidos-y-existencias.html"><span class="nav-number">7</span><span>Compras, pedidos y existencias</span></a>
+<a href="../capitulos/08-facturacion-impresion-pdf-y-correo.html"><span class="nav-number">8</span><span>Facturación, impresión, PDF y correo</span></a>
+<a href="../capitulos/09-verifactu-y-documentos-rectificativos.html"><span class="nav-number">9</span><span>VeriFactu y documentos rectificativos</span></a>
+<a href="../capitulos/10-dashboard-consultas-y-estadisticas.html"><span class="nav-number">10</span><span>Dashboard, consultas y estadísticas</span></a>
+<a href="../capitulos/11-copias-de-seguridad-y-mantenimiento.html"><span class="nav-number">11</span><span>Copias de seguridad y mantenimiento</span></a>
+<a href="../capitulos/12-solucion-de-problemas.html"><span class="nav-number">12</span><span>Solución de problemas</span></a>
+<a href="../capitulos/13-anexos-y-referencia-rapida.html"><span class="nav-number">13</span><span>Anexos y referencia rápida</span></a>
+<a href="../capitulos/14-mantenimiento-del-manual-y-proximas-revisiones.html"><span class="nav-number">14</span><span>Mantenimiento del manual y próximas revisiones</span></a></nav>
+<div class="sidebar-downloads"><strong>Descargas</strong>
+<a href="../descargas/Manual_FacturLinEx_Edicion_1.0_Final.pdf">Manual PDF</a>
+<a href="../descargas/Manual_FacturLinEx_Edicion_1.0_Final.docx">Manual DOCX</a>
+</div>
+</div>
+</aside>
+<main class="main-content" id="contenido">
+<article class="manual-page">
+<header class="chapter-header"><span class="eyebrow">Capítulo 3</span><h1>Clientes</h1><p class="chapter-version">Primera edición 1.0 FINAL · Manual completo y auditado</p></header>
+<nav aria-label="En esta página" class="page-toc"><strong>En esta página</strong>
+<a href="#3-1-vision-general">3.1 Visión general</a>
+<a href="#3-2-acceso-foco">3.2 Acceso y foco inicial</a>
+<a href="#3-3-consultar-crear-modificar">3.3 Consultar, crear y modificar</a>
+<a href="#3-4-facturacion-condiciones">3.4 Facturación y condiciones</a>
+<a href="#3-5-selectores-rutas">3.5 Selectores, rutas y subrutas</a>
+<a href="#3-6-precio-coste">3.6 Precio de coste / autoconsumo</a>
+<a href="#3-7-nif">3.7 Búsqueda y NIF</a>
+<a href="#3-8-pestanas-adicionales">3.8 Pestañas adicionales</a>
+<a href="#3-9-borrado">3.9 Modificación y borrado</a>
+<a href="#3-10-comprobacion">3.10 Lista de comprobación</a></nav>
+<div class="chapter-content">
+<aside class="callout callout-success"><span aria-hidden="true" class="callout-icon">✓</span><div><strong>ESTADO</strong><p>Capítulo basado en la versión validada <code>clientes_moderno_v2_fix13_selector_formulario_facturas.zip</code>. Las capturas son reales y las zonas explicadas aparecen delimitadas con cuadros y números.</p></div></aside>
+<h2 id="3-1-vision-general">3.1 Visión general de la ficha <a aria-label="Enlace a esta sección" class="heading-link" href="#3-1-vision-general">#</a></h2>
+<p>La ficha de Clientes centraliza datos generales, condiciones comerciales, facturación, bancos, históricos, estadísticas, gráficas y opciones especiales. La cabecera mantiene visible el cliente activo y el campo Código es el acceso principal.</p>
+<figure class="manual-figure figure-wide"><a href="../assets/img/clientes/01_clientes_general_anotada.png" target="_blank"><img alt="Ficha general de Clientes con seis zonas numeradas y delimitadas" loading="lazy" src="../assets/img/clientes/01_clientes_general_anotada.png"/></a><figcaption>Figura 3.1. Pantalla general de Clientes con las zonas principales numeradas.<span>Pulse la imagen para ampliarla.</span></figcaption></figure>
+<div class="table-scroll"><table><thead><tr><th>N.º</th><th>Zona</th><th>Uso principal</th></tr></thead><tbody>
+<tr><td>1</td><td>Cabecera</td><td>Identifica el módulo y su finalidad.</td></tr>
+<tr><td>2</td><td>Cliente activo</td><td>Código, acción Crear y nombre de la ficha cargada.</td></tr>
+<tr><td>3</td><td>Pestañas</td><td>General, Facturación, Bancos, Histórico, Estadísticas, Gráficas y Tienda virtual.</td></tr>
+<tr><td>4</td><td>Datos de la ficha</td><td>Información fiscal, comercial, contacto, observaciones y avisos.</td></tr>
+<tr><td>5</td><td>Opciones especiales</td><td>Incluye el precio de coste para autoconsumo mediante C57.</td></tr>
+<tr><td>6</td><td>Acciones</td><td>Nuevo, Modificar, Borrar, Anterior, Siguiente y Cerrar.</td></tr>
+</tbody></table></div>
+<h2 id="3-2-acceso-foco">3.2 Acceso, foco inicial y cliente activo <a class="heading-link" href="#3-2-acceso-foco">#</a></h2>
+<p>Al abrir Clientes, el foco debe situarse en Código. Esto permite consultar una ficha, introducir el siguiente código propuesto o iniciar un alta sin utilizar el ratón.</p>
+<ul><li>Introduzca un código existente para cargar su ficha.</li><li>Use Crear cuando el código propuesto deba convertirse en una nueva ficha.</li><li>Compruebe el nombre mostrado en Cliente activo antes de modificar.</li><li>ESC equivale a Cerrar en la página principal; un selector o diálogo abierto se atiende primero.</li><li>La búsqueda general se abre centrada, en tamaño medio y con el grid preparado para teclado.</li></ul>
+<h2 id="3-3-consultar-crear-modificar">3.3 Consultar, crear y modificar <a class="heading-link" href="#3-3-consultar-crear-modificar">#</a></h2>
+<ol><li>Introduzca el código o busque por nombre, razón social o NIF/CIF/DNI/NIE.</li><li>Confirme el cliente activo.</li><li>Revise General, Facturación, Bancos y opciones especiales.</li><li>Pulse Modificar y cambie únicamente los datos necesarios.</li><li>En un alta, compruebe que la entidad no existe con otro código.</li></ol>
+<aside class="callout callout-info"><span aria-hidden="true" class="callout-icon">i</span><div><strong>COHERENCIA DEL CÓDIGO</strong><p>La propuesta del siguiente cliente debe seguir la misma lógica en Clientes y Ventas. No cree fichas duplicadas por diferencias de nombre, espacios o formato del NIF.</p></div></aside>
+<h2 id="3-4-facturacion-condiciones">3.4 Facturación y condiciones comerciales <a class="heading-link" href="#3-4-facturacion-condiciones">#</a></h2>
+<p>Esta pestaña reúne plazos, descuentos, recargo de equivalencia, riesgo, entregas a cuenta, formularios de factura, rutas y sistema de puntos.</p>
+<figure class="manual-figure figure-wide"><a href="../assets/img/clientes/02_clientes_facturacion_anotada.png" target="_blank"><img alt="Pestaña Facturación de Clientes con seis zonas numeradas" loading="lazy" src="../assets/img/clientes/02_clientes_facturacion_anotada.png"/></a><figcaption>Figura 3.2. Facturación, condiciones comerciales, rutas, puntos y acciones.<span>Pulse la imagen para ampliarla.</span></figcaption></figure>
+<div class="table-scroll"><table><thead><tr><th>N.º</th><th>Zona</th><th>Comprobaciones</th></tr></thead><tbody>
+<tr><td>1</td><td>Condiciones comerciales</td><td>Plazos, descuentos, recargo, tarifa, crédito, riesgo y entregas.</td></tr><tr><td>2</td><td>Configuración de facturación</td><td>Copias, formulario, ruta y subruta.</td></tr><tr><td>3</td><td>Rutas y entrega</td><td>Agencia, domicilio, localidad y portes.</td></tr><tr><td>4</td><td>Puntos</td><td>Activación para el cliente y puntos acumulados.</td></tr><tr><td>5</td><td>Cliente activo</td><td>Código y nombre de la ficha editada.</td></tr><tr><td>6</td><td>Acciones</td><td>Modificar, navegar o cerrar.</td></tr>
+</tbody></table></div>
+<ul><li>Revise descuento comercial, pronto pago, tarifa, recargo y riesgo máximo.</li><li>Las opciones C41, C42, C55 y C56 deben permanecer visibles cuando sean aplicables.</li><li>Formulario, ruta y subruta deben elegirse mediante sus selectores.</li><li>La activación global de puntos no basta: también debe habilitarse en el cliente.</li></ul>
+<h2 id="3-5-selectores-rutas">3.5 Selectores de formulario, rutas y subrutas <a class="heading-link" href="#3-5-selectores-rutas">#</a></h2>
+<p>Los botones auxiliares permiten elegir valores válidos sin memorizar códigos. En los grids, una flecha en la cabecera indica la columna y el sentido de ordenación.</p>
+<figure class="manual-figure figure-wide"><a href="../assets/img/clientes/03_selector_rutas_anotado.png" target="_blank"><img alt="Selector de rutas y subrutas con cuatro zonas numeradas" loading="lazy" src="../assets/img/clientes/03_selector_rutas_anotado.png"/></a><figcaption>Figura 3.3. Selector de rutas y subrutas.<span>Pulse la imagen para ampliarla.</span></figcaption></figure>
+<div class="table-scroll"><table><thead><tr><th>N.º</th><th>Elemento</th><th>Uso</th></tr></thead><tbody><tr><td>1</td><td>Rutas</td><td>Listado principal.</td></tr><tr><td>2</td><td>Subrutas</td><td>Valores dependientes de la ruta.</td></tr><tr><td>3</td><td>Aceptar</td><td>Aplica la selección.</td></tr><tr><td>4</td><td>Salir</td><td>Cierra sin aplicar una selección nueva.</td></tr></tbody></table></div>
+<aside class="callout callout-info"><span aria-hidden="true" class="callout-icon">i</span><div><strong>SELECCIÓN SEGURA</strong><p>Confirme las filas resaltadas antes de pulsar Aceptar. Cierre el selector antes de utilizar ESC para abandonar la ficha principal.</p></div></aside>
+<h2 id="3-6-precio-coste">3.6 Cliente a precio de coste / autoconsumo <a class="heading-link" href="#3-6-precio-coste">#</a></h2>
+<figure class="manual-figure"><a href="../assets/img/clientes/04_precio_coste_cliente_anotado.png" target="_blank"><img alt="Opción de cliente a precio de coste marcada con el número uno" loading="lazy" src="../assets/img/clientes/04_precio_coste_cliente_anotado.png"/></a><figcaption>Figura 3.4. Usar precio de coste en Ventas, asociado a C57.</figcaption></figure>
+<p>Ventas utiliza A24 como base sin IVA y aplica el IVA del artículo. La opción no elimina el impuesto. Si no existe un coste válido, debe conservarse el precio normal.</p>
+<aside class="callout callout-warning"><span aria-hidden="true" class="callout-icon">!</span><div><strong>CONTROL FISCAL</strong><p>Pruebe PVP, IVA, descuentos, estadísticas y documento emitido antes de utilizar esta opción de forma general.</p></div></aside>
+<h2 id="3-7-nif">3.7 Búsqueda y coincidencias de NIF <a class="heading-link" href="#3-7-nif">#</a></h2>
+<p>Cuando un NIF coincide con varias fichas, deben mostrarse todas las coincidencias. No se selecciona automáticamente el primer registro.</p><ul><li>Compare razón social, dirección, centro, departamento y código.</li><li>Revise documentos y saldos antes de unificar duplicados.</li><li>Normalice espacios, guiones, puntos y mayúsculas.</li></ul>
+<h2 id="3-8-pestanas-adicionales">3.8 Bancos, histórico, estadísticas, gráficas y tienda virtual <a class="heading-link" href="#3-8-pestanas-adicionales">#</a></h2>
+<p>Estas pestañas permiten mantener datos bancarios, consultar la relación comercial, estudiar estadísticas y gráficas y preparar información para tienda virtual.</p><ul><li>Use los históricos como consulta, sin sustituir los documentos originales.</li><li>Compruebe la flecha al ordenar grids.</li><li>No publique datos incompletos.</li><li>Confirme autorización antes de cambiar datos bancarios.</li></ul>
+<h2 id="3-9-borrado">3.9 Modificación, borrado y trazabilidad <a class="heading-link" href="#3-9-borrado">#</a></h2>
+<p>Revise documentos pendientes, créditos, albaranes y facturas antes de modificar datos fiscales o eliminar una ficha.</p>
+<aside class="callout callout-danger"><span aria-hidden="true" class="callout-icon">!</span><div><strong>PRECAUCIÓN</strong><p>El borrado físico puede romper consultas, estadísticas y trazabilidad. Resérvelo para fichas creadas por error y sin movimientos.</p></div></aside>
+<h2 id="3-10-comprobacion">3.10 Lista de comprobación <a class="heading-link" href="#3-10-comprobacion">#</a></h2>
+<ul class="checklist"><li><span aria-hidden="true" class="checkbox"></span><span>Foco en Código y cliente activo correcto.</span></li><li><span aria-hidden="true" class="checkbox"></span><span>NIF normalizado y coincidencias revisadas.</span></li><li><span aria-hidden="true" class="checkbox"></span><span>Datos fiscales y de contacto completos.</span></li><li><span aria-hidden="true" class="checkbox"></span><span>Forma de pago, plazos, descuentos, tarifa, recargo y riesgo revisados.</span></li><li><span aria-hidden="true" class="checkbox"></span><span>Formulario, ruta y subruta correctos.</span></li><li><span aria-hidden="true" class="checkbox"></span><span>C41, C42, C55, C56 y C57 comprobados.</span></li><li><span aria-hidden="true" class="checkbox"></span><span>Puntos configurados de forma coherente.</span></li><li><span aria-hidden="true" class="checkbox"></span><span>Selectores legibles y ordenables.</span></li><li><span aria-hidden="true" class="checkbox"></span><span>Modificar guarda solo los cambios previstos.</span></li><li><span aria-hidden="true" class="checkbox"></span><span>ESC respeta paneles y ediciones pendientes.</span></li></ul>
+<aside class="callout callout-success"><span aria-hidden="true" class="callout-icon">✓</span><div><strong>FICHA PREPARADA</strong><p>La ficha puede utilizarse en Ventas y Facturación cuando los datos fiscales, comerciales, rutas y opciones especiales han quedado comprobados.</p></div></aside>
+</div>
+<nav aria-label="Capítulos anterior y siguiente" class="chapter-navigation"><a class="chapter-nav-card previous" href="02-configuracion-inicial.html"><small>Anterior</small><strong>← 2. Configuración inicial</strong></a><a class="chapter-nav-card next" href="04-articulos-familias-y-tarifas.html"><small>Siguiente</small><strong>4. Artículos, familias y tarifas →</strong></a></nav>
+</article>
+<footer class="site-footer">
+<p><strong>Manual FacturLinEx - Primera edición 1.0 FINAL</strong> · 25 de julio de 2026</p>
+<p>Documento preparado para validación y mantenimiento mediante revisiones trazables.</p>
+<a href="../descargas/Manual_FacturLinEx_Edicion_1.0_Final.pdf">Descargar PDF</a>
+</footer>
+</main>
+</div>
+<dialog aria-label="Buscar en el manual" class="search-dialog" data-search-dialog="">
+<form class="search-panel" method="dialog">
+<div class="search-input-row">
+<span aria-hidden="true">⌕</span>
+<input aria-label="Texto de búsqueda" autocomplete="off" data-search-input="" placeholder="Buscar clientes, ventas, VeriFactu..." type="search"/>
+<button aria-label="Cerrar búsqueda" class="dialog-close" type="submit">Esc</button>
+</div>
+<div class="search-hint" data-search-hint="">Escribe al menos dos caracteres.</div>
+<div aria-live="polite" class="search-results" data-search-results=""></div>
+</form>
+</dialog>
+</body>
+</html>

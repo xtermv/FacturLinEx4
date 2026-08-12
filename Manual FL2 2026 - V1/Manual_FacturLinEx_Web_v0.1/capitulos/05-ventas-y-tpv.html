@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Manual de uso y configuración de FacturLinEx">
+  <meta name="theme-color" content="#155eef">
+  <title>5. Ventas y TPV | Manual FacturLinEx</title>
+  <link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/styles.css">
+  <script defer src="../assets/js/search-index.js"></script>
+  <script defer src="../assets/js/app.js"></script>
+</head>
+<body>
+
+<a class="skip-link" href="#contenido">Saltar al contenido</a>
+<header class="topbar">
+  <button class="icon-button menu-button" type="button" aria-label="Abrir menú" aria-expanded="false" data-menu-button>☰</button>
+  <a class="brand" href="../index.html" aria-label="Inicio del manual FacturLinEx">
+    <span class="brand-mark">FLX</span><span><strong>FacturLinEx</strong><small>Manual de uso y configuración</small></span>
+  </a>
+  <div class="top-actions">
+    <button class="search-button" type="button" data-search-open aria-label="Buscar en el manual"><span aria-hidden="true">⌕</span><span>Buscar</span><kbd>Ctrl K</kbd></button>
+    <button class="icon-button" type="button" data-theme-toggle aria-label="Cambiar modo de color">◐</button>
+  </div>
+</header>
+<div class="menu-overlay" data-menu-overlay></div>
+
+<div class="app-shell">
+  <aside class="sidebar" data-sidebar>
+    <div class="sidebar-inner">
+      <a class="sidebar-home" href="../index.html">⌂ Página principal</a>
+      <nav aria-label="Capítulos del manual"><a href="../capitulos/control-del-documento.html"><span class="nav-number">i</span><span>Control del documento</span></a>
+<a href="../capitulos/01-primeros-pasos-y-navegacion.html"><span class="nav-number">1</span><span>Primeros pasos y navegación</span></a>
+<a href="../capitulos/02-configuracion-inicial.html"><span class="nav-number">2</span><span>Configuración inicial</span></a>
+<a href="../capitulos/03-clientes.html"><span class="nav-number">3</span><span>Clientes</span></a>
+<a href="../capitulos/04-articulos-familias-y-tarifas.html"><span class="nav-number">4</span><span>Artículos, familias y tarifas</span></a>
+<a href="../capitulos/05-ventas-y-tpv.html" class="active" aria-current="page"><span class="nav-number">5</span><span>Ventas y TPV</span></a>
+<a href="../capitulos/06-caja-cobros-y-creditos.html"><span class="nav-number">6</span><span>Caja, cobros y créditos</span></a>
+<a href="../capitulos/07-compras-pedidos-y-existencias.html"><span class="nav-number">7</span><span>Compras, pedidos y existencias</span></a>
+<a href="../capitulos/08-facturacion-impresion-pdf-y-correo.html"><span class="nav-number">8</span><span>Facturación, impresión, PDF y correo</span></a>
+<a href="../capitulos/09-verifactu-y-documentos-rectificativos.html"><span class="nav-number">9</span><span>VeriFactu y documentos rectificativos</span></a>
+<a href="../capitulos/10-dashboard-consultas-y-estadisticas.html"><span class="nav-number">10</span><span>Dashboard, consultas y estadísticas</span></a>
+<a href="../capitulos/11-copias-de-seguridad-y-mantenimiento.html"><span class="nav-number">11</span><span>Copias de seguridad y mantenimiento</span></a>
+<a href="../capitulos/12-solucion-de-problemas.html"><span class="nav-number">12</span><span>Solución de problemas</span></a>
+<a href="../capitulos/13-anexos-y-referencia-rapida.html"><span class="nav-number">13</span><span>Anexos y referencia rápida</span></a>
+<a href="../capitulos/14-plan-de-ampliacion-del-manual.html"><span class="nav-number">14</span><span>Plan de ampliación del manual</span></a></nav>
+      <div class="sidebar-downloads"><strong>Descargas</strong>
+        <a href="../descargas/Manual_FacturLinEx_v0.1_Base_Funcional.pdf">Manual PDF</a>
+        <a href="../descargas/Manual_FacturLinEx_v0.1_Base_Funcional.docx">Manual DOCX</a>
+      </div>
+    </div>
+  </aside>
+  <main id="contenido" class="main-content">
+    <article class="manual-page">
+      <header class="chapter-header"><span class="eyebrow">Capítulo 5</span><h1>Ventas y TPV</h1><p class="chapter-version">Edición v0.1 · Base funcional</p></header>
+      <nav class="page-toc" aria-label="En esta página"><strong>En esta página</strong><a href="#5-1-objetivo-de-la-pantalla">5.1 Objetivo de la pantalla</a><a href="#5-2-preparacion-antes-de-vender">5.2 Preparación antes de vender</a><a href="#5-3-seleccion-del-cliente">5.3 Selección del cliente</a><a href="#5-4-introduccion-de-articulos">5.4 Introducción de artículos</a><a href="#5-5-codigos-varios">5.5 Códigos varios</a><a href="#5-6-teclado-virtual-y-teclado-de-productos">5.6 Teclado virtual y teclado de productos</a><a href="#5-7-totalizacion-y-cobro">5.7 Totalización y cobro</a><a href="#5-8-ticket-albaran-y-factura">5.8 Ticket, albarán y factura</a><a href="#5-9-aparcar-y-recuperar-ventas">5.9 Aparcar y recuperar ventas</a><a href="#5-10-devoluciones-y-anulaciones">5.10 Devoluciones y anulaciones</a><a href="#5-11-cierre-seguro-con-esc">5.11 Cierre seguro con ESC</a><a href="#5-12-comprobacion-de-una-venta">5.12 Comprobación de una venta</a></nav>
+      <div class="chapter-content"><aside class="callout callout-info"><span class="callout-icon" aria-hidden="true">i</span><div><strong>ESTADO</strong><p>Basado en la versión de Ventas validada como final y estable con atajos en la línea inferior. Los circuitos rectificativos continúan requiriendo pruebas específicas.</p></div></aside>
+<h2 id="5-1-objetivo-de-la-pantalla">5.1 Objetivo de la pantalla <a class="heading-link" href="#5-1-objetivo-de-la-pantalla" aria-label="Enlace a esta sección">#</a></h2>
+<p>La pantalla de Ventas permite identificar al cliente, introducir artículos, aplicar cantidades y descuentos, totalizar, cobrar, emitir documentos y gestionar situaciones especiales. Está pensada para funcionar con teclado, ratón y pantalla táctil.</p>
+<figure class="capture-placeholder" role="img" aria-label="Captura pendiente: Pantalla principal de Ventas con cabecera, líneas, totales y barra de atajos"><div class="capture-icon" aria-hidden="true">▧</div><figcaption><strong>Captura pendiente</strong><span>Pantalla principal de Ventas con cabecera, líneas, totales y barra de atajos</span></figcaption></figure>
+<h2 id="5-2-preparacion-antes-de-vender">5.2 Preparación antes de vender <a class="heading-link" href="#5-2-preparacion-antes-de-vender" aria-label="Enlace a esta sección">#</a></h2>
+<ul class="checklist"><li><span class="checkbox" aria-hidden="true"></span><span>La tienda y el puesto mostrados son correctos.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>El usuario activo es el adecuado.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>La serie de trabajo corresponde al tipo de documento.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>La impresora de tickets está disponible.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>La base de datos tiene conexión.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>El teclado de productos, si se utiliza, carga los grupos e imágenes esperados.</span></li></ul>
+<h2 id="5-3-seleccion-del-cliente">5.3 Selección del cliente <a class="heading-link" href="#5-3-seleccion-del-cliente" aria-label="Enlace a esta sección">#</a></h2>
+<p>En una venta genérica puede utilizarse el cliente predeterminado. Para facturas, créditos, albaranes o condiciones especiales, debe seleccionarse la ficha correcta.</p>
+<div class="table-scroll"><table><thead><tr><th scope="col">Acción</th><th scope="col">Atajo o método</th></tr></thead><tbody><tr><td>Ir al código de cliente</td><td>Ctrl + O</td></tr><tr><td>Ir al nombre de cliente</td><td>Ctrl + U</td></tr><tr><td>Crear o iniciar cliente nuevo</td><td>Ctrl + N, según la versión validada</td></tr><tr><td>Buscar por NIF</td><td>Utilizar la búsqueda y seleccionar entre coincidencias si existen varias.</td></tr></tbody></table></div>
+<aside class="callout callout-info"><span class="callout-icon" aria-hidden="true">i</span><div><strong>COMPROBACIÓN</strong><p>Antes de totalizar una factura completa, revisar nombre, NIF, dirección y serie. Corregir después puede requerir anulación o rectificativa.</p></div></aside>
+<h2 id="5-4-introduccion-de-articulos">5.4 Introducción de artículos <a class="heading-link" href="#5-4-introduccion-de-articulos" aria-label="Enlace a esta sección">#</a></h2>
+<ol>
+<li>Situar el foco en el campo de código o EAN.</li>
+<li>Leer el código con escáner o escribirlo manualmente.</li>
+<li>Confirmar la descripción, cantidad, PVP, IVA y descuentos mostrados.</li>
+<li>Modificar cantidad o precio únicamente cuando el usuario esté autorizado.</li>
+<li>Repetir hasta completar la venta.</li>
+</ol>
+<p>Las líneas de venta deben reflejar el precio real aplicado. Cuando existe descuento, las estadísticas deben considerar el precio efectivo vendido, no únicamente el PVP original de tarifa.</p>
+<h2 id="5-5-codigos-varios">5.5 Códigos varios <a class="heading-link" href="#5-5-codigos-varios" aria-label="Enlace a esta sección">#</a></h2>
+<p>El panel de código vario permite introducir una descripción, cantidad y PVP para conceptos no vinculados a un artículo estándar. El orden de tabulación debe ser Descripción, Cantidad y PVP, permitiendo trabajar con ENTER o TAB.</p>
+<aside class="callout callout-info"><span class="callout-icon" aria-hidden="true">i</span><div><strong>USO CONTROLADO</strong><p>Los códigos varios reducen trazabilidad de stock y estadísticas. Utilizarlos solo cuando no exista un artículo adecuado o en casos justificados.</p></div></aside>
+<h2 id="5-6-teclado-virtual-y-teclado-de-productos">5.6 Teclado virtual y teclado de productos <a class="heading-link" href="#5-6-teclado-virtual-y-teclado-de-productos" aria-label="Enlace a esta sección">#</a></h2>
+<p>El teclado virtual cambia entre modo numérico y alfanumérico según el campo activo. Puede ocultarse sin bloquear el formulario. El teclado de productos se construye por grupos y orden configurado, relacionando los botones con artículos reales.</p>
+<ul>
+<li>Cantidad y precio: teclado numérico.</li>
+<li>Descripción y búsquedas: teclado alfanumérico.</li>
+<li>El botón Ocultar minimiza el teclado, no debe cerrar ni bloquear la venta.</li>
+<li>Los productos pueden activarse o desactivarse de forma múltiple desde su configuración.</li>
+<li>La búsqueda para añadir productos puede realizarse por descripción o EAN.</li>
+</ul>
+<h2 id="5-7-totalizacion-y-cobro">5.7 Totalización y cobro <a class="heading-link" href="#5-7-totalizacion-y-cobro" aria-label="Enlace a esta sección">#</a></h2>
+<ol>
+<li>Revisar las líneas y el total.</li>
+<li>Abrir la totalización con la tecla o botón indicado en la barra inferior.</li>
+<li>Seleccionar la forma de pago.</li>
+<li>Introducir la entrega. El foco debe pasar automáticamente al campo correspondiente cuando proceda.</li>
+<li>Comprobar el cambio.</li>
+<li>Confirmar e imprimir o generar el documento.</li>
+</ol>
+<aside class="callout callout-info"><span class="callout-icon" aria-hidden="true">i</span><div><strong>VISIBILIDAD</strong><p>La ventana de cobro debe tener un marco diferenciado. Los textos Entrega y Cambio deben aparecer claramente separados del Total.</p></div></aside>
+<h2 id="5-8-ticket-albaran-y-factura">5.8 Ticket, albarán y factura <a class="heading-link" href="#5-8-ticket-albaran-y-factura" aria-label="Enlace a esta sección">#</a></h2>
+<div class="table-scroll"><table><thead><tr><th scope="col">Documento</th><th scope="col">Uso habitual</th><th scope="col">Consideraciones</th></tr></thead><tbody><tr><td>Ticket / factura simplificada</td><td>Venta inmediata con requisitos simplificados.</td><td>Puede utilizar series FS-. Revisar límites y datos fiscales aplicables.</td></tr><tr><td>Albarán</td><td>Entrega pendiente de facturación.</td><td>Normalmente debe anularse con otro albarán, no como ticket.</td></tr><tr><td>Factura completa</td><td>Documento fiscal con destinatario identificado.</td><td>Revisar cliente, NIF, dirección, serie y numeración.</td></tr><tr><td>Rectificativa</td><td>Corrección de otro documento.</td><td>Debe indicar origen, motivo y relación con el documento original.</td></tr></tbody></table></div>
+<h2 id="5-9-aparcar-y-recuperar-ventas">5.9 Aparcar y recuperar ventas <a class="heading-link" href="#5-9-aparcar-y-recuperar-ventas" aria-label="Enlace a esta sección">#</a></h2>
+<p>Cuando una operación debe quedar pendiente, puede aparcarse y recuperarse posteriormente. Antes de recuperar, comprobar puesto, cliente, líneas y estado de la operación para evitar duplicidades.</p>
+<h2 id="5-10-devoluciones-y-anulaciones">5.10 Devoluciones y anulaciones <a class="heading-link" href="#5-10-devoluciones-y-anulaciones" aria-label="Enlace a esta sección">#</a></h2>
+<p>Las devoluciones pueden generar líneas negativas y activar el circuito rectificativo. El usuario debe indicar si el origen es simplificado o normal, la serie y número originales y el motivo obligatorio.</p>
+<aside class="callout callout-info"><span class="callout-icon" aria-hidden="true">i</span><div><strong>ALBARANES</strong><p>Un albarán debe anularse normalmente mediante otro albarán. Si se intenta tratar como ticket, puede solicitar serie y número que no corresponden al circuito original. Evitar esta práctica salvo caso excepcional controlado.</p></div></aside>
+<ul>
+<li>Las ventas mixtas con líneas positivas y negativas pueden requerir separación documental.</li>
+<li>Las rectificativas manuales sin histórico deben vigilar posibles duplicidades.</li>
+<li>La búsqueda del documento original puede exigir coincidencia del cliente.</li>
+<li>Después de emitir una rectificativa, revisar impresión, histórico y cola VeriFactu.</li>
+</ul>
+<h2 id="5-11-cierre-seguro-con-esc">5.11 Cierre seguro con ESC <a class="heading-link" href="#5-11-cierre-seguro-con-esc" aria-label="Enlace a esta sección">#</a></h2>
+<p>En la pantalla principal, ESC debe realizar la misma acción que Cerrar. Si existe un panel de totalización, teclado, selector, mensaje o edición pendiente, debe cerrarse o cancelarse primero ese elemento.</p>
+<h2 id="5-12-comprobacion-de-una-venta">5.12 Comprobación de una venta <a class="heading-link" href="#5-12-comprobacion-de-una-venta" aria-label="Enlace a esta sección">#</a></h2>
+<ul class="checklist"><li><span class="checkbox" aria-hidden="true"></span><span>Cliente correcto.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Artículos, cantidades y descuentos correctos.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>IVA y totales coherentes.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Forma de pago correcta.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Serie y número adecuados.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Documento impreso o PDF legible.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Registro histórico creado.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Cola VeriFactu revisada cuando proceda.</span></li></ul></div>
+      <nav class="chapter-navigation" aria-label="Capítulos anterior y siguiente"><a class="chapter-nav-card previous" href="04-articulos-familias-y-tarifas.html"><small>Anterior</small><strong>← 4. Artículos, familias y tarifas</strong></a><a class="chapter-nav-card next" href="06-caja-cobros-y-creditos.html"><small>Siguiente</small><strong>6. Caja, cobros y créditos →</strong></a></nav>
+    </article>
+    
+<footer class="site-footer">
+  <p><strong>Manual FacturLinEx v0.1</strong> · Base funcional · 24 de julio de 2026</p>
+  <p>Documento vivo: los procedimientos se actualizarán cuando cambie una función validada.</p>
+  <a href="../descargas/Manual_FacturLinEx_v0.1_Base_Funcional.pdf">Descargar PDF</a>
+</footer>
+
+  </main>
+</div>
+
+<dialog class="search-dialog" data-search-dialog aria-label="Buscar en el manual">
+  <form method="dialog" class="search-panel">
+    <div class="search-input-row">
+      <span aria-hidden="true">⌕</span>
+      <input type="search" data-search-input placeholder="Buscar clientes, ventas, VeriFactu..." autocomplete="off" aria-label="Texto de búsqueda">
+      <button type="submit" class="dialog-close" aria-label="Cerrar búsqueda">Esc</button>
+    </div>
+    <div class="search-hint" data-search-hint>Escribe al menos dos caracteres.</div>
+    <div class="search-results" data-search-results aria-live="polite"></div>
+  </form>
+</dialog>
+</body>
+</html>

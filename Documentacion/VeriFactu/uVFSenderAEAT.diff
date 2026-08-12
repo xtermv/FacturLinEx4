@@ -1,0 +1,79 @@
+--- ANTES
++++ DESPUES
+@@ -704,7 +704,9 @@
+   HasAnyIVA: Boolean;
+   SerieXML, TipoFacturaXML, TipoFacGlobal: string;
+   PrevNumero: Integer;
+-  PrevNumSerie, PrevFecha: string;
++  PrevNumSerie, PrevFecha, PrevRealSerie: string;
++  PrevRealNumero: Integer;
++  PrevRealDate: TDateTime;
+   //-- Variables SIFFactu
+   SIFCfg: TVeriSIFConfig;
+ 
+@@ -842,29 +844,17 @@
+   // -----------------------------------------------
+   // ----- DATOS DEL SISTEMA INFORMÁTICO (SIF) -----
+   // -----------------------------------------------
+-  // Estos valores deben coincidir con la ficha que te haya aprobado la AEAT.
+-  // CAMBIA SOLO ESTAS LÍNEAS cuando tengas los datos definitivos:
+-  SIFNombreRazon   := NombreEmisor;        // o el nombre que conste para el SIF
+-  SIFNIF           := NIFEmisor;           // NIF asociado al SIF
+-
+-  SIFNombreSistema := 'FacturLinEx 2.0 (SIF Libre)';   // Nombre del sistema (según AEAT)
+-  SIFId            := Copy(GetMachineUUIDFromFile, 1, 16);  //-- Este también sería viable "SIFId := 'FacturlinexLibre';"
+-  															// IdSistemaInformatico (el que te asignen)
+-  SIFVersion       := '2.0.0';             // Versión declarada del SIF
+-  SIFNumeroInst    := '1';                 // Número de instalación (si solo hay una, "1")
+-
+-  // Indicadores de uso (ajusta según cómo conste en tu alta SIF):
+-  SIFSoloVF        := 'N';  // ¿Uso posible solo Veri*Factu?  S/N
+-  SIFMultiOT       := 'N';  // ¿Uso posible multi OT (múltiples obligados)? S/N
+-  SIFMultiplesOT   := 'N';  // ¿Indicador de múltiples OT en esta instalación? S/N
+-  // -----------------------------------------------
+-  // ----- FIN DATOS SISTEMA INFORMÁTICO (SIF) -----
+-  // -----------------------------------------------
+-  // -- A ver que datos selecciona, solo cambia la versión para la prueba.
+-  // -----------------------------------------------
+-  // ----- DATOS DEL SISTEMA INFORMÁTICO (SIF) -----
+-  // ***** NUEVO SISTEMA CONFIGURABLE EN FORM ******
+-  // -----------------------------------------------
++  SIFNombreRazon   := NombreEmisor;
++  SIFNIF           := NIFEmisor;
++  SIFNombreSistema := 'FacturLinEx';
++  SIFId            := 'FL';
++  SIFVersion       := '4.2.6J';
++  SIFNumeroInst    := '1';
++  SIFSoloVF        := 'S';
++  SIFMultiOT       := 'N';
++  SIFMultiplesOT   := 'N';
++
++  // Configuración persistida del SIF:
+   VF_SIF_Load(SIFCfg);
+   //-- SIFNombreRazon   := SIFCfg.NombreRazon;   //-- De momento mantenemos los del sistema
+   //-- SIFNIF           := SIFCfg.NIF;           //-- De momento mantenemos los del sistema
+@@ -1237,11 +1227,19 @@
+     end
+     else
+     begin
+-      PrevNumero  := Numero - 1;
+-      if PrevNumero < 1 then
+-        PrevNumero := Numero;
+-      PrevNumSerie := SerieXML + '-' + IntToStr(PrevNumero);
+-      PrevFecha    := FechaAEAT;
++      PrevRealSerie := '';
++      PrevRealNumero := 0;
++      PrevRealDate := 0;
++
++      if not VeriFactu_GetRecordIdentityByHash(
++        AHashPrev, PrevRealSerie, PrevRealNumero, PrevRealDate) then
++        raise Exception.Create(
++          'No se puede resolver la identidad real del RegistroAnterior para la huella ' +
++          AHashPrev);
++
++      PrevNumero := PrevRealNumero;
++      PrevNumSerie := PrevRealSerie + '-' + IntToStr(PrevRealNumero);
++      PrevFecha := FormatDateTime('dd-mm-yyyy', PrevRealDate);
+     end;
+ 
+     Result := Result +

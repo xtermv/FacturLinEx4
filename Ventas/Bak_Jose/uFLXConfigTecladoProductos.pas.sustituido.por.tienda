@@ -1,0 +1,1133 @@
+unit uFLXConfigTecladoProductos;
+
+{$mode objfpc}{$H+}
+
+interface
+
+uses
+  Classes, SysUtils, Forms, Controls, Graphics, ExtCtrls, StdCtrls,
+  Dialogs, Buttons, ZConnection, ZAbstractConnection, ZDataset;
+
+function FLXTablaTecladoGrupos(const ATienda: string): string;
+function FLXTablaTecladoProductos(const ATienda: string): string;
+procedure FLXAsegurarTablasTecladoProductos(AConnection: TZAbstractConnection;
+  const ATienda: string);
+procedure FLXConfigurarTecladoProductos(AOwner: TComponent;
+  AConnection: TZAbstractConnection; const ATienda: string);
+
+implementation
+
+type
+  { TFLXConfigTecladoProductosForm }
+
+  TFLXConfigTecladoProductosForm = class(TForm)
+  private
+    FConnection: TZAbstractConnection;
+    FTienda: string;
+    FListaGrupos: TListBox;
+    FListaProductos: TListBox;
+    procedure ActivarProductoClick(Sender: TObject);
+    procedure AgregarFamiliaClick(Sender: TObject);
+    procedure AgregarGrupoClick(Sender: TObject);
+    procedure AgregarProductoClick(Sender: TObject);
+    procedure BajarGrupoClick(Sender: TObject);
+    procedure BajarProductoClick(Sender: TObject);
+    procedure CerrarClick(Sender: TObject);
+    procedure EditarProductoClick(Sender: TObject);
+    procedure EliminarGrupoClick(Sender: TObject);
+    procedure EliminarProductoClick(Sender: TObject);
+    procedure GrupoClick(Sender: TObject);
+    procedure RenombrarGrupoClick(Sender: TObject);
+    procedure SubirGrupoClick(Sender: TObject);
+    procedure SubirProductoClick(Sender: TObject);
+    function GrupoActualID: Integer;
+    function ProductoActualID: Integer;
+    function NuevoQuery: TZQuery;
+    procedure RefrescarGrupos(ASeleccionarID: Integer = 0);
+    procedure RefrescarProductos(ASeleccionarID: Integer = 0);
+    procedure SeleccionarID(ALista: TListBox; AID: Integer);
+    procedure IntercambiarOrden(const ATabla, ACampoID,
+      ACampoOrden: string; AID1, AID2: Integer);
+  public
+    constructor CreateConfig(AOwner: TComponent;
+      AConnection: TZAbstractConnection; const ATienda: string); reintroduce;
+  end;
+
+function FLXTiendaSegura(const ATienda: string): string;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 1 to Length(ATienda) do
+    if ATienda[I] in ['0'..'9'] then
+      Result := Result + ATienda[I];
+
+  if Result = '' then
+    raise Exception.Create('No se ha podido determinar la tienda.');
+end;
+
+function FLXTablaTecladoGrupos(const ATienda: string): string;
+begin
+  Result := 'flx_teclado_grupos' + FLXTiendaSegura(ATienda);
+end;
+
+function FLXTablaTecladoProductos(const ATienda: string): string;
+begin
+  Result := 'flx_teclado_productos' + FLXTiendaSegura(ATienda);
+end;
+
+function FLXTablaExiste(AConnection: TZAbstractConnection;
+  const ATabla: string): Boolean;
+var
+  Q: TZQuery;
+begin
+  Result := False;
+  if not Assigned(AConnection) or not AConnection.Connected then
+    Exit;
+
+  Q := TZQuery.Create(nil);
+  try
+    Q.Connection := AConnection;
+    Q.SQL.Text :=
+      'SELECT COUNT(*) AS C FROM INFORMATION_SCHEMA.TABLES ' +
+      'WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=:T';
+    Q.ParamByName('T').AsString := ATabla;
+    Q.Open;
+    Result := Q.FieldByName('C').AsInteger > 0;
+  finally
+    Q.Free;
+  end;
+end;
+
+procedure FLXEjecutarSQL(AConnection: TZAbstractConnection;
+  const ASQL: string);
+var
+  Q: TZQuery;
+begin
+  Q := TZQuery.Create(nil);
+  try
+    Q.Connection := AConnection;
+    Q.SQL.Text := ASQL;
+    Q.ExecSQL;
+  finally
+    Q.Free;
+  end;
+end;
+
+
+function FLXIdentificadorSQLSeguro(const AValor, ANombre: string): string;
+var
+  I: Integer;
+begin
+  Result := Trim(AValor);
+
+  if Result = '' then
+    raise Exception.Create(ANombre + ' vacío al consultar la base de datos.');
+
+  for I := 1 to Length(Result) do
+    if not (Result[I] in ['A'..'Z', 'a'..'z', '0'..'9', '_']) then
+      raise Exception.Create(
+        ANombre + ' contiene un valor no válido: ' + Result);
+end;
+
+function FLXLeerEstructuraTabla(AConnection: TZAbstractConnection;
+  const ATabla: string; out AMotor, ACharset,
+  ACollation: string): Boolean;
+var
+  Q: TZQuery;
+  PosSeparador: Integer;
+begin
+  Result := False;
+  AMotor := '';
+  ACharset := '';
+  ACollation := '';
+
+  Q := TZQuery.Create(nil);
+  try
+    Q.Connection := AConnection;
+
+    // MariaDB no siempre devuelve CHARACTER_SET_NAME al enlazar TABLES con
+    // COLLATIONS. ENGINE y TABLE_COLLATION sí están disponibles de forma
+    // estable en INFORMATION_SCHEMA.TABLES.
+    Q.SQL.Text :=
+      'SELECT ENGINE,TABLE_COLLATION ' +
+      'FROM INFORMATION_SCHEMA.TABLES ' +
+      'WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=:T';
+    Q.ParamByName('T').AsString := ATabla;
+    Q.Open;
+
+    if Q.IsEmpty then
+      Exit;
+
+    AMotor := Trim(Q.FieldByName('ENGINE').AsString);
+    ACollation := Trim(Q.FieldByName('TABLE_COLLATION').AsString);
+    Q.Close;
+
+    // Si una tabla excepcionalmente no informa su collation, se toma la
+    // configuración por defecto de la base de datos actual.
+    if ACollation = '' then
+    begin
+      Q.SQL.Text :=
+        'SELECT DEFAULT_CHARACTER_SET_NAME,DEFAULT_COLLATION_NAME ' +
+        'FROM INFORMATION_SCHEMA.SCHEMATA ' +
+        'WHERE SCHEMA_NAME=DATABASE()';
+      Q.Open;
+
+      if not Q.IsEmpty then
+      begin
+        ACharset := Trim(
+          Q.FieldByName('DEFAULT_CHARACTER_SET_NAME').AsString);
+        ACollation := Trim(
+          Q.FieldByName('DEFAULT_COLLATION_NAME').AsString);
+      end;
+      Q.Close;
+    end;
+
+    // La parte anterior al primer guion bajo de una collation identifica
+    // siempre su charset: utf8mb4_spanish_ci -> utf8mb4.
+    if (ACharset = '') and (ACollation <> '') then
+    begin
+      PosSeparador := Pos('_', ACollation);
+      if PosSeparador > 1 then
+        ACharset := Copy(ACollation, 1, PosSeparador - 1);
+    end;
+
+    AMotor := FLXIdentificadorSQLSeguro(AMotor, 'Motor');
+    ACollation := FLXIdentificadorSQLSeguro(ACollation, 'Collation');
+    ACharset := FLXIdentificadorSQLSeguro(ACharset, 'Charset');
+
+    Result := True;
+  finally
+    Q.Free;
+  end;
+end;
+
+procedure FLXAjustarEstructuraTabla(AConnection: TZAbstractConnection;
+  const ATabla, AMotor, ACharset, ACollation: string);
+var
+  MotorActual, CharsetActual, CollationActual: string;
+begin
+  if not FLXLeerEstructuraTabla(AConnection, ATabla,
+    MotorActual, CharsetActual, CollationActual) then
+    Exit;
+
+  if not SameText(MotorActual, AMotor) then
+    FLXEjecutarSQL(AConnection,
+      'ALTER TABLE `' + ATabla + '` ENGINE=' + AMotor);
+
+  if not SameText(CharsetActual, ACharset) or
+     not SameText(CollationActual, ACollation) then
+    FLXEjecutarSQL(AConnection,
+      'ALTER TABLE `' + ATabla + '` CONVERT TO CHARACTER SET ' +
+      ACharset + ' COLLATE ' + ACollation);
+end;
+
+procedure FLXAsegurarTablasTecladoProductos(
+  AConnection: TZAbstractConnection; const ATienda: string);
+var
+  TablaArticulos, TablaGrupos, TablaProductos: string;
+  MotorReferencia, CharsetReferencia, CollationReferencia: string;
+  SufijoEstructura: string;
+begin
+  if not Assigned(AConnection) then
+    raise Exception.Create(
+      'No se ha recibido una conexión a la base de datos.');
+
+  if not AConnection.Connected then
+    raise Exception.Create(
+      'La conexión a la base de datos no está activa.');
+
+  TablaArticulos := 'artitien' + FLXTiendaSegura(ATienda);
+  TablaGrupos := FLXTablaTecladoGrupos(ATienda);
+  TablaProductos := FLXTablaTecladoProductos(ATienda);
+
+  if not FLXLeerEstructuraTabla(AConnection, TablaArticulos,
+    MotorReferencia, CharsetReferencia, CollationReferencia) then
+    raise Exception.Create(
+      'No se ha encontrado la tabla de artículos ' + TablaArticulos + '.');
+
+  SufijoEstructura :=
+    ' ENGINE=' + MotorReferencia +
+    ' DEFAULT CHARSET=' + CharsetReferencia +
+    ' COLLATE=' + CollationReferencia;
+
+  if not FLXTablaExiste(AConnection, TablaGrupos) then
+    FLXEjecutarSQL(AConnection,
+      'CREATE TABLE `' + TablaGrupos + '` (' +
+      'TG_ID INT NOT NULL AUTO_INCREMENT,' +
+      'TG_NOMBRE VARCHAR(50) NOT NULL,' +
+      'TG_ORDEN INT NOT NULL DEFAULT 0,' +
+      'TG_COLOR BIGINT NOT NULL DEFAULT 0,' +
+      'TG_ACTIVO CHAR(1) NOT NULL DEFAULT ''S'',' +
+      'PRIMARY KEY (TG_ID),' +
+      'UNIQUE KEY UK_TG_NOMBRE (TG_NOMBRE),' +
+      'KEY IX_TG_ORDEN (TG_ORDEN)' +
+      ')' + SufijoEstructura);
+
+  if not FLXTablaExiste(AConnection, TablaProductos) then
+    FLXEjecutarSQL(AConnection,
+      'CREATE TABLE `' + TablaProductos + '` (' +
+      'TP_ID INT NOT NULL AUTO_INCREMENT,' +
+      'TP_GRUPO_ID INT NOT NULL,' +
+      'TP_CODIGO VARCHAR(30) NOT NULL,' +
+      'TP_TEXTO VARCHAR(60) NOT NULL DEFAULT '''',' +
+      'TP_ORDEN INT NOT NULL DEFAULT 0,' +
+      'TP_COLOR BIGINT NOT NULL DEFAULT 0,' +
+      'TP_CANTIDAD DECIMAL(12,3) NOT NULL DEFAULT 1.000,' +
+      'TP_ACTIVO CHAR(1) NOT NULL DEFAULT ''S'',' +
+      'PRIMARY KEY (TP_ID),' +
+      'UNIQUE KEY UK_TP_GRUPO_CODIGO (TP_GRUPO_ID,TP_CODIGO),' +
+      'KEY IX_TP_GRUPO_ORDEN (TP_GRUPO_ID,TP_ORDEN),' +
+      'KEY IX_TP_CODIGO (TP_CODIGO)' +
+      ')' + SufijoEstructura);
+
+  FLXAjustarEstructuraTabla(AConnection, TablaGrupos,
+    MotorReferencia, CharsetReferencia, CollationReferencia);
+  FLXAjustarEstructuraTabla(AConnection, TablaProductos,
+    MotorReferencia, CharsetReferencia, CollationReferencia);
+end;
+
+
+constructor TFLXConfigTecladoProductosForm.CreateConfig(
+  AOwner: TComponent; AConnection: TZAbstractConnection;
+  const ATienda: string);
+var
+  Cabecera, Izquierda, Derecha: TPanel;
+  BotonesGrupos, BotonesProductos: TPanel;
+  L: TLabel;
+  B: TButton;
+
+  function NuevoBoton(AParent: TWinControl;
+    const ACaption: string; AX, AY, AW, AH: Integer;
+    AEvento: TNotifyEvent): TButton;
+  begin
+    Result := TButton.Create(Self);
+    Result.Parent := AParent;
+    Result.SetBounds(AX, AY, AW, AH);
+    Result.Caption := ACaption;
+    Result.OnClick := AEvento;
+  end;
+
+begin
+  inherited CreateNew(AOwner, 1);
+
+  FConnection := AConnection;
+  FTienda := FLXTiendaSegura(ATienda);
+
+  Caption := 'Configurar teclado de productos';
+  Position := poScreenCenter;
+  BorderStyle := bsSizeable;
+  Width := 1040;
+  Height := 650;
+  Constraints.MinWidth := 900;
+  Constraints.MinHeight := 560;
+  Color := RGBToColor(239, 244, 248);
+
+  Cabecera := TPanel.Create(Self);
+  Cabecera.Parent := Self;
+  Cabecera.Align := alTop;
+  Cabecera.Height := 58;
+  Cabecera.Caption := '';
+  Cabecera.BevelOuter := bvNone;
+  Cabecera.Color := RGBToColor(4, 58, 87);
+  Cabecera.ParentBackground := False;
+  Cabecera.ParentColor := False;
+
+  L := TLabel.Create(Self);
+  L.Parent := Cabecera;
+  L.Left := 18;
+  L.Top := 9;
+  L.Caption := 'Teclado de productos';
+  L.Font.Name := 'Sans';
+  L.Font.Height := -19;
+  L.Font.Style := [fsBold];
+  L.Font.Color := clWhite;
+  L.ParentFont := False;
+
+  L := TLabel.Create(Self);
+  L.Parent := Cabecera;
+  L.Left := 19;
+  L.Top := 36;
+  L.Caption := 'Configuración para tienda ' + FTienda;
+  L.Font.Name := 'Sans';
+  L.Font.Height := -10;
+  L.Font.Color := RGBToColor(207, 227, 239);
+  L.ParentFont := False;
+
+  Izquierda := TPanel.Create(Self);
+  Izquierda.Parent := Self;
+  Izquierda.Align := alLeft;
+  Izquierda.Width := 315;
+  Izquierda.Caption := '';
+  Izquierda.BevelOuter := bvNone;
+  Izquierda.BorderSpacing.Around := 10;
+
+  L := TLabel.Create(Self);
+  L.Parent := Izquierda;
+  L.Align := alTop;
+  L.Height := 30;
+  L.Caption := '  GRUPOS / PÁGINAS';
+  L.Layout := tlCenter;
+  L.Font.Style := [fsBold];
+  L.ParentFont := False;
+
+  BotonesGrupos := TPanel.Create(Self);
+  BotonesGrupos.Parent := Izquierda;
+  BotonesGrupos.Align := alBottom;
+  BotonesGrupos.Height := 132;
+  BotonesGrupos.Caption := '';
+  BotonesGrupos.BevelOuter := bvNone;
+
+  FListaGrupos := TListBox.Create(Self);
+  FListaGrupos.Parent := Izquierda;
+  FListaGrupos.Align := alClient;
+  FListaGrupos.Font.Height := -13;
+  FListaGrupos.ParentFont := False;
+  FListaGrupos.OnClick := @GrupoClick;
+
+  NuevoBoton(BotonesGrupos, 'Nuevo grupo', 4, 5, 145, 32,
+    @AgregarGrupoClick);
+  NuevoBoton(BotonesGrupos, 'Renombrar', 155, 5, 145, 32,
+    @RenombrarGrupoClick);
+  NuevoBoton(BotonesGrupos, 'Eliminar', 4, 43, 145, 32,
+    @EliminarGrupoClick);
+  NuevoBoton(BotonesGrupos, 'Subir', 155, 43, 70, 32,
+    @SubirGrupoClick);
+  NuevoBoton(BotonesGrupos, 'Bajar', 230, 43, 70, 32,
+    @BajarGrupoClick);
+
+  L := TLabel.Create(Self);
+  L.Parent := BotonesGrupos;
+  L.SetBounds(6, 84, 292, 42);
+  L.AutoSize := False;
+  L.WordWrap := True;
+  L.Caption := 'Cada grupo aparecerá como una página del teclado.';
+  L.Font.Height := -10;
+  L.ParentFont := False;
+
+  Derecha := TPanel.Create(Self);
+  Derecha.Parent := Self;
+  Derecha.Align := alClient;
+  Derecha.Caption := '';
+  Derecha.BevelOuter := bvNone;
+  Derecha.BorderSpacing.Around := 10;
+
+  L := TLabel.Create(Self);
+  L.Parent := Derecha;
+  L.Align := alTop;
+  L.Height := 30;
+  L.Caption := '  PRODUCTOS DEL GRUPO';
+  L.Layout := tlCenter;
+  L.Font.Style := [fsBold];
+  L.ParentFont := False;
+
+  BotonesProductos := TPanel.Create(Self);
+  BotonesProductos.Parent := Derecha;
+  BotonesProductos.Align := alBottom;
+  BotonesProductos.Height := 132;
+  BotonesProductos.Caption := '';
+  BotonesProductos.BevelOuter := bvNone;
+
+  FListaProductos := TListBox.Create(Self);
+  FListaProductos.Parent := Derecha;
+  FListaProductos.Align := alClient;
+  FListaProductos.Font.Height := -12;
+  FListaProductos.ParentFont := False;
+
+  NuevoBoton(BotonesProductos, 'Añadir artículo', 4, 5, 145, 32,
+    @AgregarProductoClick);
+  NuevoBoton(BotonesProductos, 'Cargar familia', 155, 5, 145, 32,
+    @AgregarFamiliaClick);
+  NuevoBoton(BotonesProductos, 'Editar', 306, 5, 105, 32,
+    @EditarProductoClick);
+  NuevoBoton(BotonesProductos, 'Activar / desactivar',
+    417, 5, 165, 32, @ActivarProductoClick);
+
+  NuevoBoton(BotonesProductos, 'Eliminar', 4, 43, 145, 32,
+    @EliminarProductoClick);
+  NuevoBoton(BotonesProductos, 'Subir', 155, 43, 70, 32,
+    @SubirProductoClick);
+  NuevoBoton(BotonesProductos, 'Bajar', 230, 43, 70, 32,
+    @BajarProductoClick);
+
+  B := NuevoBoton(BotonesProductos, 'Cerrar', 467, 84, 115, 38,
+    @CerrarClick);
+  B.Default := True;
+
+  L := TLabel.Create(Self);
+  L.Parent := BotonesProductos;
+  L.SetBounds(6, 84, 445, 42);
+  L.AutoSize := False;
+  L.WordWrap := True;
+  L.Caption := 'Los botones venden mediante el proceso normal de Ventas.';
+  L.Font.Height := -10;
+  L.ParentFont := False;
+
+  FLXAsegurarTablasTecladoProductos(FConnection, FTienda);
+  RefrescarGrupos;
+end;
+
+function TFLXConfigTecladoProductosForm.NuevoQuery: TZQuery;
+begin
+  Result := TZQuery.Create(nil);
+  Result.Connection := FConnection;
+end;
+
+function TFLXConfigTecladoProductosForm.GrupoActualID: Integer;
+begin
+  Result := 0;
+  if FListaGrupos.ItemIndex >= 0 then
+    Result := PtrInt(
+      FListaGrupos.Items.Objects[FListaGrupos.ItemIndex]);
+end;
+
+function TFLXConfigTecladoProductosForm.ProductoActualID: Integer;
+begin
+  Result := 0;
+  if FListaProductos.ItemIndex >= 0 then
+    Result := PtrInt(
+      FListaProductos.Items.Objects[FListaProductos.ItemIndex]);
+end;
+
+procedure TFLXConfigTecladoProductosForm.SeleccionarID(
+  ALista: TListBox; AID: Integer);
+var
+  I: Integer;
+begin
+  if AID <= 0 then
+    Exit;
+
+  for I := 0 to ALista.Items.Count - 1 do
+    if PtrInt(ALista.Items.Objects[I]) = AID then
+    begin
+      ALista.ItemIndex := I;
+      Exit;
+    end;
+end;
+
+procedure TFLXConfigTecladoProductosForm.RefrescarGrupos(
+  ASeleccionarID: Integer);
+var
+  Q: TZQuery;
+  IDAnterior: Integer;
+begin
+  IDAnterior := ASeleccionarID;
+  if IDAnterior = 0 then
+    IDAnterior := GrupoActualID;
+
+  FListaGrupos.Items.BeginUpdate;
+  try
+    FListaGrupos.Clear;
+    Q := NuevoQuery;
+    try
+      Q.SQL.Text :=
+        'SELECT TG_ID,TG_NOMBRE FROM `' +
+        FLXTablaTecladoGrupos(FTienda) +
+        '` ORDER BY TG_ORDEN,TG_ID';
+      Q.Open;
+      while not Q.EOF do
+      begin
+        FListaGrupos.Items.AddObject(
+          Q.FieldByName('TG_NOMBRE').AsString,
+          TObject(PtrUInt(Q.FieldByName('TG_ID').AsInteger)));
+        Q.Next;
+      end;
+    finally
+      Q.Free;
+    end;
+  finally
+    FListaGrupos.Items.EndUpdate;
+  end;
+
+  if FListaGrupos.Items.Count > 0 then
+  begin
+    FListaGrupos.ItemIndex := 0;
+    SeleccionarID(FListaGrupos, IDAnterior);
+  end;
+
+  RefrescarProductos;
+end;
+
+procedure TFLXConfigTecladoProductosForm.RefrescarProductos(
+  ASeleccionarID: Integer);
+var
+  Q: TZQuery;
+  IDAnterior, GrupoID: Integer;
+  Marca, Texto: string;
+begin
+  IDAnterior := ASeleccionarID;
+  if IDAnterior = 0 then
+    IDAnterior := ProductoActualID;
+
+  GrupoID := GrupoActualID;
+  FListaProductos.Items.BeginUpdate;
+  try
+    FListaProductos.Clear;
+    if GrupoID = 0 then
+      Exit;
+
+    Q := NuevoQuery;
+    try
+      Q.SQL.Text :=
+        'SELECT p.TP_ID,p.TP_CODIGO,p.TP_TEXTO,' +
+        'p.TP_CANTIDAD,p.TP_ACTIVO,a.A1 FROM `' +
+        FLXTablaTecladoProductos(FTienda) + '` p ' +
+        'LEFT JOIN `artitien' + FTienda +
+        '` a ON a.A0=p.TP_CODIGO ' +
+        'WHERE p.TP_GRUPO_ID=:G ' +
+        'ORDER BY p.TP_ORDEN,p.TP_ID';
+      Q.ParamByName('G').AsInteger := GrupoID;
+      Q.Open;
+
+      while not Q.EOF do
+      begin
+        if SameText(Q.FieldByName('TP_ACTIVO').AsString, 'S') then
+          Marca := '[X] '
+        else
+          Marca := '[ ] ';
+
+        Texto := Trim(Q.FieldByName('TP_TEXTO').AsString);
+        if Texto = '' then
+          Texto := Trim(Q.FieldByName('A1').AsString);
+        if Texto = '' then
+          Texto := '(artículo no encontrado)';
+
+        FListaProductos.Items.AddObject(
+          Marca + Q.FieldByName('TP_CODIGO').AsString +
+          ' - ' + Texto + ' | Cant.: ' +
+          FormatFloat('0.###',
+            Q.FieldByName('TP_CANTIDAD').AsFloat),
+          TObject(PtrUInt(Q.FieldByName('TP_ID').AsInteger)));
+        Q.Next;
+      end;
+    finally
+      Q.Free;
+    end;
+  finally
+    FListaProductos.Items.EndUpdate;
+  end;
+
+  if FListaProductos.Items.Count > 0 then
+  begin
+    FListaProductos.ItemIndex := 0;
+    SeleccionarID(FListaProductos, IDAnterior);
+  end;
+end;
+
+procedure TFLXConfigTecladoProductosForm.GrupoClick(Sender: TObject);
+begin
+  RefrescarProductos;
+end;
+
+procedure TFLXConfigTecladoProductosForm.AgregarGrupoClick(
+  Sender: TObject);
+var
+  Nombre: string;
+  Q: TZQuery;
+begin
+  Nombre := '';
+  if not InputQuery('Nuevo grupo', 'Nombre del grupo:', Nombre) then
+    Exit;
+
+  Nombre := Trim(Nombre);
+  if Nombre = '' then
+    Exit;
+
+  Q := NuevoQuery;
+  try
+    Q.SQL.Text :=
+      'INSERT INTO `' + FLXTablaTecladoGrupos(FTienda) +
+      '` (TG_NOMBRE,TG_ORDEN,TG_COLOR,TG_ACTIVO) ' +
+      'SELECT :N,COALESCE(MAX(TG_ORDEN),0)+10,0,''S'' FROM `' +
+      FLXTablaTecladoGrupos(FTienda) + '`';
+    Q.ParamByName('N').AsString := Nombre;
+    try
+      Q.ExecSQL;
+    except
+      on E: Exception do
+        MessageDlg('No se ha podido crear el grupo.' +
+          LineEnding + E.Message, mtError, [mbOK], 0);
+    end;
+  finally
+    Q.Free;
+  end;
+
+  RefrescarGrupos;
+end;
+
+procedure TFLXConfigTecladoProductosForm.RenombrarGrupoClick(
+  Sender: TObject);
+var
+  ID: Integer;
+  Nombre: string;
+  Q: TZQuery;
+begin
+  ID := GrupoActualID;
+  if ID = 0 then
+    Exit;
+
+  Nombre := FListaGrupos.Items[FListaGrupos.ItemIndex];
+  if not InputQuery('Renombrar grupo', 'Nuevo nombre:', Nombre) then
+    Exit;
+
+  Nombre := Trim(Nombre);
+  if Nombre = '' then
+    Exit;
+
+  Q := NuevoQuery;
+  try
+    Q.SQL.Text :=
+      'UPDATE `' + FLXTablaTecladoGrupos(FTienda) +
+      '` SET TG_NOMBRE=:N WHERE TG_ID=:ID';
+    Q.ParamByName('N').AsString := Nombre;
+    Q.ParamByName('ID').AsInteger := ID;
+    Q.ExecSQL;
+  finally
+    Q.Free;
+  end;
+
+  RefrescarGrupos(ID);
+end;
+
+procedure TFLXConfigTecladoProductosForm.EliminarGrupoClick(
+  Sender: TObject);
+var
+  ID: Integer;
+  Q: TZQuery;
+begin
+  ID := GrupoActualID;
+  if ID = 0 then
+    Exit;
+
+  if MessageDlg('Eliminar grupo',
+    'Se eliminará el grupo y sus botones.' + LineEnding +
+    'Los artículos de la base de datos no se eliminarán.',
+    mtConfirmation, [mbYes, mbNo], 0) <> mrYes then
+    Exit;
+
+  Q := NuevoQuery;
+  try
+    Q.SQL.Text :=
+      'DELETE FROM `' + FLXTablaTecladoProductos(FTienda) +
+      '` WHERE TP_GRUPO_ID=:G';
+    Q.ParamByName('G').AsInteger := ID;
+    Q.ExecSQL;
+
+    Q.SQL.Text :=
+      'DELETE FROM `' + FLXTablaTecladoGrupos(FTienda) +
+      '` WHERE TG_ID=:G';
+    Q.ParamByName('G').AsInteger := ID;
+    Q.ExecSQL;
+  finally
+    Q.Free;
+  end;
+
+  RefrescarGrupos;
+end;
+
+procedure TFLXConfigTecladoProductosForm.IntercambiarOrden(
+  const ATabla, ACampoID, ACampoOrden: string;
+  AID1, AID2: Integer);
+var
+  Q: TZQuery;
+  Orden1, Orden2: Integer;
+begin
+  if (AID1 = 0) or (AID2 = 0) then
+    Exit;
+
+  Q := NuevoQuery;
+  try
+    Q.SQL.Text :=
+      'SELECT `' + ACampoID + '`,`' + ACampoOrden +
+      '` FROM `' + ATabla + '` WHERE `' + ACampoID +
+      '` IN (:A,:B)';
+    Q.ParamByName('A').AsInteger := AID1;
+    Q.ParamByName('B').AsInteger := AID2;
+    Q.Open;
+
+    Orden1 := 0;
+    Orden2 := 0;
+    while not Q.EOF do
+    begin
+      if Q.FieldByName(ACampoID).AsInteger = AID1 then
+        Orden1 := Q.FieldByName(ACampoOrden).AsInteger
+      else
+        Orden2 := Q.FieldByName(ACampoOrden).AsInteger;
+      Q.Next;
+    end;
+    Q.Close;
+
+    Q.SQL.Text :=
+      'UPDATE `' + ATabla + '` SET `' + ACampoOrden +
+      '`=:O WHERE `' + ACampoID + '`=:ID';
+    Q.ParamByName('O').AsInteger := Orden2;
+    Q.ParamByName('ID').AsInteger := AID1;
+    Q.ExecSQL;
+
+    Q.ParamByName('O').AsInteger := Orden1;
+    Q.ParamByName('ID').AsInteger := AID2;
+    Q.ExecSQL;
+  finally
+    Q.Free;
+  end;
+end;
+
+procedure TFLXConfigTecladoProductosForm.SubirGrupoClick(
+  Sender: TObject);
+var
+  I, ID1, ID2: Integer;
+begin
+  I := FListaGrupos.ItemIndex;
+  if I <= 0 then
+    Exit;
+
+  ID1 := PtrInt(FListaGrupos.Items.Objects[I]);
+  ID2 := PtrInt(FListaGrupos.Items.Objects[I - 1]);
+  IntercambiarOrden(FLXTablaTecladoGrupos(FTienda),
+    'TG_ID', 'TG_ORDEN', ID1, ID2);
+  RefrescarGrupos(ID1);
+end;
+
+procedure TFLXConfigTecladoProductosForm.BajarGrupoClick(
+  Sender: TObject);
+var
+  I, ID1, ID2: Integer;
+begin
+  I := FListaGrupos.ItemIndex;
+  if (I < 0) or (I >= FListaGrupos.Items.Count - 1) then
+    Exit;
+
+  ID1 := PtrInt(FListaGrupos.Items.Objects[I]);
+  ID2 := PtrInt(FListaGrupos.Items.Objects[I + 1]);
+  IntercambiarOrden(FLXTablaTecladoGrupos(FTienda),
+    'TG_ID', 'TG_ORDEN', ID1, ID2);
+  RefrescarGrupos(ID1);
+end;
+
+procedure TFLXConfigTecladoProductosForm.AgregarProductoClick(
+  Sender: TObject);
+var
+  GrupoID: Integer;
+  Codigo, Texto, CantidadTexto: string;
+  Cantidad: Double;
+  Q: TZQuery;
+begin
+  GrupoID := GrupoActualID;
+  if GrupoID = 0 then
+  begin
+    MessageDlg('Primero debe crear o seleccionar un grupo.',
+      mtInformation, [mbOK], 0);
+    Exit;
+  end;
+
+  Codigo := '';
+  if not InputQuery('Añadir artículo',
+    'Código del artículo:', Codigo) then
+    Exit;
+
+  Codigo := Trim(Codigo);
+  if Codigo = '' then
+    Exit;
+
+  Q := NuevoQuery;
+  try
+    Q.SQL.Text :=
+      'SELECT A0,A1 FROM `artitien' + FTienda +
+      '` WHERE A0=:C LIMIT 1';
+    Q.ParamByName('C').AsString := Codigo;
+    Q.Open;
+
+    if Q.IsEmpty then
+    begin
+      MessageDlg('No existe un artículo con el código ' +
+        Codigo + '.', mtWarning, [mbOK], 0);
+      Exit;
+    end;
+
+    Texto := Q.FieldByName('A1').AsString;
+    Q.Close;
+
+    if not InputQuery('Texto del botón',
+      'Texto que aparecerá:', Texto) then
+      Exit;
+
+    CantidadTexto := '1';
+    if not InputQuery('Cantidad predeterminada',
+      'Cantidad que venderá el botón:', CantidadTexto) then
+      Exit;
+
+    if not TryStrToFloat(CantidadTexto, Cantidad) or
+       (Cantidad <= 0) then
+    begin
+      MessageDlg('La cantidad introducida no es válida.',
+        mtWarning, [mbOK], 0);
+      Exit;
+    end;
+
+    Q.SQL.Text :=
+      'INSERT IGNORE INTO `' +
+      FLXTablaTecladoProductos(FTienda) +
+      '` (TP_GRUPO_ID,TP_CODIGO,TP_TEXTO,TP_ORDEN,' +
+      'TP_COLOR,TP_CANTIDAD,TP_ACTIVO) ' +
+      'SELECT :G,:C,:T,COALESCE(MAX(TP_ORDEN),0)+10,' +
+      '0,:Q,''S'' FROM `' +
+      FLXTablaTecladoProductos(FTienda) +
+      '` WHERE TP_GRUPO_ID=:G2';
+    Q.ParamByName('G').AsInteger := GrupoID;
+    Q.ParamByName('G2').AsInteger := GrupoID;
+    Q.ParamByName('C').AsString := Codigo;
+    Q.ParamByName('T').AsString := Copy(Trim(Texto), 1, 60);
+    Q.ParamByName('Q').AsFloat := Cantidad;
+    Q.ExecSQL;
+  finally
+    Q.Free;
+  end;
+
+  RefrescarProductos;
+end;
+
+procedure TFLXConfigTecladoProductosForm.AgregarFamiliaClick(
+  Sender: TObject);
+var
+  GrupoID, Orden: Integer;
+  Familia: string;
+  QArt, QIns, QMax: TZQuery;
+begin
+  GrupoID := GrupoActualID;
+  if GrupoID = 0 then
+  begin
+    MessageDlg('Primero debe crear o seleccionar un grupo.',
+      mtInformation, [mbOK], 0);
+    Exit;
+  end;
+
+  Familia := '';
+  if not InputQuery('Cargar familia',
+    'Código de la familia:', Familia) then
+    Exit;
+
+  Familia := Trim(Familia);
+  if Familia = '' then
+    Exit;
+
+  QArt := NuevoQuery;
+  QIns := NuevoQuery;
+  QMax := NuevoQuery;
+  try
+    QMax.SQL.Text :=
+      'SELECT COALESCE(MAX(TP_ORDEN),0) AS O FROM `' +
+      FLXTablaTecladoProductos(FTienda) +
+      '` WHERE TP_GRUPO_ID=:G';
+    QMax.ParamByName('G').AsInteger := GrupoID;
+    QMax.Open;
+    Orden := QMax.FieldByName('O').AsInteger;
+    QMax.Close;
+
+    QArt.SQL.Text :=
+      'SELECT A0,A1 FROM `artitien' + FTienda +
+      '` WHERE A14=:F ORDER BY A1,A0';
+    QArt.ParamByName('F').AsString := Familia;
+    QArt.Open;
+
+    if QArt.IsEmpty then
+    begin
+      MessageDlg('No se han encontrado artículos en esa familia.',
+        mtInformation, [mbOK], 0);
+      Exit;
+    end;
+
+    QIns.SQL.Text :=
+      'INSERT IGNORE INTO `' +
+      FLXTablaTecladoProductos(FTienda) +
+      '` (TP_GRUPO_ID,TP_CODIGO,TP_TEXTO,TP_ORDEN,' +
+      'TP_COLOR,TP_CANTIDAD,TP_ACTIVO) ' +
+      'VALUES (:G,:C,:T,:O,0,1,''S'')';
+
+    while not QArt.EOF do
+    begin
+      Inc(Orden, 10);
+      QIns.ParamByName('G').AsInteger := GrupoID;
+      QIns.ParamByName('C').AsString :=
+        QArt.FieldByName('A0').AsString;
+      QIns.ParamByName('T').AsString := Copy(
+        QArt.FieldByName('A1').AsString, 1, 60);
+      QIns.ParamByName('O').AsInteger := Orden;
+      QIns.ExecSQL;
+      QArt.Next;
+    end;
+  finally
+    QMax.Free;
+    QIns.Free;
+    QArt.Free;
+  end;
+
+  RefrescarProductos;
+end;
+
+procedure TFLXConfigTecladoProductosForm.EditarProductoClick(
+  Sender: TObject);
+var
+  ID: Integer;
+  Texto, CantidadTexto: string;
+  Cantidad: Double;
+  Q: TZQuery;
+begin
+  ID := ProductoActualID;
+  if ID = 0 then
+    Exit;
+
+  Q := NuevoQuery;
+  try
+    Q.SQL.Text :=
+      'SELECT TP_TEXTO,TP_CANTIDAD FROM `' +
+      FLXTablaTecladoProductos(FTienda) +
+      '` WHERE TP_ID=:ID';
+    Q.ParamByName('ID').AsInteger := ID;
+    Q.Open;
+
+    if Q.IsEmpty then
+      Exit;
+
+    Texto := Q.FieldByName('TP_TEXTO').AsString;
+    CantidadTexto := FormatFloat('0.###',
+      Q.FieldByName('TP_CANTIDAD').AsFloat);
+    Q.Close;
+
+    if not InputQuery('Editar botón',
+      'Texto que aparecerá:', Texto) then
+      Exit;
+
+    if not InputQuery('Editar cantidad',
+      'Cantidad predeterminada:', CantidadTexto) then
+      Exit;
+
+    if not TryStrToFloat(CantidadTexto, Cantidad) or
+       (Cantidad <= 0) then
+    begin
+      MessageDlg('La cantidad introducida no es válida.',
+        mtWarning, [mbOK], 0);
+      Exit;
+    end;
+
+    Q.SQL.Text :=
+      'UPDATE `' + FLXTablaTecladoProductos(FTienda) +
+      '` SET TP_TEXTO=:T,TP_CANTIDAD=:Q WHERE TP_ID=:ID';
+    Q.ParamByName('T').AsString := Copy(Trim(Texto), 1, 60);
+    Q.ParamByName('Q').AsFloat := Cantidad;
+    Q.ParamByName('ID').AsInteger := ID;
+    Q.ExecSQL;
+  finally
+    Q.Free;
+  end;
+
+  RefrescarProductos(ID);
+end;
+
+procedure TFLXConfigTecladoProductosForm.ActivarProductoClick(
+  Sender: TObject);
+var
+  ID: Integer;
+  Q: TZQuery;
+begin
+  ID := ProductoActualID;
+  if ID = 0 then
+    Exit;
+
+  Q := NuevoQuery;
+  try
+    Q.SQL.Text :=
+      'UPDATE `' + FLXTablaTecladoProductos(FTienda) +
+      '` SET TP_ACTIVO=IF(TP_ACTIVO=''S'',''N'',''S'') ' +
+      'WHERE TP_ID=:ID';
+    Q.ParamByName('ID').AsInteger := ID;
+    Q.ExecSQL;
+  finally
+    Q.Free;
+  end;
+
+  RefrescarProductos(ID);
+end;
+
+procedure TFLXConfigTecladoProductosForm.EliminarProductoClick(
+  Sender: TObject);
+var
+  ID: Integer;
+  Q: TZQuery;
+begin
+  ID := ProductoActualID;
+  if ID = 0 then
+    Exit;
+
+  if MessageDlg('Eliminar botón',
+    'Se eliminará solamente el botón del teclado.' +
+    LineEnding + 'El artículo seguirá existiendo.',
+    mtConfirmation, [mbYes, mbNo], 0) <> mrYes then
+    Exit;
+
+  Q := NuevoQuery;
+  try
+    Q.SQL.Text :=
+      'DELETE FROM `' + FLXTablaTecladoProductos(FTienda) +
+      '` WHERE TP_ID=:ID';
+    Q.ParamByName('ID').AsInteger := ID;
+    Q.ExecSQL;
+  finally
+    Q.Free;
+  end;
+
+  RefrescarProductos;
+end;
+
+procedure TFLXConfigTecladoProductosForm.SubirProductoClick(
+  Sender: TObject);
+var
+  I, ID1, ID2: Integer;
+begin
+  I := FListaProductos.ItemIndex;
+  if I <= 0 then
+    Exit;
+
+  ID1 := PtrInt(FListaProductos.Items.Objects[I]);
+  ID2 := PtrInt(FListaProductos.Items.Objects[I - 1]);
+  IntercambiarOrden(FLXTablaTecladoProductos(FTienda),
+    'TP_ID', 'TP_ORDEN', ID1, ID2);
+  RefrescarProductos(ID1);
+end;
+
+procedure TFLXConfigTecladoProductosForm.BajarProductoClick(
+  Sender: TObject);
+var
+  I, ID1, ID2: Integer;
+begin
+  I := FListaProductos.ItemIndex;
+  if (I < 0) or (I >= FListaProductos.Items.Count - 1) then
+    Exit;
+
+  ID1 := PtrInt(FListaProductos.Items.Objects[I]);
+  ID2 := PtrInt(FListaProductos.Items.Objects[I + 1]);
+  IntercambiarOrden(FLXTablaTecladoProductos(FTienda),
+    'TP_ID', 'TP_ORDEN', ID1, ID2);
+  RefrescarProductos(ID1);
+end;
+
+procedure TFLXConfigTecladoProductosForm.CerrarClick(
+  Sender: TObject);
+begin
+  ModalResult := mrOk;
+end;
+
+procedure FLXConfigurarTecladoProductos(AOwner: TComponent;
+  AConnection: TZAbstractConnection; const ATienda: string);
+var
+  F: TFLXConfigTecladoProductosForm;
+begin
+  F := TFLXConfigTecladoProductosForm.CreateConfig(
+    AOwner, AConnection, ATienda);
+  try
+    F.ShowModal;
+  finally
+    F.Free;
+  end;
+end;
+
+end.

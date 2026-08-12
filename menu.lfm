@@ -24340,6 +24340,24 @@ object FMenu: TFMenu
         TabOrder = 3
         OnClick = BitBtnMonitorClick
       end
+      object BitBtnVFMonitorRapido: TBitBtn
+        AnchorSideLeft.Control = BitBtnMonitor
+        AnchorSideLeft.Side = asrBottom
+        AnchorSideTop.Control = BitBtnMonitor
+        AnchorSideBottom.Control = BitBtnMonitor
+        AnchorSideBottom.Side = asrBottom
+        Left = 587
+        Height = 80
+        Top = 8
+        Width = 126
+        Anchors = [akTop, akLeft, akBottom]
+        BorderSpacing.Left = 19
+        Caption = 'VF rápido'
+        Font.Style = [fsBold]
+        ParentFont = False
+        TabOrder = 4
+        OnClick = BitBtnVFMonitorRapidoClick
+      end
     end
     object TabSheet8: TTabSheet
       Hint = 'Para la ayuda pulsa <ALT y 9>'

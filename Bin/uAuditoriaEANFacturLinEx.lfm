@@ -1,0 +1,469 @@
+object AuditoriaEANFacturLinExForm: TAuditoriaEANFacturLinExForm
+  Left = 220
+  Height = 820
+  Top = 120
+  Width = 1380
+  Caption = 'FacturLinEx - Auditoría de códigos EAN'
+  ClientHeight = 820
+  ClientWidth = 1380
+  Color = 15921906
+  Constraints.MinHeight = 680
+  Constraints.MinWidth = 1100
+  Font.CharSet = DEFAULT_CHARSET
+  Font.Color = 3355443
+  Font.Height = -13
+  Font.Name = 'Sans'
+  KeyPreview = True
+  OnCloseQuery = FormCloseQuery
+  OnCreate = FormCreate
+  OnKeyDown = FormKeyDown
+  OnShow = FormShow
+  Position = poScreenCenter
+  LCLVersion = '4.2.0.0'
+  object HeaderPanel: TPanel
+    Left = 0
+    Height = 92
+    Top = 0
+    Width = 1380
+    Align = alTop
+    BevelOuter = bvNone
+    Caption = ''
+    Color = 9849600
+    ParentColor = False
+    TabOrder = 0
+    object LblTitulo: TLabel
+      Left = 26
+      Height = 32
+      Top = 16
+      Width = 430
+      Caption = 'AUDITORÍA DE CÓDIGOS EAN'
+      Font.Color = clWhite
+      Font.Height = -24
+      Font.Name = 'Sans'
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
+    object LblSubtitulo: TLabel
+      Left = 28
+      Height = 22
+      Top = 54
+      Width = 920
+      Caption = 'Comprueba formato, duplicados y asignación local; compara gradualmente con fuentes abiertas y permite validación manual con GS1.'
+      Font.Color = 15790320
+      Font.Height = -13
+      ParentFont = False
+    end
+  end
+  object KpiPanel: TPanel
+    Left = 0
+    Height = 88
+    Top = 92
+    Width = 1380
+    Align = alTop
+    BevelOuter = bvNone
+    Caption = ''
+    Color = 15921906
+    ParentColor = False
+    TabOrder = 1
+    object PnlKpiTotal: TPanel
+      Left = 18
+      Height = 66
+      Top = 11
+      Width = 220
+      BevelOuter = bvNone
+      Caption = ''
+      Color = 15985656
+      ParentColor = False
+      TabOrder = 0
+      object LblKpiTotal: TLabel
+        Left = 0
+        Height = 66
+        Top = 0
+        Width = 220
+        Align = alClient
+        Alignment = taCenter
+        Caption = 'TOTAL'#10'0'
+        Font.Color = 3355443
+        Font.Height = -16
+        Font.Style = [fsBold]
+        Layout = tlCenter
+        ParentFont = False
+      end
+    end
+    object PnlKpiIncidencias: TPanel
+      Left = 252
+      Height = 66
+      Top = 11
+      Width = 220
+      BevelOuter = bvNone
+      Caption = ''
+      Color = 14474495
+      ParentColor = False
+      TabOrder = 1
+      object LblKpiIncidencias: TLabel
+        Left = 0
+        Height = 66
+        Top = 0
+        Width = 220
+        Align = alClient
+        Alignment = taCenter
+        Caption = 'INCIDENCIAS'#10'0'
+        Font.Color = 3289650
+        Font.Height = -16
+        Font.Style = [fsBold]
+        Layout = tlCenter
+        ParentFont = False
+      end
+    end
+    object PnlKpiPendientes: TPanel
+      Left = 486
+      Height = 66
+      Top = 11
+      Width = 240
+      BevelOuter = bvNone
+      Caption = ''
+      Color = 14217983
+      ParentColor = False
+      TabOrder = 2
+      object LblKpiPendientes: TLabel
+        Left = 0
+        Height = 66
+        Top = 0
+        Width = 240
+        Align = alClient
+        Alignment = taCenter
+        Caption = 'PENDIENTES INTERNET'#10'0'
+        Font.Color = 3355443
+        Font.Height = -16
+        Font.Style = [fsBold]
+        Layout = tlCenter
+        ParentFont = False
+      end
+    end
+    object PnlKpiCorrectos: TPanel
+      Left = 740
+      Height = 66
+      Top = 11
+      Width = 220
+      BevelOuter = bvNone
+      Caption = ''
+      Color = 15199722
+      ParentColor = False
+      TabOrder = 3
+      object LblKpiCorrectos: TLabel
+        Left = 0
+        Height = 66
+        Top = 0
+        Width = 220
+        Align = alClient
+        Alignment = taCenter
+        Caption = 'CONFIRMADOS'#10'0'
+        Font.Color = 2639904
+        Font.Height = -16
+        Font.Style = [fsBold]
+        Layout = tlCenter
+        ParentFont = False
+      end
+    end
+  end
+  object FilterPanel: TPanel
+    Left = 0
+    Height = 58
+    Top = 180
+    Width = 1380
+    Align = alTop
+    BevelOuter = bvNone
+    Caption = ''
+    Color = 16316664
+    ParentColor = False
+    TabOrder = 2
+    object LblBuscar: TLabel
+      Left = 18
+      Height = 18
+      Top = 20
+      Width = 45
+      Caption = 'Buscar'
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
+    object LblVista: TLabel
+      Left = 432
+      Height = 18
+      Top = 20
+      Width = 35
+      Caption = 'Vista'
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
+    object LblLimite: TLabel
+      Left = 790
+      Height = 18
+      Top = 20
+      Width = 95
+      Caption = 'Máx. consultas'
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
+    object LblPausa: TLabel
+      Left = 1010
+      Height = 18
+      Top = 20
+      Width = 100
+      Caption = 'Pausa (seg.)'
+      Font.Style = [fsBold]
+      ParentFont = False
+    end
+    object EdBuscar: TEdit
+      Left = 76
+      Height = 34
+      Top = 12
+      Width = 340
+      OnChange = EdBuscarChange
+      TabOrder = 0
+    end
+    object CbVista: TComboBox
+      Left = 480
+      Height = 34
+      Top = 12
+      Width = 290
+      ItemHeight = 0
+      OnChange = CbVistaChange
+      Style = csDropDownList
+      TabOrder = 1
+    end
+    object SeLimite: TSpinEdit
+      Left = 896
+      Height = 34
+      Top = 12
+      Width = 92
+      MaxValue = 1000
+      MinValue = 1
+      TabOrder = 2
+      Value = 50
+    end
+    object SePausa: TSpinEdit
+      Left = 1124
+      Height = 34
+      Top = 12
+      Width = 80
+      MaxValue = 30
+      MinValue = 4
+      TabOrder = 3
+      Value = 5
+    end
+  end
+  object ActionPanel: TPanel
+    Left = 0
+    Height = 522
+    Top = 238
+    Width = 202
+    Align = alLeft
+    BevelOuter = bvNone
+    Caption = ''
+    Color = 15790320
+    ParentColor = False
+    TabOrder = 3
+    object BtnAuditoriaLocal: TBitBtn
+      Left = 14
+      Height = 46
+      Top = 14
+      Width = 174
+      Caption = 'Auditoría local'
+      Font.Style = [fsBold]
+      OnClick = BtnAuditoriaLocalClick
+      ParentFont = False
+      TabOrder = 0
+    end
+    object BtnInternet: TBitBtn
+      Left = 14
+      Height = 46
+      Top = 68
+      Width = 174
+      Caption = 'Internet pendientes'
+      Font.Style = [fsBold]
+      OnClick = BtnInternetClick
+      ParentFont = False
+      TabOrder = 1
+    end
+    object BtnDetener: TBitBtn
+      Left = 14
+      Height = 40
+      Top = 122
+      Width = 174
+      Caption = 'Detener'
+      Enabled = False
+      OnClick = BtnDetenerClick
+      TabOrder = 2
+    end
+    object BtnGS1: TBitBtn
+      Left = 14
+      Height = 44
+      Top = 178
+      Width = 174
+      Caption = 'Comprobar en GS1'
+      OnClick = BtnGS1Click
+      TabOrder = 3
+    end
+    object BtnRegistrarGS1: TBitBtn
+      Left = 14
+      Height = 44
+      Top = 230
+      Width = 174
+      Caption = 'Registrar resultado GS1'
+      OnClick = BtnRegistrarGS1Click
+      TabOrder = 4
+    end
+    object BtnAbrirImagen: TBitBtn
+      Left = 14
+      Height = 40
+      Top = 290
+      Width = 174
+      Caption = 'Abrir imagen'
+      OnClick = BtnAbrirImagenClick
+      TabOrder = 5
+    end
+    object BtnCopiarEAN: TBitBtn
+      Left = 14
+      Height = 40
+      Top = 338
+      Width = 174
+      Caption = 'Copiar EAN'
+      OnClick = BtnCopiarEANClick
+      TabOrder = 6
+    end
+    object BtnMarcarRevisado: TBitBtn
+      Left = 14
+      Height = 40
+      Top = 386
+      Width = 174
+      Caption = 'Marcar revisado'
+      OnClick = BtnMarcarRevisadoClick
+      TabOrder = 7
+    end
+    object BtnExportarCSV: TBitBtn
+      Left = 14
+      Height = 40
+      Top = 434
+      Width = 174
+      Caption = 'Exportar CSV'
+      OnClick = BtnExportarCSVClick
+      TabOrder = 8
+    end
+    object BtnActualizar: TBitBtn
+      Left = 14
+      Height = 40
+      Top = 482
+      Width = 82
+      Caption = 'Actualizar'
+      OnClick = BtnActualizarClick
+      TabOrder = 9
+    end
+    object BtnCerrar: TBitBtn
+      Left = 106
+      Height = 40
+      Top = 482
+      Width = 82
+      Caption = 'Cerrar'
+      OnClick = BtnCerrarClick
+      TabOrder = 10
+    end
+  end
+  object DetailPanel: TPanel
+    Left = 202
+    Height = 522
+    Top = 238
+    Width = 1178
+    Align = alClient
+    BevelOuter = bvNone
+    Caption = ''
+    Color = clWhite
+    ParentColor = False
+    TabOrder = 4
+    object Grid: TDBGrid
+      Left = 0
+      Height = 358
+      Top = 0
+      Width = 1178
+      Align = alClient
+      Color = clWhite
+      DataSource = DataSource1
+      DefaultRowHeight = 27
+      Options = [dgTitles, dgIndicator, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgAlwaysShowSelection]
+      OnDblClick = GridDblClick
+      OnDrawColumnCell = GridDrawColumnCell
+      TabOrder = 0
+    end
+    object MemoDetalle: TMemo
+      Left = 0
+      Height = 164
+      Top = 358
+      Width = 1178
+      Align = alBottom
+      Color = 16448250
+      Font.Name = 'Monospace'
+      ParentFont = False
+      ReadOnly = True
+      ScrollBars = ssAutoVertical
+      TabOrder = 1
+    end
+  end
+  object ProgressPanel: TPanel
+    Left = 0
+    Height = 40
+    Top = 760
+    Width = 1380
+    Align = alBottom
+    BevelOuter = bvNone
+    Caption = ''
+    Color = 16316664
+    ParentColor = False
+    TabOrder = 5
+    object LblProgreso: TLabel
+      Left = 16
+      Height = 18
+      Top = 11
+      Width = 190
+      Caption = 'Preparado para iniciar la auditoría.'
+    end
+    object ProgressBar1: TProgressBar
+      Left = 740
+      Height = 18
+      Top = 11
+      Width = 620
+      Anchors = [akTop, akLeft, akRight]
+      TabOrder = 0
+    end
+  end
+  object StatusBar1: TStatusBar
+    Left = 0
+    Height = 20
+    Top = 800
+    Width = 1380
+    Panels = <>
+    SimplePanel = True
+  end
+  object DataSource1: TDataSource
+    DataSet = qLista
+    Left = 1152
+    Top = 104
+  end
+  object qLista: TZQuery
+    Params = <>
+    Left = 1192
+    Top = 104
+  end
+  object qTrabajo: TZQuery
+    Params = <>
+    Left = 1232
+    Top = 104
+  end
+  object qAux: TZQuery
+    Params = <>
+    Left = 1272
+    Top = 104
+  end
+  object SaveDialog1: TSaveDialog
+    Left = 1312
+    Top = 104
+  end
+end

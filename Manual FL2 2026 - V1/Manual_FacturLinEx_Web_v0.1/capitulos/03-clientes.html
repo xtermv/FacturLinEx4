@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Manual de uso y configuración de FacturLinEx">
+  <meta name="theme-color" content="#155eef">
+  <title>3. Clientes | Manual FacturLinEx</title>
+  <link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/styles.css">
+  <script defer src="../assets/js/search-index.js"></script>
+  <script defer src="../assets/js/app.js"></script>
+</head>
+<body>
+
+<a class="skip-link" href="#contenido">Saltar al contenido</a>
+<header class="topbar">
+  <button class="icon-button menu-button" type="button" aria-label="Abrir menú" aria-expanded="false" data-menu-button>☰</button>
+  <a class="brand" href="../index.html" aria-label="Inicio del manual FacturLinEx">
+    <span class="brand-mark">FLX</span><span><strong>FacturLinEx</strong><small>Manual de uso y configuración</small></span>
+  </a>
+  <div class="top-actions">
+    <button class="search-button" type="button" data-search-open aria-label="Buscar en el manual"><span aria-hidden="true">⌕</span><span>Buscar</span><kbd>Ctrl K</kbd></button>
+    <button class="icon-button" type="button" data-theme-toggle aria-label="Cambiar modo de color">◐</button>
+  </div>
+</header>
+<div class="menu-overlay" data-menu-overlay></div>
+
+<div class="app-shell">
+  <aside class="sidebar" data-sidebar>
+    <div class="sidebar-inner">
+      <a class="sidebar-home" href="../index.html">⌂ Página principal</a>
+      <nav aria-label="Capítulos del manual"><a href="../capitulos/control-del-documento.html"><span class="nav-number">i</span><span>Control del documento</span></a>
+<a href="../capitulos/01-primeros-pasos-y-navegacion.html"><span class="nav-number">1</span><span>Primeros pasos y navegación</span></a>
+<a href="../capitulos/02-configuracion-inicial.html"><span class="nav-number">2</span><span>Configuración inicial</span></a>
+<a href="../capitulos/03-clientes.html" class="active" aria-current="page"><span class="nav-number">3</span><span>Clientes</span></a>
+<a href="../capitulos/04-articulos-familias-y-tarifas.html"><span class="nav-number">4</span><span>Artículos, familias y tarifas</span></a>
+<a href="../capitulos/05-ventas-y-tpv.html"><span class="nav-number">5</span><span>Ventas y TPV</span></a>
+<a href="../capitulos/06-caja-cobros-y-creditos.html"><span class="nav-number">6</span><span>Caja, cobros y créditos</span></a>
+<a href="../capitulos/07-compras-pedidos-y-existencias.html"><span class="nav-number">7</span><span>Compras, pedidos y existencias</span></a>
+<a href="../capitulos/08-facturacion-impresion-pdf-y-correo.html"><span class="nav-number">8</span><span>Facturación, impresión, PDF y correo</span></a>
+<a href="../capitulos/09-verifactu-y-documentos-rectificativos.html"><span class="nav-number">9</span><span>VeriFactu y documentos rectificativos</span></a>
+<a href="../capitulos/10-dashboard-consultas-y-estadisticas.html"><span class="nav-number">10</span><span>Dashboard, consultas y estadísticas</span></a>
+<a href="../capitulos/11-copias-de-seguridad-y-mantenimiento.html"><span class="nav-number">11</span><span>Copias de seguridad y mantenimiento</span></a>
+<a href="../capitulos/12-solucion-de-problemas.html"><span class="nav-number">12</span><span>Solución de problemas</span></a>
+<a href="../capitulos/13-anexos-y-referencia-rapida.html"><span class="nav-number">13</span><span>Anexos y referencia rápida</span></a>
+<a href="../capitulos/14-plan-de-ampliacion-del-manual.html"><span class="nav-number">14</span><span>Plan de ampliación del manual</span></a></nav>
+      <div class="sidebar-downloads"><strong>Descargas</strong>
+        <a href="../descargas/Manual_FacturLinEx_v0.1_Base_Funcional.pdf">Manual PDF</a>
+        <a href="../descargas/Manual_FacturLinEx_v0.1_Base_Funcional.docx">Manual DOCX</a>
+      </div>
+    </div>
+  </aside>
+  <main id="contenido" class="main-content">
+    <article class="manual-page">
+      <header class="chapter-header"><span class="eyebrow">Capítulo 3</span><h1>Clientes</h1><p class="chapter-version">Edición v0.1 · Base funcional</p></header>
+      <nav class="page-toc" aria-label="En esta página"><strong>En esta página</strong><a href="#3-1-acceso-y-foco-inicial">3.1 Acceso y foco inicial</a><a href="#3-2-consultar-un-cliente">3.2 Consultar un cliente</a><a href="#3-3-crear-un-cliente">3.3 Crear un cliente</a><a href="#3-4-coincidencias-de-nif">3.4 Coincidencias de NIF</a><a href="#3-5-cliente-a-precio-de-coste">3.5 Cliente a precio de coste</a><a href="#3-6-modificacion-y-borrado">3.6 Modificación y borrado</a><a href="#3-7-lista-de-comprobacion">3.7 Lista de comprobación</a></nav>
+      <div class="chapter-content"><aside class="callout callout-info"><span class="callout-icon" aria-hidden="true">i</span><div><strong>ESTADO</strong><p>Basado en la versión validada clientes_moderno_v2_fix13_selector_formulario_facturas.zip.</p></div></aside>
+<h2 id="3-1-acceso-y-foco-inicial">3.1 Acceso y foco inicial <a class="heading-link" href="#3-1-acceso-y-foco-inicial" aria-label="Enlace a esta sección">#</a></h2>
+<p>Al abrir el formulario de Clientes, el foco debe situarse en el campo Código, que es el punto de entrada principal. Esto permite consultar o crear clientes sin utilizar el ratón.</p>
+<ul>
+<li>ESC cierra el formulario desde la página principal.</li>
+<li>Si existe un selector, diálogo o edición pendiente, ESC debe atender primero ese elemento.</li>
+<li>Los grids permiten ordenar por columnas y muestran el sentido de ordenación.</li>
+</ul>
+<h2 id="3-2-consultar-un-cliente">3.2 Consultar un cliente <a class="heading-link" href="#3-2-consultar-un-cliente" aria-label="Enlace a esta sección">#</a></h2>
+<ol>
+<li>Escribir el código si se conoce y confirmar.</li>
+<li>Utilizar la búsqueda por nombre, razón social, NIF o datos relacionados cuando no se conozca el código.</li>
+<li>Revisar la ficha completa antes de modificarla, especialmente condiciones fiscales, tarifas y opciones de facturación.</li>
+<li>Comprobar documentos asociados desde los selectores o pestañas disponibles.</li>
+</ol>
+<h2 id="3-3-crear-un-cliente">3.3 Crear un cliente <a class="heading-link" href="#3-3-crear-un-cliente" aria-label="Enlace a esta sección">#</a></h2>
+<p>El código propuesto debe respetar la misma lógica utilizada por Ventas y por la ficha de Clientes. Antes de guardar, debe comprobarse que el cliente no existe con otro código.</p>
+<ul class="checklist"><li><span class="checkbox" aria-hidden="true"></span><span>Código correcto y no duplicado.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Nombre o razón social completo.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>NIF/CIF/DNI/NIE revisado.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Dirección, población, provincia y código postal.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Teléfono y correo electrónico.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Forma de pago y condiciones comerciales.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Serie o circuito de facturación cuando proceda.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Opciones especiales C41, C42, C55, C56 y C57 revisadas cuando sean aplicables.</span></li></ul>
+<h2 id="3-4-coincidencias-de-nif">3.4 Coincidencias de NIF <a class="heading-link" href="#3-4-coincidencias-de-nif" aria-label="Enlace a esta sección">#</a></h2>
+<p>Cuando un NIF coincide con más de un cliente, no debe seleccionarse automáticamente el primer registro. Debe mostrarse una ventana con todas las coincidencias para que el usuario elija la entidad correcta. Este caso aparece con frecuencia en entidades públicas, grupos relacionados o fichas históricas.</p>
+<aside class="callout callout-info"><span class="callout-icon" aria-hidden="true">i</span><div><strong>BUENAS PRÁCTICAS</strong><p>No utilizar únicamente el NIF para decidir el cliente. Comparar también nombre, dirección, centro, departamento y código interno.</p></div></aside>
+<h2 id="3-5-cliente-a-precio-de-coste">3.5 Cliente a precio de coste <a class="heading-link" href="#3-5-cliente-a-precio-de-coste" aria-label="Enlace a esta sección">#</a></h2>
+<p>La opción asociada al campo C57 permite identificar clientes cuyas ventas deben calcularse con precios de coste, por ejemplo para consumo propio. Esta función requiere una revisión fiscal cuidadosa y debe comprobarse en Ventas antes de utilizarla de forma general.</p>
+<aside class="callout callout-info"><span class="callout-icon" aria-hidden="true">i</span><div><strong>PENDIENTE DE VALIDACIÓN COMPLETA</strong><p>La lógica comercial puede estar implementada, pero el tratamiento del IVA, márgenes, descuentos, estadísticas y documentos debe comprobarse en cada circuito.</p></div></aside>
+<h2 id="3-6-modificacion-y-borrado">3.6 Modificación y borrado <a class="heading-link" href="#3-6-modificacion-y-borrado" aria-label="Enlace a esta sección">#</a></h2>
+<p>Antes de modificar datos fiscales o comerciales, debe revisarse si el cliente tiene documentos pendientes. El borrado físico de clientes con histórico puede afectar consultas y trazabilidad; cuando sea posible, es preferible desactivar o marcar la ficha en lugar de eliminarla.</p>
+<h2 id="3-7-lista-de-comprobacion">3.7 Lista de comprobación <a class="heading-link" href="#3-7-lista-de-comprobacion" aria-label="Enlace a esta sección">#</a></h2>
+<ul class="checklist"><li><span class="checkbox" aria-hidden="true"></span><span>El foco entra en Código.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>La búsqueda general se abre centrada y permite ver el formulario de origen.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Las columnas ordenan correctamente.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Los botones de búsqueda y rutas son visibles.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Las opciones críticas no quedan ocultas.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>ESC vuelve al menú sin cerrar diálogos de forma insegura.</span></li></ul>
+<figure class="capture-placeholder" role="img" aria-label="Captura pendiente: Ficha de cliente con campos principales y opciones críticas"><div class="capture-icon" aria-hidden="true">▧</div><figcaption><strong>Captura pendiente</strong><span>Ficha de cliente con campos principales y opciones críticas</span></figcaption></figure></div>
+      <nav class="chapter-navigation" aria-label="Capítulos anterior y siguiente"><a class="chapter-nav-card previous" href="02-configuracion-inicial.html"><small>Anterior</small><strong>← 2. Configuración inicial</strong></a><a class="chapter-nav-card next" href="04-articulos-familias-y-tarifas.html"><small>Siguiente</small><strong>4. Artículos, familias y tarifas →</strong></a></nav>
+    </article>
+    
+<footer class="site-footer">
+  <p><strong>Manual FacturLinEx v0.1</strong> · Base funcional · 24 de julio de 2026</p>
+  <p>Documento vivo: los procedimientos se actualizarán cuando cambie una función validada.</p>
+  <a href="../descargas/Manual_FacturLinEx_v0.1_Base_Funcional.pdf">Descargar PDF</a>
+</footer>
+
+  </main>
+</div>
+
+<dialog class="search-dialog" data-search-dialog aria-label="Buscar en el manual">
+  <form method="dialog" class="search-panel">
+    <div class="search-input-row">
+      <span aria-hidden="true">⌕</span>
+      <input type="search" data-search-input placeholder="Buscar clientes, ventas, VeriFactu..." autocomplete="off" aria-label="Texto de búsqueda">
+      <button type="submit" class="dialog-close" aria-label="Cerrar búsqueda">Esc</button>
+    </div>
+    <div class="search-hint" data-search-hint>Escribe al menos dos caracteres.</div>
+    <div class="search-results" data-search-results aria-live="polite"></div>
+  </form>
+</dialog>
+</body>
+</html>

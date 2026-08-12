@@ -1,0 +1,42 @@
+FACTURLINEX 4.2.6J - ABOUT / VERSIONADO / DOCUMENTACION SIF
+
+Archivos:
+- about.pas
+- about.lfm (sin cambios funcionales respecto a la base aportada)
+- uFLXVersionInfo.pas
+- MANIFIESTO_FACTURLINEX.txt
+- GPL-3.0.txt (sin modificar)
+
+Cambios principales:
+1. Identificador SIF: FL
+2. Productor:
+   E. José Belenguer Belenguer
+   NIF 73559542E
+   Calle Penya 2, 46220 Picassent, Valencia, España
+3. Se mantiene estado:
+   En preparación para auditoría VeriFactu
+   NO se muestra todavía como declaración cerrada/certificada.
+4. Pestaña VeriFactu muestra:
+   - FL
+   - versión 4.2.6J
+   - modalidad productiva VERI*FACTU
+   - multiobligado NO
+   - productor/NIF/dirección
+5. Documentación:
+   Busca declaración y manual técnico específicos de 4.2.6J,
+   incluyendo borradores durante desarrollo.
+6. Rutas de desarrollo:
+   Documentacion/
+   Documentacion/VeriFactu/
+   Documentacion/VeriFactu/DeclaracionResponsable/
+   Documentacion/VeriFactu/ManualTecnico/
+7. Rutas previstas de instalación:
+   /usr/share/facturlinex2/Documentacion/
+   /usr/share/facturlinex2/Documentacion/VeriFactu/
+   /usr/share/facturlinex2/Documentacion/VeriFactu/DeclaracionResponsable/
+   /usr/share/facturlinex2/Documentacion/VeriFactu/ManualTecnico/
+8. Se conserva compatibilidad con /usr/share/facturlinex2/documentacion/
+9. MANIFIESTO actualizado de 4.2.2 a 4.2.6J.
+10. GPL-3.0 se conserva íntegra.
+
+No se modifica ninguna unidad de envío, hash, XML, subsanación o cola VeriFactu.

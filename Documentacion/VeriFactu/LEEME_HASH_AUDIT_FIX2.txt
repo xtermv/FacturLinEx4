@@ -1,0 +1,27 @@
+HOTFIX V1.7 HASH AUDIT - FIX 2
+
+Problema corregido:
+- La declaración pública de VeriFactu_SaveHashAuditData era correcta.
+- La implementación completa quedó insertada por error dentro de INTERFACE.
+- Eso provocaba:
+  * Function is already declared Public/Forward
+  * TZConnection not found
+  * TZQuery not found
+
+Corrección:
+- Se conserva UNA sola declaración en interface.
+- Se mueve UNA sola implementación a implementation,
+  después de GetConnForOps.
+- Se conserva el campo origen del V1.7.
+
+SUSTITUIR ÚNICAMENTE:
+Ventas/uVeriFactu.pas
+
+NO sustituir ni modificar:
+verifactu/uVFSenderAEAT.pas
+Ventas/ventas.pas
+Facturar/*
+uVeriFactuDispatcher.pas
+
+Compilar:
+lazbuild -B FacturLinEx.lpi

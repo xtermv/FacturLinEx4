@@ -6,7 +6,8 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, Buttons,
-  LCLType, ExtCtrls, uVeriSIF, Global, uVF_CertTools, IniFiles;
+  LCLType, ExtCtrls, uVeriSIF, Global, uVF_CertTools, IniFiles,
+  uFLXCertificationProfile;
 
 type
 
@@ -186,6 +187,15 @@ var
   CheckMultiOT.Checked     := SameText(FSIFCfg.MultiOT, 'S');
   CheckMultiplesOT.Checked := SameText(FSIFCfg.MultiplesOT, 'S');
 
+  { Identidad certificada: visible pero no editable desde una instalación. }
+  EditNombreSistema.ReadOnly := True;
+  EditIdSistema.ReadOnly     := True;
+  EditVersion.ReadOnly       := True;
+  CheckSoloVF.Enabled        := False;
+  CheckMultiOT.Enabled       := False;
+  CheckMultiplesOT.Enabled   := False;
+  Button1.Enabled            := False;
+
   // 👉 Atajos de teclado
   BtnAceptar.ModalResult   := mrOk;
   BtnCancelar.ModalResult  := mrCancel;
@@ -260,16 +270,16 @@ var
   IniPath: string;
 begin
   // Volcar valores de los controles a la estructura
-  FSIFCfg.NombreRazon       := Trim(Empresa);
-  FSIFCfg.Nif               := Trim(Nif);
-  FSIFCfg.NombreSistema     := Trim(EditNombreSistema.Text);
-  FSIFCfg.IdSistema         := Trim(EditIdSistema.Text);
-  FSIFCfg.Version           := Trim(EditVersion.Text);
+  { La identidad del SIF/productor pertenece a la compilación certificada. }
+  FSIFCfg.NombreRazon       := FLX_CERT_PRODUCER_NAME;
+  FSIFCfg.Nif               := FLX_CERT_PRODUCER_NIF;
+  FSIFCfg.NombreSistema     := FLX_CERT_SIF_NAME;
+  FSIFCfg.IdSistema         := FLX_CERT_SIF_ID;
+  FSIFCfg.Version           := FLXCertVersion;
   FSIFCfg.NumeroInstalacion := Trim(EditNumeroInst.Text);
-
-  if CheckSoloVF.Checked      then FSIFCfg.SoloVerifactu := 'S' else FSIFCfg.SoloVerifactu := 'N';
-  if CheckMultiOT.Checked     then FSIFCfg.MultiOT       := 'S' else FSIFCfg.MultiOT       := 'N';
-  if CheckMultiplesOT.Checked then FSIFCfg.MultiplesOT   := 'S' else FSIFCfg.MultiplesOT   := 'N';
+  FSIFCfg.SoloVerifactu     := FLX_CERT_ONLY_VERIFACTU;
+  FSIFCfg.MultiOT           := FLX_CERT_MULTI_OT;
+  FSIFCfg.MultiplesOT       := FLX_CERT_MULTIPLES_OT;
 
   // Guardar en FacturConf.ini Parte SIF
   VF_SIF_Save(FSIFCfg);

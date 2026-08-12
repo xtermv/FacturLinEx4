@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Manual de uso y configuración de FacturLinEx">
+  <meta name="theme-color" content="#155eef">
+  <title>9. VeriFactu y documentos rectificativos | Manual FacturLinEx</title>
+  <link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/styles.css">
+  <script defer src="../assets/js/search-index.js"></script>
+  <script defer src="../assets/js/app.js"></script>
+</head>
+<body>
+
+<a class="skip-link" href="#contenido">Saltar al contenido</a>
+<header class="topbar">
+  <button class="icon-button menu-button" type="button" aria-label="Abrir menú" aria-expanded="false" data-menu-button>☰</button>
+  <a class="brand" href="../index.html" aria-label="Inicio del manual FacturLinEx">
+    <span class="brand-mark">FLX</span><span><strong>FacturLinEx</strong><small>Manual de uso y configuración</small></span>
+  </a>
+  <div class="top-actions">
+    <button class="search-button" type="button" data-search-open aria-label="Buscar en el manual"><span aria-hidden="true">⌕</span><span>Buscar</span><kbd>Ctrl K</kbd></button>
+    <button class="icon-button" type="button" data-theme-toggle aria-label="Cambiar modo de color">◐</button>
+  </div>
+</header>
+<div class="menu-overlay" data-menu-overlay></div>
+
+<div class="app-shell">
+  <aside class="sidebar" data-sidebar>
+    <div class="sidebar-inner">
+      <a class="sidebar-home" href="../index.html">⌂ Página principal</a>
+      <nav aria-label="Capítulos del manual"><a href="../capitulos/control-del-documento.html"><span class="nav-number">i</span><span>Control del documento</span></a>
+<a href="../capitulos/01-primeros-pasos-y-navegacion.html"><span class="nav-number">1</span><span>Primeros pasos y navegación</span></a>
+<a href="../capitulos/02-configuracion-inicial.html"><span class="nav-number">2</span><span>Configuración inicial</span></a>
+<a href="../capitulos/03-clientes.html"><span class="nav-number">3</span><span>Clientes</span></a>
+<a href="../capitulos/04-articulos-familias-y-tarifas.html"><span class="nav-number">4</span><span>Artículos, familias y tarifas</span></a>
+<a href="../capitulos/05-ventas-y-tpv.html"><span class="nav-number">5</span><span>Ventas y TPV</span></a>
+<a href="../capitulos/06-caja-cobros-y-creditos.html"><span class="nav-number">6</span><span>Caja, cobros y créditos</span></a>
+<a href="../capitulos/07-compras-pedidos-y-existencias.html"><span class="nav-number">7</span><span>Compras, pedidos y existencias</span></a>
+<a href="../capitulos/08-facturacion-impresion-pdf-y-correo.html"><span class="nav-number">8</span><span>Facturación, impresión, PDF y correo</span></a>
+<a href="../capitulos/09-verifactu-y-documentos-rectificativos.html" class="active" aria-current="page"><span class="nav-number">9</span><span>VeriFactu y documentos rectificativos</span></a>
+<a href="../capitulos/10-dashboard-consultas-y-estadisticas.html"><span class="nav-number">10</span><span>Dashboard, consultas y estadísticas</span></a>
+<a href="../capitulos/11-copias-de-seguridad-y-mantenimiento.html"><span class="nav-number">11</span><span>Copias de seguridad y mantenimiento</span></a>
+<a href="../capitulos/12-solucion-de-problemas.html"><span class="nav-number">12</span><span>Solución de problemas</span></a>
+<a href="../capitulos/13-anexos-y-referencia-rapida.html"><span class="nav-number">13</span><span>Anexos y referencia rápida</span></a>
+<a href="../capitulos/14-plan-de-ampliacion-del-manual.html"><span class="nav-number">14</span><span>Plan de ampliación del manual</span></a></nav>
+      <div class="sidebar-downloads"><strong>Descargas</strong>
+        <a href="../descargas/Manual_FacturLinEx_v0.1_Base_Funcional.pdf">Manual PDF</a>
+        <a href="../descargas/Manual_FacturLinEx_v0.1_Base_Funcional.docx">Manual DOCX</a>
+      </div>
+    </div>
+  </aside>
+  <main id="contenido" class="main-content">
+    <article class="manual-page">
+      <header class="chapter-header"><span class="eyebrow">Capítulo 9</span><h1>VeriFactu y documentos rectificativos</h1><p class="chapter-version">Edición v0.1 · Base funcional</p></header>
+      <nav class="page-toc" aria-label="En esta página"><strong>En esta página</strong><a href="#9-1-tipos-de-documento">9.1 Tipos de documento</a><a href="#9-2-cola-verifactu">9.2 Cola VeriFactu</a><a href="#9-3-monitor">9.3 Monitor</a><a href="#9-4-errores-conocidos">9.4 Errores conocidos</a><a href="#9-5-rectificativas">9.5 Rectificativas</a></nav>
+      <div class="chapter-content"><aside class="callout callout-info"><span class="callout-icon" aria-hidden="true">i</span><div><strong>ESTADO</strong><p>Monitor y estructura principal conocidos. Los circuitos rectificativos deben seguir probándose con casos reales y de excepción.</p></div></aside>
+<h2 id="9-1-tipos-de-documento">9.1 Tipos de documento <a class="heading-link" href="#9-1-tipos-de-documento" aria-label="Enlace a esta sección">#</a></h2>
+<div class="table-scroll"><table><thead><tr><th scope="col">Código</th><th scope="col">Descripción</th><th scope="col">Serie habitual</th></tr></thead><tbody><tr><td>F1</td><td>Factura completa</td><td>Serie normal.</td></tr><tr><td>F2</td><td>Factura simplificada</td><td>Serie con prefijo FS-.</td></tr><tr><td>Rectificativa normal</td><td>Corrige una factura completa</td><td>R26 u otra serie configurada.</td></tr><tr><td>Rectificativa simplificada</td><td>Corrige una simplificada</td><td>FS-R26 u otra serie configurada.</td></tr></tbody></table></div>
+<h2 id="9-2-cola-verifactu">9.2 Cola VeriFactu <a class="heading-link" href="#9-2-cola-verifactu" aria-label="Enlace a esta sección">#</a></h2>
+<p>La cola conserva los datos necesarios para el envío y seguimiento: serie, número, fecha, hora, total con IVA, estado, JSON, hash, hash anterior, fecha ISO y tipo de factura.</p>
+<div class="table-scroll"><table><thead><tr><th scope="col">Campo</th><th scope="col">Función</th></tr></thead><tbody><tr><td>estado</td><td>Situación del registro: pendiente, enviado, aceptado, error, etc.</td></tr><tr><td>payload_json</td><td>Contenido preparado para el envío.</td></tr><tr><td>hash</td><td>Huella SHA-256 del registro canónico y fecha.</td></tr><tr><td>hash_prev</td><td>Hash del registro anterior de la serie.</td></tr><tr><td>fecha_isoz</td><td>Marca temporal normalizada.</td></tr><tr><td>tipo_factura</td><td>F1 o F2.</td></tr></tbody></table></div>
+<h2 id="9-3-monitor">9.3 Monitor <a class="heading-link" href="#9-3-monitor" aria-label="Enlace a esta sección">#</a></h2>
+<p>El monitor muestra fecha, hora, serie, número, tipo, estado, resultado, intentos, hash, hash anterior y token. Debe utilizarse para distinguir un documento generado correctamente de uno realmente aceptado por Hacienda.</p>
+<aside class="callout callout-info"><span class="callout-icon" aria-hidden="true">i</span><div><strong>INTERPRETACIÓN</strong><p>Que un documento exista o se haya enviado no significa necesariamente que figure como Aceptado. Revisar el estado y la respuesta devuelta.</p></div></aside>
+<h2 id="9-4-errores-conocidos">9.4 Errores conocidos <a class="heading-link" href="#9-4-errores-conocidos" aria-label="Enlace a esta sección">#</a></h2>
+<div class="table-scroll"><table><thead><tr><th scope="col">Código / síntoma</th><th scope="col">Interpretación orientativa</th></tr></thead><tbody><tr><td>4102</td><td>Problema relacionado con DescripcionOperacion.</td></tr><tr><td>1189</td><td>Datos de destinatarios incompletos o no permitidos.</td></tr><tr><td>1054</td><td>Referencia incorrecta a payload en lugar de payload_json.</td></tr><tr><td>2004</td><td>Problema de timestamp o formato temporal.</td></tr><tr><td>Aceptado con errores en F2</td><td>Revisar desglose de IVA e ImporteTotal.</td></tr></tbody></table></div>
+<h2 id="9-5-rectificativas">9.5 Rectificativas <a class="heading-link" href="#9-5-rectificativas" aria-label="Enlace a esta sección">#</a></h2>
+<p>Cuando existen líneas negativas, el sistema puede solicitar el tipo de origen, serie, número y motivo. La relación con el documento original debe conservarse en históricos y JSON.</p>
+<ul class="checklist"><li><span class="checkbox" aria-hidden="true"></span><span>Tipo de origen correcto: simplificado o normal.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Serie y número del documento original.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Cliente coincidente cuando el circuito lo exige.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Motivo de rectificación informado.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Importes y signos correctos.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Registro creado en tablas rectificativas e histórico.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Cola VeriFactu generada sin duplicidad.</span></li><li><span class="checkbox" aria-hidden="true"></span><span>Documento impreso correctamente.</span></li></ul>
+<aside class="callout callout-info"><span class="callout-icon" aria-hidden="true">i</span><div><strong>CASOS SENSIBLES</strong><p>Ventas mixtas, rectificativas manuales sin histórico y documentos aparcados requieren comprobación especial.</p></div></aside></div>
+      <nav class="chapter-navigation" aria-label="Capítulos anterior y siguiente"><a class="chapter-nav-card previous" href="08-facturacion-impresion-pdf-y-correo.html"><small>Anterior</small><strong>← 8. Facturación, impresión, PDF y correo</strong></a><a class="chapter-nav-card next" href="10-dashboard-consultas-y-estadisticas.html"><small>Siguiente</small><strong>10. Dashboard, consultas y estadísticas →</strong></a></nav>
+    </article>
+    
+<footer class="site-footer">
+  <p><strong>Manual FacturLinEx v0.1</strong> · Base funcional · 24 de julio de 2026</p>
+  <p>Documento vivo: los procedimientos se actualizarán cuando cambie una función validada.</p>
+  <a href="../descargas/Manual_FacturLinEx_v0.1_Base_Funcional.pdf">Descargar PDF</a>
+</footer>
+
+  </main>
+</div>
+
+<dialog class="search-dialog" data-search-dialog aria-label="Buscar en el manual">
+  <form method="dialog" class="search-panel">
+    <div class="search-input-row">
+      <span aria-hidden="true">⌕</span>
+      <input type="search" data-search-input placeholder="Buscar clientes, ventas, VeriFactu..." autocomplete="off" aria-label="Texto de búsqueda">
+      <button type="submit" class="dialog-close" aria-label="Cerrar búsqueda">Esc</button>
+    </div>
+    <div class="search-hint" data-search-hint>Escribe al menos dos caracteres.</div>
+    <div class="search-results" data-search-results aria-live="polite"></div>
+  </form>
+</dialog>
+</body>
+</html>

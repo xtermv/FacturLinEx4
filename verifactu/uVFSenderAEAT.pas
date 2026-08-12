@@ -5,7 +5,7 @@ unit uVFSenderAEAT;
 interface
 
 uses
-  Classes, SysUtils, blcksock,
+  Classes, SysUtils, StrUtils, blcksock,
   httpsend, ssl_openssl, synautil,  // Synapse 40
   config, Funciones, Menu, Global,
   uVFFirmaXML, uVeriFactu, uVeriHash,
@@ -32,6 +32,24 @@ function VF_SendAEAT_HTTP(const Serie: string; Numero: Integer;
   const PayloadJSON: string;
   const EncadenamientoHash: string;
   out Hash: string; out Respuesta: string): Boolean;
+
+function VF_PrepareAEATHash_NoSend(const Serie: string; Numero: Integer;
+  const PayloadJSON, HashPrev: string; const QueueID: Int64;
+  out Hash, FechaHoraHuso, ErrorText: string): Boolean;
+
+function VF_PrepareAEATSubsanacionXML_NoSend(const Serie: string; Numero: Integer;
+  const PayloadJSON, HashPrev: string; const QueueID: Int64;
+  const FechaHoraHuso, Subsanacion, RechazoPrevio: string;
+  const PrevSerie: string; const PrevNumero: Integer; const PrevFechaAEAT: string;
+  out XML, Hash, ErrorText: string): Boolean;
+
+// Transporte específico para XML previamente validado.
+// NO construye XML ni recalcula huella. Reutiliza URL/TLS/certificado y
+// criterios de interpretación de respuesta del sender estable.
+function VF_SendPreparedXML_HTTP(const RequestLabel, XML: string;
+  out Respuesta: string): Boolean;
+
+function VF_GetConfiguredAEATEnvironment(out AURL: string): string;
 
 implementation
 
@@ -667,7 +685,11 @@ end;
 //   lineas[0..] para descripcion
 //   impuestos.ivas[n].tipo / base / cuota  (múltiples IVAs)
 function BuildVeriFactuXMLFromJSON(const Serie: string; Numero: Integer;
-  const PayloadJSON: string;var AHash: string; const AHashPrev: string): string;
+  const PayloadJSON: string; var AHash: string; const AHashPrev: string;
+  const AQueueID: Int64 = 0; const AForcedFechaHoraHuso: string = '';
+  const ASubsanacion: string = 'N'; const ARechazoPrevio: string = 'N';
+  const APrevSerie: string = ''; const APrevNumero: Integer = 0;
+  const APrevFechaAEAT: string = ''): string;
 var
   NIFEmisor, NombreEmisor: string;
   NIFClienteRaw, NIFCliente, NombreCliente: string;
@@ -682,7 +704,9 @@ var
   HasAnyIVA: Boolean;
   SerieXML, TipoFacturaXML, TipoFacGlobal: string;
   PrevNumero: Integer;
-  PrevNumSerie, PrevFecha: string;
+  PrevNumSerie, PrevFecha, PrevRealSerie: string;
+  PrevRealNumero: Integer;
+  PrevRealDate: TDateTime;
   //-- Variables SIFFactu
   SIFCfg: TVeriSIFConfig;
 
@@ -820,32 +844,21 @@ begin
   // -----------------------------------------------
   // ----- DATOS DEL SISTEMA INFORMÁTICO (SIF) -----
   // -----------------------------------------------
-  // Estos valores deben coincidir con la ficha que te haya aprobado la AEAT.
-  // CAMBIA SOLO ESTAS LÍNEAS cuando tengas los datos definitivos:
-  SIFNombreRazon   := NombreEmisor;        // o el nombre que conste para el SIF
-  SIFNIF           := NIFEmisor;           // NIF asociado al SIF
+  SIFNombreRazon   := NombreEmisor;
+  SIFNIF           := NIFEmisor;
+  SIFNombreSistema := 'FacturLinEx';
+  SIFId            := 'FL';
+  SIFVersion       := '4.2.6J';
+  SIFNumeroInst    := '1';
+  SIFSoloVF        := 'S';
+  SIFMultiOT       := 'N';
+  SIFMultiplesOT   := 'N';
 
-  SIFNombreSistema := 'FacturLinEx 2.0 (SIF Libre)';   // Nombre del sistema (según AEAT)
-  SIFId            := Copy(GetMachineUUIDFromFile, 1, 16);  //-- Este también sería viable "SIFId := 'FacturlinexLibre';"
-  															// IdSistemaInformatico (el que te asignen)
-  SIFVersion       := '2.0.0';             // Versión declarada del SIF
-  SIFNumeroInst    := '1';                 // Número de instalación (si solo hay una, "1")
-
-  // Indicadores de uso (ajusta según cómo conste en tu alta SIF):
-  SIFSoloVF        := 'N';  // ¿Uso posible solo Veri*Factu?  S/N
-  SIFMultiOT       := 'N';  // ¿Uso posible multi OT (múltiples obligados)? S/N
-  SIFMultiplesOT   := 'N';  // ¿Indicador de múltiples OT en esta instalación? S/N
-  // -----------------------------------------------
-  // ----- FIN DATOS SISTEMA INFORMÁTICO (SIF) -----
-  // -----------------------------------------------
-  // -- A ver que datos selecciona, solo cambia la versión para la prueba.
-  // -----------------------------------------------
-  // ----- DATOS DEL SISTEMA INFORMÁTICO (SIF) -----
-  // ***** NUEVO SISTEMA CONFIGURABLE EN FORM ******
-  // -----------------------------------------------
+  // Configuración persistida del SIF:
   VF_SIF_Load(SIFCfg);
-  //-- SIFNombreRazon   := SIFCfg.NombreRazon;   //-- De momento mantenemos los del sistema
-  //-- SIFNIF           := SIFCfg.NIF;           //-- De momento mantenemos los del sistema
+  { SistemaInformatico identifica al PRODUCTOR del SIF, no al obligado emisor. }
+  SIFNombreRazon   := SIFCfg.NombreRazon;
+  SIFNIF           := SIFCfg.NIF;
   SIFNombreSistema := SIFCfg.NombreSistema;
   SIFId            := SIFCfg.IdSistema; //-- Confirmado , debe ser un código de 2 Letras o Números , pero solo 2, por defecto FL
   SIFVersion       := SIFCfg.Version;
@@ -959,7 +972,10 @@ begin
 
   // Fecha/hora generación registro con huso local real.
   // Se calcula justo al construir el XML, no desde la fecha/hora de la venta.
-  FechaHoraGenRegistro := VF_LocalISO8601NowWithOffset;
+  if Trim(AForcedFechaHoraHuso) <> '' then
+    FechaHoraGenRegistro := AForcedFechaHoraHuso
+  else
+    FechaHoraGenRegistro := VF_LocalISO8601NowWithOffset;
 
   // =========================
   //  CABECERA + REGISTROALTA
@@ -990,8 +1006,12 @@ begin
     '            <sum1:FechaExpedicionFactura>' + FechaAEAT + '</sum1:FechaExpedicionFactura>' + LineEnding +
     '          </sum1:IDFactura>' + LineEnding +
     '          <sum1:NombreRazonEmisor>' + NombreEmisor + '</sum1:NombreRazonEmisor>' + LineEnding +
-    '          <sum1:Subsanacion>N</sum1:Subsanacion>' + LineEnding +
-    '          <sum1:RechazoPrevio>N</sum1:RechazoPrevio>' + LineEnding +
+    '          <sum1:Subsanacion>' +
+                IfThen(SameText(Trim(ASubsanacion), 'S'), 'S', 'N') +
+                '</sum1:Subsanacion>' + LineEnding +
+    '          <sum1:RechazoPrevio>' +
+                IfThen(SameText(Trim(ARechazoPrevio), 'X'), 'X', 'N') +
+                '</sum1:RechazoPrevio>' + LineEnding +
     '          <sum1:TipoFactura>' + TipoFacturaXML + '</sum1:TipoFactura>' + LineEnding;
 
   // =====================================================
@@ -1156,6 +1176,39 @@ begin
     FechaHoraGenRegistro  // 'YYYY-MM-DDThh:nn:ss+01:00'
   );
 
+  // Guardamos la entrada exacta usada para calcular la huella SIF-B.
+  if AQueueID > 0 then
+    VeriFactu_SaveHashAuditDataByID(
+      AQueueID,
+      VF_BuildSIFHashInput(
+        NIFEmisor,
+        NumSerieFactura,
+        FechaAEAT,
+        TipoFacturaXML,
+        CuotaTotalD,
+        ImporteTotalD,
+        AHashPrev,
+        FechaHoraGenRegistro
+      ),
+      FechaHoraGenRegistro
+    )
+  else
+    VeriFactu_SaveHashAuditData(
+      Serie,
+      Numero,
+      VF_BuildSIFHashInput(
+        NIFEmisor,
+        NumSerieFactura,
+        FechaAEAT,
+        TipoFacturaXML,
+        CuotaTotalD,
+        ImporteTotalD,
+        AHashPrev,
+        FechaHoraGenRegistro
+      ),
+      FechaHoraGenRegistro
+    );
+
   // devolvemos la huella AEAT al llamador
   AHash := HashAEAT;
 
@@ -1164,13 +1217,31 @@ begin
   // =========================
   if AHashPrev <> '' then
   begin
-    // Para identificar el registro anterior usamos misma serie y número-1
-    PrevNumero  := Numero - 1;
-    if PrevNumero < 1 then
-      PrevNumero := Numero; // seguridad básica
+    { Para ORIG conservamos el comportamiento histórico.
+      Para SUB-* V1.12 recibe la identidad REAL del RF anterior. }
+    if (Trim(APrevSerie) <> '') and (APrevNumero > 0) and
+       (Trim(APrevFechaAEAT) <> '') then
+    begin
+      PrevNumero  := APrevNumero;
+      PrevNumSerie := Trim(APrevSerie) + '-' + IntToStr(APrevNumero);
+      PrevFecha    := Trim(APrevFechaAEAT);
+    end
+    else
+    begin
+      PrevRealSerie := '';
+      PrevRealNumero := 0;
+      PrevRealDate := 0;
 
-    PrevNumSerie := SerieXML + '-' + IntToStr(PrevNumero);
-    PrevFecha    := FechaAEAT; // misma fecha de expedición
+      if not VeriFactu_GetRecordIdentityByHash(
+        AHashPrev, PrevRealSerie, PrevRealNumero, PrevRealDate) then
+        raise Exception.Create(
+          'No se puede resolver la identidad real del RegistroAnterior para la huella ' +
+          AHashPrev);
+
+      PrevNumero := PrevRealNumero;
+      PrevNumSerie := PrevRealSerie + '-' + IntToStr(PrevRealNumero);
+      PrevFecha := FormatDateTime('dd-mm-yyyy', PrevRealDate);
+    end;
 
     Result := Result +
       '          <sum1:Encadenamiento>' + LineEnding +
@@ -1198,7 +1269,6 @@ begin
 
   // =========================
   //   SISTEMA INFORMÁTICO (SIF)
-  //   (valores de ejemplo, cámbialos por los reales de tu SIF)
   // =========================
   Result := Result +
     '          <sum1:SistemaInformatico>' + LineEnding +
@@ -1254,9 +1324,307 @@ begin
     Result := 'https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP';
 end;
 
+function VF_GetConfiguredAEATEnvironment(out AURL: string): string;
+var
+  U: string;
+begin
+  AURL := Trim(GetAEATURL);
+  U := LowerCase(AURL);
+
+  if (Pos('://prewww', U) > 0) and (Pos('.aeat.es', U) > 0) then
+    Exit('PRUEBAS');
+
+  if (Pos('.aeat.es', U) > 0) and
+     (Pos('verifactusoap', U) > 0) and
+     (Pos('://prewww', U) = 0) then
+    Exit('PRODUCCION');
+
+  Result := 'SIN_CLASIFICAR';
+end;
+
 {==============================================================================
                            ENVÍO HTTP REAL (XML A)
 ==============================================================================}
+
+function VF_PrepareAEATHash_NoSend(const Serie: string; Numero: Integer;
+  const PayloadJSON, HashPrev: string; const QueueID: Int64;
+  out Hash, FechaHoraHuso, ErrorText: string): Boolean;
+var
+  DummyXML: string;
+begin
+  Result := False;
+  Hash := '';
+  ErrorText := '';
+  FechaHoraHuso := VF_LocalISO8601NowWithOffset;
+  try
+    DummyXML := BuildVeriFactuXMLFromJSON(
+      Serie, Numero, PayloadJSON, Hash, HashPrev, QueueID, FechaHoraHuso);
+    Result := (Trim(Hash) <> '') and (Trim(DummyXML) <> '');
+    if not Result then
+      ErrorText := 'El constructor VeriFactu no ha devuelto una huella válida.';
+  except
+    on E: Exception do
+    begin
+      ErrorText := E.Message;
+      Hash := '';
+      Result := False;
+    end;
+  end;
+end;
+
+function VF_PrepareAEATSubsanacionXML_NoSend(
+  const Serie: string; Numero: Integer;
+  const PayloadJSON, HashPrev: string; const QueueID: Int64;
+  const FechaHoraHuso, Subsanacion, RechazoPrevio: string;
+  const PrevSerie: string; const PrevNumero: Integer; const PrevFechaAEAT: string;
+  out XML, Hash, ErrorText: string): Boolean;
+begin
+  Result := False;
+  XML := '';
+  Hash := '';
+  ErrorText := '';
+
+  if not SameText(Trim(Subsanacion), 'S') then
+  begin
+    ErrorText := 'El registro no está marcado como Subsanacion=S.';
+    Exit;
+  end;
+
+  if Trim(FechaHoraHuso) = '' then
+  begin
+    ErrorText := 'No existe FechaHoraHusoGenRegistro congelada.';
+    Exit;
+  end;
+
+  if Trim(HashPrev) = '' then
+  begin
+    ErrorText := 'No existe huella del registro anterior.';
+    Exit;
+  end;
+
+  if (Trim(PrevSerie) = '') or (PrevNumero <= 0) or
+     (Trim(PrevFechaAEAT) = '') then
+  begin
+    ErrorText := 'La identidad del RegistroAnterior está incompleta.';
+    Exit;
+  end;
+
+  try
+    XML := BuildVeriFactuXMLFromJSON(
+      Serie, Numero, PayloadJSON, Hash, HashPrev, QueueID, FechaHoraHuso,
+      Subsanacion, RechazoPrevio, PrevSerie, PrevNumero, PrevFechaAEAT);
+
+    Result := (Trim(XML) <> '') and (Trim(Hash) <> '');
+    if not Result then
+      ErrorText := 'El constructor VeriFactu no ha generado XML/huella válidos.';
+  except
+    on E: Exception do
+    begin
+      ErrorText := E.Message;
+      XML := '';
+      Hash := '';
+      Result := False;
+    end;
+  end;
+end;
+
+function VF_SendPreparedXML_HTTP(const RequestLabel, XML: string;
+  out Respuesta: string): Boolean;
+var
+  Http: THTTPSend;
+  URL: string;
+  TLSCfg: TVFTLSConfig;
+  SSL: TSSLOpenSSL;
+  Prot, User, Pass, Host, Port, Path, Para: string;
+  Dummy: string;
+  ResponseFile: string;
+  AEAT_EstadoEnvio,
+  AEAT_EstadoRegistro,
+  AEAT_CodError,
+  AEAT_DescError,
+  AEAT_EstadoDuplicado,
+  AEAT_CSV: string;
+
+  function ExtractTag(const AXML, Tag: string): string;
+  var
+    OpenTag, CloseTag: string;
+    P1, P2: SizeInt;
+  begin
+    Result := '';
+    OpenTag := '<' + Tag + '>';
+    CloseTag := '</' + Tag + '>';
+    P1 := Pos(OpenTag, AXML);
+    if P1 = 0 then Exit;
+    P1 := P1 + Length(OpenTag);
+    P2 := Pos(CloseTag, AXML);
+    if (P2 = 0) or (P2 <= P1) then Exit;
+    Result := Copy(AXML, P1, P2 - P1);
+  end;
+
+begin
+  Result := False;
+  Respuesta := '';
+
+  if Trim(XML) = '' then
+  begin
+    Respuesta := '[VF ERROR] XML preparado vacío.';
+    Exit;
+  end;
+
+  URL := GetAEATURL;
+  Dummy := ParseURL(URL, Prot, User, Pass, Host, Port, Path, Para);
+
+  VF_WriteDiag(Format('VF_SendPreparedXML_HTTP: preparando %s -> %s',
+    [RequestLabel, URL]));
+
+  { Guardamos el XML exacto que se va a remitir. RequestLabel incluye SUB-id
+    para no sobrescribir evidencias ORIG con misma serie/número. }
+  VF_SaveVeriFactuXML_B(RequestLabel, 0, XML);
+
+  Http := THTTPSend.Create;
+  try
+    Http.Timeout := VF_HTTP_TIMEOUT_MS;
+    Http.Sock.CreateWithSSL(TSSLOpenSSL);
+    SSL := TSSLOpenSSL(Http.Sock.SSL);
+
+    VF_LoadTLSConfig(TLSCfg);
+
+    VF_WriteDiag(Format('VF_SendPreparedXML_HTTP: XML validado longitud=%d',
+      [Length(XML)]));
+    VF_WriteDiag(Format('TLSCfg.CertFile=%s', [TLSCfg.CertFile]));
+    VF_WriteDiag(Format('TLSCfg.KeyFile=%s',  [TLSCfg.KeyFile]));
+    VF_WriteDiag(Format('TLSCfg.CAFile=%s',   [TLSCfg.CAFile]));
+    if TLSCfg.KeyPassword <> '' then
+      VF_WriteDiag('TLSCfg.KeyPassword=(configurada, oculta)')
+    else
+      VF_WriteDiag('TLSCfg.KeyPassword=(vacía)');
+
+    if Assigned(SSL) then
+    begin
+      SSL.SSLType := LT_all;
+      if Host <> '' then
+        SSL.SNIHost := Host;
+      if TLSCfg.CertFile <> '' then
+        SSL.CertificateFile := TLSCfg.CertFile;
+      if TLSCfg.KeyFile <> '' then
+        SSL.PrivateKeyFile := TLSCfg.KeyFile;
+      if TLSCfg.KeyPassword <> '' then
+        SSL.KeyPassword := TLSCfg.KeyPassword;
+      if TLSCfg.CAFile <> '' then
+        SSL.CertCAFile := TLSCfg.CAFile;
+    end;
+
+    Http.UserAgent := 'FacturLinEx-VeriFactu/1.0';
+    Http.MimeType := 'text/xml; charset=utf-8';
+
+    WriteStrToStream(Http.Document, XML);
+    Http.Document.Position := 0;
+
+    VF_WriteDiag('VF_SendPreparedXML_HTTP: enviando POST a ' + URL);
+
+    if not Http.HTTPMethod('POST', URL) then
+    begin
+      Respuesta :=
+        'VF_SendPreparedXML_HTTP: fallo al hacer HTTPMethod (sin respuesta HTTP)';
+      if Assigned(SSL) then
+        Respuesta := Respuesta +
+          Format(' | SockErr=%d %s | SSLErr=%d %s',
+            [Http.Sock.LastError, Http.Sock.LastErrorDesc,
+             SSL.LastError, SSL.LastErrorDesc]);
+      VF_WriteDiag(Respuesta);
+      Exit(False);
+    end;
+
+    Http.Document.Position := 0;
+    Respuesta := ReadStrFromStream(Http.Document, Http.Document.Size);
+    ResponseFile := VF_SaveResponseXML(RequestLabel, 0, Respuesta);
+
+    VF_WriteDiag(Format('VF_SendPreparedXML_HTTP: HTTP %d %s',
+      [Http.ResultCode, Http.ResultString]));
+    if ResponseFile <> '' then
+      VF_WriteDiag(Format(
+        'VF_SendPreparedXML_HTTP: respuesta guardada. Longitud=%d fichero=%s',
+        [Length(Respuesta), ResponseFile]));
+
+    if VF_IsWSDLResponse(Respuesta) then
+    begin
+      Respuesta := Respuesta + LineEnding +
+        '[VF ERROR] Respuesta invalida: se recibio WSDL en lugar de respuesta SOAP AEAT.';
+      Exit(False);
+    end;
+
+    if VF_IsSOAPFaultResponse(Respuesta) then
+    begin
+      Respuesta := Respuesta + LineEnding +
+        '[VF ERROR] SOAP Fault recibido: no es una respuesta de registro correcta.';
+      Exit(False);
+    end;
+
+    if Http.ResultCode <> 200 then
+      Exit(False);
+
+    AEAT_EstadoEnvio := ExtractTag(Respuesta, 'tikR:EstadoEnvio');
+    AEAT_EstadoRegistro := ExtractTag(Respuesta, 'tikR:EstadoRegistro');
+    AEAT_CodError := ExtractTag(Respuesta, 'tikR:CodigoErrorRegistro');
+    AEAT_DescError := ExtractTag(Respuesta, 'tikR:DescripcionErrorRegistro');
+    AEAT_EstadoDuplicado := ExtractTag(Respuesta, 'tik:EstadoRegistroDuplicado');
+    AEAT_CSV := ExtractTag(Respuesta, 'tikR:CSV');
+
+    if AEAT_EstadoEnvio = '' then
+      AEAT_EstadoEnvio := ExtractTag(Respuesta, 'EstadoEnvio');
+    if AEAT_EstadoRegistro = '' then
+      AEAT_EstadoRegistro := ExtractTag(Respuesta, 'EstadoRegistro');
+    if AEAT_CodError = '' then
+      AEAT_CodError := ExtractTag(Respuesta, 'CodigoErrorRegistro');
+    if AEAT_DescError = '' then
+      AEAT_DescError := ExtractTag(Respuesta, 'DescripcionErrorRegistro');
+    if AEAT_EstadoDuplicado = '' then
+      AEAT_EstadoDuplicado := ExtractTag(Respuesta, 'EstadoRegistroDuplicado');
+    if AEAT_CSV = '' then
+      AEAT_CSV := ExtractTag(Respuesta, 'CSV');
+
+    VF_WriteDiag(Format(
+      'AEAT SUB -> EstadoEnvio=%s EstadoRegistro=%s CodError=%s EstadoDuplicado=%s CSV=%s Desc=%s',
+      [AEAT_EstadoEnvio, AEAT_EstadoRegistro, AEAT_CodError,
+       AEAT_EstadoDuplicado, AEAT_CSV, AEAT_DescError]));
+
+    if SameText(AEAT_EstadoRegistro, 'Correcto') then
+      Result := True
+    else if SameText(AEAT_EstadoRegistro, 'AceptadoConErrores') then
+    begin
+      Result := True;
+      Respuesta := Respuesta + LineEnding +
+        Format('[AEAT AceptadoConErrores %s] %s',
+          [AEAT_CodError, AEAT_DescError]);
+    end
+    else if SameText(AEAT_CodError, '3000') and
+            (SameText(AEAT_EstadoDuplicado, 'Correcta') or
+             SameText(AEAT_EstadoDuplicado, 'AceptadaConErrores')) then
+    begin
+      Result := True;
+      Respuesta := Respuesta + LineEnding +
+        Format('[AEAT Duplicado ya registrado %s %s] %s',
+          [AEAT_CodError, AEAT_EstadoDuplicado, AEAT_DescError]);
+    end
+    else if AEAT_EstadoRegistro <> '' then
+    begin
+      { Igual que el sender normal: una respuesta AEAT de registro es una
+        respuesta de negocio, no un fallo técnico de transporte. }
+      Result := True;
+      Respuesta := Respuesta + LineEnding +
+        Format('[AEAT %s %s] %s',
+          [AEAT_EstadoRegistro, AEAT_CodError, AEAT_DescError]);
+    end
+    else
+    begin
+      Respuesta := Respuesta + LineEnding +
+        '[VF ERROR] Respuesta AEAT no reconocida: no se encontro EstadoRegistro.';
+      Result := False;
+    end;
+  finally
+    Http.Free;
+  end;
+end;
 
 function VF_SendAEAT_HTTP(const Serie: string; Numero: Integer;
   const PayloadJSON: string;

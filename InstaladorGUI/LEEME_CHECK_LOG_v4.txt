@@ -1,0 +1,20 @@
+FACTURLINEX INSTALLER 4.2.6J - CHECK/LOG v4
+
+Corrección del bloqueo en Comprobación previa.
+
+Ahora:
+- si --check falla, la pantalla se reconstruye y muestra FLog completo;
+- Anterior/Siguiente/Cancelar vuelven a estar habilitados;
+- aparece botón "Ver log completo";
+- aparece botón "Repetir comprobación";
+- el log se guarda también cuando falla la comprobación;
+- se recuerda el nombre exacto del log generado;
+- si se pierde esa referencia, se busca el FLXInstaller_*.log más reciente.
+
+Ruta normal del log:
+  ~/.config/FLXInstaller/FLXInstaller_YYYYMMDD_HHMMSS.log
+  (GetAppConfigDir(False), según nombre/configuración de la aplicación)
+
+El Diagnostico_FLXTools_*.txt es OTRO fichero y no sustituye este log.
+
+No cambia la lógica shell ni la instalación real.

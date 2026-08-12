@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectOptions>
+    <Version Value="12"/>
+    <General>
+      <SessionStorage Value="InProjectDir"/>
+      <Title Value="FLXMantenimiento"/>
+      <UseAppBundle Value="False"/>
+      <ResourceType Value="res"/>
+    </General>
+    <RequiredPackages Count="2">
+      <Item1><PackageName Value="FLXRepair"/></Item1>
+      <Item2><PackageName Value="LCL"/></Item2>
+    </RequiredPackages>
+    <Units Count="2">
+      <Unit0><Filename Value="FLXMantenimiento.lpr"/><IsPartOfProject Value="True"/></Unit0>
+      <Unit1><Filename Value="uFLXMantenimientoMain.pas"/><IsPartOfProject Value="True"/><UnitName Value="uFLXMantenimientoMain"/></Unit1>
+    </Units>
+  </ProjectOptions>
+  <CompilerOptions>
+    <Version Value="11"/>
+    <PathDelim Value="/"/>
+    <Target><Filename Value="../Bin/FLXMantenimiento"/></Target>
+    <SearchPaths>
+      <OtherUnitFiles Value="../FLXRepair"/>
+      <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
+    </SearchPaths>
+    <Parsing><SyntaxOptions><SyntaxMode Value="ObjFPC"/></SyntaxOptions></Parsing>
+  </CompilerOptions>
+</CONFIG>

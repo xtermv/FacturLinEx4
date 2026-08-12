@@ -1,0 +1,1167 @@
+=== RECURSOS QUE DEBEN EMPAQUETARSE ===
+81	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Documents/Compresion_ejecutables.sh
+83	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/tend_configuracion.png
+83	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/tend_configuracion.png
+88	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/tend_configuracion.png
+96	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/tend_configuracion.png
+144	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/version.ini
+195	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/formapago.sql
+200	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/rutas.sql
+219	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/autofabri.sql
+225	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/cambios.sql
+227	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/departamentos.sql
+233	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/tend_filtro.png
+233	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/tend_filtro.png
+234	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/backfl.sh
+247	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/familias.sql
+282	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/ultimopedi.sql
+291	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/addons/igfacturlinex/opciones.ini
+303	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/puestos.sql
+310	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/gpagos.sql
+315	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/FacturLinEx2.desktop
+335	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/geconomica.sql
+354	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/histstock.sql
+370	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/eans.sql
+372	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/subrutas.sql
+373	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/usuarios.sql
+384	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/tend_filtro.png
+385	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/seriesfactu.sql
+385	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/tiendas.sql
+395	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/favicon.svg
+395	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Manual_FacturLinEx_Web_v0.1/assets/img/favicon.svg
+400	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/estaclie.sql
+404	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/estaprove.sql
+409	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/estadepa.sql
+409	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/estafami.sql
+409	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/estatien.sql
+410	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/puntos.sql
+411	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/estaarti.sql
+413	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/histoclie.sql
+421	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/facturect.sql
+443	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/estausu.sql
+464	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/roles.sql
+477	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/tend_filtro.png
+526	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/tarifas.sql
+537	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/promociones.sql
+563	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/envas.sql
+640	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/ventas.sql
+657	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/albacc.sql
+658	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/presupuesto.png
+658	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/presupuesto.png
+721	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/hisopcc.sql
+750	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/pdf/QR.png
+763	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/FacturLinexGNU.jpeg
+763	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/tend_graficos.png
+763	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/FacturLinexGNU.jpeg
+763	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/tend_graficos.png
+773	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/QR.png
+777	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/albadd.sql
+777	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/factudd.sql
+779	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/18x18/button_ok.png
+779	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/18x18/button_ok.png
+783	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/presuc.sql
+785	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/proforc.sql
+787	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/22x22/media-floppy.png
+787	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/22x22/media-floppy.png
+797	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/teclado.png
+797	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/teclado.png
+802	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/hisalbacc.sql
+806	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/creditos.sql
+809	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/glabels.png
+809	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/glabels.png
+814	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Documents/cambios.sql
+836	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/imptmp.sql
+841	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/hisalbadd.sql
+844	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/creditosdd.sql
+846	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/32x32/recuperar.png
+846	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/32x32/recuperar.png
+847	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/18x18/mail.png
+847	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/18x18/mail.png
+871	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/proford.sql
+874	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/Idiomas.png
+874	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/Idiomas.png
+882	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/presud.sql
+890	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/32x32/grabar.png
+890	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/32x32/grabar.png
+892	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/18x18/utiles.png
+892	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/18x18/utiles.png
+905	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/18x18/cerrarBlanco.png
+905	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/18x18/cerrarBlanco.png
+910	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/factucc.sql
+917	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/32x32/printer.png
+917	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/32x32/printer.png
+923	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/18x18/buscar.png
+923	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/18x18/buscar.png
+930	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/22x22/go-next.png
+930	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/22x22/go-next.png
+950	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/18x18/gnumeric.png
+950	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/18x18/gnumeric.png
+952	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/barcode.png
+952	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/barcode.png
+955	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/22x22/go-previous.png
+955	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/22x22/go-previous.png
+956	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/18x18/navegador.png
+956	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/18x18/navegador.png
+958	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/hisopdd.sql
+959	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/30x30/Presupuesto.png
+959	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/Presupuesto.png
+971	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/proveedores.sql
+973	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/18x18/telefono.png
+973	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/18x18/telefono.png
+982	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/18x18/mailer_config.png
+982	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/18x18/mailer_config.png
+986	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/button_ok.png
+986	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/button_ok.png
+988	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/LlabeUsb.png
+988	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/LlabeUsb.png
+991	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/18x18/Idiomas.png
+991	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/18x18/Idiomas.png
+996	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/18x18/modificar.png
+996	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/18x18/modificar.png
+999	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/cajas.sql
+1002	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/pedicc.sql
+1003	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/18x18/fax.png
+1003	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/18x18/fax.png
+1026	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/18x18/cerrarRojo.png
+1026	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/18x18/cerrarRojo.png
+1031	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/18x18/borrar.png
+1031	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/18x18/borrar.png
+1032	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/crear.png
+1032	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/crear.png
+1035	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/30x30/cajon.png
+1035	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/cajon.png
+1036	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/18x18/procesador.png
+1036	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Icons/FacturLinexGNU.jpeg
+1036	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/18x18/procesador.png
+1038	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/18x18/anterior.png
+1038	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/18x18/anterior.png
+1060	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/18x18/libro.png
+1060	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/18x18/libro.png
+1065	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/18x18/posterior.png
+1065	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/18x18/posterior.png
+1084	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/albaranes.png
+1084	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/22x22/system-log-out.png
+1084	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/albaranes.png
+1084	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/22x22/system-log-out.png
+1086	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/tend_familias.png
+1086	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/tend_familias.png
+1092	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/cajas.png
+1092	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/cajas.png
+1108	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/arqueos.sql
+1113	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/Ticket.png
+1113	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/Ticket.png
+1134	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/18x18/skype.png
+1134	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/18x18/skype.png
+1143	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/Gestionar.png
+1143	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/Gestionar.png
+1148	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/22x22/buscar.png
+1148	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/22x22/buscar.png
+1149	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/Cpedi.png
+1149	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/Cpedi.png
+1160	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/navegador.png
+1160	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/navegador.png
+1166	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/utiles.png
+1166	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/utiles.png
+1182	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/guardar.png
+1182	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/guardar.png
+1183	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/22x22/applications-office.png
+1183	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/22x22/applications-office.png
+1197	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/gnumeric.png
+1197	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/gnumeric.png
+1199	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/libro.png
+1199	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/libro.png
+1211	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/22x22/borrar.png
+1211	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/22x22/borrar.png
+1212	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/clientes.sql
+1215	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Documents/ventasrectif_ULTIMO_PASO.sql
+1219	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/telefono.png
+1219	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/telefono.png
+1227	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/buscar.png
+1227	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/buscar.png
+1229	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/refrescar.png
+1229	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/refrescar.png
+1239	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/recupe.png
+1239	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/recupe.png
+1251	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/cerrar.png
+1251	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/cerrar.png
+1286	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/fax.png
+1286	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/fax.png
+1296	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/hipedidd.sql
+1300	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/modificar.png
+1300	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/modificar.png
+1322	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/tend_exportar.png
+1322	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/tend_exportar.png
+1323	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/facturas.png
+1323	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/facturas.png
+1324	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/servicios.png
+1324	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/servicios.png
+1325	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/tiendas.png
+1325	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/tiendas.png
+1340	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/Enviar.png
+1340	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/procesador.png
+1340	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/Enviar.png
+1340	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/procesador.png
+1341	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/borrar.png
+1341	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/borrar.png
+1343	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/anterior.png
+1343	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/clock.png
+1343	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/anterior.png
+1343	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/clock.png
+1347	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/artitiendas.sql
+1352	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/pedido.png
+1352	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/pedido.png
+1357	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/Recibos.png
+1357	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/Recibos.png
+1371	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/utilidades.png
+1371	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/utilidades.png
+1374	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/forward.png
+1374	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/posterior.png
+1374	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/forward.png
+1374	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/posterior.png
+1410	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/tend_clientes.png
+1410	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/tend_clientes.png
+1433	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/22x22/Rpedi.png
+1433	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/22x22/Rpedi.png
+1437	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/32x32/document-open.png
+1437	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/32x32/document-open.png
+1451	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/22x22/borrar1.png
+1451	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/22x22/borrar1.png
+1466	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/pedidd.sql
+1502	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/30x30/button_ok.png
+1502	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/button_ok.png
+1514	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/30x30/Printer.png
+1514	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/Printer.png
+1570	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/codigobarras.png
+1570	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/codigobarras.png
+1571	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/hipedicc.sql
+1590	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/inteligencia_predicciones.png
+1610	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/ayuda.png
+1610	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/ayuda.png
+1623	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/ascii.png
+1623	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/ascii.png
+1651	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/asesor_compras.png
+1651	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/compras.png
+1651	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/asesor_compras.png
+1651	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/compras.png
+1651	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/tend_graficos.png
+1683	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/tend_proveedores.png
+1683	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/tend_proveedores.png
+1686	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/30x30/Ticket.png
+1686	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/Ticket.png
+1694	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/inteligencia_tendencias.png
+1711	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/32x32/Drawer-open.png
+1711	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/32x32/Drawer-open.png
+1716	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/30x30/albaranes.png
+1716	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/albaranes.png
+1721	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/tend_imprimir.png
+1721	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/tend_imprimir.png
+1725	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/32x32/cerrar.png
+1725	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/32x32/scanner.png
+1725	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/32x32/cerrar.png
+1725	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/32x32/scanner.png
+1756	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/inteligencia_asistente.png
+1759	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/30x30/ventas.png
+1759	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/ventas.png
+1784	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/30x30/Cerrar.png
+1784	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/Cerrar.png
+1799	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/klpq.png
+1799	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/inteligencia_asesor_compras.png
+1799	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/klpq.png
+1815	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/30x30/formapago.png
+1815	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/formapago.png
+1815	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/utiles.png
+1821	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/inteligencia_acciones.png
+1839	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/inteligencia_doctor.png
+1858	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/32x32/aplicar.png
+1858	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/32x32/aplicar.png
+1865	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/inteligencia_mantenimiento.png
+1934	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/30x30/fabricantes.png
+1934	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/fabricantes.png
+1948	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/inteligencia_rentabilidad.png
+1962	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/inteligencia_alertas.png
+1975	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/inteligencia_proveedores.png
+1979	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/inteligencia_historico_precios.png
+1986	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/tend_resumen.png
+1986	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/tend_resumen.png
+2024	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/32x32/view-refresh.png
+2024	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/32x32/view-refresh.png
+2036	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/tend_articulos.png
+2036	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/tend_articulos.png
+2076	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/inteligencia_centro.png
+2078	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/30x30/facturas.png
+2078	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/facturas.png
+2084	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/teclado.png
+2084	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/teclado.png
+2094	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/30x30/envases.png
+2094	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/envases.png
+2117	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/tendencia.png
+2117	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/tendencia.png
+2129	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/proveedores_inteligencia.png
+2129	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/proveedores.png
+2129	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/proveedores_inteligencia.png
+2129	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/proveedores.png
+2139	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/mantenimiento_inteligencia.png
+2139	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/mantenimiento.png
+2139	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/mantenimiento_inteligencia.png
+2139	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/mantenimiento.png
+2145	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/acciones.png
+2145	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/acciones_recomendadas.png
+2145	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/acciones.png
+2145	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/acciones_recomendadas.png
+2183	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/30x30/Pedido.png
+2183	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/Pedido.png
+2204	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/30x30/rutas.png
+2204	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/rutas.png
+2230	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/clientes2.png
+2230	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/clientes2.png
+2236	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/clientes1.png
+2236	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/clientes1.png
+2241	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/tendencias.png
+2241	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/tendencias.png
+2270	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Idiomas.png
+2270	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Idiomas.png
+2280	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/tend_kpi_compras.png
+2280	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/tend_kpi_compras.png
+2295	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/tend_kpi_ventas.png
+2295	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/tend_kpi_ventas.png
+2297	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/centro_inteligencia.png
+2297	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/centro_intelig.png
+2297	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/centro_inteligencia.png
+2297	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/centro_intelig.png
+2300	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/404.html
+2316	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/tend_kpi_margen.png
+2316	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/tend_kpi_margen.png
+2320	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/trash-empty.png
+2320	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/trash-empty.png
+2328	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/account-seetings.png
+2328	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/account-seetings.png
+2339	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/rentabilidad.png
+2339	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/rentabilidad.png
+2340	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Manual_FacturLinEx_Web_v0.1/404.html
+2354	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/tend_cerrar.png
+2354	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/tend_cerrar.png
+2358	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/Briefcase.png
+2358	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/Briefcase.png
+2384	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/tend_kpi_clientes.png
+2384	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/tend_kpi_clientes.png
+2388	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/familias.png
+2388	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/familias.png
+2410	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/alertas.png
+2410	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/alertas.png
+2426	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/tend_actualizar.png
+2426	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/tend_actualizar.png
+2428	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/tend_graficos.png
+2491	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/helix-setup-users2.png
+2491	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/helix-setup-users2.png
+2546	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/addons/igfacturlinex/images/logo_mysql.png
+2566	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/tend_kpi_porcentaje.png
+2566	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/tend_kpi_porcentaje.png
+2621	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/pda.png
+2621	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/pda.png
+2627	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/facturar.png
+2627	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/facturar.png
+2631	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/historico_precios.png
+2631	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/precios.png
+2631	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/historico_precios.png
+2631	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/precios.png
+2646	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/mail-config-druid-identity.png
+2646	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/mail-config-druid-identity.png
+2654	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/listtallas.png
+2654	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/listtallas.png
+2681	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/pingusalir.png
+2681	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/pingusalir.png
+2686	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/predicciones.png
+2686	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/prediccion.png
+2686	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/predicciones.png
+2686	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/prediccion.png
+2690	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/doctor.png
+2690	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/30x30/doctor.png
+2702	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/taburete.png
+2702	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/taburete.png
+2713	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/tend_exportar.png
+2752	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/gnumeric.png
+2752	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/gnumeric.png
+2756	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/tend_familias.png
+2761	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/button_ok.png
+2761	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/button_ok.png
+2823	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/editar.png
+2823	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/editar.png
+2829	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/tiendas.png
+2829	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/tiendas.png
+2893	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/listfamilia.png
+2893	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/listfamilias.png
+2893	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/listfamilia.png
+2893	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/listfamilias.png
+2919	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/mesa.png
+2919	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/mesa.png
+2955	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/claves.png
+2955	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/claves.png
+2959	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/cierres.png
+2959	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/cierres.png
+2967	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/listivarecibido.png
+2967	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/listivarecibido.png
+2970	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/articulos.png
+2970	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/articulos.png
+3053	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/asesor_compras.png
+3053	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/compras.png
+3058	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/modelos.png
+3058	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/flx_restore_run.sh
+3058	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/modelos.png
+3068	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/fileclose.png
+3068	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/fileclose.png
+3073	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/addons/igfacturlinex/images/salir.png
+3073	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/salir.png
+3073	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/salir.png
+3101	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/recuperar.png
+3101	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/recuperar.png
+3140	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/gpg-signature-ok2.png
+3140	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/gpg-signature-ok2.png
+3150	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/Drawer-open.png
+3150	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/Drawer-open.png
+3155	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/listarticulos.png
+3155	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/listarticulos.png
+3183	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/fileprint.png
+3183	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/fileprint.png
+3187	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/listproveedores.png
+3187	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/listproveedores.png
+3195	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/listiva.png
+3195	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/listiva.png
+3227	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/pc.png
+3227	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/pc.png
+3228	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/help_index.png
+3228	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/help_index.png
+3247	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/cajas.png
+3247	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/cajas.png
+3249	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/LlamadaSi.png
+3249	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Icons/LlamadaSi.png
+3249	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/LlamadaSi.png
+3290	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/package_system2.png
+3290	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/package_system2.png
+3291	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/borrar.png
+3291	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/borrar.png
+3298	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/colores.png
+3298	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/colores.png
+3305	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/Box-Package.png
+3305	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/Extras.png
+3305	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/Box-Package.png
+3305	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/Extras.png
+3310	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/db.png
+3310	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/db.png
+3323	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/filenew.png
+3323	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/filenew.png
+3327	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/acercade.png
+3327	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/acercade.png
+3337	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/LlamadaNo.png
+3337	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Icons/LlamadaNo.png
+3337	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/LlamadaNo.png
+3351	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/listiendas.png
+3351	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/listiendas.png
+3357	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/cdrom.png
+3357	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/cdrom.png
+3379	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/navegador.png
+3379	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/navegador.png
+3386	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/helix-setup-ppp3.png
+3386	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/helix-setup-ppp3.png
+3396	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/kword.png
+3396	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/kword.png
+3399	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/cerrar.png
+3399	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/cerrar.png
+3433	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/pinguinfo.png
+3433	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/pinguinfo.png
+3464	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/tend_imprimir.png
+3469	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/albaranes.png
+3469	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/albaranes.png
+3476	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/ventas.png
+3476	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/ventas.png
+3480	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/abrir.png
+3480	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/abrir.png
+3486	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/mailer_config.png
+3486	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/mailer_config.png
+3524	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/tend_proveedores.png
+3540	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/package_system.png
+3540	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/package_system.png
+3556	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/display.png
+3556	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/display.png
+3560	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/eliminar.png
+3560	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/eliminar.png
+3561	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/clientes.png
+3561	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/clientes.png
+3563	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/libro.png
+3563	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/libro.png
+3650	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/eliminar1.png
+3650	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/eliminar1.png
+3667	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/stock_people.png
+3667	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/stock_people.png
+3704	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/Programs-Finance.png
+3704	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/Programs-Finance.png
+3705	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/lineales.png
+3705	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/lineales.png
+3716	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/listusuarios.png
+3716	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/listusuarios.png
+3724	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/PedidosSi.png
+3724	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Icons/PedidosSi.png
+3724	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/PedidosSi.png
+3733	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/totalizar.png
+3733	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/totalizar.png
+3757	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/back.png
+3757	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/back.png
+3777	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/histconssel.png
+3777	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/histconssel.png
+3800	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/identificar_paquetes_facturlinex.sh
+3802	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/PedidosNo.png
+3802	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/rdf.png
+3802	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Icons/PedidosNo.png
+3802	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/PedidosNo.png
+3802	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/rdf.png
+3817	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/IconP.jpg
+3817	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/IconP.jpg
+3824	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/listclientes.png
+3824	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/listclientes.png
+3829	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/trash-full-accept.png
+3829	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/trash-full-accept.png
+3834	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/karm.png
+3834	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/karm.png
+3886	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/gen.png
+3886	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/gen.png
+3905	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/tiendas.png
+3905	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/tiendas.png
+3917	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/guarda1.png
+3917	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/guarda1.png
+3919	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/procesador.png
+3919	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/procesador.png
+3925	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/articulos.png
+3925	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/articulos.png
+3926	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/js/app.js
+3926	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Manual_FacturLinEx_Web_v0.1/assets/js/app.js
+3935	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/acciones.png
+3935	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/acciones_recomendadas.png
+3946	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/i-printer.png
+3946	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/i-printer.png
+3949	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/descartar.png
+3949	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/descartar.png
+3952	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/buscar.png
+3952	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/buscar.png
+3953	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/helix-setup-nameresolution_id.png
+3953	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/helix-setup-nameresolution_id.png
+3981	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/usuarios.png
+3981	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/usuarios.png
+4007	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/chequear.png
+4007	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/chequear.png
+4017	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/helix-setup-ppp2.png
+4017	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/helix-setup-ppp2.png
+4038	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/grafica.png
+4038	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/grafica.png
+4038	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/grafica.png
+4043	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/familiassel.png
+4043	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/familiassel.png
+4055	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/facturas.png
+4055	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/facturas.png
+4073	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/tend_familias.png
+4077	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/parametros.png
+4077	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/parametros.png
+4081	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/tend_resumen.png
+4090	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/generar.png
+4090	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/generar.png
+4092	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/network.png
+4092	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/network.png
+4117	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Printer.png
+4117	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Printer.png
+4153	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/reload.png
+4153	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/reload.png
+4164	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/tendencia.png
+4168	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/floppy.png
+4168	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/floppy.png
+4175	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/listiendasel.png
+4175	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/listiendasel.png
+4176	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/tend_clientes.png
+4186	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/forward.png
+4186	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/lusuarios.png
+4186	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/forward.png
+4186	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/lusuarios.png
+4192	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/traspasar.png
+4192	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/traspasar.png
+4205	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/aceptar.png
+4205	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/aceptar.png
+4255	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/mantenimiento_inteligencia.png
+4255	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/mantenimiento.png
+4258	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/tallas.png
+4258	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/tallas.png
+4265	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/connect_to_network.png
+4265	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/connect_to_network.png
+4283	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/kservices.png
+4283	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/proveedores_inteligencia.png
+4283	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/proveedores.png
+4283	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/kservices.png
+4342	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/asesor_compras.png
+4342	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/compras.png
+4342	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/tend_exportar.png
+4345	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Icons/Vacio.png
+4357	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Customise.png
+4357	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Customise.png
+4374	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/tend_articulos.png
+4417	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/actualizar.png
+4417	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/actualizar.png
+4436	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Documents/rectificativas_PASO_INTERMEDIO.sql
+4451	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/tendencias.png
+4476	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/tend_kpi_compras.png
+4485	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/clock.png
+4485	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/clock.png
+4495	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/gestionar.png
+4495	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/gestionar.png
+4617	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/articulossel.png
+4617	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/articulossel.png
+4635	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/proveedores.png
+4635	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/proveedores.png
+4691	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/tend_kpi_margen.png
+4731	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/tend_kpi_ventas.png
+4737	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/modificar.png
+4737	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/modificar.png
+4784	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/centro_inteligencia.png
+4784	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/centro_intelig.png
+4817	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/utilidades.png
+4817	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/configuracion.png
+4817	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/estadisticas.png
+4817	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/graficas.png
+4817	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/prevision.png
+4817	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/30x30/tareas.png
+4817	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/acciones.png
+4817	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/configuracion.png
+4817	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/estadisticas.png
+4817	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/graficas.png
+4817	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/mantenimiento.png
+4817	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/prediccion.png
+4817	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/prevision.png
+4817	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/tareas.png
+4817	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/utiles.png
+4817	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/utilidades.png
+4830	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/ltiendas.png
+4830	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/ltiendas.png
+4837	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/tend_kpi_clientes.png
+4842	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/socket.png
+4842	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/socket.png
+4852	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/rentabilidad.png
+4902	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/tallassel (copia).png
+4902	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/tallassel.png
+4902	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/tallassel (copia).png
+4902	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/tallassel.png
+4911	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/proveedorestlf.png
+4911	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/proveedorestlf.png
+4979	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/user.png
+4979	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/user.png
+4988	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/alertas.png
+5027	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/tend_cerrar.png
+5110	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/config.png
+5110	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/config.png
+5127	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/helponline.png
+5127	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/helponline.png
+5166	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/picono2.ico
+5166	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/picono2.ico
+5204	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/stock.png
+5204	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/stock.png
+5221	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/pdf/A26_4.pdf
+5258	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/usersel (copia).png
+5258	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/usersel.png
+5258	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/usersel (copia).png
+5258	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/usersel.png
+5284	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/clientes.png
+5284	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/clientes.png
+5295	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/tend_actualizar.png
+5328	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/pdf/A26_2.pdf
+5334	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/provincias.sql
+5370	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/EtiEans.lrf
+5370	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/EtiEans.lrf
+5400	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/flx_backup_run_ftp.sh
+5406	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/tend_imprimir.png
+5432	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/reloj.png
+5432	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/reloj.png
+5506	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/historico_precios.png
+5506	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/precios.png
+5516	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/tend_kpi_porcentaje.png
+5522	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/proveedoressel.png
+5522	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/proveedoressel.png
+5594	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/EtiCambios3.lrf
+5607	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/tend_proveedores.png
+5618	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/pdf/A26_3.pdf
+5626	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/predicciones.png
+5626	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/prediccion.png
+5633	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Documents/Nuevos campos y tablas rectificativas.sql
+5641	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/48x48/doctor.png
+5656	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/verifactu.png
+5671	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/befreec.jpg
+5671	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/befreec.jpg
+5827	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/pdf/A26_1.pdf
+5930	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/EtiCambios3.lrf.lrf
+5933	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/acciones.png
+5933	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/acciones_recomendadas.png
+5939	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/EtiCambios3.lrf
+5940	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/EtiDirec.lrf
+5940	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/EtiDirec.lrf
+5949	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/Homepage.png
+5949	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/Homepage.png
+6062	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/impresora1.png
+6062	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/impresora1.png
+6212	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/tend_resumen.png
+6277	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/mantenimiento_inteligencia.png
+6277	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/mantenimiento.png
+6296	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/tendencia.png
+6466	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/inventario_requisitos_facturlinex.sh
+6597	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/tend_clientes.png
+6621	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/proveedores_inteligencia.png
+6621	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/proveedores.png
+6756	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/tend_articulos.png
+6823	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/tendencias.png
+6823	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/tendencias.png
+6883	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/logolinex.jpg
+6883	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/logolinex.jpg
+6907	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/flx_backup.sh
+6968	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/flx_restore.sh
+7018	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/tend_kpi_compras.png
+7026	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/inteligencia_predicciones.png
+7137	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/verifactu2.png
+7275	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/inteligencia_tendencias.png
+7287	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/EtiCambios.lrf
+7287	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/EtiCambios.lrf
+7367	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/centro_inteligencia.png
+7367	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/centro_intelig.png
+7371	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/tend_kpi_margen.png
+7418	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/tend_kpi_ventas.png
+7433	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/inteligencia_acciones.png
+7497	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/tend_kpi_clientes.png
+7667	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/inteligencia_asistente.png
+7672	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/rentabilidad.png
+7811	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/alertas.png
+7921	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/ventas/05_barra_atajos.png
+7932	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/inteligencia_historico_precios.png
+8023	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/inteligencia_asesor_compras.png
+8106	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/inteligencia_alertas.png
+8138	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/inteligencia_rentabilidad.png
+8158	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/tend_cerrar.png
+8175	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/inteligencia_doctor.png
+8252	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/inteligencia_mantenimiento.png
+8253	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/inteligencia_proveedores.png
+8380	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Manual_FacturLinEx_Web_v0.1/capitulos/control-del-documento.html
+8612	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/historico_precios.png
+8612	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/precios.png
+8822	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/tend_actualizar.png
+8824	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/predicciones.png
+8824	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/prediccion.png
+8847	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Manual_FacturLinEx_Web_v0.1/capitulos/14-plan-de-ampliacion-del-manual.html
+8923	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/tend_kpi_porcentaje.png
+8978	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Inteligencia/64x64/doctor.png
+9175	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/inteligencia_centro.png
+9513	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/capitulos/14-mantenimiento-del-manual-y-proximas-revisiones.html
+9529	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Manual_FacturLinEx_Web_v0.1/capitulos/10-dashboard-consultas-y-estadisticas.html
+9673	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Manual_FacturLinEx_Web_v0.1/capitulos/07-compras-pedidos-y-existencias.html
+9770	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/index.html
+9848	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Manual_FacturLinEx_Web_v0.1/capitulos/13-anexos-y-referencia-rapida.html
+10039	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/capitulos/13-anexos-y-referencia-rapida.html
+10070	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Manual_FacturLinEx_Web_v0.1/capitulos/06-caja-cobros-y-creditos.html
+10288	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Manual_FacturLinEx_Web_v0.1/capitulos/11-copias-de-seguridad-y-mantenimiento.html
+10783	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/capitulos/control-del-documento.html
+10903	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Manual_FacturLinEx_Web_v0.1/capitulos/09-verifactu-y-documentos-rectificativos.html
+11101	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Manual_FacturLinEx_Web_v0.1/index.html
+11124	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Manual_FacturLinEx_Web_v0.1/capitulos/08-facturacion-impresion-pdf-y-correo.html
+11128	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/xchat.png
+11128	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/xchat.png
+11693	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/configuracion/02a_impresion_informes.png
+11747	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Manual_FacturLinEx_Web_v0.1/capitulos/12-solucion-de-problemas.html
+11805	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Manual_FacturLinEx_Web_v0.1/capitulos/01-primeros-pasos-y-navegacion.html
+12134	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Manual_FacturLinEx_Web_v0.1/capitulos/03-clientes.html
+12175	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Manual_FacturLinEx_Web_v0.1/capitulos/04-articulos-familias-y-tarifas.html
+13475	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Manual_FacturLinEx_Web_v0.1/capitulos/02-configuracion-inicial.html
+13518	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/capitulos/12-solucion-de-problemas.html
+13731	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/clientes/02c_rutas_puntos.png
+14588	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/ventas/06_tickets_stock.png
+14590	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/EtiLineales.lrf
+14590	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/EtiLineales.lrf
+14595	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/EtiLineales1.lrf
+14595	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/EtiLineales1.lrf
+14696	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/mimetypes.png
+14696	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/mimetypes.png
+15512	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/capitulos/11-copias-de-seguridad-y-mantenimiento.html
+15945	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/capitulos/01-primeros-pasos-y-navegacion.html
+16765	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Manual_FacturLinEx_Web_v0.1/capitulos/05-ventas-y-tpv.html
+17103	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/capitulos/03-clientes.html
+17474	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/capitulos/09-verifactu-y-documentos-rectificativos.html
+18002	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Manual_FacturLinEx_Web_v0.1/assets/css/styles.css
+18052	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoProveedoresEtiquetas.lrf
+18052	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoProveedoresEtiquetas.lrf
+18054	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoClientesEtiquetas.lrf
+18054	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoClientesEtiquetas.lrf
+18115	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/logos/Logo2.jpg
+18115	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/logos/Logo2.jpg
+18477	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/capitulos/10-dashboard-consultas-y-estadisticas.html
+18634	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/addons/igfacturlinex/images/facturLinex2-ico.png
+18634	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/facturLinex2-ico.png
+18634	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/facturLinex2-ico.png
+18634	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/facturLinex2-ico.png
+18872	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/clientes/02a_cabecera_cliente_activo.png
+19472	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/css/styles.css
+19606	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/capitulos/04-articulos-familias-y-tarifas.html
+20284	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/configuracion/02b_datos_qr.png
+21993	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/capitulos/06-caja-cobros-y-creditos.html
+22768	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/capitulos/08-facturacion-impresion-pdf-y-correo.html
+23196	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/ventas/08_resumen_cobro.png
+23374	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoVertical.lrf
+23374	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoVertical.lrf
+23574	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/Listatiendas.lrf
+23574	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/Listatiendas.lrf
+23583	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/Usudirec.lrf
+23583	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/Usudirec.lrf
+23678	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/ventas/03_lineas_y_resumen.png
+23950	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/addons/igfacturlinex/images/utilidades.png
+23954	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/configuracion/01a_bbdd_principal.png
+24745	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/capitulos/07-compras-pedidos-y-existencias.html
+25372	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/capitulos/05-ventas-y-tpv.html
+25962	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/capitulos/02-configuracion-inicial.html
+26065	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoHorizontal.lrf
+26065	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoHorizontal.lrf
+26075	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/configuracion/02c_entorno_produccion.png
+26558	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/icono.ico
+26558	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/icono.ico
+29260	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/facturacion_linex.png
+29260	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/facturacion_linex.png
+29514	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/clientes/02b_condiciones_facturacion.png
+30500	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/ventas/03_flujo_boton_historicos.png
+31125	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/clientes/04_precio_coste_cliente_anotado.png
+31433	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoDepartamentosDatos.lrf
+31433	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoDepartamentosDatos.lrf
+31877	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/ventas/02_cliente_entrada_articulos.png
+32336	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/configuracion/01c_correo_smtp.png
+32714	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoProveedoresFacRec.lrf
+32714	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoProveedoresFacRec.lrf
+32986	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/facturacion_linex (grisverdoso).png
+32986	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/facturacion_linex (grisverdoso).png
+33166	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/configuracion/01b_tienda_puesto_sic.png
+33402	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/facturacion_linex(burdeos).png
+33402	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/facturacion_linex(burdeos).png
+33905	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/facturacion_linex (turquesa).png
+33905	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/facturacion_linex (turquesa).png
+34114	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoTiendasDatos.lrf
+34114	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoTiendasDatos.lrf
+34119	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoFamiliasDatos.lrf
+34119	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoFamiliasDatos.lrf
+34126	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoUsuariosDatos.lrf
+34126	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoUsuariosDatos.lrf
+34127	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListaCajasPagos.lrf
+34127	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoTiendasPuestos.lrf
+34127	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListaCajasPagos.lrf
+34127	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoTiendasPuestos.lrf
+34134	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ComuniActuArti.lrf
+34134	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ComuniActuArti.lrf
+34250	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/facturacion_linex(azul).png
+34250	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/facturacion_linex(azul).png
+34284	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoHistoricoOperacionesHoras.lrf
+34284	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoHistoricoOperacionesHoras.lrf
+34700	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/facturacion_linex(gris).png
+34700	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/facturacion_linex(gris).png
+34886	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoArticulosAutores.lrf
+34886	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoArticulosAutores.lrf
+34947	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/facturacion_linex(azulclaro).png
+34947	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/facturacion_linex(azulclaro).png
+35590	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/ventas/02_total_acciones_historicos.png
+35825	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/UsuEsta.lrf
+35825	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/UsuEsta.lrf
+35868	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Recursos/Teclado/Grupos/hogar_casa.png
+36291	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Recursos/Teclado/Grupos/drogueria_spray.png
+36363	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Nuevos/FacturLinEx.png
+36363	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/FacturLinEx.png
+36363	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Icons/FacturLinEx.png
+36363	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Nuevos/FacturLinEx.png
+36839	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListaCajasCambios.lrf
+36839	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListaCajasCambios.lrf
+36863	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoDepartamentosCompras.lrf
+36863	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoFamiliasCompras.lrf
+36863	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoDepartamentosCompras.lrf
+36863	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoFamiliasCompras.lrf
+36873	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoArticulosCompras.lrf
+36873	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoArticulosCompras.lrf
+36882	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoTiendasCompras.lrf
+36882	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoTiendasCompras.lrf
+36926	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoHistoricoOperacionesUsuarios.lrf
+36926	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoHistoricoOperacionesUsuarios.lrf
+37802	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoArticulosProveedor.lrf
+37965	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Recursos/Teclado/Grupos/perfumeria_perfume.png
+38084	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoIvaReci.lrf
+38084	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoIvaReci.lrf
+39475	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoClientesDirec.lrf
+39475	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoClientesDirec.lrf
+39818	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Recursos/Teclado/Grupos/limpieza_cubo_y_esponja.png
+40696	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/TarifaArticulos.lrf
+40696	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/TarifaArticulos.lrf
+40952	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoClientesRiesgMax.lrf
+40952	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoClientesRiesgMax.lrf
+41296	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/comp11.jpeg
+41296	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/comp11.jpeg
+41782	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListaFacturas.lrf
+41801	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListaProformas.lrf
+41801	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListaProformas.lrf
+41803	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListaPresupuestos.lrf
+41803	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListaPresupuestos.lrf
+41814	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/HiListaPedidos.lrf
+41814	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/HiListaPedidos.lrf
+41817	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListaPedidos.lrf
+41817	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListaPedidos.lrf
+41983	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListaCajasDesglosadas.lrf
+41983	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListaCajasDesglosadas.lrf
+42170	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoProveedoresDatos.lrf
+42170	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoProveedoresDatos.lrf
+42250	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ComuniActuEans.lrf
+42250	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ComuniActuEans.lrf
+42287	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoProveedoresCompras.lrf
+42287	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoProveedoresCompras.lrf
+42825	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/menu/02_menu_pestanas_tarjetas.png
+43311	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListaAlbaranes.lrf
+43311	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListaAlbaranes.lrf
+43446	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Recursos/Teclado/Grupos/ferreteria_herramientas.png
+43637	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoClientesCredAgrup.lrf
+43637	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoClientesCredAgrup.lrf
+43647	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoArticulosVentas.lrf
+43647	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoArticulosVentas.lrf
+43901	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/Estatiendas.lrf
+43901	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/Estatiendas.lrf
+44400	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/facturlinex2.sql
+44998	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoDepartamentosVentas.lrf
+44998	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoFamiliasVentas.lrf
+44998	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoDepartamentosVentas.lrf
+44998	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoFamiliasVentas.lrf
+45009	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoClientesEsta.lrf
+45009	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoClientesEsta.lrf
+45011	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoTiendasVentas.lrf
+45011	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoTiendasVentas.lrf
+45063	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoUsuariosEsta.lrf
+45063	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoUsuariosEsta.lrf
+46015	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoArticulosProveedor.lrf
+46148	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListaCajaVentasCreditos.lrf
+46148	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListaCajaVentasReparaciones.lrf
+46148	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListaCajaVentasCreditos.lrf
+46148	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListaCajaVentasReparaciones.lrf
+46457	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoTiendasVenFech.lrf
+46457	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoTiendasVenFech.lrf
+46735	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Recursos/Teclado/Grupos/pinturas_brocha_y_bote.png
+46830	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/articulos/04_actualizador_tarifas_real_anotado.png
+47660	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoHistoricoOperaciones.lrf
+47660	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoHistoricoOperaciones.lrf
+47688	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/menu/03_personalizar_menu.png
+48139	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoIvaEmi3.lrf
+48195	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/ventas/04_total_acciones.png
+48851	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/compras-pedidos/05_actualizacion_stock_real_anotada.png
+49054	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoClientesDescuentos.lrf
+49054	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoClientesDescuentos.lrf
+49944	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/configuracion/03a_niveles_puntos.png
+50472	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/facturacion/03_panel_facturacion_reconstruccion_anotado.png
+51093	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/clientes/01_clientes_general_anotada.png
+51430	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/articulos/05_actualizacion_stock_real_anotada.png
+51947	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/LopdNClientes.lrf
+51947	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/LopdNClientes.lrf
+52316	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoArticulosStock.lrf
+52316	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoArticulosStock.lrf
+53012	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoClientesCredLocalid.lrf
+53012	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoClientesCredLocalid.lrf
+53161	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoTiendasEstad.lrf
+53161	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoTiendasEstad.lrf
+54339	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListaFacturas.lrf
+54370	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoIvaEmi.lrf
+54370	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoIvaEmi.lrf
+54715	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Extras/Cabecera(alfa).png
+55256	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListaCajas.lrf
+55256	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListaCajas.lrf
+55951	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/ActualizadorBBDD/Bin/facturlinex2.sql
+56503	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoClientesFacturas.lrf
+56553	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/Modelo347.lrf
+57141	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoClientesAlbaranes.lrf
+57141	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoClientesAlbaranes.lrf
+57265	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/menu/03_accesos_rapidos.png
+57765	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/OriginalModelo347.lrf
+57773	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/Modelo347.lrf
+57821	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/EstaArti.lrf
+57833	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/EstaArti.lrf
+58190	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListaCajaArticulosVendidos.lrf
+58190	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListaCajaArticulosVendidos.lrf
+58425	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoClientesCreditos.lrf
+58425	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoClientesCreditos.lrf
+58535	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoProveedoresPagVen.lrf
+58535	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoProveedoresPagVen.lrf
+59020	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/verifactu/06_panel_rectificativa_reconstruccion_anotado.png
+59582	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/AsistenteImportador/AsistenteImportadorPedidos.ico
+59582	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/FacturLinEx.ico
+59974	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/verifactu/04_cadena_hash_por_series_anotado.png
+60291	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/Ticket.lrf
+60291	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/Ticket.lrf
+61814	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/LopdClientes.lrf
+61814	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/LopdClientes.lrf
+62072	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Linex.jpg
+62072	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Linex.jpg
+62218	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoArticulosFamilia.lrf
+62218	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoArticulosFamilia.lrf
+62231	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoArticulosProveedor (copia).lrf
+62900	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/PedidoUnidades.lrf
+62901	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/PedidoUnidades.lrf
+62904	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/LopdUsuarios.lrf
+62904	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/LopdUsuarios.lrf
+63075	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/compras-pedidos/06_pedido_pdf_ejemplo_anotado.png
+63228	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/dashboard/05_precio_real_descuento_estadisticas_anotado.png
+64171	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/compras-pedidos/01_flujo_compras_pedidos_existencias_anotado.png
+64260	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListaCajaVentasRealizadas.lrf
+64260	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListaCajaVentasRealizadas.lrf
+64294	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/HiPedidoUnidades.lrf
+64294	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/HiPedidoUnidades.lrf
+64512	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/facturacion/01_flujo_facturacion_salidas_anotado.png
+66337	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/befree.jpg
+66337	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/befree.jpg
+66401	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoArticulosEstadisAutFab.lrf
+66401	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoArticulosEstadisAutFab.lrf
+66429	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/ventas/08_teclados_ventas_3_zonas_anotado.png
+67474	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/dashboard/06_revision_exportacion_dashboard_anotado.png
+67897	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/articulos/03_articulos_codigos_auxiliares_reconstruccion_anotada.png
+67977	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoHistoricoOperacionesArticulo.lrf
+67977	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoHistoricoOperacionesArticulo.lrf
+68495	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/caja-creditos/02_creditos_actualizado_anotado.png
+68693	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/caja-creditos/05_flujo_ventas_creditos_caja.png
+69128	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoArticulosEstadisProv.lrf
+69128	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoArticulosEstadisProv.lrf
+69785	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListadoArticulosEstadisFami.lrf
+69785	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoArticulosEstadisFami.lrf
+71193	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListadoIvaEmi2.lrf
+72096	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/Recibos.lrf
+72096	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/Recibos.lrf
+74511	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/dashboard/03_periodo_analisis_rendimiento_anotado.png
+75414	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/menu/04_barra_estado.png
+76101	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/mantenimiento/07_matriz_errores_frecuentes_anotado.png
+79170	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/verifactu/05_resultados_aeat_estado_cola_anotado.png
+80254	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/articulos/01_articulos_general_reconstruccion_anotada.png
+80741	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/ListaArqueo.lrf
+80819	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/AlbaranP.lrf
+80819	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/AlbaranP.lrf
+80823	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/DocumentoP (Original).lrf
+80847	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/clientes/02_clientes_facturacion_anotada.png
+81973	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/mantenimiento/05_actualizacion_estable_reconstruccion_anotado.png
+82062	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/verifactu/07_flujo_rectificativas_anotado.png
+83041	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/Documento2P.lrf
+83041	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/Documento2P.lrf
+83051	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/DocumentoP.lrf
+83051	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/DocumentoP.lrf
+83312	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/verifactu/02_monitor_cola_reconstruccion_anotado.png
+84720	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/facturacion/02_facturar_albaranes_reconstruccion_anotada.png
+86584	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Documents/bbdd_20260711.sql
+86608	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/menu/01_menu_moderno_actual.png
+87139	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/dashboard/02_graficas_valores_legibles_anotado.png
+87655	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/facturacion/05_impresion_correo_reconstruccion_anotada.png
+88674	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Documents/NEW_bbdd_completa_ZERO_DATA.sql
+88974	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/mantenimiento/03_centro_mantenimiento_reconstruccion_anotado.png
+89657	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/facturacion/04_factura_pdf_descuento_anotada.png
+89891	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/configuracion/02_informes_verifactu_entorno_anotada.png
+89962	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/configuracion/03_sistema_puntos_anotado.png
+90574	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Manual_FacturLinEx_Web_v0.1/assets/js/search-index.js
+90737	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/mantenimiento/04_conversion_motor_segura_reconstruccion_anotado.png
+94884	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/FacturaP (Original).lrf
+95906	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/caja-creditos/03_informe_iva_periodos_reconstruccion_anotado.png
+96867	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/dashboard/04_consulta_libre_select_anotado.png
+97118	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/Factura2P.lrf
+97118	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/Factura2P.lrf
+97130	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/FacturaP.lrf
+97130	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/FacturaP.lrf
+98794	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/compras-pedidos/04_recepcion_pedido_reconstruccion_anotado.png
+99857	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/clientes/03_selector_rutas_anotado.png
+99857	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/verifactu/01_tipos_documento_series_anotado.png
+101297	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/verifactu/03_flujo_envio_aeat_anotado.png
+101751	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/mantenimiento/01_copia_seguridad_reconstruccion_anotado.png
+102269	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Icons/EsCopia.png
+103576	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/articulos/02_articulos_costes_tarifas_reconstruccion_anotada.png
+104597	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/proformas.lrf
+104597	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/Proformas.lrf
+107404	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/mantenimiento/02_restauracion_controlada_reconstruccion_anotado.png
+107948	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/logos/FondoLogo1.jpg
+107948	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/logos/FondoLogo1.jpg
+110598	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/Documento (copia).lrf
+111286	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/compras-pedidos/03_pedido_auto_revision_reconstruccion_anotado.png
+111502	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Icons/Duplicado.png
+111547	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/Documento (Original).lrf
+112236	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/mantenimiento/06_diagnostico_inicial_reconstruccion_anotado.png
+113704	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/Presupuestos.lrf
+113777	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/Albaran20141129.lrf
+113821	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/Documento2.lrf
+113821	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/Documento2.lrf
+113825	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/Proformas.lrf
+113825	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/2015Documento.lrf
+117079	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/DocumentoOriginal.lrf
+117394	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/EsCopia.png
+117394	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/EsCopia.png
+117752	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/compras-pedidos/02_pedido_auto_general_reconstruccion_anotado.png
+118557	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/ventas/01_ventas_principal_8_zonas_anotada.png
+118638	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/caja-creditos/01_arqueo_caja_real_anotado.png
+118775	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/dashboard/01_dashboard_general_reconstruccion_anotado.png
+120971	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/ventas/01_ventas_actualizada_historicos.png
+121859	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/Pedido.lrf
+121869	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/HiPedido.lrf
+121869	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/HiPedido.lrf
+121942	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/Pedido.lrf
+126834	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/Facturar.lrf
+126894	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/FacturaNoviembre.lrf
+127760	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/Factura (Original).lrf
+127834	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/Duplicado.png
+127834	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/Duplicado.png
+128108	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/configuracion/01_conexiones_anotada_anonima.png
+129159	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/Facturar.lrf
+129159	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/2015Facturar.lrf
+129272	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/2015Factura.lrf
+129272	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/Factura (copia).lrf
+129290	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/FacturaPesetas.lrf
+129945	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/PedidoSinPvp.lrf
+129945	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/PedidoSinPvp.lrf
+129958	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/HiPedidoSinPvp.lrf
+129958	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/HiPedidoSinPvp.lrf
+130079	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/Factura2.lrf
+130079	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/Factura2.lrf
+130094	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/Factura20141129.lrf
+130733	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/facturacion/06_configuracion_smtp_real_anotada.png
+131711	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/FacturaSFecha.lrf
+132846	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/ventas/02_total_acciones_historicos_horizontal.png
+133324	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/ventas/01_ventas_pantalla_general_anotada.png
+137040	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/ActualizadorBBDD/FacturActBBDD.ico
+137040	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/addons/igfacturlinex/igfacturlinex.ico
+137040	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/AsistenteAnexos/AsistenteParaAnexos.ico
+137139	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/presupuestos.lrf
+141945	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/caja-creditos/05_estado_cuenta_creditos_pdf_anotado.png
+142711	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/facturacion/07_recibo_facturas_pdf_real_anotado.png
+153683	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/Albaran.lrf
+153683	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/Albaran.lrf
+155440	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/ventas/07_ejemplo_venta_con_lineas.png
+188857	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/Documento.lrf
+188857	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/Documento.lrf
+193329	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/menu/02_pestanas_y_modulos.png
+201539	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/js/search-index.js
+212653	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/Factura.lrf
+212653	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/Factura.lrf
+212681	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Report/FacturaVerifactu.lrf
+225175	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Report/ListaArqueo.lrf
+227753	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/caja-creditos/04_informe_arqueo_pdf_real_anotado.png
+259878	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Documents/bbdd.sql
+327702	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Documents/bbddSIC.sql
+397546	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/logos/FondoLogo3.jpg
+397546	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/logos/FondoLogo3.jpg
+433387	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/logos/FondoLogo4.jpg
+433387	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/logos/FondoLogo4.jpg
+499948	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/assets/img/menu/01_menu_principal_anotado.png
+524615	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Manual_FacturLinEx_v0.1_Base_Funcional.pdf
+524615	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Manual_FacturLinEx_Web_v0.1/descargas/Manual_FacturLinEx_v0.1_Base_Funcional.pdf
+567674	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Bin/Imagenes/logos/logoA.jpg
+567674	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/logos/logoA.jpg
+897029	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/pedido_ventas_proveedor_alt.png
+933611	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Imagenes/pedido_ventas_proveedor.png
+1015603	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/V2/Manual_FacturLinEx_v0.2_Ilustrado_Ventas.pdf
+1115387	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Tablas/municipios.sql
+1268714	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/v3.1/Manual_FacturLinEx_v0.3.1_Correccion_Menu_y_Ventas.pdf
+1371599	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/v3/Manual_FacturLinEx_v0.3_Ilustrado_Menu_y_Ventas.pdf
+1855644	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/v4/Manual_FacturLinEx_v0.4_Configuracion_Ilustrada.pdf
+2260605	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/v5/Manual_FacturLinEx_v0.5_Clientes_Ilustrado.pdf
+2660279	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/V6/Manual_FacturLinEx_v0.6_Articulos_Ilustrado.pdf
+3447600	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/v7/Manual_FacturLinEx_v0.7_Caja_Cobros_Creditos_Ilustrado.pdf
+4018466	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/v8/Manual_FacturLinEx_v0.8_Compras_Pedidos_Existencias_Ilustrado.pdf
+4699529	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/v9/Manual_FacturLinEx_v0.9_Facturacion_Impresion_PDF_Correo_Ilustrado.pdf
+5284696	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/v10/Manual_FacturLinEx_v1.0_Verifactu_Rectificativas_Ilustrado.pdf
+5819005	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/v11/Manual_FacturLinEx_v1.1_Dashboard_Consultas_Estadisticas_Ilustrado.pdf
+6414121	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Virtuemart/docs/manual_usuario_10x_joomla_spanish.pdf
+6481532	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/v12/Manual_FacturLinEx_v1.2_Mantenimiento_Solucion_Problemas_Ilustrado.pdf
+6552950	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Edicion_1.0_Final.pdf
+6552950	/home/xterm/Entorno de Trabajo/20260711_FINAL_STABLE/Manual FL2 2026 - V1/Final_V.1/Manual_FacturLinEx_Web_Edicion_1.0_Final/descargas/Manual_FacturLinEx_Edicion_1.0_Final.pdf

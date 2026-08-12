@@ -1,0 +1,1465 @@
+unit uFLXTecladoVirtual;
+
+{$mode objfpc}{$H+}
+
+interface
+
+uses
+  Classes, SysUtils, Forms, Controls, Graphics, ExtCtrls, StdCtrls,
+  Buttons, LCLType, LazUTF8, Types, TypInfo, ZConnection, ZAbstractConnection, ZDataset,
+  uFLXConfigTecladoProductos;
+
+type
+  TFLXProductoSeleccionadoEvent = procedure(const ACodigo: string;
+    ACantidad: Double) of object;
+
+procedure FLXMostrarTecladoVirtual(AFormulario: TCustomForm;
+  AControlInicial: TWinControl = nil); overload;
+procedure FLXMostrarTecladoVirtual(AFormulario: TCustomForm;
+  AControlInicial: TWinControl; AConnection: TZAbstractConnection;
+  const ATienda: string;
+  AOnProducto: TFLXProductoSeleccionadoEvent); overload;
+
+implementation
+
+const
+  FLX_KEY_CHAR  = 0;
+  FLX_KEY_BACK  = 1;
+  FLX_KEY_CLEAR = 2;
+  FLX_KEY_TAB   = 3;
+  FLX_KEY_ENTER = 4;
+  FLX_KEY_SPACE = 5;
+
+type
+  TFLXModoTeclado = (fmtAlfanumerico, fmtNumerico, fmtProductos);
+
+  TFLXGrupoButton = class(TSpeedButton)
+  public
+    GrupoID: Integer;
+  end;
+
+  TFLXProductoButton = class(TButton)
+  public
+    Codigo: string;
+    Cantidad: Double;
+  end;
+
+  { TFLXTecladoVirtualController }
+
+  TFLXTecladoVirtualController = class(TComponent)
+  private
+    FFormulario: TCustomForm;
+    FDestino: TWinControl;
+    FPanel: TPanel;
+    FCabecera: TPanel;
+    FTeclas: TPanel;
+    FTitulo: TLabel;
+    FDestinoLabel: TLabel;
+    FBtnModo: TSpeedButton;
+    FBtnProductos: TSpeedButton;
+    FBtnConfig: TSpeedButton;
+    FBtnPosicion: TSpeedButton;
+    FBtnOcultar: TSpeedButton;
+    FBtnCerrar: TSpeedButton;
+    FPestana: TSpeedButton;
+    FTimer: TTimer;
+    FModo: TFLXModoTeclado;
+    FConnection: TZAbstractConnection;
+    FTienda: string;
+    FOnProducto: TFLXProductoSeleccionadoEvent;
+    FGrupoActual: Integer;
+    FPaginaGrupos: Integer;
+    FPaginaProductos: Integer;
+    FTablasPreparadas: Boolean;
+    FPosicionAbajo: Boolean;
+    FPosicionManual: Boolean;
+    FUltimoAncho: Integer;
+    FUltimoAlto: Integer;
+    procedure ActualizarCabecera;
+    procedure ActualizarDestino;
+    procedure AplicarModo(AModo: TFLXModoTeclado);
+    procedure AplicarModoAutomatico(AControl: TWinControl);
+    procedure BorrarCaracter;
+    procedure BtnCerrarClick(Sender: TObject);
+    procedure BtnConfigClick(Sender: TObject);
+    procedure BtnModoClick(Sender: TObject);
+    procedure BtnOcultarClick(Sender: TObject);
+    procedure BtnPosicionClick(Sender: TObject);
+    procedure BtnProductosClick(Sender: TObject);
+    procedure CapturarDestinoActivo;
+    procedure ConstruirAlfanumerico;
+    procedure ConstruirInterfaz;
+    procedure ConstruirNumerico;
+    procedure ConstruirProductos;
+    function CrearTecla(const ACaption, AValor: string;
+      AX, AY, AAncho, AAlto, ATag: Integer): TSpeedButton;
+    procedure CrearFila(const ATeclas: array of string; AY, AAncho,
+      AAlto, ASeparacion, ADesplazamiento: Integer);
+    procedure DestruirInterfaz;
+    procedure EjecutarEnter;
+    procedure EjecutarTab;
+    procedure GrupoAnteriorClick(Sender: TObject);
+    procedure GrupoClick(Sender: TObject);
+    procedure GrupoSiguienteClick(Sender: TObject);
+    function ControlPrefiereNumerico(AControl: TWinControl): Boolean;
+    function EsControlDelTeclado(AControl: TControl): Boolean;
+    function EsControlEditable(AControl: TWinControl): Boolean;
+    procedure EstablecerDestino(AControl: TWinControl);
+    procedure InsertarTexto(const ATexto: string);
+    procedure LimpiarTeclas;
+    procedure LimpiarTexto;
+    procedure Ocultar(AMostrarPestana: Boolean);
+    procedure PestanaClick(Sender: TObject);
+    procedure ProductoAnteriorClick(Sender: TObject);
+    procedure ProductoClick(Sender: TObject);
+    procedure ProductoSiguienteClick(Sender: TObject);
+    procedure Posicionar;
+    procedure PosicionarPestana;
+    procedure TeclaClick(Sender: TObject);
+    procedure TimerFocoTimer(Sender: TObject);
+  protected
+    procedure Notification(AComponent: TComponent;
+      Operation: TOperation); override;
+    destructor Destroy; override;
+  public
+    procedure Mostrar(AFormulario: TCustomForm;
+      AControlInicial: TWinControl; AConnection: TZAbstractConnection;
+      const ATienda: string;
+      AOnProducto: TFLXProductoSeleccionadoEvent);
+  end;
+
+var
+  FLXTecladoController: TFLXTecladoVirtualController = nil;
+
+procedure FLXMostrarTecladoVirtual(AFormulario: TCustomForm;
+  AControlInicial: TWinControl);
+begin
+  FLXMostrarTecladoVirtual(AFormulario, AControlInicial,
+    nil, '', nil);
+end;
+
+procedure FLXMostrarTecladoVirtual(AFormulario: TCustomForm;
+  AControlInicial: TWinControl; AConnection: TZAbstractConnection;
+  const ATienda: string;
+  AOnProducto: TFLXProductoSeleccionadoEvent);
+begin
+  if not Assigned(FLXTecladoController) then
+    FLXTecladoController :=
+      TFLXTecladoVirtualController.Create(nil);
+
+  FLXTecladoController.Mostrar(AFormulario, AControlInicial,
+    AConnection, ATienda, AOnProducto);
+end;
+
+{ TFLXTecladoVirtualController }
+
+destructor TFLXTecladoVirtualController.Destroy;
+begin
+  DestruirInterfaz;
+  inherited Destroy;
+end;
+
+procedure TFLXTecladoVirtualController.Notification(AComponent: TComponent;
+  Operation: TOperation);
+begin
+  inherited Notification(AComponent, Operation);
+
+  if Operation <> opRemove then
+    Exit;
+
+  if AComponent = FDestino then
+    FDestino := nil;
+
+  if AComponent = FConnection then
+  begin
+    FConnection := nil;
+    FTablasPreparadas := False;
+  end;
+
+  if AComponent = FFormulario then
+  begin
+    if Assigned(FTimer) then
+    begin
+      FTimer.Enabled := False;
+      FTimer.OnTimer := nil;
+    end;
+
+    FFormulario := nil;
+    FDestino := nil;
+    FPanel := nil;
+    FCabecera := nil;
+    FTeclas := nil;
+    FTitulo := nil;
+    FDestinoLabel := nil;
+    FBtnModo := nil;
+    FBtnPosicion := nil;
+    FBtnOcultar := nil;
+    FBtnCerrar := nil;
+    FPestana := nil;
+    FTimer := nil;
+  end;
+end;
+
+procedure TFLXTecladoVirtualController.DestruirInterfaz;
+begin
+  // Detener primero el temporizador para impedir eventos durante la
+  // destrucción del formulario o el cierre de la aplicación.
+  if Assigned(FTimer) then
+  begin
+    FTimer.Enabled := False;
+    FTimer.OnTimer := nil;
+  end;
+
+  if Assigned(FDestino) then
+    FDestino.RemoveFreeNotification(Self);
+
+  if Assigned(FFormulario) then
+    FFormulario.RemoveFreeNotification(Self);
+
+  // Los controles pertenecen al formulario. Cuando este ya está en proceso
+  // de destrucción, Notification habrá puesto los punteros a nil.
+  if Assigned(FPanel) then
+    FreeAndNil(FPanel);
+
+  if Assigned(FPestana) then
+    FreeAndNil(FPestana);
+
+  if Assigned(FTimer) then
+    FreeAndNil(FTimer);
+
+  FFormulario := nil;
+  FDestino := nil;
+  FConnection := nil;
+  FTienda := '';
+  FOnProducto := nil;
+  FCabecera := nil;
+  FTeclas := nil;
+  FTitulo := nil;
+  FDestinoLabel := nil;
+  FBtnModo := nil;
+  FBtnProductos := nil;
+  FBtnConfig := nil;
+  FBtnPosicion := nil;
+  FBtnOcultar := nil;
+  FBtnCerrar := nil;
+  FPestana := nil;
+  FTimer := nil;
+end;
+
+procedure TFLXTecladoVirtualController.ConstruirInterfaz;
+begin
+  if not Assigned(FFormulario) then
+    Exit;
+
+  FPanel := TPanel.Create(FFormulario);
+  FPanel.Parent := FFormulario;
+  FPanel.Caption := '';
+  FPanel.BevelOuter := bvRaised;
+  FPanel.BevelWidth := 2;
+  FPanel.BorderWidth := 2;
+  FPanel.Color := RGBToColor(236, 242, 248);
+  FPanel.ParentBackground := False;
+  FPanel.ParentColor := False;
+  FPanel.Visible := False;
+
+  FCabecera := TPanel.Create(FFormulario);
+  FCabecera.Parent := FPanel;
+  FCabecera.Align := alTop;
+  FCabecera.Height := 52;
+  FCabecera.Caption := '';
+  FCabecera.BevelOuter := bvNone;
+  FCabecera.Color := RGBToColor(4, 58, 87);
+  FCabecera.ParentBackground := False;
+  FCabecera.ParentColor := False;
+
+  FTitulo := TLabel.Create(FFormulario);
+  FTitulo.Parent := FCabecera;
+  FTitulo.Left := 14;
+  FTitulo.Top := 6;
+  FTitulo.Caption := 'Teclado virtual';
+  FTitulo.Font.Name := 'Sans';
+  FTitulo.Font.Height := -17;
+  FTitulo.Font.Style := [fsBold];
+  FTitulo.Font.Color := clWhite;
+  FTitulo.ParentFont := False;
+  FTitulo.Transparent := True;
+
+  FDestinoLabel := TLabel.Create(FFormulario);
+  FDestinoLabel.Parent := FCabecera;
+  FDestinoLabel.Left := 14;
+  FDestinoLabel.Top := 30;
+  FDestinoLabel.AutoSize := False;
+  FDestinoLabel.Caption := 'Seleccione un campo de escritura';
+  FDestinoLabel.Font.Name := 'Sans';
+  FDestinoLabel.Font.Height := -10;
+  FDestinoLabel.Font.Color := RGBToColor(210, 229, 240);
+  FDestinoLabel.ParentFont := False;
+  FDestinoLabel.Transparent := True;
+
+  FBtnModo := TSpeedButton.Create(FFormulario);
+  FBtnModo.Parent := FCabecera;
+  FBtnModo.Caption := '123';
+  FBtnModo.Font.Name := 'Sans';
+  FBtnModo.Font.Height := -13;
+  FBtnModo.Font.Style := [fsBold];
+  FBtnModo.ParentFont := False;
+  FBtnModo.OnClick := @BtnModoClick;
+
+  FBtnProductos := TSpeedButton.Create(FFormulario);
+  FBtnProductos.Parent := FCabecera;
+  FBtnProductos.Caption := 'Productos';
+  FBtnProductos.Font.Name := 'Sans';
+  FBtnProductos.Font.Height := -12;
+  FBtnProductos.Font.Style := [fsBold];
+  FBtnProductos.ParentFont := False;
+  FBtnProductos.OnClick := @BtnProductosClick;
+
+  FBtnConfig := TSpeedButton.Create(FFormulario);
+  FBtnConfig.Parent := FCabecera;
+  FBtnConfig.Caption := 'Config.';
+  FBtnConfig.Font.Name := 'Sans';
+  FBtnConfig.Font.Height := -11;
+  FBtnConfig.Font.Style := [fsBold];
+  FBtnConfig.ParentFont := False;
+  FBtnConfig.OnClick := @BtnConfigClick;
+
+  FBtnPosicion := TSpeedButton.Create(FFormulario);
+  FBtnPosicion.Parent := FCabecera;
+  FBtnPosicion.Caption := 'Subir';
+  FBtnPosicion.Font.Name := 'Sans';
+  FBtnPosicion.Font.Height := -12;
+  FBtnPosicion.Font.Style := [fsBold];
+  FBtnPosicion.ParentFont := False;
+  FBtnPosicion.OnClick := @BtnPosicionClick;
+
+  FBtnOcultar := TSpeedButton.Create(FFormulario);
+  FBtnOcultar.Parent := FCabecera;
+  FBtnOcultar.Caption := 'Ocultar';
+  FBtnOcultar.Font.Name := 'Sans';
+  FBtnOcultar.Font.Height := -12;
+  FBtnOcultar.Font.Style := [fsBold];
+  FBtnOcultar.ParentFont := False;
+  FBtnOcultar.OnClick := @BtnOcultarClick;
+
+  FBtnCerrar := TSpeedButton.Create(FFormulario);
+  FBtnCerrar.Parent := FCabecera;
+  FBtnCerrar.Caption := 'Cerrar';
+  FBtnCerrar.Font.Name := 'Sans';
+  FBtnCerrar.Font.Height := -12;
+  FBtnCerrar.Font.Style := [fsBold];
+  FBtnCerrar.ParentFont := False;
+  FBtnCerrar.OnClick := @BtnCerrarClick;
+
+  FTeclas := TPanel.Create(FFormulario);
+  FTeclas.Parent := FPanel;
+  FTeclas.Align := alClient;
+  FTeclas.Caption := '';
+  FTeclas.BevelOuter := bvNone;
+  FTeclas.Color := RGBToColor(236, 242, 248);
+  FTeclas.ParentBackground := False;
+  FTeclas.ParentColor := False;
+
+  FPestana := TSpeedButton.Create(FFormulario);
+  FPestana.Parent := FFormulario;
+  FPestana.Caption := 'Teclado';
+  FPestana.Width := 110;
+  FPestana.Height := 34;
+  FPestana.Font.Name := 'Sans';
+  FPestana.Font.Height := -12;
+  FPestana.Font.Style := [fsBold];
+  FPestana.ParentFont := False;
+  FPestana.Visible := False;
+  FPestana.OnClick := @PestanaClick;
+
+  FTimer := TTimer.Create(FFormulario);
+  FTimer.Interval := 180;
+  FTimer.Enabled := True;
+  FTimer.OnTimer := @TimerFocoTimer;
+
+  FModo := fmtAlfanumerico;
+  FConnection := nil;
+  FTienda := '';
+  FOnProducto := nil;
+  FGrupoActual := 0;
+  FPaginaGrupos := 0;
+  FPaginaProductos := 0;
+  FTablasPreparadas := False;
+  FPosicionAbajo := True;
+  FPosicionManual := False;
+  FUltimoAncho := 0;
+  FUltimoAlto := 0;
+
+  AplicarModo(FModo);
+end;
+
+function TFLXTecladoVirtualController.ControlPrefiereNumerico(
+  AControl: TWinControl): Boolean;
+const
+  CAMPOS_NUMERICOS =
+    '|EDIT5|EDIT6|EDIT7|EDIT8|EDIT9|EDIT10|EDIT11|' +
+    'EDIT12|EDIT13|EDIT14|EDIT15|EDIT16|EDIT42|' +
+    'EDNUMEROCOPIAS|SPINEDIT1|';
+var
+  N, H, TextoBusqueda: string;
+  PropInfo: PPropInfo;
+begin
+  Result := False;
+
+  if not Assigned(AControl) then
+    Exit;
+
+  N := UpperCase(Trim(AControl.Name));
+  H := UpperCase(Trim(AControl.Hint));
+  TextoBusqueda := N + ' ' + H;
+
+  // Campos numéricos conocidos de Ventas y Totalización.
+  if Pos('|' + N + '|', CAMPOS_NUMERICOS) > 0 then
+    Exit(True);
+
+  // Permite reutilizar la unidad en otros formularios si sus controles o
+  // ayudas contienen una descripción funcional.
+  if (Pos('CANTIDAD', TextoBusqueda) > 0) or
+     (Pos('UNIDAD', TextoBusqueda) > 0) or
+     (Pos('UNID.', TextoBusqueda) > 0) or
+     (Pos('PRECIO', TextoBusqueda) > 0) or
+     (Pos('PVP', TextoBusqueda) > 0) or
+     (Pos('IMPORTE', TextoBusqueda) > 0) or
+     (Pos('DESCUENTO', TextoBusqueda) > 0) or
+     (Pos('DTO', TextoBusqueda) > 0) or
+     (Pos('IVA', TextoBusqueda) > 0) or
+     (Pos('TOTAL', TextoBusqueda) > 0) or
+     (Pos('ENTREGA', TextoBusqueda) > 0) or
+     (Pos('CAMBIO', TextoBusqueda) > 0) or
+     (Pos('COPIA', TextoBusqueda) > 0) then
+    Exit(True);
+
+  // Los edits alineados a la derecha suelen representar importes, códigos
+  // numéricos o cantidades. RTTI evita depender de una clase concreta.
+  PropInfo := GetPropInfo(AControl, 'Alignment');
+  if Assigned(PropInfo) then
+    Result := GetOrdProp(AControl, PropInfo) = Ord(taRightJustify);
+end;
+
+procedure TFLXTecladoVirtualController.AplicarModoAutomatico(
+  AControl: TWinControl);
+var
+  ModoDeseado: TFLXModoTeclado;
+begin
+  if not Assigned(AControl) then
+    Exit;
+
+  if ControlPrefiereNumerico(AControl) then
+    ModoDeseado := fmtNumerico
+  else
+    ModoDeseado := fmtAlfanumerico;
+
+  if FModo <> ModoDeseado then
+    AplicarModo(ModoDeseado);
+end;
+
+function TFLXTecladoVirtualController.EsControlDelTeclado(
+  AControl: TControl): Boolean;
+var
+  C: TControl;
+begin
+  Result := False;
+  C := AControl;
+
+  while Assigned(C) do
+  begin
+    if (C = FPanel) or (C = FPestana) then
+      Exit(True);
+    C := C.Parent;
+  end;
+end;
+
+function TFLXTecladoVirtualController.EsControlEditable(
+  AControl: TWinControl): Boolean;
+begin
+  Result := Assigned(AControl) and
+    (AControl is TCustomEdit) and
+    AControl.Enabled and AControl.Visible and
+    not TCustomEdit(AControl).ReadOnly and
+    not EsControlDelTeclado(AControl);
+end;
+
+procedure TFLXTecladoVirtualController.EstablecerDestino(
+  AControl: TWinControl);
+var
+  P: TPoint;
+  CambioDestino: Boolean;
+begin
+  if not EsControlEditable(AControl) then
+    Exit;
+
+  CambioDestino := FDestino <> AControl;
+
+  if Assigned(FDestino) and CambioDestino then
+    FDestino.RemoveFreeNotification(Self);
+
+  FDestino := AControl;
+  FDestino.FreeNotification(Self);
+  ActualizarDestino;
+
+  // El cambio manual ABC/123 se conserva mientras permanezcamos en el mismo
+  // campo. Al pasar a otro campo vuelve a aplicarse su modo natural.
+  if CambioDestino and Assigned(FPanel) and FPanel.Visible and
+     (FModo <> fmtProductos) then
+    AplicarModoAutomatico(FDestino);
+
+  if not FPosicionManual and Assigned(FFormulario) then
+  begin
+    P := FFormulario.ScreenToClient(
+      FDestino.ClientToScreen(Point(0, 0)));
+    FPosicionAbajo := P.Y < (FFormulario.ClientHeight div 2);
+    Posicionar;
+  end;
+end;
+
+procedure TFLXTecladoVirtualController.CapturarDestinoActivo;
+var
+  C: TWinControl;
+begin
+  C := Screen.ActiveControl;
+  if EsControlEditable(C) then
+    EstablecerDestino(C);
+end;
+
+procedure TFLXTecladoVirtualController.ActualizarDestino;
+var
+  S: string;
+begin
+  if not Assigned(FDestinoLabel) then
+    Exit;
+
+  if not Assigned(FDestino) then
+  begin
+    FDestinoLabel.Caption := 'Seleccione un campo de escritura';
+    Exit;
+  end;
+
+  S := Trim(FDestino.Hint);
+  if S = '' then
+    S := FDestino.Name;
+
+  FDestinoLabel.Caption := 'Campo activo: ' + S;
+end;
+
+procedure TFLXTecladoVirtualController.ActualizarCabecera;
+var
+  X: Integer;
+begin
+  if not Assigned(FPanel) then
+    Exit;
+
+  X := FPanel.ClientWidth - 10;
+
+  FBtnCerrar.SetBounds(X - 74, 8, 74, 36);
+  Dec(X, 82);
+  FBtnOcultar.SetBounds(X - 82, 8, 82, 36);
+  Dec(X, 90);
+  FBtnPosicion.SetBounds(X - 82, 8, 82, 36);
+  Dec(X, 90);
+  FBtnConfig.SetBounds(X - 72, 8, 72, 36);
+  Dec(X, 80);
+  FBtnProductos.SetBounds(X - 94, 8, 94, 36);
+  Dec(X, 102);
+  FBtnModo.SetBounds(X - 62, 8, 62, 36);
+
+  FDestinoLabel.Width := FBtnModo.Left - FDestinoLabel.Left - 8;
+end;
+
+procedure TFLXTecladoVirtualController.LimpiarTeclas;
+begin
+  if not Assigned(FTeclas) then
+    Exit;
+
+  while FTeclas.ControlCount > 0 do
+    FTeclas.Controls[0].Free;
+end;
+
+function TFLXTecladoVirtualController.CrearTecla(
+  const ACaption, AValor: string; AX, AY, AAncho, AAlto,
+  ATag: Integer): TSpeedButton;
+begin
+  Result := TSpeedButton.Create(FFormulario);
+  Result.Parent := FTeclas;
+  Result.SetBounds(AX, AY, AAncho, AAlto);
+  Result.Caption := ACaption;
+  Result.Hint := AValor;
+  Result.Tag := ATag;
+  Result.ShowHint := False;
+  Result.Flat := False;
+  Result.Font.Name := 'Sans';
+  Result.Font.Height := -15;
+  Result.Font.Style := [fsBold];
+  Result.ParentFont := False;
+  Result.OnClick := @TeclaClick;
+end;
+
+procedure TFLXTecladoVirtualController.CrearFila(
+  const ATeclas: array of string; AY, AAncho, AAlto,
+  ASeparacion, ADesplazamiento: Integer);
+var
+  I, X: Integer;
+begin
+  X := ADesplazamiento;
+
+  for I := Low(ATeclas) to High(ATeclas) do
+  begin
+    CrearTecla(ATeclas[I], ATeclas[I], X, AY, AAncho, AAlto,
+      FLX_KEY_CHAR);
+    Inc(X, AAncho + ASeparacion);
+  end;
+end;
+
+procedure TFLXTecladoVirtualController.ConstruirAlfanumerico;
+const
+  Margen = 10;
+  Gap = 5;
+  H = 43;
+var
+  Disponible, W, Y, X: Integer;
+  WEspacio, WTab, WEnter, WBorrar, WLimpiar: Integer;
+begin
+  LimpiarTeclas;
+
+  Disponible := FTeclas.ClientWidth - (2 * Margen);
+  Y := 8;
+
+  W := (Disponible - (11 * Gap)) div 12;
+  CrearFila(['1','2','3','4','5','6','7','8','9','0','-','+'],
+    Y, W, H, Gap, Margen);
+
+  Inc(Y, H + Gap);
+  W := (Disponible - (9 * Gap)) div 10;
+  X := Margen + ((Disponible - ((10 * W) + (9 * Gap))) div 2);
+  CrearFila(['Q','W','E','R','T','Y','U','I','O','P'],
+    Y, W, H, Gap, X);
+
+  Inc(Y, H + Gap);
+  X := Margen + ((Disponible - ((10 * W) + (9 * Gap))) div 2);
+  CrearFila(['A','S','D','F','G','H','J','K','L','Ñ'],
+    Y, W, H, Gap, X);
+
+  Inc(Y, H + Gap);
+  X := Margen + ((Disponible - ((10 * W) + (9 * Gap))) div 2);
+  CrearFila(['Z','X','C','V','B','N','M',',','.','/'],
+    Y, W, H, Gap, X);
+
+  Inc(Y, H + Gap);
+  WEspacio := (Disponible * 39) div 100;
+  WTab := (Disponible * 12) div 100;
+  WEnter := (Disponible * 15) div 100;
+  WBorrar := (Disponible * 16) div 100;
+  WLimpiar := Disponible - WEspacio - WTab - WEnter - WBorrar -
+    (4 * Gap);
+
+  X := Margen;
+  CrearTecla('ESPACIO', '', X, Y, WEspacio, H, FLX_KEY_SPACE);
+  Inc(X, WEspacio + Gap);
+  CrearTecla('TAB', '', X, Y, WTab, H, FLX_KEY_TAB);
+  Inc(X, WTab + Gap);
+  CrearTecla('INTRO', '', X, Y, WEnter, H, FLX_KEY_ENTER);
+  Inc(X, WEnter + Gap);
+  CrearTecla('BORRAR', '', X, Y, WBorrar, H, FLX_KEY_BACK);
+  Inc(X, WBorrar + Gap);
+  CrearTecla('LIMPIAR', '', X, Y, WLimpiar, H, FLX_KEY_CLEAR);
+end;
+
+procedure TFLXTecladoVirtualController.ConstruirNumerico;
+const
+  Margen = 10;
+  Gap = 6;
+  H = 43;
+var
+  Disponible, W, Y: Integer;
+begin
+  LimpiarTeclas;
+
+  Disponible := FTeclas.ClientWidth - (2 * Margen);
+  W := (Disponible - (3 * Gap)) div 4;
+  Y := 8;
+
+  CrearFila(['7','8','9'], Y, W, H, Gap, Margen);
+  CrearTecla('BORRAR', '', Margen + (3 * (W + Gap)), Y,
+    W, H, FLX_KEY_BACK);
+
+  Inc(Y, H + Gap);
+  CrearFila(['4','5','6'], Y, W, H, Gap, Margen);
+  CrearTecla('LIMPIAR', '', Margen + (3 * (W + Gap)), Y,
+    W, H, FLX_KEY_CLEAR);
+
+  Inc(Y, H + Gap);
+  CrearFila(['1','2','3'], Y, W, H, Gap, Margen);
+  CrearTecla('TAB', '', Margen + (3 * (W + Gap)), Y,
+    W, H, FLX_KEY_TAB);
+
+  Inc(Y, H + Gap);
+  CrearFila(['0','00',','], Y, W, H, Gap, Margen);
+  CrearTecla('.', '.', Margen + (3 * (W + Gap)), Y,
+    W, H, FLX_KEY_CHAR);
+
+  Inc(Y, H + Gap);
+  CrearTecla('-', '-', Margen, Y, W, H, FLX_KEY_CHAR);
+  CrearTecla('INTRO', '', Margen + W + Gap, Y,
+    (3 * W) + (2 * Gap), H, FLX_KEY_ENTER);
+end;
+
+
+procedure TFLXTecladoVirtualController.GrupoAnteriorClick(
+  Sender: TObject);
+begin
+  if FPaginaGrupos > 0 then
+    Dec(FPaginaGrupos);
+  FGrupoActual := 0;
+  FPaginaProductos := 0;
+  ConstruirProductos;
+end;
+
+procedure TFLXTecladoVirtualController.GrupoSiguienteClick(
+  Sender: TObject);
+begin
+  Inc(FPaginaGrupos);
+  FGrupoActual := 0;
+  FPaginaProductos := 0;
+  ConstruirProductos;
+end;
+
+procedure TFLXTecladoVirtualController.GrupoClick(Sender: TObject);
+begin
+  if not (Sender is TFLXGrupoButton) then
+    Exit;
+
+  FGrupoActual := TFLXGrupoButton(Sender).GrupoID;
+  FPaginaProductos := 0;
+  ConstruirProductos;
+end;
+
+procedure TFLXTecladoVirtualController.ProductoAnteriorClick(
+  Sender: TObject);
+begin
+  if FPaginaProductos > 0 then
+    Dec(FPaginaProductos);
+  ConstruirProductos;
+end;
+
+procedure TFLXTecladoVirtualController.ProductoSiguienteClick(
+  Sender: TObject);
+begin
+  Inc(FPaginaProductos);
+  ConstruirProductos;
+end;
+
+procedure TFLXTecladoVirtualController.ProductoClick(Sender: TObject);
+var
+  B: TFLXProductoButton;
+begin
+  if not (Sender is TFLXProductoButton) then
+    Exit;
+
+  B := TFLXProductoButton(Sender);
+  if Assigned(FOnProducto) then
+    FOnProducto(B.Codigo, B.Cantidad);
+end;
+
+procedure TFLXTecladoVirtualController.ConstruirProductos;
+const
+  GruposPorPagina = 6;
+var
+  Q: TZQuery;
+  TablaGrupos, TablaProductos: string;
+  TotalGrupos, PaginasGrupos, OffsetGrupos: Integer;
+  TotalProductos, PaginasProductos, OffsetProductos: Integer;
+  ProductosPorPagina, Columnas, Filas: Integer;
+  Margen, Gap, HGrupo, WGrupo, HProducto, WProducto: Integer;
+  YGrupo, YProducto, YNavegacion: Integer;
+  I, Columna, Fila: Integer;
+  BtnNav: TSpeedButton;
+  BtnGrupo: TFLXGrupoButton;
+  BtnProducto: TFLXProductoButton;
+  L: TLabel;
+  Texto, Precio: string;
+begin
+  LimpiarTeclas;
+
+  if not Assigned(FConnection) or not FConnection.Connected or
+     (FTienda = '') then
+  begin
+    L := TLabel.Create(FFormulario);
+    L.Parent := FTeclas;
+    L.SetBounds(20, 30, FTeclas.ClientWidth - 40, 70);
+    L.AutoSize := False;
+    L.Alignment := taCenter;
+    L.Layout := tlCenter;
+    L.Caption := 'No hay conexión disponible para cargar productos.';
+    Exit;
+  end;
+
+  try
+    if not FTablasPreparadas then
+    begin
+      FLXAsegurarTablasTecladoProductos(FConnection, FTienda);
+      FTablasPreparadas := True;
+    end;
+
+    TablaGrupos := FLXTablaTecladoGrupos(FTienda);
+    TablaProductos := FLXTablaTecladoProductos(FTienda);
+
+    Q := TZQuery.Create(nil);
+    try
+      Q.Connection := FConnection;
+      Q.SQL.Text := 'SELECT COUNT(*) AS C FROM `' + TablaGrupos +
+        '` WHERE TG_ACTIVO=''S''';
+      Q.Open;
+      TotalGrupos := Q.FieldByName('C').AsInteger;
+      Q.Close;
+
+      if TotalGrupos = 0 then
+      begin
+        L := TLabel.Create(FFormulario);
+        L.Parent := FTeclas;
+        L.SetBounds(20, 30, FTeclas.ClientWidth - 40, 90);
+        L.AutoSize := False;
+        L.Alignment := taCenter;
+        L.Layout := tlCenter;
+        L.WordWrap := True;
+        L.Caption := 'No hay grupos configurados.' + LineEnding +
+          'Pulse Config. para crear el primero.';
+        L.Font.Height := -14;
+        L.Font.Style := [fsBold];
+        L.ParentFont := False;
+        Exit;
+      end;
+
+      PaginasGrupos := (TotalGrupos - 1) div GruposPorPagina;
+      if FPaginaGrupos > PaginasGrupos then
+        FPaginaGrupos := PaginasGrupos;
+      OffsetGrupos := FPaginaGrupos * GruposPorPagina;
+
+      Margen := 8;
+      Gap := 5;
+      YGrupo := 6;
+      HGrupo := 36;
+      WGrupo := (FTeclas.ClientWidth - 2 * Margen - 90 -
+        (GruposPorPagina - 1) * Gap) div GruposPorPagina;
+
+      BtnNav := TSpeedButton.Create(FFormulario);
+      BtnNav.Parent := FTeclas;
+      BtnNav.SetBounds(Margen, YGrupo, 40, HGrupo);
+      BtnNav.Caption := '<';
+      BtnNav.Enabled := FPaginaGrupos > 0;
+      BtnNav.OnClick := @GrupoAnteriorClick;
+
+      Q.SQL.Text := 'SELECT TG_ID,TG_NOMBRE FROM `' + TablaGrupos +
+        '` WHERE TG_ACTIVO=''S'' ORDER BY TG_ORDEN,TG_ID LIMIT ' +
+        IntToStr(GruposPorPagina) + ' OFFSET ' +
+        IntToStr(OffsetGrupos);
+      Q.Open;
+
+      I := 0;
+      while not Q.EOF do
+      begin
+        if FGrupoActual = 0 then
+          FGrupoActual := Q.FieldByName('TG_ID').AsInteger;
+
+        BtnGrupo := TFLXGrupoButton.Create(FFormulario);
+        BtnGrupo.Parent := FTeclas;
+        BtnGrupo.SetBounds(Margen + 45 + I * (WGrupo + Gap),
+          YGrupo, WGrupo, HGrupo);
+        BtnGrupo.Caption := Q.FieldByName('TG_NOMBRE').AsString;
+        BtnGrupo.GrupoID := Q.FieldByName('TG_ID').AsInteger;
+        BtnGrupo.GroupIndex := 21;
+        BtnGrupo.AllowAllUp := False;
+        BtnGrupo.Down := BtnGrupo.GrupoID = FGrupoActual;
+        BtnGrupo.Font.Style := [fsBold];
+        BtnGrupo.OnClick := @GrupoClick;
+        Inc(I);
+        Q.Next;
+      end;
+      Q.Close;
+
+      BtnNav := TSpeedButton.Create(FFormulario);
+      BtnNav.Parent := FTeclas;
+      BtnNav.SetBounds(FTeclas.ClientWidth - Margen - 40,
+        YGrupo, 40, HGrupo);
+      BtnNav.Caption := '>';
+      BtnNav.Enabled := FPaginaGrupos < PaginasGrupos;
+      BtnNav.OnClick := @GrupoSiguienteClick;
+
+      Q.SQL.Text := 'SELECT COUNT(*) AS C FROM `' +
+        TablaProductos + '` WHERE TP_GRUPO_ID=:G ' +
+        'AND TP_ACTIVO=''S''';
+      Q.ParamByName('G').AsInteger := FGrupoActual;
+      Q.Open;
+      TotalProductos := Q.FieldByName('C').AsInteger;
+      Q.Close;
+
+      Columnas := 5;
+      if FTeclas.ClientWidth < 820 then
+        Columnas := 4;
+      Filas := 3;
+      ProductosPorPagina := Columnas * Filas;
+      PaginasProductos := 0;
+      if TotalProductos > 0 then
+        PaginasProductos :=
+          (TotalProductos - 1) div ProductosPorPagina;
+      if FPaginaProductos > PaginasProductos then
+        FPaginaProductos := PaginasProductos;
+      OffsetProductos := FPaginaProductos * ProductosPorPagina;
+
+      YProducto := 48;
+      YNavegacion := FTeclas.ClientHeight - 34;
+      HProducto := (YNavegacion - YProducto - 2 * Gap) div Filas;
+      WProducto := (FTeclas.ClientWidth - 2 * Margen -
+        (Columnas - 1) * Gap) div Columnas;
+
+      Q.SQL.Text :=
+        'SELECT p.TP_CODIGO,p.TP_TEXTO,p.TP_CANTIDAD,' +
+        'a.A0,a.A1,a.A2 FROM `' + TablaProductos + '` p ' +
+        'LEFT JOIN `artitien' + FTienda +
+        '` a ON a.A0=p.TP_CODIGO ' +
+        'WHERE p.TP_GRUPO_ID=:G AND p.TP_ACTIVO=''S'' ' +
+        'ORDER BY p.TP_ORDEN,p.TP_ID LIMIT ' +
+        IntToStr(ProductosPorPagina) + ' OFFSET ' +
+        IntToStr(OffsetProductos);
+      Q.ParamByName('G').AsInteger := FGrupoActual;
+      Q.Open;
+
+      I := 0;
+      while not Q.EOF do
+      begin
+        Columna := I mod Columnas;
+        Fila := I div Columnas;
+
+        Texto := Trim(Q.FieldByName('TP_TEXTO').AsString);
+        if Texto = '' then
+          Texto := Trim(Q.FieldByName('A1').AsString);
+        if Texto = '' then
+          Texto := Q.FieldByName('TP_CODIGO').AsString;
+
+        if Q.FieldByName('A0').IsNull then
+          Precio := 'ARTÍCULO NO ENCONTRADO'
+        else
+          Precio := FormatFloat('0.00',
+            Q.FieldByName('A2').AsFloat) + ' €';
+
+        BtnProducto := TFLXProductoButton.Create(FFormulario);
+        BtnProducto.Parent := FTeclas;
+        BtnProducto.SetBounds(
+          Margen + Columna * (WProducto + Gap),
+          YProducto + Fila * (HProducto + Gap),
+          WProducto, HProducto);
+        BtnProducto.Caption := Copy(Texto, 1, 34) +
+          LineEnding + Precio;
+        BtnProducto.Codigo :=
+          Q.FieldByName('TP_CODIGO').AsString;
+        BtnProducto.Cantidad :=
+          Q.FieldByName('TP_CANTIDAD').AsFloat;
+        BtnProducto.Font.Height := -11;
+        BtnProducto.Font.Style := [fsBold];
+        BtnProducto.ParentFont := False;
+        BtnProducto.Enabled := not Q.FieldByName('A0').IsNull;
+        BtnProducto.OnClick := @ProductoClick;
+        Inc(I);
+        Q.Next;
+      end;
+      Q.Close;
+
+      if TotalProductos = 0 then
+      begin
+        L := TLabel.Create(FFormulario);
+        L.Parent := FTeclas;
+        L.SetBounds(20, YProducto + 25,
+          FTeclas.ClientWidth - 40, 60);
+        L.AutoSize := False;
+        L.Alignment := taCenter;
+        L.Layout := tlCenter;
+        L.Caption := 'Este grupo todavía no contiene productos.';
+        L.Font.Height := -13;
+        L.ParentFont := False;
+      end;
+
+      BtnNav := TSpeedButton.Create(FFormulario);
+      BtnNav.Parent := FTeclas;
+      BtnNav.SetBounds(Margen, YNavegacion, 105, 30);
+      BtnNav.Caption := '< Anterior';
+      BtnNav.Enabled := FPaginaProductos > 0;
+      BtnNav.OnClick := @ProductoAnteriorClick;
+
+      L := TLabel.Create(FFormulario);
+      L.Parent := FTeclas;
+      L.SetBounds(125, YNavegacion + 5,
+        FTeclas.ClientWidth - 250, 22);
+      L.AutoSize := False;
+      L.Alignment := taCenter;
+      L.Caption := 'Página ' + IntToStr(FPaginaProductos + 1) +
+        ' de ' + IntToStr(PaginasProductos + 1);
+
+      BtnNav := TSpeedButton.Create(FFormulario);
+      BtnNav.Parent := FTeclas;
+      BtnNav.SetBounds(FTeclas.ClientWidth - Margen - 105,
+        YNavegacion, 105, 30);
+      BtnNav.Caption := 'Siguiente >';
+      BtnNav.Enabled := FPaginaProductos < PaginasProductos;
+      BtnNav.OnClick := @ProductoSiguienteClick;
+
+      FDestinoLabel.Caption :=
+        'Productos rápidos - tienda ' + FTienda;
+    finally
+      Q.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      LimpiarTeclas;
+      L := TLabel.Create(FFormulario);
+      L.Parent := FTeclas;
+      L.SetBounds(20, 25, FTeclas.ClientWidth - 40, 100);
+      L.AutoSize := False;
+      L.Alignment := taCenter;
+      L.Layout := tlCenter;
+      L.WordWrap := True;
+      L.Caption := 'No se ha podido cargar el teclado de productos.' +
+        LineEnding + E.Message;
+    end;
+  end;
+end;
+
+procedure TFLXTecladoVirtualController.AplicarModo(
+  AModo: TFLXModoTeclado);
+var
+  AnchoDeseado: Integer;
+begin
+  if not Assigned(FFormulario) or not Assigned(FPanel) then
+    Exit;
+
+  FModo := AModo;
+
+  case FModo of
+    fmtAlfanumerico:
+      begin
+        AnchoDeseado := 1040;
+        FBtnModo.Caption := '123';
+        FTitulo.Caption := 'Teclado alfanumérico';
+      end;
+    fmtNumerico:
+      begin
+        AnchoDeseado := 570;
+        FBtnModo.Caption := 'ABC';
+        FTitulo.Caption := 'Teclado numérico';
+      end;
+    fmtProductos:
+      begin
+        AnchoDeseado := 1040;
+        FBtnModo.Caption := 'ABC';
+        FTitulo.Caption := 'Teclado de productos';
+      end;
+  end;
+
+  if AnchoDeseado > FFormulario.ClientWidth - 24 then
+    AnchoDeseado := FFormulario.ClientWidth - 24;
+  if AnchoDeseado < 440 then
+    AnchoDeseado := 440;
+
+  FPanel.Width := AnchoDeseado;
+  FPanel.Height := 300;
+  FTeclas.Height := FPanel.Height - FCabecera.Height;
+
+  FBtnProductos.Enabled := Assigned(FConnection) and
+    FConnection.Connected and (FTienda <> '');
+  FBtnConfig.Enabled := FBtnProductos.Enabled;
+
+  ActualizarCabecera;
+
+  case FModo of
+    fmtAlfanumerico: ConstruirAlfanumerico;
+    fmtNumerico: ConstruirNumerico;
+    fmtProductos: ConstruirProductos;
+  end;
+
+  Posicionar;
+end;
+
+procedure TFLXTecladoVirtualController.Posicionar;
+var
+  ReservaPie: Integer;
+begin
+  if not Assigned(FFormulario) or not Assigned(FPanel) then
+    Exit;
+
+  ReservaPie := 48;
+
+  FPanel.Left := (FFormulario.ClientWidth - FPanel.Width) div 2;
+
+  if FPosicionAbajo then
+    FPanel.Top := FFormulario.ClientHeight - FPanel.Height - ReservaPie - 8
+  else
+    FPanel.Top := 92;
+
+  if FPanel.Left < 4 then
+    FPanel.Left := 4;
+
+  if FPanel.Top < 4 then
+    FPanel.Top := 4;
+
+  if FPanel.Top + FPanel.Height > FFormulario.ClientHeight - 4 then
+    FPanel.Top := FFormulario.ClientHeight - FPanel.Height - 4;
+
+  if FPosicionAbajo then
+    FBtnPosicion.Caption := 'Subir'
+  else
+    FBtnPosicion.Caption := 'Bajar';
+
+  FPanel.BringToFront;
+end;
+
+procedure TFLXTecladoVirtualController.PosicionarPestana;
+begin
+  if not Assigned(FFormulario) or not Assigned(FPestana) then
+    Exit;
+
+  FPestana.Left := (FFormulario.ClientWidth - FPestana.Width) div 2;
+  FPestana.Top := FFormulario.ClientHeight - FPestana.Height - 54;
+
+  if FPestana.Top < 4 then
+    FPestana.Top := 4;
+
+  FPestana.BringToFront;
+end;
+
+procedure TFLXTecladoVirtualController.InsertarTexto(
+  const ATexto: string);
+var
+  E: TCustomEdit;
+  TextoAntes, TextoDespues, TextoFinal, Parte, Filtrado: string;
+  Posicion, LongitudSeleccion, I: Integer;
+  C: Char;
+begin
+  if not EsControlEditable(FDestino) then
+    Exit;
+
+  E := TCustomEdit(FDestino);
+  Filtrado := '';
+
+  for I := 1 to UTF8Length(ATexto) do
+  begin
+    Parte := UTF8Copy(ATexto, I, 1);
+
+    if Length(Parte) = 1 then
+    begin
+      C := Parte[1];
+      if Assigned(E.OnKeyPress) then
+        E.OnKeyPress(E, C);
+      if C <> #0 then
+        Filtrado := Filtrado + C;
+    end
+    else
+      Filtrado := Filtrado + Parte;
+  end;
+
+  if Filtrado = '' then
+    Exit;
+
+  Posicion := E.SelStart;
+  LongitudSeleccion := E.SelLength;
+
+  TextoAntes := UTF8Copy(E.Text, 1, Posicion);
+  TextoDespues := UTF8Copy(E.Text,
+    Posicion + LongitudSeleccion + 1, MaxInt);
+  TextoFinal := TextoAntes + Filtrado + TextoDespues;
+
+  if (E.MaxLength > 0) and
+     (UTF8Length(TextoFinal) > E.MaxLength) then
+    Exit;
+
+  E.Text := TextoFinal;
+  E.SelStart := Posicion + UTF8Length(Filtrado);
+  E.SelLength := 0;
+end;
+
+procedure TFLXTecladoVirtualController.BorrarCaracter;
+var
+  E: TCustomEdit;
+  P, L: Integer;
+  TextoAntes, TextoDespues: string;
+  C: Char;
+begin
+  if not EsControlEditable(FDestino) then
+    Exit;
+
+  E := TCustomEdit(FDestino);
+  C := #8;
+
+  if Assigned(E.OnKeyPress) then
+    E.OnKeyPress(E, C);
+
+  if C = #0 then
+    Exit;
+
+  P := E.SelStart;
+  L := E.SelLength;
+
+  if L > 0 then
+  begin
+    TextoAntes := UTF8Copy(E.Text, 1, P);
+    TextoDespues := UTF8Copy(E.Text, P + L + 1, MaxInt);
+    E.Text := TextoAntes + TextoDespues;
+    E.SelStart := P;
+  end
+  else if P > 0 then
+  begin
+    TextoAntes := UTF8Copy(E.Text, 1, P - 1);
+    TextoDespues := UTF8Copy(E.Text, P + 1, MaxInt);
+    E.Text := TextoAntes + TextoDespues;
+    E.SelStart := P - 1;
+  end;
+
+  E.SelLength := 0;
+end;
+
+procedure TFLXTecladoVirtualController.LimpiarTexto;
+var
+  E: TCustomEdit;
+begin
+  if not EsControlEditable(FDestino) then
+    Exit;
+
+  E := TCustomEdit(FDestino);
+  E.Text := '';
+  E.SelStart := 0;
+  E.SelLength := 0;
+end;
+
+procedure TFLXTecladoVirtualController.EjecutarTab;
+var
+  E: TCustomEdit;
+  K: Word;
+  NuevoDestino: TWinControl;
+begin
+  if not EsControlEditable(FDestino) then
+    Exit;
+
+  E := TCustomEdit(FDestino);
+  K := VK_TAB;
+
+  if Assigned(E.OnKeyDown) then
+    E.OnKeyDown(E, K, []);
+
+  if (K <> 0) and Assigned(FFormulario) then
+    FFormulario.SelectNext(E, True, True);
+
+  NuevoDestino := Screen.ActiveControl;
+  if EsControlEditable(NuevoDestino) then
+    EstablecerDestino(NuevoDestino);
+end;
+
+procedure TFLXTecladoVirtualController.EjecutarEnter;
+var
+  E: TCustomEdit;
+  K: Word;
+  C: Char;
+  NuevoDestino: TWinControl;
+begin
+  if not EsControlEditable(FDestino) then
+    Exit;
+
+  E := TCustomEdit(FDestino);
+  K := VK_RETURN;
+
+  if Assigned(E.OnKeyDown) then
+    E.OnKeyDown(E, K, []);
+
+  if K <> 0 then
+  begin
+    C := #13;
+    if Assigned(E.OnKeyPress) then
+      E.OnKeyPress(E, C);
+  end;
+
+  NuevoDestino := Screen.ActiveControl;
+  if EsControlEditable(NuevoDestino) then
+    EstablecerDestino(NuevoDestino);
+end;
+
+procedure TFLXTecladoVirtualController.TeclaClick(Sender: TObject);
+var
+  B: TSpeedButton;
+begin
+  if not (Sender is TSpeedButton) then
+    Exit;
+
+  B := TSpeedButton(Sender);
+
+  case B.Tag of
+    FLX_KEY_CHAR:
+      InsertarTexto(B.Hint);
+    FLX_KEY_BACK:
+      BorrarCaracter;
+    FLX_KEY_CLEAR:
+      LimpiarTexto;
+    FLX_KEY_TAB:
+      EjecutarTab;
+    FLX_KEY_ENTER:
+      EjecutarEnter;
+    FLX_KEY_SPACE:
+      InsertarTexto(' ');
+  end;
+end;
+
+procedure TFLXTecladoVirtualController.BtnModoClick(Sender: TObject);
+begin
+  if FModo = fmtAlfanumerico then
+    AplicarModo(fmtNumerico)
+  else
+    AplicarModo(fmtAlfanumerico);
+end;
+
+procedure TFLXTecladoVirtualController.BtnProductosClick(Sender: TObject);
+begin
+  FGrupoActual := 0;
+  FPaginaGrupos := 0;
+  FPaginaProductos := 0;
+  AplicarModo(fmtProductos);
+end;
+
+procedure TFLXTecladoVirtualController.BtnConfigClick(Sender: TObject);
+begin
+  if not Assigned(FConnection) or not FConnection.Connected then
+    Exit;
+
+  FLXConfigurarTecladoProductos(FFormulario, FConnection, FTienda);
+  FTablasPreparadas := False;
+  FGrupoActual := 0;
+  FPaginaGrupos := 0;
+  FPaginaProductos := 0;
+  AplicarModo(fmtProductos);
+end;
+
+procedure TFLXTecladoVirtualController.BtnPosicionClick(Sender: TObject);
+begin
+  FPosicionManual := True;
+  FPosicionAbajo := not FPosicionAbajo;
+  Posicionar;
+end;
+
+procedure TFLXTecladoVirtualController.Ocultar(
+  AMostrarPestana: Boolean);
+begin
+  if Assigned(FPanel) then
+    FPanel.Visible := False;
+
+  if Assigned(FPestana) then
+  begin
+    FPestana.Visible := AMostrarPestana;
+    if AMostrarPestana then
+      PosicionarPestana;
+  end;
+end;
+
+procedure TFLXTecladoVirtualController.BtnOcultarClick(Sender: TObject);
+begin
+  Ocultar(True);
+end;
+
+procedure TFLXTecladoVirtualController.BtnCerrarClick(Sender: TObject);
+begin
+  Ocultar(False);
+end;
+
+procedure TFLXTecladoVirtualController.PestanaClick(Sender: TObject);
+begin
+  if Assigned(FPestana) then
+    FPestana.Visible := False;
+
+  if Assigned(FPanel) then
+  begin
+    FPanel.Visible := True;
+    Posicionar;
+  end;
+end;
+
+procedure TFLXTecladoVirtualController.TimerFocoTimer(Sender: TObject);
+begin
+  if not Assigned(FFormulario) then
+    Exit;
+
+  if (FFormulario.ClientWidth <> FUltimoAncho) or
+     (FFormulario.ClientHeight <> FUltimoAlto) then
+  begin
+    FUltimoAncho := FFormulario.ClientWidth;
+    FUltimoAlto := FFormulario.ClientHeight;
+
+    if Assigned(FPanel) and FPanel.Visible then
+      AplicarModo(FModo)
+    else
+      PosicionarPestana;
+  end;
+
+  CapturarDestinoActivo;
+end;
+
+procedure TFLXTecladoVirtualController.Mostrar(
+  AFormulario: TCustomForm; AControlInicial: TWinControl;
+  AConnection: TZAbstractConnection; const ATienda: string;
+  AOnProducto: TFLXProductoSeleccionadoEvent);
+var
+  CambioConexion: Boolean;
+begin
+  if not Assigned(AFormulario) then
+    Exit;
+
+  if FFormulario <> AFormulario then
+  begin
+    DestruirInterfaz;
+    FFormulario := AFormulario;
+    FFormulario.FreeNotification(Self);
+    ConstruirInterfaz;
+  end;
+
+  CambioConexion := (FConnection <> AConnection) or
+    (FTienda <> Trim(ATienda));
+
+  if Assigned(FConnection) and CambioConexion then
+    FConnection.RemoveFreeNotification(Self);
+
+  FConnection := AConnection;
+  FTienda := Trim(ATienda);
+  FOnProducto := AOnProducto;
+
+  if Assigned(FConnection) then
+    FConnection.FreeNotification(Self);
+
+  if CambioConexion then
+  begin
+    FTablasPreparadas := False;
+    FGrupoActual := 0;
+    FPaginaGrupos := 0;
+    FPaginaProductos := 0;
+  end;
+
+  if EsControlEditable(AControlInicial) then
+    EstablecerDestino(AControlInicial)
+  else
+    CapturarDestinoActivo;
+
+  // Cada apertura parte del tipo real del campo desde el que se invoca.
+  if Assigned(FDestino) then
+    AplicarModoAutomatico(FDestino);
+
+  FPosicionManual := False;
+
+  if Assigned(FPestana) then
+    FPestana.Visible := False;
+
+  if Assigned(FPanel) then
+  begin
+    FPanel.Visible := True;
+    Posicionar;
+  end;
+end;
+
+finalization
+  FreeAndNil(FLXTecladoController);
+
+end.

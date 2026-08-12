@@ -1,0 +1,18 @@
+FACTURLINEX INSTALLER 4.2.6J - v3 fix1
+
+Correcciones exclusivamente de compilación:
+- clase auxiliar corregida: TFLXInstallerMain -> TfrmFLXInstaller;
+- declarada variable local B: TBitBtn en ShowPage;
+- añadido LCLIntf para OpenDocument;
+- FPackageRoot sustituido por FSourceDir, que sí existe en esta clase.
+
+No se modifica:
+- flujo del asistente;
+- scripts shell;
+- MariaDB;
+- datos mínimos;
+- VeriFactu;
+- sudoers.
+
+Compilar:
+  lazbuild -B InstaladorGUI/FLXInstaller.lpi

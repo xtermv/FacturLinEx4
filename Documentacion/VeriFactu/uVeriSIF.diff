@@ -1,0 +1,18 @@
+--- ANTES
++++ DESPUES
+@@ -68,12 +68,12 @@
+   Cfg.NIF               := Trim(Nif);
+ 
+   // Valores recomendados por defecto para FacturLinEx (software libre)
+-  Cfg.NombreSistema     := 'FacturLinEx 2.0 (SIF Libre)';
++  Cfg.NombreSistema     := 'FacturLinEx';
+   Cfg.IdSistema         := 'FL';
+-  Cfg.Version           := '2.0.0';
++  Cfg.Version           := '4.2.6J';
+   Cfg.NumeroInstalacion := '1';
+ 
+-  Cfg.SoloVerifactu     := 'N';  // No es solo para VeriFactu
++  Cfg.SoloVerifactu     := 'S';  // En explotación fiscal: solo VERI*FACTU
+   Cfg.MultiOT           := 'N';  // No es multi-OT
+   Cfg.MultiplesOT       := 'N';  // Esta instalación no tiene varios OT
+ end;

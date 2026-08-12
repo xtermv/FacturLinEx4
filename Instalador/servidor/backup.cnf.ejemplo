@@ -1,0 +1,4 @@
+[client]
+user=facturlinex_backup
+password=CAMBIAR_POR_UNA_CLAVE_SEGURA
+socket=/run/mysqld/mysqld.sock

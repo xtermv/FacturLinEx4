@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=FacturLinEx Tools
+Comment=Centro de operaciones y diagnóstico de FacturLinEx
+Exec=/usr/bin/FLXTools
+Icon=facturlinex2
+Terminal=false
+Categories=Office;Utility;
+StartupNotify=true

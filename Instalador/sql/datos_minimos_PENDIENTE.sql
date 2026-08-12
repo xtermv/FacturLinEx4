@@ -1,0 +1,1 @@
+-- Sustituido por datos_minimos.sql en la revisión de instalador 4.2.6J.

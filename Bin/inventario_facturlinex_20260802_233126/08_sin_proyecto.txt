@@ -1,0 +1,2 @@
+No se indicó una carpeta de proyecto válida.
+Ejecute de nuevo pasando también la carpeta raíz del proyecto para analizar scripts y recursos.

@@ -35,6 +35,13 @@ function VeriFactu_TakeNextPending(out Serie: string; out Numero: Integer;
 function VeriFactu_TakeSpecificPending(const SerieIn: string; const NumeroIn: Integer;
   out PayloadJSON: string; out EncadenamientoHash: string): Boolean;
 
+// Guarda la entrada exacta utilizada para calcular la huella SHA-256 SIF-B.
+procedure VeriFactu_SaveHashAuditData(const Serie: string; const Numero: Integer;
+  const HashInput, FechaHoraHuso: string);
+
+procedure VeriFactu_SaveHashAuditDataByID(const QueueID: Int64;
+  const HashInput, FechaHoraHuso: string);
+
 // Marca una factura como ENVIADO. Permite guardar hash y respuesta (opcional).
 procedure VeriFactu_MarkSent(const Serie: string; const Numero: Integer; const Hash: string = ''; const Respuesta: string = '');
 
@@ -53,6 +60,10 @@ procedure VeriFactu_RequeueStuck(InMinutes: Integer = 10);
 
 // Hacemos pública la función para obtener el número de id
 function GetMachineUUIDFromFile: string;
+
+
+function VeriFactu_GetRecordIdentityByHash(const AHash: string;
+  out ASerie: string; out ANumero: Integer; out AFecha: TDateTime): Boolean;
 
 implementation
 
@@ -591,6 +602,7 @@ begin
   NeedCol('fecha_isoz');
   NeedCol('canonical');
   NeedCol('tipo_factura');
+  NeedCol('origen');
   NeedCol('created_at');
   NeedCol('updated_at');
 end;
@@ -982,6 +994,7 @@ begin
     '  fecha_isoz VARCHAR(30) NULL DEFAULT NULL,'#10 +
     '  canonical TEXT NULL,'#10 +
     '  tipo_factura CHAR(2) NOT NULL DEFAULT "F1",'#10 +
+    '  origen VARCHAR(24) NOT NULL DEFAULT "SIN_CLASIFICAR",'#10 +
     '  created_at DATETIME NOT NULL,'#10 +
     '  updated_at DATETIME NOT NULL,'#10 +
     '  PRIMARY KEY (id),'#10 +
@@ -1106,6 +1119,7 @@ begin
           '  fecha_isoz VARCHAR(30) NULL DEFAULT NULL,' +
           '  canonical TEXT NULL,' +
           '  tipo_factura CHAR(2) NOT NULL DEFAULT "F1",' +
+          '  origen VARCHAR(24) NOT NULL DEFAULT "SIN_CLASIFICAR",' +
           '  created_at DATETIME NOT NULL,' +
           '  updated_at DATETIME NOT NULL,' +
           '  PRIMARY KEY (id),' +
@@ -1141,6 +1155,7 @@ begin
       VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'fecha_isoz', 'fecha_isoz VARCHAR(30) NULL DEFAULT NULL');
       VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'canonical', 'canonical TEXT NULL');
       VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'tipo_factura', 'tipo_factura CHAR(2) NOT NULL DEFAULT "F1"');
+      VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'origen', 'origen VARCHAR(24) NOT NULL DEFAULT "SIN_CLASIFICAR"');
       VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'payload_json', 'payload_json MEDIUMTEXT');
       VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'respuesta_text', 'respuesta_text MEDIUMTEXT');
       VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'last_error', 'last_error VARCHAR(255)');
@@ -1959,6 +1974,8 @@ procedure QueueToDB_Conn(Conn: TZConnection; const Serie: string; Numero: Intege
 var
   qry: TZQuery;
   TipoFactura: string;
+  OrigenRegistro: string;
+  EntornoRegistro: string;
   PayloadFinal: string;
 begin
   // Idempotencia: si ya existe, no insertar
@@ -1972,6 +1989,11 @@ begin
   // OJO: FS-Rxx debe ser R5 y Rxx debe ser R1.
   TipoFactura := VF_DetectTipoFacturaFromSerie(Serie);
 
+  if (Length(TipoFactura) >= 1) and (TipoFactura[1] = 'R') then
+    OrigenRegistro := 'RECTIFICATIVA'
+  else
+    OrigenRegistro := 'NORMAL';
+
   // Guardamos también el tipo dentro del JSON para que el sender no tenga que
   // recalcularlo ni pueda volver a convertir una FS-Rxx en F2.
   PayloadFinal := PayloadJSON;
@@ -1979,15 +2001,28 @@ begin
     PayloadFinal := StringReplace(PayloadFinal, '"cabecera":{',
       '"cabecera":{"tipoFactura":"' + JsonEscape(TipoFactura) + '",', []);
 
+  { Entorno VeriFactu del sistema para el registro ORIG normal. }
+  EntornoRegistro := UpperCase(Trim(vfMode));
+  if EntornoRegistro = 'TEST' then
+    EntornoRegistro := 'PRUEBAS';
+
+  if (EntornoRegistro <> 'PRUEBAS') and
+     (EntornoRegistro <> 'PRODUCCION') then
+  begin
+    WriteDiag('QueueToDB_Conn: vfMode no valido (' + Trim(vfMode) +
+      '). Se guarda SIN_CLASIFICAR.');
+    EntornoRegistro := 'SIN_CLASIFICAR';
+  end;
+
   qry := TZQuery.Create(nil);
   try
     qry.Connection := Conn;
     qry.SQL.Text :=
       'INSERT INTO verifactu_queue ' +
       '(serie, numero, fecha, hora, total_con_iva, estado, intentos, payload_json, hash, ' +
-      ' created_at, updated_at, last_attempt_at, token, claimed_by, claimed_at, claimed_until, tipo_factura) ' +
+      ' created_at, updated_at, last_attempt_at, token, claimed_by, claimed_at, claimed_until, tipo_factura, entorno, origen) ' +
       'VALUES (:serie, :numero, :fecha, :hora, :total, "PENDIENTE", 0, :payload, "", ' +
-      ' NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, :tipo_factura)';
+      ' NOW(), NOW(), NULL, NULL, NULL, NULL, NULL, :tipo_factura, :entorno, :origen)';
     qry.ParamByName('serie').AsString := Serie;
     qry.ParamByName('numero').AsInteger := Numero;
     qry.ParamByName('fecha').AsString := FechaISO;
@@ -1995,9 +2030,11 @@ begin
     qry.ParamByName('total').AsFloat := TotalConIVA;
     qry.ParamByName('payload').AsString := PayloadFinal;
     qry.ParamByName('tipo_factura').AsString := TipoFactura;
+    qry.ParamByName('entorno').AsString := EntornoRegistro;
+    qry.ParamByName('origen').AsString := OrigenRegistro;
     qry.ExecSQL;
 
-    WriteDiag('Insertada en DB principal (verifactu_queue) tipo_factura=' + TipoFactura + '.');
+    WriteDiag('Insertada en DB principal (verifactu_queue) tipo_factura=' + TipoFactura + ' origen=' + OrigenRegistro + '.');
 
   finally
     qry.Free;
@@ -2152,28 +2189,109 @@ begin
   end;
 end;
 
+procedure VeriFactu_SaveHashAuditData(const Serie: string; const Numero: Integer;
+  const HashInput, FechaHoraHuso: string);
+var
+  ownTemp: Boolean;
+  Conn: TZConnection;
+  q: TZQuery;
+begin
+  ownTemp := False;
+  if not GetConnForOps(Conn) then
+  begin
+    WriteDiag('SaveHashAuditData: no hay conexión DB.');
+    Exit;
+  end;
+  if Conn <> GConn then ownTemp := True;
+
+  q := TZQuery.Create(nil);
+  try
+    q.Connection := Conn;
+    VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'hash_input',
+      'hash_input MEDIUMTEXT NULL');
+    VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'hash_fecha_huso',
+      'hash_fecha_huso VARCHAR(35) NULL');
+    VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'hash_algoritmo',
+      'hash_algoritmo VARCHAR(16) NOT NULL DEFAULT "SHA-256"');
+
+    q.SQL.Text :=
+      'UPDATE verifactu_queue SET hash_input=:hi, hash_fecha_huso=:fh, ' +
+      'hash_algoritmo="SHA-256", updated_at=NOW() ' +
+      'WHERE serie=:s AND numero=:n LIMIT 1';
+    q.ParamByName('hi').AsString := HashInput;
+    q.ParamByName('fh').AsString := FechaHoraHuso;
+    q.ParamByName('s').AsString := Serie;
+    q.ParamByName('n').AsInteger := Numero;
+    q.ExecSQL;
+  except
+    on E: Exception do
+      WriteDiag('SaveHashAuditData: ' + E.Message);
+  end;
+  q.Free;
+
+  if ownTemp then
+  begin
+    try if Conn.Connected then Conn.Disconnect; except end;
+    Conn.Free;
+  end;
+end;
+
+
+
+procedure VeriFactu_SaveHashAuditDataByID(const QueueID: Int64;
+  const HashInput, FechaHoraHuso: string);
+var
+  ownTemp: Boolean;
+  Conn: TZConnection;
+  q: TZQuery;
+begin
+  ownTemp := False;
+  if QueueID <= 0 then Exit;
+
+  if not GetConnForOps(Conn) then
+  begin
+    WriteDiag('SaveHashAuditDataByID: no hay conexión DB.');
+    Exit;
+  end;
+  if Conn <> GConn then ownTemp := True;
+
+  q := TZQuery.Create(nil);
+  try
+    q.Connection := Conn;
+    VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'hash_input',
+      'hash_input MEDIUMTEXT NULL');
+    VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'hash_fecha_huso',
+      'hash_fecha_huso VARCHAR(35) NULL');
+    VF_AddColumnIfMissing(Conn, 'verifactu_queue', 'hash_algoritmo',
+      'hash_algoritmo VARCHAR(16) NOT NULL DEFAULT "SHA-256"');
+
+    q.SQL.Text :=
+      'UPDATE verifactu_queue SET hash_input=:hi, hash_fecha_huso=:fh, ' +
+      'hash_algoritmo="SHA-256", updated_at=NOW() WHERE id=:id LIMIT 1';
+    q.ParamByName('hi').AsString := HashInput;
+    q.ParamByName('fh').AsString := FechaHoraHuso;
+    q.ParamByName('id').AsLargeInt := QueueID;
+    q.ExecSQL;
+  except
+    on E: Exception do
+      WriteDiag('SaveHashAuditDataByID: ' + E.Message);
+  end;
+  q.Free;
+
+  if ownTemp then
+  begin
+    try if Conn.Connected then Conn.Disconnect; except end;
+    Conn.Free;
+  end;
+end;
+
 // -------------------- Lock DB para encadenamiento hash/hash_prev --------------------
 // NOTA: Necesario si hay concurrencia (threads o varios procesos) para evitar que varios
 //       registros usen el mismo hash_prev. Se usa GET_LOCK/RELEASE_LOCK (MySQL/MariaDB).
 
 function VF_MakeChainLockName(const Serie: string): string;
-var
-  S: string;
-  k: Integer;
-  ch: Char;
 begin
-  S := Trim(Serie);
-  // Normalizamos: solo [A-Za-z0-9_-] para nombre de lock estable
-  for k := 1 to Length(S) do
-  begin
-    ch := S[k];
-    if not (ch in ['A'..'Z','a'..'z','0'..'9','_','-']) then
-      S[k] := '_';
-  end;
-  Result := 'VF_CHAIN_' + S;
-  // MySQL limita el nombre del lock a 64 caracteres
-  if Length(Result) > 64 then
-    SetLength(Result, 64);
+  Result := 'VF_CHAIN_GLOBAL';
 end;
 
 function VF_DB_GetLock(Conn: TZConnection; const LockName: string; TimeoutSec: Integer): Boolean;
@@ -2210,6 +2328,50 @@ begin
     q.Open;
   finally
     q.Free;
+  end;
+end;
+
+function VeriFactu_GetRecordIdentityByHash(const AHash: string;
+  out ASerie: string; out ANumero: Integer; out AFecha: TDateTime): Boolean;
+var
+  OwnTemp: Boolean;
+  Conn: TZConnection;
+  Q: TZQuery;
+begin
+  Result := False;
+  ASerie := '';
+  ANumero := 0;
+  AFecha := 0;
+  OwnTemp := False;
+
+  if Trim(AHash) = '' then Exit;
+  if not GetConnForOps(Conn) then Exit;
+  if Conn <> GConn then OwnTemp := True;
+
+  Q := TZQuery.Create(nil);
+  try
+    Q.Connection := Conn;
+    Q.SQL.Text :=
+      'SELECT serie,numero,fecha FROM verifactu_queue ' +
+      'WHERE hash=:h ORDER BY id DESC LIMIT 1';
+    Q.ParamByName('h').AsString := Trim(AHash);
+    Q.Open;
+    if Q.EOF then Exit;
+
+    ASerie := Trim(Q.FieldByName('serie').AsString);
+    ANumero := Q.FieldByName('numero').AsInteger;
+    AFecha := Q.FieldByName('fecha').AsDateTime;
+    Result := (ASerie <> '') and (ANumero > 0) and (AFecha > 0);
+  finally
+    Q.Free;
+    if OwnTemp then
+    begin
+      try
+        if Conn.Connected then Conn.Disconnect;
+      except
+      end;
+      Conn.Free;
+    end;
   end;
 end;
 
@@ -2309,9 +2471,11 @@ begin
       'SELECT q.id, q.serie, q.numero ' +
       'FROM verifactu_queue q ' +
       'WHERE q.estado="PENDIENTE" ' +
+      '  AND COALESCE(q.registro_uid,''ORIG'')=''ORIG'' ' +
       '  AND NOT EXISTS ( ' +
       '       SELECT 1 FROM verifactu_queue p ' +
       '       WHERE p.serie=q.serie AND p.id<q.id ' +
+      '         AND COALESCE(p.registro_uid,''ORIG'')=''ORIG'' ' +
       '         AND p.estado IN ("PENDIENTE","EN_PROCESO") ' +
       '  ) ' +
       'ORDER BY q.created_at ASC, q.id ASC ' +
@@ -2365,7 +2529,7 @@ begin
       Exit(False);
     end;
     try
-      VF_AttachHashToQueue(Conn, Serie, Numero, PayloadJSON, 'ALTA');
+      VF_AttachHashToQueue(Conn, Serie, Numero, PayloadJSON, 'ALTA', RowId);
     finally
       VF_DB_ReleaseLock(Conn, LockName);
     end;
@@ -2442,9 +2606,11 @@ begin
       'SELECT q.id ' +
       'FROM verifactu_queue q ' +
       'WHERE q.estado="PENDIENTE" AND q.serie=:s AND q.numero=:n ' +
+      '  AND COALESCE(q.registro_uid,''ORIG'')=''ORIG'' ' +
       '  AND NOT EXISTS ( ' +
       '       SELECT 1 FROM verifactu_queue p ' +
       '       WHERE p.serie=q.serie AND p.id<q.id ' +
+      '         AND COALESCE(p.registro_uid,''ORIG'')=''ORIG'' ' +
       '         AND p.estado IN ("PENDIENTE","EN_PROCESO") ' +
       '  ) ' +
       'LIMIT 1';
@@ -2497,7 +2663,7 @@ begin
     end;
 
     try
-      VF_AttachHashToQueue(Conn, SerieIn, NumeroIn, PayloadJSON, 'ALTA');
+      VF_AttachHashToQueue(Conn, SerieIn, NumeroIn, PayloadJSON, 'ALTA', RowId);
     finally
       VF_DB_ReleaseLock(Conn, LockName);
     end;
